@@ -23,11 +23,12 @@ void Repl()
 			for (const auto &token : tokens)
 				std::cout << token << std::endl;
 
-			auto stmt = parser.Parse(tokens);
+			auto stmts = parser.Parse(tokens);
 
-			std::cout << stmt->Stringify() << std::endl;
+			for (const auto &stmt : stmts)
+				std::cout << stmt->Stringify() << std::endl;
 
-			Frame frame = compiler.Compile(stmt);
+			Frame frame = compiler.Compile(stmts);
 
 			std::cout << frame.Stringify() << std::endl;
 
@@ -53,7 +54,10 @@ void RunFile(std::string path)
 
 	auto stmt = parser.Parse(tokens);
 
-	std::cout << stmt->Stringify() << std::endl;
+	auto stmts = parser.Parse(tokens);
+
+	for (const auto &stmt : stmts)
+		std::cout << stmt->Stringify() << std::endl;
 
 	Frame frame = compiler.Compile(stmt);
 
