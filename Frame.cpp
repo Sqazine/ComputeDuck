@@ -2,6 +2,12 @@
 #include "Utils.h"
 
 Frame::Frame()
+	: m_UpFrame(nullptr)
+{
+}
+
+Frame::Frame(Frame *upFrame)
+	: m_UpFrame(upFrame)
 {
 }
 
@@ -45,7 +51,10 @@ void Frame::AddFunctionFrame(std::string_view name, Frame frame)
 
 Frame Frame::GetFunctionFrame(std::string_view name)
 {
-	return m_FunctionFrames[name.data()];
+	if (m_FunctionFrames.find(name.data()) != m_FunctionFrames.end())
+		return m_FunctionFrames[name.data()];
+	else if (m_UpFrame)
+		return m_UpFrame->GetFunctionFrame(name);
 }
 
 bool Frame::HasFunctionFrame(std::string_view name)
@@ -53,6 +62,10 @@ bool Frame::HasFunctionFrame(std::string_view name)
 	for (auto [key, value] : m_FunctionFrames)
 		if (key == name)
 			return true;
+
+	if (m_UpFrame)
+		return m_UpFrame->HasFunctionFrame(name);
+
 	return false;
 }
 
@@ -65,7 +78,10 @@ void Frame::AddStructFrame(std::string_view name, Frame frame)
 
 Frame Frame::GetStructFrame(std::string_view name)
 {
-	return m_StructFrames[name.data()];
+	if (m_StructFrames.find(name.data()) != m_StructFrames.end())
+		return m_StructFrames[name.data()];
+	else if (m_UpFrame)
+		return m_UpFrame->GetStructFrame(name);
 }
 
 bool Frame::HasStructFrame(std::string_view name)
@@ -73,6 +89,10 @@ bool Frame::HasStructFrame(std::string_view name)
 	for (auto [key, value] : m_StructFrames)
 		if (key == name)
 			return true;
+
+	if (m_UpFrame)
+		return m_UpFrame->HasStructFrame(name);
+
 	return false;
 }
 
@@ -190,10 +210,10 @@ std::string Frame::Stringify(int depth)
 			SINGLE_INSTR_STRINGIFY(OP_SET_INDEX_VAR);
 			break;
 		case OP_GET_STRUCT_VAR:
-			CONSTANT_INSTR_STRINGIFY(OP_GET_STRUCT_VAR,m_Strings);
+			CONSTANT_INSTR_STRINGIFY(OP_GET_STRUCT_VAR, m_Strings);
 			break;
 		case OP_SET_STRUCT_VAR:
-			CONSTANT_INSTR_STRINGIFY(OP_SET_STRUCT_VAR,m_Strings);
+			CONSTANT_INSTR_STRINGIFY(OP_SET_STRUCT_VAR, m_Strings);
 			break;
 		case OP_ENTER_SCOPE:
 			SINGLE_INSTR_STRINGIFY(OP_ENTER_SCOPE);

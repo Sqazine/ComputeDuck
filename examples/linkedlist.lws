@@ -1,0 +1,64 @@
+struct Node
+{
+    var v=0;
+    var next=nil;
+}
+
+var head=Node;
+
+var e=head;
+var i=1;
+while(i<10)
+{
+    var e2=Node;
+    e2.v=i;
+
+    e.next=e2;
+
+    e=e.next;
+
+    i=i+1;
+}
+
+println(head);
+
+#struct{
+#    v=0.000000
+#    next=struct
+#        {
+#            v=1.000000
+#            next=struct
+#                {
+#                    v=2.000000
+#                    next=struct
+#                        {
+#                            v=3.000000
+#                            next=struct
+#                                {
+#                                    v=4.000000
+#                                    next=struct
+#                                        {
+#                                            v=5.000000
+#                                            next=struct
+#                                                {
+#                                                    v=6.000000
+#                                                    next=struct
+#                                                        {
+#                                                            v=7.000000
+#                                                            next=struct
+#                                                                {
+#                                                                    v=8.000000
+#                                                                    next=struct
+#                                                                        {
+#                                                                            v=9.000000
+#                                                                            next=nil
+#                                                                        }
+#                                                                }
+#                                                        }
+#                                                }
+#                                        }
+#                                }
+#                        }
+#                }
+#        }
+#}

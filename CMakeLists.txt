@@ -7,4 +7,4 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 file(GLOB SRC "*.h" "*.cpp")
 
-add_executable(ComputeDuck ${SRC})
+add_executable(computeduck ${SRC})
