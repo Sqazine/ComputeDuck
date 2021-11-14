@@ -18,7 +18,6 @@ enum class AstType
 	PREFIX,
 	INFIX,
 	INDEX,
-	FUNCTION,
 	FUNCTION_CALL,
 	//stmt
 	VAR,
@@ -26,6 +25,7 @@ enum class AstType
 	RETURN,
 	IF,
 	SCOPE,
+	FUNCTION,
 	WHILE,
 };
 
@@ -338,11 +338,11 @@ struct ScopeStmt : public Stmt
 	std::vector<Stmt *> stmts;
 };
 
-struct FunctionExpr : public Expr
+struct FunctionStmt : public Stmt
 {
-	FunctionExpr() : body(nullptr) {}
-	FunctionExpr(std::vector<IdentifierExpr *> parameters, ScopeStmt *body) : parameters(parameters), body(body) {}
-	~FunctionExpr()
+	FunctionStmt() : body(nullptr) {}
+	FunctionStmt(std::string_view name, std::vector<IdentifierExpr *> parameters, ScopeStmt *body) : parameters(parameters), body(body) {}
+	~FunctionStmt()
 	{
 		std::vector<IdentifierExpr *>().swap(parameters);
 
@@ -352,7 +352,7 @@ struct FunctionExpr : public Expr
 
 	std::string Stringify() override
 	{
-		std::string result = "fn(";
+		std::string result = "fn "+name+"(";
 		if (!parameters.empty())
 		{
 			for (auto param : parameters)
@@ -365,6 +365,7 @@ struct FunctionExpr : public Expr
 	}
 	AstType Type() override { return AstType::FUNCTION; }
 
+	std::string name;
 	std::vector<IdentifierExpr *> parameters;
 	ScopeStmt *body;
 };

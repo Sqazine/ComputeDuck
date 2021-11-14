@@ -12,7 +12,6 @@ std::unordered_map<TokenType, PrefixFn> Parser::m_PrefixFunctions =
 		{TokenType::BANG, &Parser::ParsePrefixExpr},
 		{TokenType::LPAREN, &Parser::ParseGroupExpr},
 		{TokenType::LBRACKET, &Parser::ParseArrayExpr},
-		{TokenType::FUNCTION, &Parser::ParseFunctionExpr},
 };
 
 std::unordered_map<TokenType, InfixFn> Parser::m_InfixFunctions =
@@ -86,6 +85,8 @@ Stmt *Parser::ParseStmt()
 		return ParseScopeStmt();
 	else if (IsMatchCurToken(TokenType::WHILE))
 		return ParseWhileStmt();
+	else if(IsMatchCurToken(TokenType::FUNCTION))
+		return ParseFunctionStmt();
 	else
 		return ParseExprStmt();
 }
@@ -169,29 +170,31 @@ Stmt *Parser::ParseWhileStmt()
 	return whileStmt;
 }
 
-Expr *Parser::ParseFunctionExpr()
+Stmt *Parser::ParseFunctionStmt()
 {
-	Consume(TokenType::FUNCTION, "Expect 'function' keyword");
+	Consume(TokenType::FUNCTION, "Expect 'fn' keyword");
 
-	auto funcExpr = new FunctionExpr();
+	auto funcStmt  = new FunctionStmt();
 
-	Consume(TokenType::LPAREN, "Expect '(' after 'function' keyword");
+	funcStmt->name=ParseIdentifierExpr()->Stringify();
+
+	Consume(TokenType::LPAREN, "Expect '(' after function name");
 
 	if (!IsMatchCurToken(TokenType::RPAREN)) //has parameter
 	{
 		IdentifierExpr *idenExpr = (IdentifierExpr *)ParseIdentifierExpr();
-		funcExpr->parameters.emplace_back(idenExpr);
+		funcStmt->parameters.emplace_back(idenExpr);
 		while (IsMatchCurTokenAndStepOnce(TokenType::COMMA))
 		{
 			idenExpr = (IdentifierExpr *)ParseIdentifierExpr();
-			funcExpr->parameters.emplace_back(idenExpr);
+			funcStmt->parameters.emplace_back(idenExpr);
 		}
 	}
 	Consume(TokenType::RPAREN, "Expect ')' after function expr's '('");
 
-	funcExpr->body = (ScopeStmt *)ParseScopeStmt();
+	funcStmt->body = (ScopeStmt *)ParseScopeStmt();
 
-	return funcExpr;
+	return funcStmt;
 }
 
 Expr *Parser::ParseExpr(Precedence precedence)

@@ -41,6 +41,9 @@ void Compiler::CompileStmt(Stmt *stmt, Frame &frame)
 	case AstType::WHILE:
 		CompileWhileStmt((WhileStmt *)stmt, frame);
 		break;
+	case AstType::FUNCTION:
+		CompileFunctionStmt((FunctionStmt*)stmt,frame);
+		break;
 	default:
 		break;
 	}
@@ -113,7 +116,7 @@ void Compiler::CompileWhileStmt(WhileStmt *stmt, Frame &frame)
 	frame.GetNums()[jmpIfFalseOffset] = (double)frame.GetOpCodeSize() - 1.0;
 }
 
-void Compiler::CompileFunctionExpr(FunctionExpr *stmt, Frame &frame)
+void Compiler::CompileFunctionStmt(FunctionStmt *stmt, Frame &frame)
 {
 	Frame functionFrame;
 
@@ -126,9 +129,7 @@ void Compiler::CompileFunctionExpr(FunctionExpr *stmt, Frame &frame)
 
 	functionFrame.AddOpCode(OP_EXIT_SCOPE);
 
-	frame.AddOpCode(OP_NEW_FUNCTION);
-	size_t offset = frame.AddNum(frame.AddFunctionFrame(functionFrame));
-	frame.AddOpCode(offset);
+	frame.AddFunctionFrame(stmt->name,functionFrame);
 }
 
 void Compiler::CompileExpr(Expr *expr, Frame &frame, ObjectState state)
@@ -164,9 +165,6 @@ void Compiler::CompileExpr(Expr *expr, Frame &frame, ObjectState state)
 		break;
 	case AstType::INFIX:
 		CompileInfixExpr((InfixExpr *)expr, frame);
-		break;
-	case AstType::FUNCTION:
-		CompileFunctionExpr((FunctionExpr *)expr, frame);
 		break;
 	case AstType::FUNCTION_CALL:
 		CompileFunctionCallExpr((FunctionCallExpr *)expr, frame);

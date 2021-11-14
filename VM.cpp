@@ -189,22 +189,6 @@ ArrayObject *VM::CreateArrayObject(const std::vector<Object *> &elements)
 	return object;
 }
 
-FunctionObject *VM::CreateFunctionObject(int64_t frameIdx)
-{
-	if (curObjCount == maxObjCount)
-		Gc();
-
-	FunctionObject *object = new FunctionObject(frameIdx);
-	object->marked = false;
-
-	object->next = firstObject;
-	firstObject = object;
-
-	curObjCount++;
-
-	return object;
-}
-
 Object *VM::Execute(Frame frame)
 {
 	// + - * /
@@ -436,31 +420,23 @@ Object *VM::Execute(Frame frame)
 			std::string fnName = frame.m_Strings[frame.m_Codes[++ip]];
 			NumObject *argCount = TO_NUM_OBJ(PopObject());
 
-			if (m_Context->GetVariable(fnName) != nullptr) //lambda:let add=function(){return 10;}
-			{
-				Object *functionObject = m_Context->GetVariable(fnName);
-				if (!IS_FUNCTION_OBJ(functionObject))
-					Assert("Not a function object of " + fnName);
-				PushObject(Execute(frame.GetFunctionFrame(TO_FUNCTION_OBJ(functionObject)->frameIndex)));
-			}
+			if (frame.HasFunctionFrame(fnName))
+				PushObject(Execute(frame.GetFunctionFrame(fnName)));
 			else if (HasNativeFunction(fnName))
 			{
-				std::vector<Object *> args;
-				for (int64_t i = 0; i < argCount->value; ++i)
-					args.insert(args.begin(), PopObject());
+					std::vector<Object *> args;
+					for (int64_t i = 0; i < argCount->value; ++i)
+						args.insert(args.begin(), PopObject());
 
-				Object *result = GetNativeFunction(fnName)(args);
-				if (result)
-					PushObject(result);
+					Object *result = GetNativeFunction(fnName)(args);
+					if (result)
+						PushObject(result);
 			}
 			else
 				Assert("No function:" + fnName);
 
 			break;
 		}
-		case OP_NEW_FUNCTION:
-			PushObject(CreateFunctionObject(frame.m_Nums[frame.m_Codes[++ip]]));
-			break;
 		default:
 			break;
 		}

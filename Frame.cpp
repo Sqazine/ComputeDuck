@@ -36,23 +36,22 @@ std::vector<double> &Frame::GetNums()
 	return m_Nums;
 }
 
-uint64_t Frame::AddFunctionFrame(Frame frame)
+void Frame::AddFunctionFrame(std::string_view name, Frame frame)
 {
-	m_FunctionFrames.emplace_back(frame);
-	return m_FunctionFrames.size() - 1;
+	m_FunctionFrames[name.data()] = frame;
 }
 
-Frame Frame::GetFunctionFrame(uint64_t idx)
+Frame Frame::GetFunctionFrame(std::string_view name)
 {
-		return m_FunctionFrames[idx];
+	return m_FunctionFrames[name.data()];
 }
 
-bool Frame::HasFunctionFrame(uint64_t idx)
+bool Frame::HasFunctionFrame(std::string_view name)
 {
-	if (idx >= 0 || idx < m_FunctionFrames.size())
-		return true;
-	else
-		return false;
+	for (auto [key, value] : m_FunctionFrames)
+		if (key == name)
+			return true;
+	return false;
 }
 
 std::string Frame::Stringify(int depth)
@@ -69,10 +68,10 @@ std::string Frame::Stringify(int depth)
 
 	std::stringstream result;
 
-	for (size_t i = 0; i < m_FunctionFrames.size(); ++i)
+	for (auto [key, value] : m_FunctionFrames)
 	{
-		result << interval << "Frame " << i << ":\n";
-		result << m_FunctionFrames[i].Stringify(depth + 1);
+		result << interval << "Frame " << key << ":\n";
+		result << value.Stringify(depth + 1);
 	}
 
 	result << interval << "OpCodes:\n";
@@ -153,16 +152,12 @@ std::string Frame::Stringify(int depth)
 		case OP_NEW_ARRAY:
 			CONSTANT_INSTR_STRINGIFY(OP_NEW_ARRAY, m_Nums);
 			break;
-		case OP_NEW_FUNCTION:
-			CONSTANT_INSTR_STRINGIFY(OP_NEW_FUNCTION, m_Nums);
-			break;
 		case OP_GET_INDEX_VAR:
 			SINGLE_INSTR_STRINGIFY(OP_GET_INDEX_VAR);
 			break;
 		case OP_SET_INDEX_VAR:
 			SINGLE_INSTR_STRINGIFY(OP_SET_INDEX_VAR);
 			break;
-
 		case OP_ENTER_SCOPE:
 			SINGLE_INSTR_STRINGIFY(OP_ENTER_SCOPE);
 			break;
@@ -176,7 +171,7 @@ std::string Frame::Stringify(int depth)
 			CONSTANT_INSTR_STRINGIFY(OP_JUMP_IF_FALSE, m_Nums);
 			break;
 		case OP_FUNCTION_CALL:
-			CONSTANT_INSTR_STRINGIFY(OP_FUNCTION_CALL,m_Strings);
+			CONSTANT_INSTR_STRINGIFY(OP_FUNCTION_CALL, m_Strings);
 			break;
 		default:
 			SINGLE_INSTR_STRINGIFY(UNKNOWN);
@@ -192,8 +187,5 @@ void Frame::Clear()
 	std::vector<double>().swap(m_Nums);
 	std::vector<std::string>().swap(m_Strings);
 
-	for (auto funcFrame : m_FunctionFrames)
-		funcFrame.Clear();
-
-	std::vector<Frame>().swap(m_FunctionFrames);
+	std::unordered_map<std::string, Frame>().swap(m_FunctionFrames);
 }

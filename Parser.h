@@ -43,6 +43,7 @@ private:
 	Stmt *ParseIfStmt();
 	Stmt *ParseScopeStmt();
 	Stmt *ParseWhileStmt();
+	Stmt *ParseFunctionStmt();
 
 	Expr *ParseExpr(Precedence precedence = Precedence::LOWEST);
 	Expr *ParseIdentifierExpr();
@@ -54,7 +55,6 @@ private:
 	Expr *ParseGroupExpr();
 	Expr *ParseArrayExpr();
 	Expr *ParsePrefixExpr();
-	Expr *ParseFunctionExpr();
 	Expr *ParseInfixExpr(Expr *prefixExpr);
 	Expr *ParseConditionExpr(Expr *prefixExpr);
 	Expr *ParseIndexExpr(Expr *prefixExpr);

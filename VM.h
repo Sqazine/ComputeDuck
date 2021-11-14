@@ -28,7 +28,6 @@ public:
 	BoolObject *CreateBoolObject(bool value = false);
 	NilObject *CreateNilObject();
 	ArrayObject *CreateArrayObject(const std::vector<Object *> &elements = {});
-	FunctionObject *CreateFunctionObject(int64_t frameIdx);
 
 	void Gc();
 
