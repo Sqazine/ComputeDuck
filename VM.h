@@ -28,6 +28,8 @@ public:
 	BoolObject *CreateBoolObject(bool value = false);
 	NilObject *CreateNilObject();
 	ArrayObject *CreateArrayObject(const std::vector<Object *> &elements = {});
+	StructObject *CreateStructObject(std::string_view name,
+									 const std::unordered_map<std::string, Object *> &members={});
 
 	void Gc();
 

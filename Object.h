@@ -11,13 +11,14 @@
 #define TO_NIL_OBJ(obj) ((NilObject *)obj)
 #define TO_BOOL_OBJ(obj) ((BoolObject *)obj)
 #define TO_ARRAY_OBJ(obj) ((ArrayObject *)obj)
-#define TO_FUNCTION_OBJ(obj) ((FunctionObject *)obj)
+#define TO_STRUCT_OBJ(obj) ((StructObject *)obj)
 
 #define IS_NUM_OBJ(obj) (obj->Type() == ObjectType::NUM)
 #define IS_STR_OBJ(obj) (obj->Type() == ObjectType::STR)
 #define IS_BOOL_OBJ(obj) (obj->Type() == ObjectType::BOOL)
 #define IS_NIL_OBJ(obj) (obj->Type() == ObjectType::NIL)
 #define IS_ARRAY_OBJ(obj) (obj->Type() == ObjectType::ARRAY)
+#define IS_STRUCT_OBJ(obj) (obj->Type() == ObjectType::STRUCT)
 
 enum class ObjectType
 {
@@ -26,6 +27,7 @@ enum class ObjectType
 	BOOL,
 	NIL,
 	ARRAY,
+	STRUCT
 };
 
 struct Object
@@ -42,7 +44,6 @@ struct Object
 	bool marked;
 	Object *next;
 };
-
 
 struct NumObject : public Object
 {
@@ -177,4 +178,69 @@ struct ArrayObject : public Object
 	}
 
 	std::vector<Object *> elements;
+};
+
+struct StructObject : public Object
+{
+	StructObject() {}
+	StructObject(std::string_view name, const std::unordered_map<std::string, Object *> &members) : name(name), members(members) {}
+	~StructObject() {}
+
+	std::string Stringify() override
+	{
+		std::string result = "struct instance " + name;
+		if (!members.empty())
+		{
+			result += ":\n";
+			for (const auto &[key, value] : members)
+				result += key + "=" + value->Stringify() + "\n";
+			result = result.substr(0, result.size() - 1);
+		}
+		return result;
+	}
+	ObjectType Type() override { return ObjectType::STRUCT; }
+	void Mark() override { marked = true; }
+	void UnMark() override { marked = false; }
+	bool IsEqualTo(Object *other) override
+	{
+		if (!IS_STRUCT_OBJ(other))
+			return false;
+
+		if (name != TO_STRUCT_OBJ(other)->name)
+			return false;
+
+		for (auto [key1, value1] : members)
+			for (auto [key2, value2] : TO_STRUCT_OBJ(other)->members)
+				if (key1 != key2 || !value1->IsEqualTo(value2))
+					return false;
+		return true;
+	}
+
+	void DefineMember(std::string_view name, Object *value)
+	{
+		auto iter = members.find(name.data());
+		if (iter != members.end())
+			Assert("Redefined class member:" + std::string(name));
+		else
+			members[name.data()] = value;
+	}
+
+	void AssignMember(std::string_view name, Object *value)
+	{
+		auto iter = members.find(name.data());
+		if (iter != members.end())
+			members[name.data()] = value;
+		else
+			Assert("Undefine class member:" + std::string(name));
+	}
+
+	Object *GetMember(std::string_view name)
+	{
+		auto iter = members.find(name.data());
+		if (iter != members.end())
+			return iter->second;
+		return nullptr;
+	}
+	std::string name;
+	std::unordered_map<std::string, Object *> members;
 };

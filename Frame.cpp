@@ -38,6 +38,8 @@ std::vector<double> &Frame::GetNums()
 
 void Frame::AddFunctionFrame(std::string_view name, Frame frame)
 {
+	if (m_FunctionFrames.find(name.data()) != m_FunctionFrames.end())
+		Assert("Redefinition function:" + std::string(name));
 	m_FunctionFrames[name.data()] = frame;
 }
 
@@ -49,6 +51,26 @@ Frame Frame::GetFunctionFrame(std::string_view name)
 bool Frame::HasFunctionFrame(std::string_view name)
 {
 	for (auto [key, value] : m_FunctionFrames)
+		if (key == name)
+			return true;
+	return false;
+}
+
+void Frame::AddStructFrame(std::string_view name, Frame frame)
+{
+	if (m_StructFrames.find(name.data()) != m_StructFrames.end())
+		Assert("Redefinition struct:" + std::string(name));
+	m_StructFrames[name.data()] = frame;
+}
+
+Frame Frame::GetStructFrame(std::string_view name)
+{
+	return m_StructFrames[name.data()];
+}
+
+bool Frame::HasStructFrame(std::string_view name)
+{
+	for (auto [key, value] : m_StructFrames)
 		if (key == name)
 			return true;
 	return false;
@@ -67,6 +89,12 @@ std::string Frame::Stringify(int depth)
 	result << interval << "\t" << std::setfill('0') << std::setw(8) << i << "     " << (#op) << "     " << vec[m_Codes[++i]] << "\n"
 
 	std::stringstream result;
+
+	for (auto [key, value] : m_StructFrames)
+	{
+		result << interval << "Frame " << key << ":\n";
+		result << value.Stringify(depth + 1);
+	}
 
 	for (auto [key, value] : m_FunctionFrames)
 	{
@@ -97,6 +125,9 @@ std::string Frame::Stringify(int depth)
 			break;
 		case OP_NEW_NIL:
 			SINGLE_INSTR_STRINGIFY(OP_NEW_NIL);
+			break;
+		case OP_NEW_STRUCT:
+			CONSTANT_INSTR_STRINGIFY(OP_NEW_STRUCT, m_Strings);
 			break;
 		case OP_NEG:
 			SINGLE_INSTR_STRINGIFY(OP_NEG);
@@ -157,6 +188,12 @@ std::string Frame::Stringify(int depth)
 			break;
 		case OP_SET_INDEX_VAR:
 			SINGLE_INSTR_STRINGIFY(OP_SET_INDEX_VAR);
+			break;
+		case OP_GET_STRUCT_VAR:
+			CONSTANT_INSTR_STRINGIFY(OP_GET_STRUCT_VAR,m_Strings);
+			break;
+		case OP_SET_STRUCT_VAR:
+			CONSTANT_INSTR_STRINGIFY(OP_SET_STRUCT_VAR,m_Strings);
 			break;
 		case OP_ENTER_SCOPE:
 			SINGLE_INSTR_STRINGIFY(OP_ENTER_SCOPE);

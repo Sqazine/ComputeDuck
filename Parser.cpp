@@ -31,6 +31,7 @@ std::unordered_map<TokenType, InfixFn> Parser::m_InfixFunctions =
 		{TokenType::LBRACKET, &Parser::ParseIndexExpr},
 		{TokenType::AND, &Parser::ParseInfixExpr},
 		{TokenType::OR, &Parser::ParseInfixExpr},
+		{TokenType::DOT,&Parser::ParseStructCallExpr},
 };
 
 std::unordered_map<TokenType, Precedence> Parser::m_Precedence =
@@ -50,6 +51,7 @@ std::unordered_map<TokenType, Precedence> Parser::m_Precedence =
 		{TokenType::LPAREN, Precedence::INFIX},
 		{TokenType::AND, Precedence::AND},
 		{TokenType::OR, Precedence::OR},
+		{TokenType::DOT,Precedence::INFIX}
 };
 
 Parser::Parser()
@@ -85,8 +87,10 @@ Stmt *Parser::ParseStmt()
 		return ParseScopeStmt();
 	else if (IsMatchCurToken(TokenType::WHILE))
 		return ParseWhileStmt();
-	else if(IsMatchCurToken(TokenType::FUNCTION))
+	else if (IsMatchCurToken(TokenType::FUNCTION))
 		return ParseFunctionStmt();
+	else if(IsMatchCurToken(TokenType::STRUCT))
+		return ParseStructStmt();
 	else
 		return ParseExprStmt();
 }
@@ -174,9 +178,9 @@ Stmt *Parser::ParseFunctionStmt()
 {
 	Consume(TokenType::FUNCTION, "Expect 'fn' keyword");
 
-	auto funcStmt  = new FunctionStmt();
+	auto funcStmt = new FunctionStmt();
 
-	funcStmt->name=ParseIdentifierExpr()->Stringify();
+	funcStmt->name = ParseIdentifierExpr()->Stringify();
 
 	Consume(TokenType::LPAREN, "Expect '(' after function name");
 
@@ -195,6 +199,24 @@ Stmt *Parser::ParseFunctionStmt()
 	funcStmt->body = (ScopeStmt *)ParseScopeStmt();
 
 	return funcStmt;
+}
+
+Stmt *Parser::ParseStructStmt()
+{
+	Consume(TokenType::STRUCT, "Expect 'struct' keyword");
+
+	auto structStmt = new StructStmt();
+
+	structStmt->name = ParseIdentifierExpr()->Stringify();
+
+	Consume(TokenType::LBRACE, "Expect '{' after struct name");
+
+	while (!IsMatchCurToken(TokenType::RBRACE))
+		structStmt->members.emplace_back((VarStmt*)ParseVarStmt());
+
+	Consume(TokenType::RBRACE, "Expect '}' after struct's '{'");
+
+	return structStmt;
 }
 
 Expr *Parser::ParseExpr(Precedence precedence)
@@ -324,6 +346,15 @@ Expr *Parser::ParseFunctionCallExpr(Expr *prefixExpr)
 	Consume(TokenType::RPAREN, "Expect ')'.");
 
 	return funcCallExpr;
+}
+
+Expr *Parser::ParseStructCallExpr(Expr *prefixExpr)
+{
+Consume(TokenType::DOT, "Expect '.'.");
+    auto structCallExpr = new StructCallExpr();
+    structCallExpr->callee = prefixExpr;
+    structCallExpr->callMember = ParseExpr(Precedence::INFIX);
+    return structCallExpr;
 }
 
 Token Parser::GetCurToken()

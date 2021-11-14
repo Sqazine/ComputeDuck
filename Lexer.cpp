@@ -12,7 +12,9 @@ static std::unordered_map<std::string, TokenType> keywords =
         {"fn", TokenType::FUNCTION},
         {"return", TokenType::RETURN},
         {"and", TokenType::AND},
-        {"or", TokenType::OR}};
+        {"or", TokenType::OR},
+        {"struct", TokenType::STRUCT},
+};
 
 Lexer::Lexer()
 {
@@ -63,6 +65,9 @@ void Lexer::GenerateToken()
     case ',':
         AddToken(TokenType::COMMA);
         break;
+    case '.':
+        AddToken(TokenType::DOT);
+        break;
     case ':':
         AddToken(TokenType::COLON);
         break;
@@ -89,28 +94,15 @@ void Lexer::GenerateToken()
         AddToken(TokenType::ASTERISK);
         break;
     case '/':
-        if (IsMatchCurCharAndStepOnce('/'))
-        {
-            while (!IsMatchCurChar('\n') && !IsAtEnd())
-                GetCurCharAndStepOnce();
-            m_Line++;
-            break;
-        }
-        else if (IsMatchCurCharAndStepOnce('*'))
-        {
-            while (!IsMatchCurChar('*') && !IsMatchNextChar('/') && !IsAtEnd())
-            {
-                if (IsMatchCurChar('\n'))
-                    m_Line++;
-                GetCurCharAndStepOnce();
-            }
-            GetCurCharAndStepOnce(); //eat '*'
-            GetCurCharAndStepOnce(); // eat '/'
-        }
-        else
-            AddToken(TokenType::SLASH);
+        AddToken(TokenType::SLASH);
         break;
-
+    case '#':
+    {
+        while (!IsMatchCurChar('\n') && !IsAtEnd())
+            GetCurCharAndStepOnce();
+        m_Line++;
+        break;
+    }
     case '!':
         if (IsMatchCurCharAndStepOnce('='))
             AddToken(TokenType::BANG_EQUAL);
