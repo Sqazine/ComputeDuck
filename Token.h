@@ -10,6 +10,7 @@ enum class TokenType
 	STRING,
 	IDENTIFIER,
 	COMMA,		   // ,
+	DOT,		   // .
 	COLON,		   // :
 	SEMICOLON,	   // ;
 	LBRACKET,	   // [
@@ -41,6 +42,7 @@ enum class TokenType
 	RETURN,		   // return
 	AND,		   // and
 	OR,			   // or
+	STRUCT,		   // struct
 
 	UNKNOWN,
 	END

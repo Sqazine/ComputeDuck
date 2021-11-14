@@ -189,6 +189,23 @@ ArrayObject *VM::CreateArrayObject(const std::vector<Object *> &elements)
 	return object;
 }
 
+StructObject *VM::CreateStructObject(std::string_view name,
+									 const std::unordered_map<std::string, Object *> &members)
+{
+	if (curObjCount == maxObjCount)
+		Gc();
+
+	StructObject *object = new StructObject(name, members);
+	object->marked = false;
+
+	object->next = firstObject;
+	firstObject = object;
+
+	curObjCount++;
+
+	return object;
+}
+
 Object *VM::Execute(Frame frame)
 {
 	// + - * /
@@ -330,7 +347,16 @@ Object *VM::Execute(Frame frame)
 
 			Object *varObject = m_Context->GetVariable(name);
 
-			PushObject(varObject);
+			//create a struct object
+			if (varObject == nullptr)
+			{
+				if (frame.HasStructFrame(name))
+					PushObject(Execute(frame.GetStructFrame(name)));
+				else 
+					Assert("No struct definition:"+name);
+			}
+			else
+				PushObject(varObject);
 			break;
 		}
 		case OP_NEW_ARRAY:
@@ -342,7 +368,15 @@ Object *VM::Execute(Frame frame)
 			PushObject(CreateArrayObject(elements));
 			break;
 		}
+		case OP_NEW_STRUCT:
+		{
+			PushObject(CreateStructObject(frame.m_Strings[frame.m_Codes[++ip]], m_Context->m_Values));
 
+			Context *tmp = m_Context->GetUpContext();
+			delete m_Context;
+			m_Context = tmp;
+			break;
+		}
 		case OP_GET_INDEX_VAR:
 		{
 			Object *index = PopObject();
@@ -387,7 +421,29 @@ Object *VM::Execute(Frame frame)
 				Assert("Invalid index op.The indexed object isn't a array object:" + object->Stringify());
 			break;
 		}
+		case OP_GET_STRUCT_VAR:
+		{
+			std::string memberName = frame.m_Strings[frame.m_Codes[++ip]];
+			Object *stackTop = PopObject();
+			if (!IS_STRUCT_OBJ(stackTop))
+				Assert("Not a class object of the callee of:" + memberName);
+			StructObject *structObj = TO_STRUCT_OBJ(stackTop);
+			PushObject(structObj->GetMember(memberName));
+			break;
+		}
+		case OP_SET_STRUCT_VAR:
+		{
+			std::string memberName = frame.m_Strings[frame.m_Codes[++ip]];
+			Object *stackTop = PopObject();
+			if (!IS_STRUCT_OBJ(stackTop))
+				Assert("Not a class object of the callee of:" + memberName);
+			StructObject *structObj = TO_STRUCT_OBJ(stackTop);
 
+			Object *assigner = PopObject();
+
+			structObj->AssignMember(memberName, assigner);
+			break;
+		}
 		case OP_ENTER_SCOPE:
 		{
 			m_Context = new Context(m_Context);
@@ -424,13 +480,13 @@ Object *VM::Execute(Frame frame)
 				PushObject(Execute(frame.GetFunctionFrame(fnName)));
 			else if (HasNativeFunction(fnName))
 			{
-					std::vector<Object *> args;
-					for (int64_t i = 0; i < argCount->value; ++i)
-						args.insert(args.begin(), PopObject());
+				std::vector<Object *> args;
+				for (int64_t i = 0; i < argCount->value; ++i)
+					args.insert(args.begin(), PopObject());
 
-					Object *result = GetNativeFunction(fnName)(args);
-					if (result)
-						PushObject(result);
+				Object *result = GetNativeFunction(fnName)(args);
+				if (result)
+					PushObject(result);
 			}
 			else
 				Assert("No function:" + fnName);

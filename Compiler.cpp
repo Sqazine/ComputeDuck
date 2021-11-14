@@ -7,7 +7,7 @@ Compiler::~Compiler()
 {
 }
 
-Frame Compiler::Compile(std::vector<Stmt *>stmts)
+Frame Compiler::Compile(std::vector<Stmt *> stmts)
 {
 	for (const auto &s : stmts)
 		CompileStmt(s, m_RootFrame);
@@ -42,7 +42,10 @@ void Compiler::CompileStmt(Stmt *stmt, Frame &frame)
 		CompileWhileStmt((WhileStmt *)stmt, frame);
 		break;
 	case AstType::FUNCTION:
-		CompileFunctionStmt((FunctionStmt*)stmt,frame);
+		CompileFunctionStmt((FunctionStmt *)stmt, frame);
+		break;
+	case AstType::STRUCT:
+		CompileStructStmt((StructStmt *)stmt, frame);
 		break;
 	default:
 		break;
@@ -63,8 +66,8 @@ void Compiler::CompileExprStmt(ExprStmt *stmt, Frame &frame)
 
 void Compiler::CompileVarStmt(VarStmt *stmt, Frame &frame)
 {
-		CompileExpr(stmt->value, frame);
-		CompileExpr(stmt->name, frame, INIT);
+	CompileExpr(stmt->value, frame);
+	CompileExpr(stmt->name, frame, INIT);
 }
 
 void Compiler::CompileScopeStmt(ScopeStmt *stmt, Frame &frame)
@@ -129,7 +132,25 @@ void Compiler::CompileFunctionStmt(FunctionStmt *stmt, Frame &frame)
 
 	functionFrame.AddOpCode(OP_EXIT_SCOPE);
 
-	frame.AddFunctionFrame(stmt->name,functionFrame);
+	frame.AddFunctionFrame(stmt->name, functionFrame);
+}
+
+void Compiler::CompileStructStmt(StructStmt *stmt, Frame &frame)
+{
+	Frame structFrame;
+
+	structFrame.AddOpCode(OP_ENTER_SCOPE);
+
+	for (const auto &m : stmt->members)
+		CompileVarStmt(m, structFrame);
+
+	structFrame.AddOpCode(OP_NEW_STRUCT);
+	uint64_t offset = structFrame.AddString(stmt->name);
+	structFrame.AddOpCode(offset);
+
+	structFrame.AddOpCode(OP_RETURN);
+
+	frame.AddStructFrame(stmt->name, structFrame);
 }
 
 void Compiler::CompileExpr(Expr *expr, Frame &frame, ObjectState state)
@@ -168,6 +189,9 @@ void Compiler::CompileExpr(Expr *expr, Frame &frame, ObjectState state)
 		break;
 	case AstType::FUNCTION_CALL:
 		CompileFunctionCallExpr((FunctionCallExpr *)expr, frame);
+		break;
+	case AstType::STRUCT_CALL:
+		CompileStructCallExpr((StructCallExpr *)expr, frame,state);
 		break;
 	default:
 		break;
@@ -209,6 +233,10 @@ void Compiler::CompileIdentifierExpr(IdentifierExpr *expr, Frame &frame, ObjectS
 		frame.AddOpCode(OP_SET_VAR);
 	else if (state == INIT)
 		frame.AddOpCode(OP_DEFINE_VAR);
+	else if (state == STRUCT_READ)
+		frame.AddOpCode(OP_GET_STRUCT_VAR);
+	else if (state == STRUCT_WRITE)
+		frame.AddOpCode(OP_SET_STRUCT_VAR);
 
 	uint64_t offset = frame.AddString(expr->literal);
 	frame.AddOpCode(offset);
@@ -289,7 +317,6 @@ void Compiler::CompileInfixExpr(InfixExpr *expr, Frame &frame)
 	}
 }
 
-
 void Compiler::CompileFunctionCallExpr(FunctionCallExpr *expr, Frame &frame)
 {
 
@@ -302,6 +329,19 @@ void Compiler::CompileFunctionCallExpr(FunctionCallExpr *expr, Frame &frame)
 	frame.AddOpCode(offset);
 
 	frame.AddOpCode(OP_FUNCTION_CALL);
-	offset=frame.AddString(expr->name);
+	offset = frame.AddString(expr->name);
 	frame.AddOpCode(offset);
+}
+
+void Compiler::CompileStructCallExpr(StructCallExpr *expr, Frame &frame, ObjectState state)
+{
+	CompileExpr(expr->callee, frame);
+
+	if (expr->callMember->Type() == AstType::STRUCT_CALL) //continuous struct call such as a.b.c;
+		CompileExpr(((StructCallExpr *)expr->callMember)->callee, frame, STRUCT_READ);
+
+	if (state == READ)
+		CompileExpr(expr->callMember, frame, STRUCT_READ);
+	else if (state == WRITE)
+		CompileExpr(expr->callMember, frame, STRUCT_WRITE);
 }

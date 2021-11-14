@@ -18,7 +18,7 @@ enum class Precedence
 	ADD_PLUS,	// + -
 	MUL_DIV,	// * /
 	PREFIX,		// !
-	INFIX,		// []
+	INFIX,		// [] () .
 };
 
 class Parser;
@@ -44,6 +44,7 @@ private:
 	Stmt *ParseScopeStmt();
 	Stmt *ParseWhileStmt();
 	Stmt *ParseFunctionStmt();
+	Stmt *ParseStructStmt();
 
 	Expr *ParseExpr(Precedence precedence = Precedence::LOWEST);
 	Expr *ParseIdentifierExpr();
@@ -59,6 +60,7 @@ private:
 	Expr *ParseConditionExpr(Expr *prefixExpr);
 	Expr *ParseIndexExpr(Expr *prefixExpr);
 	Expr *ParseFunctionCallExpr(Expr *prefixExpr);
+	Expr *ParseStructCallExpr(Expr *prefixExpr);
 
 	Token GetCurToken();
 	Token GetCurTokenAndStepOnce();

@@ -10,6 +10,8 @@ enum ObjectState
 	INIT,
 	READ,
 	WRITE,
+	STRUCT_READ,
+	STRUCT_WRITE
 };
 class Compiler
 {
@@ -17,7 +19,7 @@ public:
 	Compiler();
 	~Compiler();
 
-	Frame Compile(std::vector<Stmt *>stmts);
+	Frame Compile(std::vector<Stmt *> stmts);
 
 	void ResetStatus();
 
@@ -30,6 +32,7 @@ private:
 	void CompileIfStmt(IfStmt *stmt, Frame &frame);
 	void CompileWhileStmt(WhileStmt *stmt, Frame &frame);
 	void CompileFunctionStmt(FunctionStmt *stmt, Frame &frame);
+	void CompileStructStmt(StructStmt *stmt, Frame &frame);
 
 	void CompileExpr(Expr *expr, Frame &frame, ObjectState state = READ);
 	void CompileNumExpr(NumExpr *expr, Frame &frame);
@@ -43,6 +46,7 @@ private:
 	void CompilePrefixExpr(PrefixExpr *expr, Frame &frame);
 	void CompileInfixExpr(InfixExpr *expr, Frame &frame);
 	void CompileFunctionCallExpr(FunctionCallExpr *expr, Frame &frame);
+	void CompileStructCallExpr(StructCallExpr *expr, Frame &frame, ObjectState state = READ);
 
 	Frame m_RootFrame;
 };

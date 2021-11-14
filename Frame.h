@@ -16,11 +16,14 @@ enum OpCode
 	OP_NEW_FALSE,
 	OP_NEW_NIL,
 	OP_NEW_ARRAY,
+	OP_NEW_STRUCT,
 	OP_GET_VAR,
 	OP_SET_VAR,
 	OP_DEFINE_VAR,
 	OP_GET_INDEX_VAR,
 	OP_SET_INDEX_VAR,
+	OP_GET_STRUCT_VAR,
+	OP_SET_STRUCT_VAR,
 	OP_NEG,
 	OP_RETURN,
 	OP_ADD,
@@ -43,11 +46,6 @@ enum OpCode
 	OP_FUNCTION_CALL,
 };
 
-#define IS_NORMAL_FRAME(f) (f->Type() == FrameType::NORMAL)
-#define IS_NATIVE_FUNCTION_FRAME(f) (f->Type() == FrameType::NATIVE_FUNCTION)
-#define TO_NORMAL_FRAME(f) ((Frame *)f)
-#define TO_NATIVE_FUNCTION_FRAME(f) ((NativeFunctionFrame *)f)
-
 class Frame
 {
 public:
@@ -66,6 +64,10 @@ public:
 	Frame GetFunctionFrame(std::string_view name);
 	bool HasFunctionFrame(std::string_view name);
 
+	void AddStructFrame(std::string_view name, Frame frame);
+	Frame GetStructFrame(std::string_view name);
+	bool HasStructFrame(std::string_view name);
+
 	std::string Stringify(int depth = 0);
 
 	void Clear();
@@ -79,4 +81,5 @@ private:
 	std::vector<std::string> m_Strings;
 
 	std::unordered_map<std::string, Frame> m_FunctionFrames;
+	std::unordered_map<std::string, Frame> m_StructFrames;
 };

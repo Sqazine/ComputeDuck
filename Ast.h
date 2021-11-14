@@ -19,6 +19,7 @@ enum class AstType
 	INFIX,
 	INDEX,
 	FUNCTION_CALL,
+	STRUCT_CALL,
 	//stmt
 	VAR,
 	EXPR,
@@ -27,6 +28,7 @@ enum class AstType
 	SCOPE,
 	FUNCTION,
 	WHILE,
+	STRUCT,
 };
 
 struct AstNode
@@ -223,6 +225,19 @@ struct FunctionCallExpr : public Expr
 	std::vector<Expr *> arguments;
 };
 
+struct StructCallExpr :public Expr
+{
+	StructCallExpr():callee(nullptr),callMember(nullptr) {}
+	StructCallExpr(Expr* callee, Expr* callMember) : callee(callee), callMember(callMember) {}
+	~StructCallExpr() {}
+
+	std::string Stringify() override { return callee->Stringify() + "." + callMember->Stringify(); }
+	AstType Type() override { return AstType::STRUCT_CALL; }
+
+	Expr* callee;
+	Expr* callMember;
+};
+
 struct Stmt : public AstNode
 {
 	Stmt() {}
@@ -352,7 +367,7 @@ struct FunctionStmt : public Stmt
 
 	std::string Stringify() override
 	{
-		std::string result = "fn "+name+"(";
+		std::string result = "fn " + name + "(";
 		if (!parameters.empty())
 		{
 			for (auto param : parameters)
@@ -390,6 +405,30 @@ struct WhileStmt : public Stmt
 
 	Expr *condition;
 	Stmt *body;
+};
+
+struct StructStmt : public Stmt
+{
+	StructStmt() {}
+	StructStmt(std::string_view name, std::vector<VarStmt *> members) : name(name), members(members) {}
+	~StructStmt()
+	{
+		std::vector<VarStmt *>().swap(members);
+	}
+
+	std::string Stringify() override
+	{
+		std::string result = "struct " + name + "{";
+
+		for (const auto &varStmt : members)
+			result += varStmt->Stringify() + "\n";
+
+		return result + "}";
+	}
+	AstType Type() override { return AstType::STRUCT; }
+
+	std::string name;
+	std::vector<VarStmt *> members;
 };
 
 static NilExpr *nilExpr = new NilExpr();
