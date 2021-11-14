@@ -1,0 +1,7 @@
+var a=10;
+var b=a;
+var c;
+b=20;
+println(a);#10
+println(b);#20
+println(c);#"nil"

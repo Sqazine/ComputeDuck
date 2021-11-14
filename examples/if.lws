@@ -1,0 +1,36 @@
+var a=10;
+var b=a;
+b=20;
+println(a);#10.000000
+println(b);#20.000000
+
+if(b<a)
+    b=a;
+else 
+{
+    a=b;
+}
+
+println(a);#20.000000
+println(b);#20.000000
+
+
+if(a>100)
+    a=100;
+else if(a>50)
+    a=50;
+else if(a>30)
+    a=30;
+else a=5; 
+
+println(a);#5.000000
+
+if(b>a)
+   if(a==100)
+        a=1000;
+    else 
+        a=500;
+else 
+    a=300;
+
+println(a);#500.000000

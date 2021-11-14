@@ -121,7 +121,7 @@ void Compiler::CompileWhileStmt(WhileStmt *stmt, Frame &frame)
 
 void Compiler::CompileFunctionStmt(FunctionStmt *stmt, Frame &frame)
 {
-	Frame functionFrame;
+	Frame functionFrame=Frame(&frame);
 
 	functionFrame.AddOpCode(OP_ENTER_SCOPE);
 
@@ -137,7 +137,7 @@ void Compiler::CompileFunctionStmt(FunctionStmt *stmt, Frame &frame)
 
 void Compiler::CompileStructStmt(StructStmt *stmt, Frame &frame)
 {
-	Frame structFrame;
+	Frame structFrame=Frame(&frame);
 
 	structFrame.AddOpCode(OP_ENTER_SCOPE);
 

@@ -50,6 +50,7 @@ class Frame
 {
 public:
 	Frame();
+	Frame(Frame* upFrame);
 	virtual ~Frame();
 
 	void AddOpCode(uint64_t code);
@@ -82,4 +83,6 @@ private:
 
 	std::unordered_map<std::string, Frame> m_FunctionFrames;
 	std::unordered_map<std::string, Frame> m_StructFrames;
+
+ 	Frame* m_UpFrame;
 };
