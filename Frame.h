@@ -16,7 +16,6 @@ enum OpCode
 	OP_NEW_FALSE,
 	OP_NEW_NIL,
 	OP_NEW_ARRAY,
-	OP_NEW_FUNCTION,
 	OP_GET_VAR,
 	OP_SET_VAR,
 	OP_DEFINE_VAR,
@@ -44,7 +43,6 @@ enum OpCode
 	OP_FUNCTION_CALL,
 };
 
-
 #define IS_NORMAL_FRAME(f) (f->Type() == FrameType::NORMAL)
 #define IS_NATIVE_FUNCTION_FRAME(f) (f->Type() == FrameType::NATIVE_FUNCTION)
 #define TO_NORMAL_FRAME(f) ((Frame *)f)
@@ -64,13 +62,14 @@ public:
 
 	std::vector<double> &GetNums();
 
-	uint64_t AddFunctionFrame(Frame frame);
-	Frame GetFunctionFrame(uint64_t idx);
-	bool HasFunctionFrame(uint64_t idx);
+	void AddFunctionFrame(std::string_view name, Frame frame);
+	Frame GetFunctionFrame(std::string_view name);
+	bool HasFunctionFrame(std::string_view name);
 
 	std::string Stringify(int depth = 0);
 
 	void Clear();
+
 private:
 	friend class VM;
 
@@ -79,6 +78,5 @@ private:
 	std::vector<double> m_Nums;
 	std::vector<std::string> m_Strings;
 
-	std::vector<Frame> m_FunctionFrames;
-
+	std::unordered_map<std::string, Frame> m_FunctionFrames;
 };

@@ -29,6 +29,7 @@ private:
 	void CompileScopeStmt(ScopeStmt *stmt, Frame &frame);
 	void CompileIfStmt(IfStmt *stmt, Frame &frame);
 	void CompileWhileStmt(WhileStmt *stmt, Frame &frame);
+	void CompileFunctionStmt(FunctionStmt *stmt, Frame &frame);
 
 	void CompileExpr(Expr *expr, Frame &frame, ObjectState state = READ);
 	void CompileNumExpr(NumExpr *expr, Frame &frame);
@@ -41,7 +42,6 @@ private:
 	void CompileIndexExpr(IndexExpr *expr, Frame &frame, ObjectState state = READ);
 	void CompilePrefixExpr(PrefixExpr *expr, Frame &frame);
 	void CompileInfixExpr(InfixExpr *expr, Frame &frame);
-	void CompileFunctionExpr(FunctionExpr *stmt, Frame &frame);
 	void CompileFunctionCallExpr(FunctionCallExpr *expr, Frame &frame);
 
 	Frame m_RootFrame;
