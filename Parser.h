@@ -7,84 +7,82 @@
 #include "Ast.h"
 #include "Utils.h"
 
-	enum class Precedence
-	{
-		LOWEST = 0,  // ,
-		ASSIGN,		 // =
-		OR,			 // or
-		AND,		 // and
-		EQUAL,		 // == !=
-		COMPARE,	 // < <= > >=
-		ADD_PLUS,	 // + -
-		MUL_DIV, // * /
-		PREFIX,		 // !
-		INFIX,		 // []
-	};
+enum class Precedence
+{
+	LOWEST = 0, // ,
+	ASSIGN,		// =
+	OR,			// or
+	AND,		// and
+	EQUAL,		// == !=
+	COMPARE,	// < <= > >=
+	ADD_PLUS,	// + -
+	MUL_DIV,	// * /
+	PREFIX,		// !
+	INFIX,		// []
+};
 
-	class Parser;
+class Parser;
 
-	typedef Expr* (Parser::* PrefixFn)();
-	typedef Expr* (Parser::* InfixFn)(Expr*);
+typedef Expr *(Parser::*PrefixFn)();
+typedef Expr *(Parser::*InfixFn)(Expr *);
 
-	class Parser
-	{
-	public:
-		Parser();
-		~Parser();
+class Parser
+{
+public:
+	Parser();
+	~Parser();
 
-		Stmt* Parse(const std::vector<Token>& tokens);
+	std::vector<Stmt *> Parse(const std::vector<Token> &tokens);
 
-	private:
-		void ResetStatus();
+private:
 
-		Stmt* ParseAstStmts();
-		Stmt* ParseStmt();
-		Stmt* ParseExprStmt();
-		Stmt* ParseVarStmt();
-		Stmt* ParseReturnStmt();
-		Stmt* ParseIfStmt();
-		Stmt* ParseScopeStmt();
-		Stmt* ParseWhileStmt();
+	Stmt *ParseStmt();
+	Stmt *ParseExprStmt();
+	Stmt *ParseVarStmt();
+	Stmt *ParseReturnStmt();
+	Stmt *ParseIfStmt();
+	Stmt *ParseScopeStmt();
+	Stmt *ParseWhileStmt();
 
-		Expr* ParseExpr(Precedence precedence = Precedence::LOWEST);
-		Expr* ParseIdentifierExpr();
-		Expr* ParseNumExpr();
-		Expr* ParseStrExpr();
-		Expr* ParseNilExpr();
-		Expr* ParseTrueExpr();
-		Expr* ParseFalseExpr();
-		Expr* ParseGroupExpr();
-		Expr* ParseArrayExpr();
-		Expr* ParsePrefixExpr();
-		Expr* ParseFunctionExpr();
-		Expr* ParseInfixExpr(Expr* prefixExpr);
-		Expr* ParseConditionExpr(Expr* prefixExpr);
-		Expr* ParseIndexExpr(Expr* prefixExpr);
-		Expr* ParseFunctionCallExpr(Expr* prefixExpr);
+	Expr *ParseExpr(Precedence precedence = Precedence::LOWEST);
+	Expr *ParseIdentifierExpr();
+	Expr *ParseNumExpr();
+	Expr *ParseStrExpr();
+	Expr *ParseNilExpr();
+	Expr *ParseTrueExpr();
+	Expr *ParseFalseExpr();
+	Expr *ParseGroupExpr();
+	Expr *ParseArrayExpr();
+	Expr *ParsePrefixExpr();
+	Expr *ParseFunctionExpr();
+	Expr *ParseInfixExpr(Expr *prefixExpr);
+	Expr *ParseConditionExpr(Expr *prefixExpr);
+	Expr *ParseIndexExpr(Expr *prefixExpr);
+	Expr *ParseFunctionCallExpr(Expr *prefixExpr);
 
-		Token GetCurToken();
-		Token GetCurTokenAndStepOnce();
-		Precedence GetCurTokenPrecedence();
+	Token GetCurToken();
+	Token GetCurTokenAndStepOnce();
+	Precedence GetCurTokenPrecedence();
 
-		Token GetNextToken();
-		Token GetNextTokenAndStepOnce();
-		Precedence GetNextTokenPrecedence();
+	Token GetNextToken();
+	Token GetNextTokenAndStepOnce();
+	Precedence GetNextTokenPrecedence();
 
-		bool IsMatchCurToken(TokenType type);
-		bool IsMatchCurTokenAndStepOnce(TokenType type);
-		bool IsMatchNextToken(TokenType type);
-		bool IsMatchNextTokenAndStepOnce(TokenType type);
+	bool IsMatchCurToken(TokenType type);
+	bool IsMatchCurTokenAndStepOnce(TokenType type);
+	bool IsMatchNextToken(TokenType type);
+	bool IsMatchNextTokenAndStepOnce(TokenType type);
 
-		Token Consume(TokenType type, std::string_view errMsg);
-		Token Consume(const std::vector<TokenType>& types, std::string_view errMsg);
+	Token Consume(TokenType type, std::string_view errMsg);
+	Token Consume(const std::vector<TokenType> &types, std::string_view errMsg);
 
-		bool IsAtEnd();
+	bool IsAtEnd();
 
-		int64_t m_CurPos;
-		AstStmts* m_Stmts;
-		std::vector<Token> m_Tokens;
+	int64_t m_CurPos;
 
-		static std::unordered_map<TokenType, PrefixFn> m_PrefixFunctions;
-		static std::unordered_map<TokenType, InfixFn> m_InfixFunctions;
-		static std::unordered_map<TokenType, Precedence> m_Precedence;
-	};
+	std::vector<Token> m_Tokens;
+
+	static std::unordered_map<TokenType, PrefixFn> m_PrefixFunctions;
+	static std::unordered_map<TokenType, InfixFn> m_InfixFunctions;
+	static std::unordered_map<TokenType, Precedence> m_Precedence;
+};

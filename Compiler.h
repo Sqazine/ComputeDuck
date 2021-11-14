@@ -17,12 +17,11 @@ public:
 	Compiler();
 	~Compiler();
 
-	Frame Compile(Stmt *stmt);
+	Frame Compile(std::vector<Stmt *>stmts);
 
 	void ResetStatus();
 
 private:
-	void CompileAstStmts(AstStmts *stmt, Frame &frame);
 	void CompileStmt(Stmt *stmt, Frame &frame);
 	void CompileReturnStmt(ReturnStmt *stmt, Frame &frame);
 	void CompileExprStmt(ExprStmt *stmt, Frame &frame);

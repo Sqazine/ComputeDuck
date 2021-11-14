@@ -7,21 +7,16 @@ Compiler::~Compiler()
 {
 }
 
-Frame Compiler::Compile(Stmt *stmt)
+Frame Compiler::Compile(std::vector<Stmt *>stmts)
 {
-	CompileAstStmts((AstStmts *)stmt, m_RootFrame);
+	for (const auto &s : stmts)
+		CompileStmt(s, m_RootFrame);
 	return m_RootFrame;
 }
 
 void Compiler::ResetStatus()
 {
 	m_RootFrame.Clear();
-}
-
-void Compiler::CompileAstStmts(AstStmts *stmt, Frame &frame)
-{
-	for (const auto &s : stmt->stmts)
-		CompileStmt(s, frame);
 }
 
 void Compiler::CompileStmt(Stmt *stmt, Frame &frame)
