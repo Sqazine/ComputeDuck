@@ -13,6 +13,7 @@ static std::unordered_map<std::string, TokenType> keywords =
         {"return", TokenType::RETURN},
         {"and", TokenType::AND},
         {"or", TokenType::OR},
+        {"not",TokenType::NOT},
         {"struct", TokenType::STRUCT},
 };
 
@@ -106,8 +107,6 @@ void Lexer::GenerateToken()
     case '!':
         if (IsMatchCurCharAndStepOnce('='))
             AddToken(TokenType::BANG_EQUAL);
-        else
-            AddToken(TokenType::BANG);
         break;
     case '<':
         if (IsMatchCurCharAndStepOnce('='))

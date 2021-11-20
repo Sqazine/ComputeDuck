@@ -286,7 +286,7 @@ Object *VM::Execute(Frame frame)
 			if (IS_BOOL_OBJ(object))
 				PushObject(CreateBoolObject(!TO_BOOL_OBJ(object)->value));
 			else
-				Assert("Invalid op:'!'" + object->Stringify());
+				Assert("Invalid op:'not' " + object->Stringify());
 			break;
 		}
 		case OP_ADD:

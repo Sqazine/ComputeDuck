@@ -272,7 +272,7 @@ void Compiler::CompilePrefixExpr(PrefixExpr *expr, Frame &frame)
 	CompileExpr(expr->right, frame);
 	if (expr->op == "-")
 		frame.AddOpCode(OP_NEG);
-	else if (expr->op == "!")
+	else if (expr->op == "not")
 		frame.AddOpCode(OP_NOT);
 }
 
