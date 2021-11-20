@@ -9,7 +9,7 @@ std::unordered_map<TokenType, PrefixFn> Parser::m_PrefixFunctions =
 		{TokenType::TRUE, &Parser::ParseTrueExpr},
 		{TokenType::FALSE, &Parser::ParseFalseExpr},
 		{TokenType::MINUS, &Parser::ParsePrefixExpr},
-		{TokenType::BANG, &Parser::ParsePrefixExpr},
+		{TokenType::NOT, &Parser::ParsePrefixExpr},
 		{TokenType::LPAREN, &Parser::ParseGroupExpr},
 		{TokenType::LBRACKET, &Parser::ParseArrayExpr},
 };
@@ -278,7 +278,7 @@ Expr *Parser::ParseFalseExpr()
 Expr *Parser::ParseGroupExpr()
 {
 	Consume(TokenType::LPAREN, "Expect '('.");
-	auto groupExpr = new GroupExpr(ParseExpr(Precedence::INFIX));
+	auto groupExpr = new GroupExpr(ParseExpr());
 	Consume(TokenType::RPAREN, "Expect ')'.");
 	return groupExpr;
 }

@@ -26,7 +26,6 @@ enum class TokenType
 	EQUAL,		   // =
 	LESS,		   // <
 	GREATER,	   // >
-	BANG,		   // !
 	EQUAL_EQUAL,   // ==
 	LESS_EQUAL,	   // <=
 	GREATER_EQUAL, // >=
@@ -42,6 +41,7 @@ enum class TokenType
 	RETURN,		   // return
 	AND,		   // and
 	OR,			   // or
+	NOT,		   // not
 	STRUCT,		   // struct
 
 	UNKNOWN,
