@@ -220,7 +220,7 @@ Object *VM::Execute(Frame frame)
 			Assert("Invalid binary op:" + left->Stringify() + (#op) + right->Stringify());    \
 	} while (0);
 
-// > >= < <= == !=
+// > >= < <=
 #define COMPARE_BINARY(op)                                                                                                        \
 	do                                                                                                                            \
 	{                                                                                                                             \
@@ -314,11 +314,19 @@ Object *VM::Execute(Frame frame)
 			COMPARE_BINARY(<=);
 			break;
 		case OP_EQUAL:
-			COMPARE_BINARY(==);
+		{
+			Object *left = PopObject();
+			Object *right = PopObject();
+			PushObject(CreateBoolObject(left->IsEqualTo(right)));
 			break;
+		}
 		case OP_NOT_EQUAL:
-			COMPARE_BINARY(!=);
+		{
+			Object *left = PopObject();
+			Object *right = PopObject();
+			PushObject(CreateBoolObject(!left->IsEqualTo(right)));
 			break;
+		}
 		case OP_AND:
 			LOGIC_BINARY(&&);
 			break;
@@ -352,8 +360,8 @@ Object *VM::Execute(Frame frame)
 			{
 				if (frame.HasStructFrame(name))
 					PushObject(Execute(frame.GetStructFrame(name)));
-				else 
-					Assert("No struct definition:"+name);
+				else
+					Assert("No struct definition:" + name);
 			}
 			else
 				PushObject(varObject);
@@ -394,8 +402,21 @@ Object *VM::Execute(Frame frame)
 
 				PushObject(arrayObject->elements[iIndex]);
 			}
+			else if (IS_STR_OBJ(object))
+			{
+				StrObject *strObject = TO_STR_OBJ(object);
+				if (!IS_NUM_OBJ(index))
+					Assert("Invalid index op.The index type of the string object must ba a int num type,but got:" + index->Stringify());
+
+				int64_t iIndex = (int64_t)TO_NUM_OBJ(index)->value;
+
+				if (iIndex < 0 || iIndex >= (int64_t)strObject->value.size())
+					Assert("Index out of string range,string size:" + std::to_string(strObject->value.size()) + ",index:" + std::to_string(iIndex));
+
+				PushObject(CreateStrObject(strObject->value.substr(iIndex,1)));
+			}
 			else
-				Assert("Invalid index op.The indexed object isn't a array object:" + object->Stringify());
+				Assert("Invalid index op.The indexed object isn't a array or a string object:" + object->Stringify());
 			break;
 		}
 		case OP_SET_INDEX_VAR:
