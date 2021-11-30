@@ -19,5 +19,8 @@ inline std::string ReadFile(std::string_view path)
 
     std::stringstream sstream;
     sstream << file.rdbuf();
+
+    file.close();
+
     return sstream.str();
 }

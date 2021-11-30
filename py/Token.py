@@ -1,6 +1,5 @@
 from enum import Enum
 
-
 class TokenType(Enum):
    NUMBER = 0,
    STRING = 1,

@@ -1,9 +1,13 @@
 import sys
-import Lexer
+from Lexer import Lexer
 def Repl():
     print("> ",end="")
     line=input()
     while(True):
+        lexer=Lexer()
+        tokens=lexer.GenerateTokens(line)
+        for token in tokens:
+            token.Print()
         print("> ",end="")
         line=input()
     
