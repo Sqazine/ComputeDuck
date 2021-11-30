@@ -53,4 +53,4 @@ class Token:
         self.line = line
 
     def Print(self):
-        print("{},{}", self.literal, self.line)
+        print("%s,%d" % (self.literal, self.line))

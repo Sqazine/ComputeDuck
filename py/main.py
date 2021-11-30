@@ -1,5 +1,6 @@
 import sys
 from Lexer import Lexer
+from Token import Token
 def Repl():
     print("> ",end="")
     line=input()
