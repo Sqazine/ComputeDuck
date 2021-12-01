@@ -6,6 +6,7 @@ from Ast import Expr
 
 from Token import Token, TokenType
 from Utils import Assert
+from py.Ast import ExprStmt
 
 
 class Precedence(Enum):
@@ -82,46 +83,83 @@ class Parser:
         }
 
     def IsAtEnd(self) -> bool:
-        return self.__curPos>=self.__tokens.count
+        return self.__curPos >= self.__tokens.count
 
     def Consume(self, type, errMsg) -> Token:
-        pass
+        if self.IsMatchCurToken(type):
+            return self.GetCurTokenAndStepOnce()
+        Assert("[line "+self.GetCurToken().line+"]:"+errMsg)
+        return Token(TokenType.END, "", 0)
 
     def GetCurToken(self) -> Token:
-        pass
+        if not self.IsAtEnd():
+            return self.__tokens[self.__curPos]
+        return self.__tokens[-1]
 
     def GetCurTokenAndStepOnce(self) -> Token:
-        pass
+        if not self.IsAtEnd():
+            result = self.__tokens[self.__curPos]
+            self.__curPos += 1
+            return result
+        return self.__tokens[-1]
 
     def GetCurTokenPrecedence(self) -> Token:
-        pass
+        return self.__precedence.get(self.GetCurToken().type, default=Precedence.LOWEST)
 
     def GetNextToken(self) -> Token:
-        pass
+        if self.__curPos+1 < self.__tokens.count:
+            return self.__tokens[self.__curPos+1]
+        return self.__tokens[-1]
 
     def GetNextTokenAndStepOnce(self) -> Token:
-        pass
+        if self.__curPos+1 < self.__tokens.count:
+            self.__curPos += 1
+            return self.__tokens[self.__curPos]
+        return self.__tokens[-1]
 
     def GetNextTokenPrecedence(self) -> Token:
-        pass
+        return self.__precedence.get(self.GetNextToken().type, default=Precedence.LOWEST)
 
     def IsMatchCurToken(self, type) -> bool:
-        pass
+        return self.GetCurToken().type == type
 
     def IsMatchCurTokenAndStepOnce(self, type) -> bool:
-        pass
+        if self.IsMatchCurToken(type):
+            self.__curPos += 1
+            return True
+        return False
 
     def IsMatchNextToken(self, type) -> bool:
-        pass
+        return self.GetNextToken().type == type
 
     def IsMatchNextTokenAndStepOnce(self, type) -> bool:
-        pass
+        if self.IsMatchNextToken(type):
+            self.__curPos += 1
+            return True
+        return False
 
     def ParseStmt(self) -> Stmt:
-        pass
+        if self.IsMatchCurToken(TokenType.VAR):
+            return self.ParseVarStmt()
+        elif self.IsMatchCurToken(TokenType.RETURN):
+            return self.ParseReturnStmt()
+        elif self.IsMatchCurToken(TokenType.IF):
+            return self.ParseIfStmt()
+        elif self.IsMatchCurToken(TokenType.LBRACE):
+            return self.ParseScopeStmt()
+        elif self.IsMatchCurToken(TokenType.WHILE):
+            return self.ParseWhileStmt()
+        elif self.IsMatchCurToken(TokenType.FUNCTION):
+            return self.ParseFunctionStmt()
+        elif self.IsMatchCurToken(TokenType.STRUCT):
+            return self.ParseStructStmt()
+        else:
+            return self.ParseExprStmt()
 
     def ParseExprStmt(self) -> Stmt:
-        pass
+        exprStmt=ExprStmt(self.ParseExpr())
+        self.Consume(TokenType.SEMICOLON,"Expect ';' after expr stmt.")
+        return exprStmt
 
     def ParseVarStmt(self) -> Stmt:
         pass
