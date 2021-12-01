@@ -40,7 +40,7 @@ struct AstNode
 	virtual AstType Type() = 0;
 };
 
-struct Expr
+struct Expr:public AstNode
 {
 	Expr() {}
 	virtual ~Expr() {}

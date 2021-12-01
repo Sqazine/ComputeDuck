@@ -76,7 +76,6 @@ private:
 	bool IsMatchNextTokenAndStepOnce(TokenType type);
 
 	Token Consume(TokenType type, std::string_view errMsg);
-	Token Consume(const std::vector<TokenType> &types, std::string_view errMsg);
 
 	bool IsAtEnd();
 
