@@ -436,16 +436,6 @@ Token Parser::Consume(TokenType type, std::string_view errMsg)
 	return Token(TokenType::END, "", 0);
 }
 
-Token Parser::Consume(const std::vector<TokenType> &types, std::string_view errMsg)
-{
-	for (const auto &type : types)
-		if (IsMatchCurToken(type))
-			return GetCurTokenAndStepOnce();
-	Assert("[line " + std::to_string(GetCurToken().line) + "]:" + std::string(errMsg));
-	//avoid warning
-	return Token(TokenType::END, "", 0);
-}
-
 bool Parser::IsAtEnd()
 {
 	return m_CurPos >= (int32_t)m_Tokens.size();

@@ -1,7 +1,7 @@
 from Token import Token, TokenType
 from Utils import Assert
 
-keywords = {
+keywords:dict = {
     "var": TokenType.VAR,
     "if": TokenType.IF,
     "else": TokenType.ELSE,
