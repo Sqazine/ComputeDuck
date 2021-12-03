@@ -55,7 +55,7 @@ class NumExpr(Expr):
         self.value = value
 
     def Stringify(self) -> str:
-        return self.value
+        return str(self.value)
 
     def Type(self) -> AstType:
         return AstType.NUM
@@ -119,7 +119,7 @@ class ArrayExpr(Expr):
         if self.elements.count > 0:
             for value in self.elements:
                 result += value.Stringify()+","
-            result = result[0, len(result)-1]
+            result = result[0: len(result)-1]
         return result
 
     def Type(self) -> AstType:
@@ -165,7 +165,7 @@ class InfixExpr(Expr):
         self.right = right
 
     def Stringify(self) -> str:
-        return self.left+self.op+self.right.Stringify()
+        return self.left.Stringify()+self.op+self.right.Stringify()
 
     def Type(self) -> AstType:
         return AstType.INFIX
@@ -196,11 +196,11 @@ class FunctionCallExpr(Expr):
 
     def Stringify(self) -> str:
         result = self.name+"("
-        if self.arguments.count > 0:
+        if len(self.arguments) > 0:
             for value in self.arguments:
                 result += value.Stringify()+","
-            result = result[0, len(result)-1]
-        return result
+            result = result[0: len(result)-1]
+        return result+")"
 
     def Type(self) -> AstType:
         return AstType.FUNCTION_CALL
@@ -253,7 +253,7 @@ class VarStmt(Stmt):
         self.value = value
 
     def Stringify(self) -> str:
-        return "var"+self.name.Stringify()+"="+self.value.Stringify()
+        return "var "+self.name.Stringify()+" = "+self.value.Stringify()+";"
 
     def Type(self) -> AstType:
         return AstType.VAR
@@ -314,12 +314,17 @@ class FunctionStmt(Stmt):
     parameters: list[IdentifierExpr] = []
     body: ScopeStmt = None
 
+    def __init__(self, name,parameters, body) -> None:
+        self.name = name
+        self.parameters = parameters
+        self.body = body
+
     def Stringify(self) -> str:
         result = "fn "+self.name+"("
-        if self.parameters.count > 0:
+        if len(self.parameters) > 0:
             for param in self.parameters:
                 result += param.Stringify()+","
-            result = result[0, len(result)-1]
+            result = result[0:len(result)-1]
         result += ")"
         result += self.body.Stringify()
         return result

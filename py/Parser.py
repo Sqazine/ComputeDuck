@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import IntEnum
 from typing import Any
 
 from Ast import Stmt
@@ -6,10 +6,10 @@ from Ast import Expr
 
 from Token import Token, TokenType
 from Utils import Assert
-from py.Ast import ExprStmt
+from Ast import ArrayExpr, BoolExpr, ExprStmt, FunctionCallExpr, FunctionStmt, GroupExpr, IdentifierExpr, IfStmt, IndexExpr, InfixExpr, NilExpr, NumExpr, PrefixExpr, ReturnStmt, ScopeStmt, StrExpr, StructCallExpr, StructStmt, VarStmt, WhileStmt
 
 
-class Precedence(Enum):
+class Precedence(IntEnum):
     LOWEST = 0,  # ,
     ASSIGN = 1,		# =
     OR = 2,			# or
@@ -82,8 +82,17 @@ class Parser:
           		TokenType.DOT: Precedence.INFIX
         }
 
+    def Parse(self, tokens: list[Token]) -> list[Stmt]:
+        self.__curPos = 0
+        self.__tokens = tokens
+
+        stmts: list[Stmt] = []
+        while (not self.IsMatchCurToken(TokenType.END)):
+            stmts.append(self.ParseStmt())
+        return stmts
+
     def IsAtEnd(self) -> bool:
-        return self.__curPos >= self.__tokens.count
+        return self.__curPos >= len(self.__tokens)
 
     def Consume(self, type, errMsg) -> Token:
         if self.IsMatchCurToken(type):
@@ -104,7 +113,9 @@ class Parser:
         return self.__tokens[-1]
 
     def GetCurTokenPrecedence(self) -> Token:
-        return self.__precedence.get(self.GetCurToken().type, default=Precedence.LOWEST)
+        if self.__precedence.get(self.GetCurToken().type)==None:
+            return Precedence.LOWEST
+        return self.__precedence.get(self.GetCurToken().type)
 
     def GetNextToken(self) -> Token:
         if self.__curPos+1 < self.__tokens.count:
@@ -157,72 +168,180 @@ class Parser:
             return self.ParseExprStmt()
 
     def ParseExprStmt(self) -> Stmt:
-        exprStmt=ExprStmt(self.ParseExpr())
-        self.Consume(TokenType.SEMICOLON,"Expect ';' after expr stmt.")
+        exprStmt = ExprStmt(self.ParseExpr())
+        self.Consume(TokenType.SEMICOLON, "Expect ';' after expr stmt.")
         return exprStmt
 
     def ParseVarStmt(self) -> Stmt:
-        pass
+        self.Consume(TokenType.VAR, "Expect 'var' key word")
+        name = (self.ParseIdentifierExpr())
+        value = NilExpr()
+        if self.IsMatchCurTokenAndStepOnce(TokenType.EQUAL):
+            value = self.ParseExpr()
+        self.Consume(TokenType.SEMICOLON, "Expect ';' after var stmt")
+        return VarStmt(name, value)
 
     def ParseReturnStmt(self) -> Stmt:
-       pass
+        self.Consume(TokenType.RETURN, "Expecr 'return' keyword")
+        expr = None
+        if not self.IsMatchCurToken(TokenType.SEMICOLON):
+           expr = self.ParseExpr()
+        self.Consume(TokenType.SEMICOLON, "Expect ';' after return stmt.")
+        return ReturnStmt(expr)
 
     def ParseIfStmt(self) -> Stmt:
-       pass
+       self.Consume(TokenType.IF, "Expect 'if' key word.")
+       self.Consume(TokenType.LPAREN, "Expect '(' after 'if'.")
+
+       condition = self.ParseExpr()
+       self.Consume(TokenType.RPAREN, "Expect ')' after if condition")
+
+       thenBranch = self.ParseStmt()
+
+       elseBranch = None
+       if self.IsMatchCurTokenAndStepOnce(TokenType.ELSE):
+           elseBranch = self.ParseStmt()
+
+       return IfStmt(condition, thenBranch, elseBranch)
 
     def ParseScopeStmt(self) -> Stmt:
-       pass
+       self.Consume(TokenType.LBRACE, "Expect '{'.")
+       scopeStmt = ScopeStmt([])
+       while (not self.IsMatchCurToken(TokenType.RBRACE)):
+           scopeStmt.stmts.append(self.ParseStmt())
+       self.Consume(TokenType.RBRACE, "Expect '}'.")
+       return scopeStmt
 
     def ParseWhileStmt(self) -> Stmt:
-       pass
+        self.Consume(TokenType.WHILE, "Expect 'while' keyword.")
+        self.Consume(TokenType.LPAREN, "Expect '(' after 'while'.")
+
+        condition = self.ParseExpr()
+
+        self.Consume(TokenType.RPAREN,
+                     "Expect ')' after while stmt's condition")
+
+        body = self.ParseStmt()
+
+        return WhileStmt(condition, body)
 
     def ParseFunctionStmt(self) -> Stmt:
-       pass
+       self.Consume(TokenType.FUNCTION, "Expect 'fn' keyword")
+       funcStmt = FunctionStmt("", [], None)
+       funcStmt.name = self.ParseIdentifierExpr().Stringify()
+       self.Consume(TokenType.LPAREN, "Expect '(' after function name")
+
+       if (not self.IsMatchCurToken(TokenType.RPAREN)):
+           idenExpr = self.ParseIdentifierExpr()
+           funcStmt.parameters.append(idenExpr)
+           while self.IsMatchCurTokenAndStepOnce(TokenType.COMMA):
+               idenExpr = self.ParseIdentifierExpr()
+               funcStmt.parameters.append(idenExpr)
+       self.Consume(TokenType.RPAREN, "Expect ')' after function expr's '('")
+       funcStmt.body = self.ParseScopeStmt()
+       return funcStmt
 
     def ParseStructStmt(self) -> Stmt:
-        pass
+        self.Consume(TokenType.STRUCT, "Expect 'struct keyword'")
+        structStmt = StructStmt("", [])
+        structStmt.name = self.ParseIdentifierExpr().Stringify()
+        self.Consume(TokenType.LBRACE, "Expect '{' after struct name")
+        while not self.IsMatchCurToken(TokenType.RBRACE):
+            structStmt.members.append(self.ParseVarStmt())
+        self.Consume(TokenType.RBRACE, "Expect '}' after struct's '{'")
+
+        return structStmt
 
     def ParseExpr(self, precedence=Precedence.LOWEST) -> Expr:
-        pass
+        if self.__prefixFunctions.get(self.GetCurToken().type) == None:
+            print("no prefix definition for:" +
+                  self.GetCurTokenAndStepOnce().literal)
+            return NilExpr()
+        prefixFn = self.__prefixFunctions.get(self.GetCurToken().type)
+        leftExpr = prefixFn()
+        while (not self.IsMatchCurToken(TokenType.SEMICOLON) and precedence < self.GetCurTokenPrecedence()):
+            if self.__infixFunctions.get(self.GetCurToken().type) == None:
+                return leftExpr
+            infixFn = self.__infixFunctions[self.GetCurToken().type]
+            leftExpr = infixFn(leftExpr)
+        return leftExpr
 
     def ParseIdentifierExpr(self) -> Expr:
-        pass
+        literal=self.Consume(TokenType.IDENTIFIER, "Unexpect Identifier '"+self.GetCurToken().literal+".").literal
+        return IdentifierExpr(literal)
 
     def ParseNumExpr(self) -> Expr:
-        pass
+        numLiteral = self.Consume(
+            TokenType.NUMBER, "Expect a number literal.").literal
+        return NumExpr(float(numLiteral))
 
     def ParseStrExpr(self) -> Expr:
-        pass
+        return StrExpr(self.Consume(TokenType.STRING, "Expact a string literal.").literal)
 
     def ParseNilExpr(self) -> Expr:
-        pass
+        self.Consume(TokenType.NIL, "Expect 'nil' keyword")
+        return NilExpr()
 
     def ParseTrueExpr(self) -> Expr:
-        pass
+        self.Consume(TokenType.TRUE, "Expect 'true' keyword")
+        return BoolExpr(True)
 
     def ParseFalseExpr(self) -> Expr:
-        pass
+        self.Consume(TokenType.FALSE, "Expect 'false' keyword")
+        return BoolExpr(False)
 
     def ParseGroupExpr(self) -> Expr:
-        pass
+        self.Consume(TokenType.LPAREN, "Expect '('.")
+        groupExpr = GroupExpr(self.ParseExpr())
+        self.Consume(TokenType.RPAREN, "Expect ')'.")
+        return groupExpr
 
     def ParseArrayExpr(self) -> Expr:
-        pass
+        self.Consume(TokenType.LBRACKET, "Expect '['.")
+        arrayExpr = ArrayExpr([])
+        if (not self.IsMatchCurToken(TokenType.RBRACKET)):
+            arrayExpr.elements.append(self.ParseExpr())
+            while self.IsMatchCurTokenAndStepOnce(TokenType.COMMA):
+                arrayExpr.elements.append(self.ParseExpr())
+        self.Consume(TokenType.RBRACKET, "Expect ']'.")
+        return arrayExpr
 
     def ParsePrefixExpr(self) -> Expr:
-        pass
+        prefixExpr = PrefixExpr("", None)
+        prefixExpr.op = self.GetCurTokenAndStepOnce().literal
+        prefixExpr.right = self.ParseExpr(Precedence.PREFIX)
+        return prefixExpr
 
     def ParseInfixExpr(self, prefixExpr: Expr) -> Expr:
-        pass
-
-    def ParseConditionExpr(self, prefixExpr: Expr) -> Expr:
-        pass
+        infixExpr = InfixExpr(None, "", None)
+        infixExpr.left = prefixExpr
+        opPrece = self.GetCurTokenPrecedence()
+        infixExpr.op = self.GetCurTokenAndStepOnce().literal
+        infixExpr.right = self.ParseExpr(opPrece)
+        return infixExpr
 
     def ParseIndexExpr(self, prefixExpr: Expr) -> Expr:
-        pass
+        self.Consume(TokenType.LBRACKET, "Expect '['.")
+        indexExpr = IndexExpr(None, None)
+        indexExpr.ds = prefixExpr
+        indexExpr.index = self.ParseExpr(Precedence.INFIX)
+        self.Consume(TokenType.RBRACKET, "Expect ']'.")
+        return indexExpr
 
     def ParseFunctionCallExpr(self, prefixExpr: Expr) -> Expr:
-        pass
+        funcCallExpr = FunctionCallExpr("", [])
+        funcCallExpr.name = prefixExpr.Stringify()
+        self.Consume(TokenType.LPAREN, "Expect '('.")
+        if not self.IsMatchCurToken(TokenType.RPAREN):
+            funcCallExpr.arguments.append(self.ParseExpr())
+            while self.IsMatchCurTokenAndStepOnce(TokenType.COMMA):
+                funcCallExpr.arguments.append(self.ParseExpr())
+        self.Consume(TokenType.RPAREN, "Expect ')'.")
+        return funcCallExpr
 
     def ParseStructCallExpr(self, prefixExpr: Expr) -> Expr:
-        pass
+        self.Consume(TokenType.DOT, "Expect '.'.")
+        structCallExpr = StructCallExpr(None, None)
+        structCallExpr.callee = prefixExpr
+        structCallExpr.callMember = self.ParseExpr(Precedence.INFIX)
+        return structCallExpr

@@ -111,7 +111,7 @@ Stmt *Parser::ParseVarStmt()
 	if (IsMatchCurTokenAndStepOnce(TokenType::EQUAL))
 		value = ParseExpr();
 
-	Consume(TokenType::SEMICOLON, "Expect ';' after let stmt.");
+	Consume(TokenType::SEMICOLON, "Expect ';' after var stmt.");
 
 	return new VarStmt(name, value);
 }
@@ -261,7 +261,7 @@ Expr *Parser::ParseStrExpr()
 
 Expr *Parser::ParseNilExpr()
 {
-	Consume(TokenType::NIL, "Expect 'null' keyword");
+	Consume(TokenType::NIL, "Expect 'nil' keyword");
 	return nilExpr;
 }
 Expr *Parser::ParseTrueExpr()
