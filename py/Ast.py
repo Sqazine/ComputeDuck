@@ -1,9 +1,9 @@
-from enum import Enum
+from enum import IntEnum
 import abc
 from typing import List
 
 
-class AstType(Enum):
+class AstType(IntEnum):
     #expr
     NUM = 0,
     STR = 1,
