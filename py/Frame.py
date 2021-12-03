@@ -40,9 +40,9 @@ class OpCode(IntEnum):
 
 
 class Frame:
-    upFrame: Frame = None
-    functionFrames: dict[str, Frame] = {}
-    structFrames: dict[str, Frame] = {}
+    upFrame = None
+    functionFrames = {}
+    structFrames = {}
     codes: list[int] = []
     nums: list[float] = []
     strings: list[str] = []
@@ -64,12 +64,12 @@ class Frame:
         self.strings.append(value)
         return len(self.strings)-1
 
-    def AddFunctionFrame(self, name: str, frame: Frame) -> None:
+    def AddFunctionFrame(self, name: str, frame) -> None:
         if self.functionFrames.get(name) != None:
             Assert("Redefinition function:"+name)
         self.functionFrames[name] = frame
 
-    def GetFunctionFrame(self, name: str) -> Frame:
+    def GetFunctionFrame(self, name: str):
         if self.functionFrames.get(name) != None:
             return self.functionFrames.get(name)
         elif self.upFrame != None:
@@ -83,12 +83,12 @@ class Frame:
             return self.upFrame.HasFunctionFrame(name)
         return False
 
-    def AddStructFrame(self, name: str, frame: Frame) -> None:
+    def AddStructFrame(self, name: str, frame) -> None:
         if self.structFrames.get(name) != None:
             Assert("Redefinition function:"+name)
         self.functstructFramesionFrames[name] = frame
 
-    def GetStructFrame(self, name: str) -> Frame:
+    def GetStructFrame(self, name: str):
         if self.structFrames.get(name) != None:
             return self.structFrames.get(name)
         elif self.upFrame != None:
@@ -127,7 +127,8 @@ class Frame:
 
         result += ("%sOpCodes:\n" % interval)
 
-        for i in range(len(self.codes)):
+        i=0
+        while i<(len(self.codes)):
             if self.codes[i] == OpCode.OP_RETURN:
                 result += "%s\t%08d     OP_RETURN\n" % (interval, i)
             elif self.codes[i] == OpCode.OP_NEW_NUM:
@@ -217,9 +218,10 @@ class Frame:
                     interval, i, self.nums[self.codes[i+1]])
                 i = i+1
             elif self.codes[i] == OpCode.OP_FUNCTION_CALL:
-                result += "%s\t%08d     OP_FUNCTION_CALL     %d\n" % (
+                result += "%s\t%08d     OP_FUNCTION_CALL     %s\n" % (
                     interval, i, self.strings[self.codes[i+1]])
                 i = i+1
             else:
                 result += "%s\t%08d     UNKNOWN\n" % (interval, i)
+            i=i+1
         return result
