@@ -3,12 +3,14 @@ from Lexer import Lexer
 from Token import Token
 from Parser import Parser
 from Ast import AstNode
+from Compiler import Compiler
 
 
 def Repl():
     print("> ", end="")
     lexer = Lexer()
     parser = Parser()
+    compiler=Compiler()
     line = input()
     while(True):
         tokens = lexer.GenerateTokens(line)
@@ -19,6 +21,10 @@ def Repl():
 
         for stmt in stmts:
             print(stmt.Stringify())
+            
+        frame=compiler.Compile(stmts)
+        
+        print(frame.Stringify())
 
         print("> ", end="")
         line = input()
