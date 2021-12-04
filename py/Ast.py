@@ -116,7 +116,7 @@ class ArrayExpr(Expr):
 
     def Stringify(self) -> str:
         result = "["
-        if self.elements.count > 0:
+        if len(self.elements) > 0:
             for value in self.elements:
                 result += value.Stringify()+","
             result = result[0: len(result)-1]

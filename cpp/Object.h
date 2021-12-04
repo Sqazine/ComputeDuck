@@ -171,7 +171,7 @@ struct ArrayObject : public Object
 			return false;
 
 		for (size_t i = 0; i < elements.size(); ++i)
-			if (elements[i] != arrayOther->elements[i])
+			if (elements[i]->IsEqualTo(arrayOther->elements[i]))
 				return false;
 
 		return true;
@@ -220,7 +220,7 @@ struct StructObject : public Object
 	{
 		auto iter = members.find(name.data());
 		if (iter != members.end())
-			Assert("Redefined class member:" + std::string(name));
+			Assert("Redefined struct member:" + std::string(name));
 		else
 			members[name.data()] = value;
 	}
@@ -231,7 +231,7 @@ struct StructObject : public Object
 		if (iter != members.end())
 			members[name.data()] = value;
 		else
-			Assert("Undefine class member:" + std::string(name));
+			Assert("Undefine struct member:" + std::string(name));
 	}
 
 	Object *GetMember(std::string_view name)
