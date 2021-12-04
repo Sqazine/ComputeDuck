@@ -7,6 +7,7 @@ class Context:
     upContext=None
 
     def __init__(self,upContext=None) -> None:
+        self.values={}
         self.upContext=upContext
 
     def DefineVariable(self,name,value:Object):

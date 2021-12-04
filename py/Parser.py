@@ -30,6 +30,12 @@ class Parser:
     __precedence: dict[TokenType, Any] = {}
 
     def __init__(self) -> None:
+        self.__curPos: int = 0
+        self.__tokens: list[Token] = []
+        self.__prefixFunctions: dict[TokenType, Any] = {}
+        self.__infixFunctions: dict[TokenType, Any] = {}
+        self.__precedence: dict[TokenType, Any] = {}
+        
         self.__prefixFunctions = {
             TokenType.IDENTIFIER: self.ParseIdentifierExpr,
             TokenType.NUMBER: self.ParseNumExpr,
@@ -97,7 +103,7 @@ class Parser:
     def Consume(self, type, errMsg) -> Token:
         if self.IsMatchCurToken(type):
             return self.GetCurTokenAndStepOnce()
-        Assert("[line "+self.GetCurToken().line+"]:"+errMsg)
+        Assert("[line "+str(self.GetCurToken().line)+"]:"+errMsg)
         return Token(TokenType.END, "", 0)
 
     def GetCurToken(self) -> Token:

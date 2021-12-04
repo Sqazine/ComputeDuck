@@ -49,6 +49,11 @@ class Frame:
 
     def __init__(self, upFrame=None) -> None:
         self.upFrame = upFrame
+        self.functionFrames={}
+        self.structFrames = {}
+        self.codes: list[int] = []
+        self.nums: list[float] = []
+        self.strings: list[str] = []
 
     def AddOpCode(self, code: int) -> None:
         self.codes.append(code)
@@ -86,13 +91,13 @@ class Frame:
     def AddStructFrame(self, name: str, frame) -> None:
         if self.structFrames.get(name) != None:
             Assert("Redefinition function:"+name)
-        self.functstructFramesionFrames[name] = frame
+        self.structFrames[name] = frame
 
     def GetStructFrame(self, name: str):
         if self.structFrames.get(name) != None:
             return self.structFrames.get(name)
         elif self.upFrame != None:
-            return self.upFrame.GetFunctionFrame(name)
+            return self.upFrame.GetStructFrame(name)
 
     def HasStructFrame(self, name: str) -> bool:
         for key in self.structFrames:
