@@ -287,6 +287,7 @@ class IfStmt(Stmt):
             self.thenBranch.Stringify()
         if self.elseBranch != None:
             result += "else "+self.elseBranch.Stringify()
+        return result
 
     def Type(self) -> AstType:
         return AstType.IF

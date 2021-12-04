@@ -249,7 +249,7 @@ class VM:
 
                 #create a struct object
                 if varObject == None:
-                    if frame.HasFunctionFrame(name):
+                    if frame.HasStructFrame(name):
                         self.PushObject(self.Execute(
                             frame.GetStructFrame(name)))
                     else:
@@ -275,7 +275,7 @@ class VM:
                     if index.Type() != ObjectType.NUM:
                         Assert(
                             "Invalid index op.The index type of the array object must ba a int num type,but got:" + index.Stringify())
-                    iIndex = index.value
+                    iIndex = int(index.value)
                     if iIndex < 0 or iIndex > len(object.elements):
                         Assert("Index out of array range,array size:" +
                                len(object.elements) + ",index:" + iIndex)
@@ -284,7 +284,7 @@ class VM:
                     if index.Type() != ObjectType.NUM:
                         Assert(
                             "Invalid index op.The index type of the string object must ba a int num type,but got:" + index.Stringify())
-                    iIndex = index.value
+                    iIndex = int(index.value)
                     if iIndex < 0 or iIndex > len(object.value):
                         Assert("Index out of array range,array size:" +
                                len(object.value) + ",index:" + iIndex)
@@ -301,7 +301,7 @@ class VM:
                     if index.Type() != ObjectType.NUM:
                         Assert(
                             "Invalid index op.The index type of the array object must ba a int num type,but got:" + index.Stringify())
-                    iIndex = index.value
+                    iIndex = int(index.value)
                     if iIndex < 0 or iIndex > len(object.elements):
                         Assert("Index out of array range,array size:" +
                                len(object.elements) + ",index:" + iIndex)
@@ -323,7 +323,7 @@ class VM:
                 if stackTop.Type() != ObjectType.STRUCT:
                     Assert("Not a class object of the callee of:" + memberName)
                 assigner = self.PopObject()
-                stackTop.AssignerMember(memberName, assigner)
+                stackTop.AssignMember(memberName, assigner)
             elif instruction == OpCode.OP_ENTER_SCOPE:
                 self.__context = Context(self.__context)
             elif instruction == OpCode.OP_EXIT_SCOPE:
@@ -331,12 +331,12 @@ class VM:
             elif instruction == OpCode.OP_JUMP_IF_FALSE:
                 isJump = not (self.PopObject()).value
                 ip = ip+1
-                address = frame.nums[frame.codes[ip]]
+                address = int(frame.nums[frame.codes[ip]])
                 if isJump:
                     ip = address
             elif instruction == OpCode.OP_JUMP:
                 ip = ip+1
-                address = frame.nums[frame.codes[ip]]
+                address = int(frame.nums[frame.codes[ip]])
                 ip = address
             elif instruction == OpCode.OP_FUNCTION_CALL:
                 ip = ip+1

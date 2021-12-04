@@ -5,7 +5,6 @@ fn twosum(nums,target)
 {
     var i=0;
     var j=i+1;
-    println(j);
 
     while(i<sizeof(nums)-1)
     {
