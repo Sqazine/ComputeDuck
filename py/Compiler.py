@@ -101,7 +101,7 @@ class Compiler:
         functionFrame = Frame(frame)
         functionFrame.AddOpCode(OpCode.OP_ENTER_SCOPE)
 
-        for i in range(len(stmt.parameters), -1, -1):
+        for i in range(len(stmt.parameters)-1, -1, -1):
             self.CompileIdentifierExpr(
                 stmt.parameters[i], functionFrame, ObjectState.INIT)
 

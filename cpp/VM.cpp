@@ -228,10 +228,6 @@ Object *VM::Execute(Frame frame)
 		Object *right = PopObject();                                                                                              \
 		if (IS_NUM_OBJ(right) && IS_NUM_OBJ(left))                                                                                \
 			PushObject(TO_NUM_OBJ(left)->value op TO_NUM_OBJ(right)->value ? CreateBoolObject(true) : CreateBoolObject(false));   \
-		else if (IS_BOOL_OBJ(right) && IS_BOOL_OBJ(left))                                                                         \
-			PushObject(TO_BOOL_OBJ(left)->value op TO_BOOL_OBJ(right)->value ? CreateBoolObject(true) : CreateBoolObject(false)); \
-		else if (IS_NIL_OBJ(right) && IS_NIL_OBJ(left))                                                                           \
-			PushObject(TO_NIL_OBJ(left) op TO_NIL_OBJ(right) ? CreateBoolObject(true) : CreateBoolObject(false));                 \
 		else                                                                                                                      \
 			PushObject(CreateBoolObject(false));                                                                                  \
 	} while (0);
@@ -344,7 +340,6 @@ Object *VM::Execute(Frame frame)
 			std::string name = frame.m_Strings[frame.m_Codes[++ip]];
 
 			Object *value = PopObject();
-			Object *variable = m_Context->GetVariable(name);
 
 			m_Context->AssignVariable(name, value);
 			break;
@@ -413,7 +408,7 @@ Object *VM::Execute(Frame frame)
 				if (iIndex < 0 || iIndex >= (int64_t)strObject->value.size())
 					Assert("Index out of string range,string size:" + std::to_string(strObject->value.size()) + ",index:" + std::to_string(iIndex));
 
-				PushObject(CreateStrObject(strObject->value.substr(iIndex,1)));
+				PushObject(CreateStrObject(strObject->value.substr(iIndex, 1)));
 			}
 			else
 				Assert("Invalid index op.The indexed object isn't a array or a string object:" + object->Stringify());

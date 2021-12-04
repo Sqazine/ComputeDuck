@@ -34,9 +34,9 @@ class OpCode(IntEnum):
     OP_AND = 28,
     OP_ENTER_SCOPE = 29,
     OP_EXIT_SCOPE = 30,
-    OP_JUMP = 30,
-    OP_JUMP_IF_FALSE = 31,
-    OP_FUNCTION_CALL = 32,
+    OP_JUMP = 31,
+    OP_JUMP_IF_FALSE = 32,
+    OP_FUNCTION_CALL = 33,
 
 
 class Frame:
@@ -118,11 +118,11 @@ class Frame:
         result: str = ""
 
         for key, value in self.structFrames.items():
-            result += ("%sFrame %d:\n" % (interval, key))
+            result += ("%sFrame %s:\n" % (interval, key))
             result += value.Stringify(depth+1)
 
         for key, value in self.functionFrames.items():
-            result += ("%sFrame %d:\n" % (interval, key))
+            result += ("%sFrame %s:\n" % (interval, key))
             result += value.Stringify(depth+1)
 
         result += ("%sOpCodes:\n" % interval)
