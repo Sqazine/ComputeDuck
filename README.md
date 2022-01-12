@@ -16,13 +16,15 @@
 <br />
 
 ## 环境
-
+C++:
 1. C++ 编译器(>=17)
 2. CMake(>=3.10)
 
+Python:
+1. 安装python开发环境(作者使用3.9.7版本,其他版本未测试)
 ## 1. 运行
 
-1. 编译
+1. 编译(仅C++)
 
 ```sh
 git clone https://github.com/Sqazine/ComputeDuck.git
@@ -35,25 +37,32 @@ cmake -build .
 
 2. 命令行运行
 ```sh
-window:
+window(C++):
     .\computeduck.exe  
     > var a=10;println(a);
 
-
-linux:
+linux(C++):
     chmod 777 computeduck
     ./computeduck 
-    > var a=10;println(a);  
+    > var a=10;println(a); 
+
+window或者linux(Python):
+    cd py
+    python main.py
 ```
 3. 源码文件运行
 ```sh
-window:
+window(C++):
     .\computeduck.exe examples/leetcode-twosum.cd
 
 
-linux:
+linux(C++):
     chmod 777 computeduck
     ./computeduck examples/leetcode-twosum.cd
+
+window或者linux(Python):
+    cd py
+    python main.py examples/leetcode-twosum.cd
 ```
 
 ## 2. 例子
