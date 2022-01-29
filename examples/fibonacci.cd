@@ -7,5 +7,5 @@ fn fib(x)
     else 
         return fib(x-1)+fib(x-2);
 }
-var a=fib(5);
-println(a);// 55
+var a=fib(10);
+println(a);# 55
