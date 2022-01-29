@@ -299,7 +299,20 @@ fn twosum(nums,target)
 
 println(twosum(nums,target));#[0.000000,1.000000]
 ```
-
+9. 斐波那契数列
+```sh
+fn fib(x)
+{
+    if(x==0) 
+        return 0;
+    else if(x==1) 
+        return 1;
+    else 
+        return fib(x-1)+fib(x-2);
+}
+var a=fib(10);
+println(a);#55
+```
 ## 3. 特性
 1. 基本语法
 
