@@ -123,7 +123,7 @@ class Compiler:
         offset = structFrame.AddString(stmt.name)
         structFrame.AddOpCode(offset)
 
-        structFrame.AddOpCode(OpCode.OP_RETURN)
+        structFrame.AddOpCode(OpCode.OP_STRUCT_RETURN)
         frame.AddStructFrame(stmt.name, structFrame)
 
     def CompileExpr(self, expr: Expr, frame: Frame, state: ObjectState = ObjectState.READ):
