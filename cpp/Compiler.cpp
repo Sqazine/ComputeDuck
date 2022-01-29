@@ -128,7 +128,8 @@ void Compiler::CompileFunctionStmt(FunctionStmt *stmt, Frame &frame)
 	for (int64_t i = stmt->parameters.size() - 1; i >= 0; --i)
 		CompileIdentifierExpr(stmt->parameters[i], functionFrame, INIT);
 
-	CompileScopeStmt(stmt->body, functionFrame);
+	for (const auto &s : stmt->body->stmts)
+		CompileStmt(s, functionFrame);
 
 	functionFrame.AddOpCode(OP_EXIT_SCOPE);
 

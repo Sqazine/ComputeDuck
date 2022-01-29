@@ -250,6 +250,12 @@ Object *VM::Execute(Frame frame)
 		switch (instruction)
 		{
 		case OP_RETURN:
+			if(m_Context->m_UpContext)
+			{
+				Context* tmp=m_Context->m_UpContext;
+				delete m_Context;
+				m_Context=tmp;
+			}
 			return PopObject();
 			break;
 		case OP_NEW_NUM:
@@ -375,7 +381,7 @@ Object *VM::Execute(Frame frame)
 		{
 			PushObject(CreateStructObject(frame.m_Strings[frame.m_Codes[++ip]], m_Context->m_Values));
 
-			Context *tmp = m_Context->GetUpContext();
+			Context *tmp = m_Context->m_UpContext;
 			delete m_Context;
 			m_Context = tmp;
 			break;
@@ -467,7 +473,7 @@ Object *VM::Execute(Frame frame)
 		}
 		case OP_EXIT_SCOPE:
 		{
-			Context *tmp = m_Context->GetUpContext();
+			Context *tmp = m_Context->m_UpContext;
 			delete m_Context;
 			m_Context = tmp;
 			break;

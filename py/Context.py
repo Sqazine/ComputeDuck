@@ -31,12 +31,6 @@ class Context:
             return self.upContext.GetVariable(name)
         return None
 
-    def GetUpContext(self):
-        return self.upContext
-
-    def SetUpContext(self,env):
-        self.upContext=env
-
     
     
     

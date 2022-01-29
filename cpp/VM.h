@@ -11,8 +11,8 @@
 #include "Utils.h"
 #include "Context.h"
 
-#define STACK_MAX 128
-#define INIT_OBJ_NUM_MAX 128
+#define STACK_MAX 4096
+#define INIT_OBJ_NUM_MAX 4096
 
 class VM
 {

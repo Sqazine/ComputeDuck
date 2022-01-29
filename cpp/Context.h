@@ -13,9 +13,6 @@
         void AssignVariable(std::string_view name, struct Object *value);
         struct Object *GetVariable(std::string_view name);
 
-        Context *GetUpContext();
-        void SetUpContext(Context *env);
-
     private:
         friend class VM;
 
