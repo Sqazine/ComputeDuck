@@ -258,6 +258,9 @@ Object *VM::Execute(Frame frame)
 			}
 			return PopObject();
 			break;
+		case OP_STRUCT_RETURN:
+			return PopObject();
+			break;
 		case OP_NEW_NUM:
 			PushObject(CreateNumObject(frame.m_Nums[frame.m_Codes[++ip]]));
 			break;

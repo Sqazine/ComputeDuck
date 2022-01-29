@@ -19,24 +19,25 @@ class OpCode(IntEnum):
     OP_SET_STRUCT_VAR = 13,
     OP_NEG = 14,
     OP_RETURN = 15,
-    OP_ADD = 16,
-    OP_SUB = 17,
-    OP_MUL = 18,
-    OP_DIV = 19,
-    OP_GREATER = 20,
-    OP_LESS = 21,
-    OP_GREATER_EQUAL = 22,
-    OP_LESS_EQUAL = 23,
-    OP_EQUAL = 24,
-    OP_NOT_EQUAL = 25,
-    OP_NOT = 26,
-    OP_OR = 27,
-    OP_AND = 28,
-    OP_ENTER_SCOPE = 29,
-    OP_EXIT_SCOPE = 30,
-    OP_JUMP = 31,
-    OP_JUMP_IF_FALSE = 32,
-    OP_FUNCTION_CALL = 33,
+    OP_STRUCT_RETURN = 16,
+    OP_ADD = 17,
+    OP_SUB = 18,
+    OP_MUL = 19,
+    OP_DIV = 20,
+    OP_GREATER = 21,
+    OP_LESS = 22,
+    OP_GREATER_EQUAL = 23,
+    OP_LESS_EQUAL = 24,
+    OP_EQUAL = 25,
+    OP_NOT_EQUAL = 26,
+    OP_NOT = 27,
+    OP_OR = 28,
+    OP_AND = 29,
+    OP_ENTER_SCOPE = 30,
+    OP_EXIT_SCOPE = 31,
+    OP_JUMP = 32,
+    OP_JUMP_IF_FALSE = 33,
+    OP_FUNCTION_CALL = 34,
 
 
 class Frame:
@@ -136,6 +137,8 @@ class Frame:
         while i<(len(self.codes)):
             if self.codes[i] == OpCode.OP_RETURN:
                 result += "%s\t%08d     OP_RETURN\n" % (interval, i)
+            elif self.codes[i] == OpCode.OP_STRUCT_RETURN:
+                result += "%s\t%08d     OP_STRUCT_RETURN\n" % (interval, i)
             elif self.codes[i] == OpCode.OP_NEW_NUM:
                 result += "%s\t%08d     OP_NEW_NUM     %d\n" % (
                     interval, i, self.nums[self.codes[i+1]])
