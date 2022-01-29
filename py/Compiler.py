@@ -105,7 +105,8 @@ class Compiler:
             self.CompileIdentifierExpr(
                 stmt.parameters[i], functionFrame, ObjectState.INIT)
 
-        self.CompileScopeStmt(stmt.body, functionFrame)
+        for s in stmt.body.stmts:
+            self.CompileStmt(s, functionFrame)
 
         functionFrame.AddOpCode(OpCode.OP_EXIT_SCOPE)
 

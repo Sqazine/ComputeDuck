@@ -36,13 +36,3 @@ Object *Context::GetVariable(std::string_view name)
 		return m_UpContext->GetVariable(name);
 	return nullptr;
 }
-
-Context *Context::GetUpContext()
-{
-	return m_UpContext;
-}
-
-void Context::SetUpContext(Context *env)
-{
-	m_UpContext = env;
-}
