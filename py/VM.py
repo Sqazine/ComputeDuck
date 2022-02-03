@@ -114,8 +114,6 @@ class VM:
                 if self.__context.upContext!=None:
                     self.__context=self.__context.upContext
                 return self.PopObject()
-            elif instruction==OpCode.OP_STRUCT_RETURN:
-                return self.PopObject()
             elif instruction == OpCode.OP_NEW_NUM:
                 ip = ip+1
                 self.PushObject(NumObject(frame.nums[frame.codes[ip]]))
@@ -271,7 +269,6 @@ class VM:
                 ip = ip+1
                 self.PushObject(StructObject(
                     frame.strings[frame.codes[ip]], self.__context.values))
-                self.__context = self.__context.upContext
             elif instruction == OpCode.OP_GET_INDEX_VAR:
                 index = self.PopObject()
                 object = self.PopObject()
