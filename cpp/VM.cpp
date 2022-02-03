@@ -258,9 +258,6 @@ Object *VM::Execute(Frame frame)
 			}
 			return PopObject();
 			break;
-		case OP_STRUCT_RETURN:
-			return PopObject();
-			break;
 		case OP_NEW_NUM:
 			PushObject(CreateNumObject(frame.m_Nums[frame.m_Codes[++ip]]));
 			break;
@@ -383,10 +380,6 @@ Object *VM::Execute(Frame frame)
 		case OP_NEW_STRUCT:
 		{
 			PushObject(CreateStructObject(frame.m_Strings[frame.m_Codes[++ip]], m_Context->m_Values));
-
-			Context *tmp = m_Context->m_UpContext;
-			delete m_Context;
-			m_Context = tmp;
 			break;
 		}
 		case OP_GET_INDEX_VAR:

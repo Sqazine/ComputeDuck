@@ -149,7 +149,7 @@ void Compiler::CompileStructStmt(StructStmt *stmt, Frame &frame)
 	uint64_t offset = structFrame.AddString(stmt->name);
 	structFrame.AddOpCode(offset);
 
-	structFrame.AddOpCode(OP_STRUCT_RETURN);
+	structFrame.AddOpCode(OP_RETURN);
 
 	frame.AddStructFrame(stmt->name, structFrame);
 }
