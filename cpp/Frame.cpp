@@ -131,9 +131,6 @@ std::string Frame::Stringify(int depth)
 		case OP_RETURN:
 			SINGLE_INSTR_STRINGIFY(OP_RETURN);
 			break;
-		case OP_STRUCT_RETURN:
-			SINGLE_INSTR_STRINGIFY(OP_STRUCT_RETURN);
-			break;
 		case OP_NEW_NUM:
 			CONSTANT_INSTR_STRINGIFY(OP_NEW_NUM, m_Nums);
 			break;
