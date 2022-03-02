@@ -230,6 +230,9 @@ std::string Frame::Stringify(int depth)
 		case OP_FUNCTION_CALL:
 			CONSTANT_INSTR_STRINGIFY(OP_FUNCTION_CALL, m_Strings);
 			break;
+		case OP_REF:
+			SINGLE_INSTR_STRINGIFY(OP_REF);
+			break;
 		default:
 			SINGLE_INSTR_STRINGIFY(UNKNOWN);
 			break;

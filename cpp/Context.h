@@ -9,9 +9,13 @@
         Context(Context *upContext);
         ~Context();
 
-        void DefineVariable(std::string_view name, struct Object *value);
-        void AssignVariable(std::string_view name, struct Object *value);
-        struct Object *GetVariable(std::string_view name);
+        void DefineVariableByName(std::string_view name, struct Object *value);
+
+        void AssignVariableByName(std::string_view name, struct Object *value);
+        struct Object *GetVariableByName(std::string_view name);
+
+        void AssignVariableByAddress(std::string_view address, struct Object *value);
+        struct Object *GetVariableByAddress(std::string_view address);
 
     private:
         friend class VM;

@@ -12,6 +12,7 @@
 #define TO_BOOL_OBJ(obj) ((BoolObject *)obj)
 #define TO_ARRAY_OBJ(obj) ((ArrayObject *)obj)
 #define TO_STRUCT_OBJ(obj) ((StructObject *)obj)
+#define TO_REF_OBJ(obj) ((RefObject *)obj)
 
 #define IS_NUM_OBJ(obj) (obj->Type() == ObjectType::NUM)
 #define IS_STR_OBJ(obj) (obj->Type() == ObjectType::STR)
@@ -19,6 +20,7 @@
 #define IS_NIL_OBJ(obj) (obj->Type() == ObjectType::NIL)
 #define IS_ARRAY_OBJ(obj) (obj->Type() == ObjectType::ARRAY)
 #define IS_STRUCT_OBJ(obj) (obj->Type() == ObjectType::STRUCT)
+#define IS_REF_OBJ(obj) (obj->Type() == ObjectType::REF)
 
 enum class ObjectType
 {
@@ -27,7 +29,8 @@ enum class ObjectType
 	BOOL,
 	NIL,
 	ARRAY,
-	STRUCT
+	STRUCT,
+	REF
 };
 
 struct Object
@@ -180,6 +183,25 @@ struct ArrayObject : public Object
 	std::vector<Object *> elements;
 };
 
+struct RefObject : public Object
+{
+	RefObject(std::string_view address) : address(address) {}
+	~RefObject() {}
+
+	std::string Stringify() override { return address; }
+	ObjectType Type() override { return ObjectType::REF; }
+	void Mark() override { marked = true; }
+	void UnMark() override { marked = false; }
+	bool IsEqualTo(Object *other) override
+	{
+		if (!IS_REF_OBJ(other))
+			return false;
+		return address == TO_REF_OBJ(other)->address;
+	}
+
+	std::string address;
+};
+
 struct StructObject : public Object
 {
 	StructObject() {}
@@ -214,15 +236,6 @@ struct StructObject : public Object
 				if (key1 != key2 || !value1->IsEqualTo(value2))
 					return false;
 		return true;
-	}
-
-	void DefineMember(std::string_view name, Object *value)
-	{
-		auto iter = members.find(name.data());
-		if (iter != members.end())
-			Assert("Redefined struct member:" + std::string(name));
-		else
-			members[name.data()] = value;
 	}
 
 	void AssignMember(std::string_view name, Object *value)

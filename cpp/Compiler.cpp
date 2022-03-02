@@ -194,6 +194,9 @@ void Compiler::CompileExpr(Expr *expr, Frame &frame, ObjectState state)
 	case AstType::STRUCT_CALL:
 		CompileStructCallExpr((StructCallExpr *)expr, frame,state);
 		break;
+	case AstType::REF:
+		CompileRefExpr((RefExpr *)expr, frame);
+		break;
 	default:
 		break;
 	}
@@ -266,6 +269,12 @@ void Compiler::CompileIndexExpr(IndexExpr *expr, Frame &frame, ObjectState state
 		frame.AddOpCode(OP_GET_INDEX_VAR);
 	else if (state == WRITE)
 		frame.AddOpCode(OP_SET_INDEX_VAR);
+}
+
+void Compiler::CompileRefExpr(RefExpr *expr, Frame &frame)
+{
+	CompileExpr(expr->refExpr, frame);
+	frame.AddOpCode(OP_REF);
 }
 
 void Compiler::CompilePrefixExpr(PrefixExpr *expr, Frame &frame)
