@@ -43,6 +43,7 @@ private:
 	void CompileGroupExpr(GroupExpr *expr, Frame &frame);
 	void CompileArrayExpr(ArrayExpr *expr, Frame &frame);
 	void CompileIndexExpr(IndexExpr *expr, Frame &frame, ObjectState state = READ);
+	void CompileRefExpr(RefExpr *expr, Frame &frame);
 	void CompilePrefixExpr(PrefixExpr *expr, Frame &frame);
 	void CompileInfixExpr(InfixExpr *expr, Frame &frame);
 	void CompileFunctionCallExpr(FunctionCallExpr *expr, Frame &frame);

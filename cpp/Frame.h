@@ -44,6 +44,7 @@ enum OpCode
 	OP_JUMP,
 	OP_JUMP_IF_FALSE,
 	OP_FUNCTION_CALL,
+	OP_REF,
 };
 
 class Frame

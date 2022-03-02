@@ -206,6 +206,22 @@ StructObject *VM::CreateStructObject(std::string_view name,
 	return object;
 }
 
+RefObject *VM::CreateRefObject(std::string_view address)
+{
+	if (curObjCount == maxObjCount)
+		Gc();
+
+	RefObject *refObject = new RefObject(address);
+	refObject->marked = false;
+
+	refObject->next = firstObject;
+	firstObject = refObject;
+
+	curObjCount++;
+
+	return refObject;
+}
+
 Object *VM::Execute(Frame frame)
 {
 	// + - * /
@@ -338,7 +354,7 @@ Object *VM::Execute(Frame frame)
 		case OP_DEFINE_VAR:
 		{
 			Object *value = PopObject();
-			m_Context->DefineVariable(frame.m_Strings[frame.m_Codes[++ip]], value);
+			m_Context->DefineVariableByName(frame.m_Strings[frame.m_Codes[++ip]], value);
 			break;
 		}
 		case OP_SET_VAR:
@@ -346,16 +362,22 @@ Object *VM::Execute(Frame frame)
 			std::string name = frame.m_Strings[frame.m_Codes[++ip]];
 
 			Object *value = PopObject();
+			Object *variable = m_Context->GetVariableByName(name);
 
-			m_Context->AssignVariable(name, value);
+			if (IS_REF_OBJ(variable))
+			{
+				m_Context->AssignVariableByAddress(TO_REF_OBJ(variable)->address, value);
+				TO_REF_OBJ(variable)->address = PointerAddressToString(value); //update ref address
+			}
+			else
+				m_Context->AssignVariableByName(name, value);
 			break;
 		}
 		case OP_GET_VAR:
 		{
 			std::string name = frame.m_Strings[frame.m_Codes[++ip]];
 
-			Object *varObject = m_Context->GetVariable(name);
-
+			Object *varObject = m_Context->GetVariableByName(name);
 			//create a struct object
 			if (varObject == nullptr)
 			{
@@ -363,6 +385,11 @@ Object *VM::Execute(Frame frame)
 					PushObject(Execute(frame.GetStructFrame(name)));
 				else
 					Assert("No struct definition:" + name);
+			}
+			else if (IS_REF_OBJ(varObject))
+			{
+				varObject = m_Context->GetVariableByAddress(TO_REF_OBJ(varObject)->address);
+				PushObject(varObject);
 			}
 			else
 				PushObject(varObject);
@@ -509,6 +536,11 @@ Object *VM::Execute(Frame frame)
 			else
 				Assert("No function:" + fnName);
 
+			break;
+		}
+		case OP_REF:
+		{
+			PushObject(CreateRefObject(PointerAddressToString(PopObject())));
 			break;
 		}
 		default:
