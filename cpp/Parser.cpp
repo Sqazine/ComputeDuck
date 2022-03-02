@@ -12,6 +12,7 @@ std::unordered_map<TokenType, PrefixFn> Parser::m_PrefixFunctions =
 		{TokenType::NOT, &Parser::ParsePrefixExpr},
 		{TokenType::LPAREN, &Parser::ParseGroupExpr},
 		{TokenType::LBRACKET, &Parser::ParseArrayExpr},
+		{TokenType::REF, &Parser::ParseRefExpr},
 };
 
 std::unordered_map<TokenType, InfixFn> Parser::m_InfixFunctions =
@@ -31,7 +32,7 @@ std::unordered_map<TokenType, InfixFn> Parser::m_InfixFunctions =
 		{TokenType::LBRACKET, &Parser::ParseIndexExpr},
 		{TokenType::AND, &Parser::ParseInfixExpr},
 		{TokenType::OR, &Parser::ParseInfixExpr},
-		{TokenType::DOT,&Parser::ParseStructCallExpr},
+		{TokenType::DOT, &Parser::ParseStructCallExpr},
 };
 
 std::unordered_map<TokenType, Precedence> Parser::m_Precedence =
@@ -51,8 +52,7 @@ std::unordered_map<TokenType, Precedence> Parser::m_Precedence =
 		{TokenType::LPAREN, Precedence::INFIX},
 		{TokenType::AND, Precedence::AND},
 		{TokenType::OR, Precedence::OR},
-		{TokenType::DOT,Precedence::INFIX}
-};
+		{TokenType::DOT, Precedence::INFIX}};
 
 Parser::Parser()
 {
@@ -89,7 +89,7 @@ Stmt *Parser::ParseStmt()
 		return ParseWhileStmt();
 	else if (IsMatchCurToken(TokenType::FUNCTION))
 		return ParseFunctionStmt();
-	else if(IsMatchCurToken(TokenType::STRUCT))
+	else if (IsMatchCurToken(TokenType::STRUCT))
 		return ParseStructStmt();
 	else
 		return ParseExprStmt();
@@ -212,7 +212,7 @@ Stmt *Parser::ParseStructStmt()
 	Consume(TokenType::LBRACE, "Expect '{' after struct name");
 
 	while (!IsMatchCurToken(TokenType::RBRACE))
-		structStmt->members.emplace_back((VarStmt*)ParseVarStmt());
+		structStmt->members.emplace_back((VarStmt *)ParseVarStmt());
 
 	Consume(TokenType::RBRACE, "Expect '}' after struct's '{'");
 
@@ -331,6 +331,18 @@ Expr *Parser::ParseIndexExpr(Expr *prefixExpr)
 	return indexExpr;
 }
 
+Expr *Parser::ParseRefExpr()
+{
+	Consume(TokenType::REF, "Expect 'ref' keyword.");
+
+	auto refExpr = ParseExpr(Precedence::LOWEST);
+
+	if (refExpr->Type() != AstType::IDENTIFIER)
+		Assert("Invalid reference type, only variable can be referenced.");
+
+	return new RefExpr((IdentifierExpr *)refExpr);
+}
+
 Expr *Parser::ParseFunctionCallExpr(Expr *prefixExpr)
 {
 	auto funcCallExpr = new FunctionCallExpr();
@@ -350,11 +362,11 @@ Expr *Parser::ParseFunctionCallExpr(Expr *prefixExpr)
 
 Expr *Parser::ParseStructCallExpr(Expr *prefixExpr)
 {
-Consume(TokenType::DOT, "Expect '.'.");
-    auto structCallExpr = new StructCallExpr();
-    structCallExpr->callee = prefixExpr;
-    structCallExpr->callMember = ParseExpr(Precedence::INFIX);
-    return structCallExpr;
+	Consume(TokenType::DOT, "Expect '.'.");
+	auto structCallExpr = new StructCallExpr();
+	structCallExpr->callee = prefixExpr;
+	structCallExpr->callMember = ParseExpr(Precedence::INFIX);
+	return structCallExpr;
 }
 
 Token Parser::GetCurToken()
