@@ -43,6 +43,7 @@ enum class TokenType
 	OR,			   // or
 	NOT,		   // not
 	STRUCT,		   // struct
+	REF,		   // ref
 
 	UNKNOWN,
 	END

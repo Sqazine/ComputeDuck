@@ -1,6 +1,6 @@
 #include "Lexer.h"
 
-static std::unordered_map<std::string, TokenType> keywords =
+const std::unordered_map<std::string, TokenType> keywords =
     {
         {"var", TokenType::VAR},
         {"if", TokenType::IF},
@@ -13,8 +13,9 @@ static std::unordered_map<std::string, TokenType> keywords =
         {"return", TokenType::RETURN},
         {"and", TokenType::AND},
         {"or", TokenType::OR},
-        {"not",TokenType::NOT},
+        {"not", TokenType::NOT},
         {"struct", TokenType::STRUCT},
+        {"ref", TokenType::REF},
 };
 
 Lexer::Lexer()

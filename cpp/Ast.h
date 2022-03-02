@@ -18,6 +18,7 @@ enum class AstType
 	PREFIX,
 	INFIX,
 	INDEX,
+	REF,
 	FUNCTION_CALL,
 	STRUCT_CALL,
 	//stmt
@@ -198,6 +199,22 @@ struct IndexExpr : public Expr
 
 	Expr *ds;
 	Expr *index;
+};
+
+struct RefExpr:public Expr
+{
+	RefExpr() : refExpr(nullptr){}
+	RefExpr(IdentifierExpr* refExpr) : refExpr(refExpr) {}
+	~RefExpr()
+	{
+		delete refExpr;
+		refExpr = nullptr;
+	}
+	std::string Stringify() override { return "ref "+refExpr->Stringify(); }
+
+	AstType Type() override { return AstType::REF; }
+
+	IdentifierExpr *refExpr;
 };
 
 struct FunctionCallExpr : public Expr
