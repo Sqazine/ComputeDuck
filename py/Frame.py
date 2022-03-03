@@ -37,6 +37,7 @@ class OpCode(IntEnum):
     OP_JUMP = 31,
     OP_JUMP_IF_FALSE = 32,
     OP_FUNCTION_CALL = 33,
+    OP_REF = 34,
 
 
 class Frame:
@@ -49,7 +50,7 @@ class Frame:
 
     def __init__(self, upFrame=None) -> None:
         self.upFrame = upFrame
-        self.functionFrames={}
+        self.functionFrames = {}
         self.structFrames = {}
         self.codes: list[int] = []
         self.nums: list[float] = []
@@ -132,8 +133,8 @@ class Frame:
 
         result += ("%sOpCodes:\n" % interval)
 
-        i=0
-        while i<(len(self.codes)):
+        i = 0
+        while i < (len(self.codes)):
             if self.codes[i] == OpCode.OP_RETURN:
                 result += "%s\t%08d     OP_RETURN\n" % (interval, i)
             elif self.codes[i] == OpCode.OP_NEW_NUM:
@@ -226,7 +227,9 @@ class Frame:
                 result += "%s\t%08d     OP_FUNCTION_CALL     %s\n" % (
                     interval, i, self.strings[self.codes[i+1]])
                 i = i+1
+            elif self.codes[i]==OpCode.OP_REF:
+                result += "%s\t%08d     OP_REF\n" % (interval, i)
             else:
                 result += "%s\t%08d     UNKNOWN\n" % (interval, i)
-            i=i+1
+            i = i+1
         return result

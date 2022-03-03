@@ -1,7 +1,7 @@
 from Token import Token, TokenType
 from Utils import Assert
 
-keywords:dict = {
+keywords: dict = {
     "var": TokenType.VAR,
     "if": TokenType.IF,
     "else": TokenType.ELSE,
@@ -15,6 +15,7 @@ keywords:dict = {
     "or": TokenType.OR,
     "not": TokenType.NOT,
     "struct": TokenType.STRUCT,
+    "ref": TokenType.REF
 }
 
 
@@ -98,8 +99,8 @@ class Lexer:
             res = self.__source[self.__curPos]
         return res
 
-    def AddToken(self, type: TokenType, literal: str=None):
-        if(literal==None):
+    def AddToken(self, type: TokenType, literal: str = None):
+        if(literal == None):
             literal = self.__source[self.__startPos:self.__curPos]
         self.__tokens.append(Token(type, literal, self.__line))
 

@@ -6,7 +6,7 @@ from Utils import Assert
 from Object import ObjectType
 from Frame import OpCode
 from Object import BoolObject, NilObject, NumObject, StrObject
-from Object import ArrayObject, StructObject
+from Object import ArrayObject, StructObject,RefObject
 
 
 def println(args: list[Object]) -> Object:
@@ -237,17 +237,23 @@ class VM:
             elif instruction == OpCode.OP_DEFINE_VAR:
                 value = self.PopObject()
                 ip = ip+1
-                self.__context.DefineVariable(
+                self.__context.DefineVariableByName(
                     frame.strings[frame.codes[ip]], value)
             elif instruction == OpCode.OP_SET_VAR:
                 ip = ip+1
                 name = frame.strings[frame.codes[ip]]
                 value = self.PopObject()
-                self.__context.AssignVariable(name, value)
+                variable=self.__context.GetVariableByName(name)
+
+                if variable.Type()==ObjectType.REF:
+                    self.__context.AssignVariableByAddress(variable.address,value)
+                    variable.address=id(value)
+                else:
+                    self.__context.AssignVariableByName(name, value)
             elif instruction == OpCode.OP_GET_VAR:
                 ip = ip+1
                 name = frame.strings[frame.codes[ip]]
-                varObject = self.__context.GetVariable(name)
+                varObject = self.__context.GetVariableByName(name)
 
                 #create a struct object
                 if varObject == None:
@@ -256,6 +262,9 @@ class VM:
                             frame.GetStructFrame(name)))
                     else:
                         Assert("No Struct definition:"+name)
+                elif varObject.Type()==ObjectType.REF:
+                    varObject=self.__context.GetVariableByAddress(varObject.address)
+                    self.PushObject(varObject)
                 else:
                     self.PushObject(varObject)
             elif instruction == OpCode.OP_NEW_ARRAY:
@@ -356,6 +365,8 @@ class VM:
                         self.PushObject(result)
                 else:
                     Assert("No function:"+fnName)
+            elif instruction==OpCode.OP_REF:
+                self.PushObject(RefObject(id(self.PopObject())))
 
             ip += 1
         return NilObject()
