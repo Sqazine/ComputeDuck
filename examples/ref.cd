@@ -5,4 +5,23 @@ b=100;
 println(a);#100
 
 a=[1,2,3,4,5];
-println(b);
+println(b);# [1,2,3,4,5]
+
+struct Vec2
+{
+    var x=0;
+    var y=0;
+}
+
+a=Vec2;
+println(b);#struct instance Vec2: x=0.0 y=0.0
+
+fn resetVec2(v)
+{
+    #reset vec2 value in function
+    v.x=100;
+    v.y=100;
+}
+
+resetVec2(ref a);
+println(b);#struct instance Vec2: x=100.0 y=100.0

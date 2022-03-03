@@ -482,6 +482,39 @@ a.vec2.x=1000;#Support struct member assignment
 println(a.vec2.x);#Support structure members to get values
 ```
 
+10. 引用
+```sh
+var a=10;
+var b=ref a;
+println(b);# 10
+b=100;#modify the original object value by reference
+println(a);#100
+
+a=[1,2,3,4,5];
+println(b);#[1,2,3,4,5]
+
+var c=ref a[0];#error,only explicit object can be referenced,it is illegal to reference an object in an array
+
+struct Vec2
+{
+    var x=0;
+    var y=0;
+}
+
+a=Vec2;
+println(b);#struct instance Vec2: x=0.0 y=0.0 it is legal to reference a structure object
+
+fn resetVec2(v)
+{
+    #modifies the value of a reference object argument in a function
+    v.x=100;
+    v.y=100;
+}
+
+resetVec2(ref a);
+println(b);#struct instance Vec2: x=100.0 y=100.0 
+```
+
 ## 4. License
 
 This project is licensed under the Apache-2.0 License, see the details[LICENSE](https://github.com/Sqazine/ComputeDuck/blob/main/LICENSE)
