@@ -29,7 +29,7 @@ public:
 	NilObject *CreateNilObject();
 	ArrayObject *CreateArrayObject(const std::vector<Object *> &elements = {});
 	StructObject *CreateStructObject(std::string_view name,const std::unordered_map<std::string, Object *> &members={});
-	RefObject *CreateRefObject(std::string_view address);
+	RefObject *CreateRefObject(std::string_view name);
 
 	void Gc();
 
