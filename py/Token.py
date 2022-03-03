@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class TokenType(Enum):
    NUMBER = 0,
    STRING = 1,
@@ -38,8 +39,9 @@ class TokenType(Enum):
    OR = 34,			   # or
    NOT = 35,		   # not
    STRUCT = 36,		   # struct
-   UNKNOWN = 37,
-   END = 38
+   REF = 37,           # ref
+   UNKNOWN = 38,
+   END = 39
 
 
 class Token:

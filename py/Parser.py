@@ -6,7 +6,7 @@ from Ast import Expr
 
 from Token import Token, TokenType
 from Utils import Assert
-from Ast import ArrayExpr, BoolExpr, ExprStmt, FunctionCallExpr, FunctionStmt, GroupExpr, IdentifierExpr, IfStmt, IndexExpr, InfixExpr, NilExpr, NumExpr, PrefixExpr, ReturnStmt, ScopeStmt, StrExpr, StructCallExpr, StructStmt, VarStmt, WhileStmt
+from Ast import AstType, ArrayExpr, BoolExpr, ExprStmt, FunctionCallExpr, FunctionStmt, GroupExpr, IdentifierExpr, IfStmt, IndexExpr, InfixExpr, NilExpr, NumExpr, PrefixExpr, ReturnStmt, ScopeStmt, StrExpr, StructCallExpr, StructStmt, VarStmt, WhileStmt, RefExpr
 
 
 class Precedence(IntEnum):
@@ -47,6 +47,7 @@ class Parser:
             TokenType.NOT: self.ParsePrefixExpr,
             TokenType.LPAREN: self.ParseGroupExpr,
             TokenType.LBRACKET: self.ParseArrayExpr,
+            TokenType.REF:self.ParseRefExpr,
 
         }
 
@@ -333,6 +334,14 @@ class Parser:
         indexExpr.index = self.ParseExpr(Precedence.INFIX)
         self.Consume(TokenType.RBRACKET, "Expect ']'.")
         return indexExpr
+
+    def ParseRefExpr(self)->Expr:
+        self.Consume(TokenType.REF,"Expect 'ref' keyword.")
+        refExpr=self.ParseExpr(Precedence.LOWEST)
+        if refExpr.Type() != AstType.IDENTIFIER:
+            Assert("Invalid reference type, only variable can be referenced.")
+
+        return RefExpr(refExpr)
 
     def ParseFunctionCallExpr(self, prefixExpr: Expr) -> Expr:
         funcCallExpr = FunctionCallExpr("", [])

@@ -1,3 +1,4 @@
+from audioop import add
 from enum import IntEnum
 import abc
 from Utils import Assert
@@ -8,7 +9,8 @@ class ObjectType(IntEnum):
     BOOL = 2,
     NIL = 3,
     ARRAY = 4,
-    STRUCT = 5
+    STRUCT = 5,
+    REF=6
 
 
 class Object:
@@ -127,6 +129,22 @@ class ArrayObject(Object):
             i=i+1
         return True
 
+class RefObject(Object):
+    address:str
+
+    def __init__(self,address:str) -> None:
+        self.address=address
+
+    def Stringify(self) -> str:
+        return self.address
+
+    def Type(self) -> ObjectType:
+        return ObjectType.REF
+
+    def IsEqualTo(self, other) -> bool:
+        if other.Type()!=ObjectType.REF:
+            return False
+        return self.address==other.address
 
 class StructObject(Object):
     name = ""

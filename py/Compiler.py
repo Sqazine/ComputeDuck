@@ -2,7 +2,7 @@ from enum import IntEnum
 from Utils import Assert
 from Frame import Frame
 from Ast import Stmt
-from Ast import ArrayExpr, AstType, BoolExpr, Expr, ExprStmt, FunctionCallExpr, FunctionStmt, GroupExpr, IdentifierExpr, IfStmt, IndexExpr, InfixExpr, NilExpr, NumExpr, PrefixExpr, ReturnStmt, ScopeStmt, StrExpr, StructCallExpr, StructStmt, VarStmt, WhileStmt
+from Ast import ArrayExpr, AstType, BoolExpr, Expr, ExprStmt, FunctionCallExpr, FunctionStmt, GroupExpr, IdentifierExpr, IfStmt, IndexExpr, InfixExpr, NilExpr, NumExpr, PrefixExpr, ReturnStmt, ScopeStmt, StrExpr, StructCallExpr, StructStmt, VarStmt, WhileStmt, RefExpr
 from Frame import OpCode
 
 
@@ -18,7 +18,7 @@ class Compiler:
     __rootFrame: Frame
 
     def __init__(self) -> None:
-        self.__rootFrame=Frame()
+        self.__rootFrame = Frame()
 
     def Compile(self, stmts: list[Stmt]) -> Frame:
         for s in stmts:
@@ -136,13 +136,13 @@ class Compiler:
         elif expr.Type() == AstType.NIL:
             self.CompileNilExpr(expr, frame)
         elif expr.Type() == AstType.IDENTIFIER:
-            self.CompileIdentifierExpr(expr, frame,state)
+            self.CompileIdentifierExpr(expr, frame, state)
         elif expr.Type() == AstType.GROUP:
             self.CompileGroupExpr(expr, frame)
         elif expr.Type() == AstType.ARRAY:
             self.CompileArrayExpr(expr, frame)
         elif expr.Type() == AstType.INDEX:
-            self.CompileIndexExpr(expr, frame,state)
+            self.CompileIndexExpr(expr, frame, state)
         elif expr.Type() == AstType.PREFIX:
             self.CompilePrefixExpr(expr, frame)
         elif expr.Type() == AstType.INFIX:
@@ -150,7 +150,9 @@ class Compiler:
         elif expr.Type() == AstType.FUNCTION_CALL:
             self.CompileFunctionCallExpr(expr, frame)
         elif expr.Type() == AstType.STRUCT_CALL:
-            self.CompileStructCallExpr(expr, frame,state)
+            self.CompileStructCallExpr(expr, frame, state)
+        elif expr.Type() == AstType.REF:
+            self.CompileRefExpr(expr, frame)
 
     def CompileNumExpr(self, expr: NumExpr, frame: Frame):
         frame.AddOpCode(OpCode.OP_NEW_NUM)
@@ -247,6 +249,10 @@ class Compiler:
             else:
                 Assert("Unknown binary op:"+expr.op)
 
+    def CompileRefExpr(self, expr: RefExpr, frame: Frame):
+        self.CompileExpr(expr.refExpr,frame)
+        frame.AddOpCode(OpCode.OP_REF)
+
     def CompileFunctionCallExpr(self, expr: FunctionCallExpr, frame: Frame):
         for arg in expr.arguments:
             self.CompileExpr(arg, frame)
@@ -254,19 +260,19 @@ class Compiler:
         frame.AddOpCode(OpCode.OP_NEW_NUM)
         offset = frame.AddNum(len(expr.arguments))
         frame.AddOpCode(offset)
-        
+
         frame.AddOpCode(OpCode.OP_FUNCTION_CALL)
         offset = frame.AddString(expr.name)
         frame.AddOpCode(offset)
 
     def CompileStructCallExpr(self, expr: StructCallExpr, frame: Frame, state: ObjectState = ObjectState.READ):
-        self.CompileExpr(expr.callee,frame)
-        
-        if expr.callMember.Type()==AstType.STRUCT_CALL:
-            self.CompileExpr(((StructCallExpr)(expr.callMember).callee),frame,ObjectState.STRUCT_READ)
-        
-        if state==ObjectState.READ:
-            self.CompileExpr(expr.callMember,frame,ObjectState.STRUCT_READ)
-        elif state==ObjectState.WRITE:
-            self.CompileExpr(expr.callMember,frame,ObjectState.STRUCT_WRITE)
-        
+        self.CompileExpr(expr.callee, frame)
+
+        if expr.callMember.Type() == AstType.STRUCT_CALL:
+            self.CompileExpr(
+                ((StructCallExpr)(expr.callMember).callee), frame, ObjectState.STRUCT_READ)
+
+        if state == ObjectState.READ:
+            self.CompileExpr(expr.callMember, frame, ObjectState.STRUCT_READ)
+        elif state == ObjectState.WRITE:
+            self.CompileExpr(expr.callMember, frame, ObjectState.STRUCT_WRITE)

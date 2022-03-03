@@ -15,17 +15,18 @@ class AstType(IntEnum):
     PREFIX = 7,
     INFIX = 8,
     INDEX = 9,
-    FUNCTION_CALL = 10,
-    STRUCT_CALL = 11,
+    REF=10
+    FUNCTION_CALL = 11,
+    STRUCT_CALL = 12,
     #stmt
-    VAR = 12,
-    EXPR = 13,
-    RETURN = 14,
-    IF = 15,
-    SCOPE = 16,
-    FUNCTION = 17,
-    WHILE = 18,
-    STRUCT = 19,
+    VAR = 13,
+    EXPR = 14,
+    RETURN = 15,
+    IF = 16,
+    SCOPE = 17,
+    FUNCTION = 18,
+    WHILE = 19,
+    STRUCT = 20,
 
 
 class AstNode:
@@ -220,6 +221,17 @@ class StructCallExpr(Expr):
     def Type(self) -> AstType:
         return AstType.STRUCT_CALL
 
+class RefExpr(Expr):
+    refExpr:IdentifierExpr=None
+
+    def __init__(self, refExpr:IdentifierExpr) -> None:
+        self.refExpr = refExpr
+
+    def Stringify(self) -> str:
+        return "ref "+self.refExpr.Stringify()
+
+    def Type(self) -> AstType:
+        return AstType.REF
 
 class Stmt(AstNode):
     @abc.abstractmethod
