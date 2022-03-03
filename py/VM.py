@@ -246,8 +246,7 @@ class VM:
                 variable=self.__context.GetVariableByName(name)
 
                 if variable.Type()==ObjectType.REF:
-                    self.__context.AssignVariableByAddress(variable.address,value)
-                    variable.address=id(value)
+                    self.__context.AssignVariableByName(variable.name,value)
                 else:
                     self.__context.AssignVariableByName(name, value)
             elif instruction == OpCode.OP_GET_VAR:
@@ -258,12 +257,11 @@ class VM:
                 #create a struct object
                 if varObject == None:
                     if frame.HasStructFrame(name):
-                        self.PushObject(self.Execute(
-                            frame.GetStructFrame(name)))
+                        self.PushObject(self.Execute(frame.GetStructFrame(name)))
                     else:
                         Assert("No Struct definition:"+name)
                 elif varObject.Type()==ObjectType.REF:
-                    varObject=self.__context.GetVariableByAddress(varObject.address)
+                    varObject=self.__context.GetVariableByName(varObject.name)
                     self.PushObject(varObject)
                 else:
                     self.PushObject(varObject)
@@ -366,7 +364,8 @@ class VM:
                 else:
                     Assert("No function:"+fnName)
             elif instruction==OpCode.OP_REF:
-                self.PushObject(RefObject(id(self.PopObject())))
+                ip=ip+1
+                self.PushObject(RefObject(frame.strings[frame.codes[ip]]))
 
             ip += 1
         return NilObject()

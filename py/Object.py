@@ -130,13 +130,13 @@ class ArrayObject(Object):
         return True
 
 class RefObject(Object):
-    address:str
+    name:str
 
-    def __init__(self,address:str) -> None:
-        self.address=address
+    def __init__(self,name:str) -> None:
+        self.name=name
 
     def Stringify(self) -> str:
-        return self.address
+        return self.name
 
     def Type(self) -> ObjectType:
         return ObjectType.REF
@@ -144,7 +144,7 @@ class RefObject(Object):
     def IsEqualTo(self, other) -> bool:
         if other.Type()!=ObjectType.REF:
             return False
-        return self.address==other.address
+        return self.name==other.name
 
 class StructObject(Object):
     name = ""

@@ -250,8 +250,9 @@ class Compiler:
                 Assert("Unknown binary op:"+expr.op)
 
     def CompileRefExpr(self, expr: RefExpr, frame: Frame):
-        self.CompileExpr(expr.refExpr,frame)
         frame.AddOpCode(OpCode.OP_REF)
+        offset=frame.AddString(expr.refExpr.literal)
+        frame.AddOpCode(offset)
 
     def CompileFunctionCallExpr(self, expr: FunctionCallExpr, frame: Frame):
         for arg in expr.arguments:
