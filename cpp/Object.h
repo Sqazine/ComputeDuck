@@ -185,10 +185,10 @@ struct ArrayObject : public Object
 
 struct RefObject : public Object
 {
-	RefObject(std::string_view address) : address(address) {}
+	RefObject(std::string_view name) : name(name) {}
 	~RefObject() {}
 
-	std::string Stringify() override { return address; }
+	std::string Stringify() override { return name; }
 	ObjectType Type() override { return ObjectType::REF; }
 	void Mark() override { marked = true; }
 	void UnMark() override { marked = false; }
@@ -196,10 +196,10 @@ struct RefObject : public Object
 	{
 		if (!IS_REF_OBJ(other))
 			return false;
-		return address == TO_REF_OBJ(other)->address;
+		return name == TO_REF_OBJ(other)->name;
 	}
 
-	std::string address;
+	std::string name;
 };
 
 struct StructObject : public Object

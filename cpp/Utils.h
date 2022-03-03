@@ -24,11 +24,3 @@ inline std::string ReadFile(std::string_view path)
 
     return sstream.str();
 }
-
-inline std::string PointerAddressToString(void *pointer)
-{
-    std::stringstream sstr;
-    sstr << pointer;
-    std::string address = sstr.str();
-    return address;
-}

@@ -273,8 +273,9 @@ void Compiler::CompileIndexExpr(IndexExpr *expr, Frame &frame, ObjectState state
 
 void Compiler::CompileRefExpr(RefExpr *expr, Frame &frame)
 {
-	CompileExpr(expr->refExpr, frame);
 	frame.AddOpCode(OP_REF);
+	size_t offset = frame.AddString(expr->refExpr->literal);
+	frame.AddOpCode(offset);
 }
 
 void Compiler::CompilePrefixExpr(PrefixExpr *expr, Frame &frame)

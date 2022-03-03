@@ -206,12 +206,12 @@ StructObject *VM::CreateStructObject(std::string_view name,
 	return object;
 }
 
-RefObject *VM::CreateRefObject(std::string_view address)
+RefObject *VM::CreateRefObject(std::string_view name)
 {
 	if (curObjCount == maxObjCount)
 		Gc();
 
-	RefObject *refObject = new RefObject(address);
+	RefObject *refObject = new RefObject(name);
 	refObject->marked = false;
 
 	refObject->next = firstObject;
@@ -365,10 +365,7 @@ Object *VM::Execute(Frame frame)
 			Object *variable = m_Context->GetVariableByName(name);
 
 			if (IS_REF_OBJ(variable))
-			{
-				m_Context->AssignVariableByAddress(TO_REF_OBJ(variable)->address, value);
-				TO_REF_OBJ(variable)->address = PointerAddressToString(value); //update ref address
-			}
+				m_Context->AssignVariableByName(TO_REF_OBJ(variable)->name, value);
 			else
 				m_Context->AssignVariableByName(name, value);
 			break;
@@ -388,7 +385,7 @@ Object *VM::Execute(Frame frame)
 			}
 			else if (IS_REF_OBJ(varObject))
 			{
-				varObject = m_Context->GetVariableByAddress(TO_REF_OBJ(varObject)->address);
+				varObject = m_Context->GetVariableByName(TO_REF_OBJ(varObject)->name);
 				PushObject(varObject);
 			}
 			else
@@ -540,7 +537,7 @@ Object *VM::Execute(Frame frame)
 		}
 		case OP_REF:
 		{
-			PushObject(CreateRefObject(PointerAddressToString(PopObject())));
+			PushObject(CreateRefObject(frame.m_Strings[frame.m_Codes[++ip]]));
 			break;
 		}
 		default:
