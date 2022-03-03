@@ -476,6 +476,39 @@ a.vec2.x=1000;#支持结构体成员赋值
 println(a.vec2.x);#支持结构体成员获取值
 ```
 
+10. 引用
+```sh
+var a=10;
+var b=ref a;
+println(b);# 10
+b=100;#通过引用修改原对象值
+println(a);#100
+
+a=[1,2,3,4,5];
+println(b);#[1,2,3,4,5]
+
+var c=ref a[0];#错误,仅能引用显式对象,不能引用数组内对象
+
+struct Vec2
+{
+    var x=0;
+    var y=0;
+}
+
+a=Vec2;
+println(b);#struct instance Vec2: x=0.0 y=0.0 可引用结构体对象
+
+fn resetVec2(v)
+{
+    #在函数中修改引用对象实参的值
+    v.x=100;
+    v.y=100;
+}
+
+resetVec2(ref a);
+println(b);#struct instance Vec2: x=100.0 y=100.0 
+```
+
 ## 4. 版权说明
 
 该项目签署了 Apache-2.0 License 授权许可,详情请参阅 [LICENSE](https://github.com/Sqazine/ComputeDuck/blob/main/LICENSE)
