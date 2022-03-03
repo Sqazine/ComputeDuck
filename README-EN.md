@@ -482,7 +482,7 @@ a.vec2.x=1000;#Support struct member assignment
 println(a.vec2.x);#Support structure members to get values
 ```
 
-10. 引用
+10. Reference
 ```sh
 var a=10;
 var b=ref a;
