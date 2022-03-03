@@ -227,8 +227,10 @@ class Frame:
                 result += "%s\t%08d     OP_FUNCTION_CALL     %s\n" % (
                     interval, i, self.strings[self.codes[i+1]])
                 i = i+1
-            elif self.codes[i]==OpCode.OP_REF:
-                result += "%s\t%08d     OP_REF\n" % (interval, i)
+            elif self.codes[i] == OpCode.OP_REF:
+                result += "%s\t%08d     OP_REF     %s\n" % (
+                    interval, i, self.strings[self.codes[i+1]])
+                i = i+1
             else:
                 result += "%s\t%08d     UNKNOWN\n" % (interval, i)
             i = i+1

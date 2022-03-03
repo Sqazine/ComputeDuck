@@ -32,32 +32,3 @@ class Context:
         if self.upContext != None:
             return self.upContext.GetVariableByName(name)
         return None
-
-    def AssignVariableByAddress(self, address: str, value: Object):
-        for k, v in self.values.items():
-            if id(v) == address:
-                self.values[k] = value
-                return
-            elif v.Type() == ObjectType.ARRAY:
-                for i in range(0, len(v.elements)):
-                    if id(v.elements[i]) == address:
-                        v.elements[i] = value
-                        return
-
-        if self.upContext != None:
-            self.upContext.AssignVariableByAddress(address, value)
-        else:
-            Assert("Undefine variable(address:"+address+") in current context.")
-
-    def GetVariableByAddress(self, address: str):
-        for k, v in self.values.items():
-            if id(v) == address:
-                return v
-            elif v.Type() == address:
-                for arrV in v.elements:
-                    if id(arrV) == address:
-                        return arrV
-
-        if self.upContext != None:
-            return self.upContext.GetVariableByAddress(address)
-        return None
