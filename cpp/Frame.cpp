@@ -55,6 +55,8 @@ Frame Frame::GetFunctionFrame(std::string_view name)
 		return m_FunctionFrames[name.data()];
 	else if (m_UpFrame)
 		return m_UpFrame->GetFunctionFrame(name);
+	Assert("No function definition:" + std::string(name));
+	return Frame(); //just avoid compiler warning
 }
 
 bool Frame::HasFunctionFrame(std::string_view name)
@@ -82,6 +84,8 @@ Frame Frame::GetStructFrame(std::string_view name)
 		return m_StructFrames[name.data()];
 	else if (m_UpFrame)
 		return m_UpFrame->GetStructFrame(name);
+	Assert("No struct definition:" + std::string(name));
+	return Frame(); //just avoid compiler warning
 }
 
 bool Frame::HasStructFrame(std::string_view name)
@@ -94,6 +98,49 @@ bool Frame::HasStructFrame(std::string_view name)
 		return m_UpFrame->HasStructFrame(name);
 
 	return false;
+}
+
+uint64_t Frame::AddLambdaFrame(Frame frame)
+{
+	Frame *rootFrame = this;
+	//lambda frame save to rootframe
+	if (rootFrame->m_UpFrame)
+	{
+		while (rootFrame->m_UpFrame)
+			rootFrame = rootFrame->m_UpFrame;
+	}
+	rootFrame->m_LambdaFrames.emplace_back(frame);
+	return rootFrame->m_LambdaFrames.size() - 1;
+}
+
+Frame Frame::GetLambdaFrame(uint64_t idx)
+{
+	if (m_UpFrame)
+	{
+		Frame *rootFrame = this;
+		while (rootFrame->m_UpFrame)
+			rootFrame = rootFrame->m_UpFrame;
+		return rootFrame->GetLambdaFrame(idx);
+	}
+	else if (idx >= 0 || idx < m_LambdaFrames.size())
+		return m_LambdaFrames[idx];
+	else
+		return nullptr;
+}
+
+bool Frame::HasLambdaFrame(uint64_t idx)
+{
+	if (m_UpFrame)
+	{
+		Frame *rootFrame = this;
+		while (rootFrame->m_UpFrame)
+			rootFrame = rootFrame->m_UpFrame;
+		return rootFrame->HasLambdaFrame(idx);
+	}
+	else if (idx >= 0 || idx < m_LambdaFrames.size())
+		return true;
+	else
+		return false;
 }
 
 std::string Frame::Stringify(int depth)
@@ -122,6 +169,12 @@ std::string Frame::Stringify(int depth)
 		result << value.Stringify(depth + 1);
 	}
 
+	for (size_t i = 0; i < m_LambdaFrames.size(); ++i)
+	{
+		result << interval << "Frame " << i << ":\n";
+		result << m_LambdaFrames[i].Stringify(depth + 1);
+	}
+
 	result << interval << "OpCodes:\n";
 
 	for (size_t i = 0; i < m_Codes.size(); ++i)
@@ -148,6 +201,9 @@ std::string Frame::Stringify(int depth)
 			break;
 		case OP_NEW_STRUCT:
 			CONSTANT_INSTR_STRINGIFY(OP_NEW_STRUCT, m_Strings);
+			break;
+		case OP_NEW_LAMBDA:
+			CONSTANT_INSTR_STRINGIFY(OP_NEW_LAMBDA, m_Nums);
 			break;
 		case OP_NEG:
 			SINGLE_INSTR_STRINGIFY(OP_NEG);
@@ -231,7 +287,7 @@ std::string Frame::Stringify(int depth)
 			CONSTANT_INSTR_STRINGIFY(OP_FUNCTION_CALL, m_Strings);
 			break;
 		case OP_REF:
-			CONSTANT_INSTR_STRINGIFY(OP_REF,m_Strings);
+			CONSTANT_INSTR_STRINGIFY(OP_REF, m_Strings);
 			break;
 		default:
 			SINGLE_INSTR_STRINGIFY(UNKNOWN);

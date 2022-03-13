@@ -30,6 +30,7 @@ public:
 	ArrayObject *CreateArrayObject(const std::vector<Object *> &elements = {});
 	StructObject *CreateStructObject(std::string_view name,const std::unordered_map<std::string, Object *> &members={});
 	RefObject *CreateRefObject(std::string_view name);
+	LambdaObject *CreateLambdaObject(int64_t idx);
 
 	void Gc();
 

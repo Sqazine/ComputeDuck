@@ -44,6 +44,7 @@ enum class TokenType
 	NOT,		   // not
 	STRUCT,		   // struct
 	REF,		   // ref
+	LAMBDA,		   // lambda
 
 	UNKNOWN,
 	END

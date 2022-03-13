@@ -13,6 +13,7 @@
 #define TO_ARRAY_OBJ(obj) ((ArrayObject *)obj)
 #define TO_STRUCT_OBJ(obj) ((StructObject *)obj)
 #define TO_REF_OBJ(obj) ((RefObject *)obj)
+#define TO_LAMBDA_OBJ(obj) ((LambdaObject *)obj)
 
 #define IS_NUM_OBJ(obj) (obj->Type() == ObjectType::NUM)
 #define IS_STR_OBJ(obj) (obj->Type() == ObjectType::STR)
@@ -21,6 +22,7 @@
 #define IS_ARRAY_OBJ(obj) (obj->Type() == ObjectType::ARRAY)
 #define IS_STRUCT_OBJ(obj) (obj->Type() == ObjectType::STRUCT)
 #define IS_REF_OBJ(obj) (obj->Type() == ObjectType::REF)
+#define IS_LAMBDA_OBJ(obj) (obj->Type() == ObjectType::LAMBDA)
 
 enum class ObjectType
 {
@@ -30,7 +32,8 @@ enum class ObjectType
 	NIL,
 	ARRAY,
 	STRUCT,
-	REF
+	REF,
+	LAMBDA
 };
 
 struct Object
@@ -200,6 +203,25 @@ struct RefObject : public Object
 	}
 
 	std::string name;
+};
+
+struct LambdaObject : public Object
+{
+	LambdaObject(int64_t idx) : idx(idx) {}
+	~LambdaObject() {}
+
+	std::string Stringify() override { return "lambda:"+std::to_string(idx); }
+	ObjectType Type() override { return ObjectType::LAMBDA; }
+	void Mark() override { marked = true; }
+	void UnMark() override { marked = false; }
+	bool IsEqualTo(Object *other) override
+	{
+		if (!IS_LAMBDA_OBJ(other))
+			return false;
+		return idx == TO_LAMBDA_OBJ(other)->idx;
+	}
+
+	int64_t idx;
 };
 
 struct StructObject : public Object

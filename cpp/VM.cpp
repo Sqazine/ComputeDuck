@@ -222,6 +222,22 @@ RefObject *VM::CreateRefObject(std::string_view name)
 	return refObject;
 }
 
+LambdaObject *VM::CreateLambdaObject(int64_t idx)
+{
+	if (curObjCount == maxObjCount)
+		Gc();
+
+	LambdaObject *lambdaObject = new LambdaObject(idx);
+	lambdaObject->marked = false;
+
+	lambdaObject->next = firstObject;
+	firstObject = lambdaObject;
+
+	curObjCount++;
+
+	return lambdaObject;
+}
+
 Object *VM::Execute(Frame frame)
 {
 	// + - * /
@@ -406,6 +422,11 @@ Object *VM::Execute(Frame frame)
 			PushObject(CreateStructObject(frame.m_Strings[frame.m_Codes[++ip]], m_Context->m_Values));
 			break;
 		}
+		case OP_NEW_LAMBDA:
+		{
+			PushObject(CreateLambdaObject(frame.m_Nums[frame.m_Codes[++ip]]));
+			break;
+		}
 		case OP_GET_INDEX_VAR:
 		{
 			Object *index = PopObject();
@@ -529,6 +550,11 @@ Object *VM::Execute(Frame frame)
 				Object *result = GetNativeFunction(fnName)(args);
 				if (result)
 					PushObject(result);
+			}
+			else if(m_Context->GetVariableByName(fnName)&&IS_LAMBDA_OBJ(m_Context->GetVariableByName(fnName)))//lambda
+			{
+				auto lambdaObject = TO_LAMBDA_OBJ(m_Context->GetVariableByName(fnName));
+				PushObject(Execute(frame.GetLambdaFrame(lambdaObject->idx)));
 			}
 			else
 				Assert("No function:" + fnName);
