@@ -1,3 +1,4 @@
+from ast import Lambda
 from enum import IntEnum
 from typing import Any
 
@@ -6,7 +7,7 @@ from Ast import Expr
 
 from Token import Token, TokenType
 from Utils import Assert
-from Ast import AstType, ArrayExpr, BoolExpr, ExprStmt, FunctionCallExpr, FunctionStmt, GroupExpr, IdentifierExpr, IfStmt, IndexExpr, InfixExpr, NilExpr, NumExpr, PrefixExpr, ReturnStmt, ScopeStmt, StrExpr, StructCallExpr, StructStmt, VarStmt, WhileStmt, RefExpr
+from Ast import AstType, ArrayExpr, BoolExpr, ExprStmt, FunctionCallExpr, FunctionStmt, GroupExpr, IdentifierExpr, IfStmt, IndexExpr, InfixExpr, NilExpr, NumExpr, PrefixExpr, ReturnStmt, ScopeStmt, StrExpr, StructCallExpr, StructStmt, VarStmt, WhileStmt, RefExpr,LambdaExpr
 
 
 class Precedence(IntEnum):
@@ -48,6 +49,7 @@ class Parser:
             TokenType.LPAREN: self.ParseGroupExpr,
             TokenType.LBRACKET: self.ParseArrayExpr,
             TokenType.REF:self.ParseRefExpr,
+            TokenType.LAMBDA:self.ParseLambdaExpr,
 
         }
 
@@ -343,9 +345,25 @@ class Parser:
 
         return RefExpr(refExpr)
 
+    def ParseLambdaExpr(self)->Expr:
+        self.Consume(TokenType.LAMBDA,"Expect 'lambda' keyword.")
+        self.Consume(TokenType.LPAREN,"Expect '(' after keyword 'lambda'.")
+        parameters: list[IdentifierExpr] = []
+        body: ScopeStmt = None
+        if (not self.IsMatchCurToken(TokenType.RPAREN)):
+           idenExpr = self.ParseIdentifierExpr()
+           parameters.append(idenExpr)
+           while self.IsMatchCurTokenAndStepOnce(TokenType.COMMA):
+               idenExpr = self.ParseIdentifierExpr()
+               parameters.append(idenExpr)
+        self.Consume(TokenType.RPAREN, "Expect ')' after lambda expr's '('.")
+        body = self.ParseScopeStmt()
+        return LambdaExpr(parameters,body)
+
+
     def ParseFunctionCallExpr(self, prefixExpr: Expr) -> Expr:
         funcCallExpr = FunctionCallExpr("", [])
-        funcCallExpr.name = prefixExpr.Stringify()
+        funcCallExpr.name = prefixExpr
         self.Consume(TokenType.LPAREN, "Expect '('.")
         if not self.IsMatchCurToken(TokenType.RPAREN):
             funcCallExpr.arguments.append(self.ParseExpr())

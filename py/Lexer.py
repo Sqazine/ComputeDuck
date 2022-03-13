@@ -15,7 +15,8 @@ keywords: dict = {
     "or": TokenType.OR,
     "not": TokenType.NOT,
     "struct": TokenType.STRUCT,
-    "ref": TokenType.REF
+    "ref": TokenType.REF,
+    "lambda":TokenType.LAMBDA,
 }
 
 

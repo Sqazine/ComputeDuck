@@ -1,4 +1,6 @@
 from enum import IntEnum
+from logging import root
+from operator import truediv
 from Utils import Assert
 
 
@@ -10,40 +12,43 @@ class OpCode(IntEnum):
     OP_NEW_NIL = 4,
     OP_NEW_ARRAY = 5,
     OP_NEW_STRUCT = 6,
-    OP_GET_VAR = 7,
-    OP_SET_VAR = 8,
-    OP_DEFINE_VAR = 9,
-    OP_GET_INDEX_VAR = 10,
-    OP_SET_INDEX_VAR = 11,
-    OP_GET_STRUCT_VAR = 12,
-    OP_SET_STRUCT_VAR = 13,
-    OP_NEG = 14,
-    OP_RETURN = 15,
-    OP_ADD = 16,
-    OP_SUB = 17,
-    OP_MUL = 18,
-    OP_DIV = 19,
-    OP_GREATER = 20,
-    OP_LESS = 21,
-    OP_GREATER_EQUAL = 22,
-    OP_LESS_EQUAL = 23,
-    OP_EQUAL = 24,
-    OP_NOT_EQUAL = 25,
-    OP_NOT = 26,
-    OP_OR = 27,
-    OP_AND = 28,
-    OP_ENTER_SCOPE = 29,
-    OP_EXIT_SCOPE = 30,
-    OP_JUMP = 31,
-    OP_JUMP_IF_FALSE = 32,
-    OP_FUNCTION_CALL = 33,
-    OP_REF = 34,
+    OP_NEW_LAMBDA = 7,
+    OP_GET_VAR = 8,
+    OP_SET_VAR = 9,
+    OP_DEFINE_VAR = 10,
+    OP_GET_INDEX_VAR = 11,
+    OP_SET_INDEX_VAR = 12,
+    OP_GET_STRUCT_VAR = 13,
+    OP_SET_STRUCT_VAR = 14,
+    OP_NEG = 15,
+    OP_RETURN = 16,
+    OP_ADD = 17,
+    OP_SUB = 18,
+    OP_MUL = 19,
+    OP_DIV = 20,
+    OP_GREATER = 21,
+    OP_LESS = 22,
+    OP_GREATER_EQUAL = 23,
+    OP_LESS_EQUAL = 24,
+    OP_EQUAL = 25,
+    OP_NOT_EQUAL = 26,
+    OP_NOT = 27,
+    OP_OR = 28,
+    OP_AND = 29,
+    OP_ENTER_SCOPE = 30,
+    OP_EXIT_SCOPE = 31,
+    OP_JUMP = 32,
+    OP_JUMP_IF_FALSE = 33,
+    OP_FUNCTION_CALL = 34,
+    OP_STRUCT_LAMBDA_CALL=35
+    OP_REF = 36,
 
 
 class Frame:
     upFrame = None
     functionFrames = {}
     structFrames = {}
+    lambdaFrames=[]
     codes: list[int] = []
     nums: list[float] = []
     strings: list[str] = []
@@ -52,6 +57,7 @@ class Frame:
         self.upFrame = upFrame
         self.functionFrames = {}
         self.structFrames = {}
+        self.lambdaFrames=[]
         self.codes: list[int] = []
         self.nums: list[float] = []
         self.strings: list[str] = []
@@ -108,6 +114,36 @@ class Frame:
             return self.upFrame.HasStructFrame(name)
         return False
 
+    def AddLambdaFrame(self,frame)->int:
+        rootFrame=self
+        if rootFrame.upFrame!=None:
+            while rootFrame.upFrame!=None:
+                rootFrame=rootFrame.upFrame
+        rootFrame.lambdaFrames.append(frame)
+        return len(rootFrame.lambdaFrames)-1
+
+    def GetLambdaFrame(self,idx):
+        if self.upFrame!=None:
+            rootFrame=self
+            while rootFrame.upFrame:
+                rootFrame=rootFrame.upFrame
+            return rootFrame.GetLambdaFrame(idx)
+        elif idx>=0 or idx<len(self.lambdaFrames):
+            return self.lambdaFrames[idx]
+        else: 
+            return None
+
+    def HasLambdaFrame(self,idx):
+        if self.upFrame:
+            rootframe=self
+            while rootFrame.upFrame:
+                rootFrame = rootFrame.upFrame
+            return rootFrame.HasLambdaFrame(idx)
+        elif idx>=0 or idx<len(self.lambdaFrames):
+            return True
+        else:
+            return False
+
     def Clear(self) -> None:
         self.upFrame: Frame = None
         self.functionFrames: dict[str, Frame] = {}
@@ -130,6 +166,10 @@ class Frame:
         for key, value in self.functionFrames.items():
             result += ("%sFrame %s:\n" % (interval, key))
             result += value.Stringify(depth+1)
+
+        for i in range(len(self.lambdaFrames)):
+            result += ("%sFrame %d:\n" % (interval, i))
+            result += self.lambdaFrames[i].Stringify(depth+1)
 
         result += ("%sOpCodes:\n" % interval)
 
@@ -154,6 +194,10 @@ class Frame:
             elif self.codes[i] == OpCode.OP_NEW_STRUCT:
                 result += "%s\t%08d     OP_NEW_STRUCT     %s\n" % (
                     interval, i, self.strings[self.codes[i+1]])
+                i = i+1
+            elif self.codes[i] == OpCode.OP_NEW_LAMBDA:
+                result += "%s\t%08d     OP_NEW_LAMBDA     %s\n" % (
+                    interval, i, self.nums[self.codes[i+1]])
                 i = i+1
             elif self.codes[i] == OpCode.OP_NEG:
                 result += "%s\t%08d     OP_NEG\n" % (interval, i)
@@ -225,6 +269,10 @@ class Frame:
                 i = i+1
             elif self.codes[i] == OpCode.OP_FUNCTION_CALL:
                 result += "%s\t%08d     OP_FUNCTION_CALL     %s\n" % (
+                    interval, i, self.strings[self.codes[i+1]])
+                i = i+1
+            elif self.codes[i] == OpCode.OP_STRUCT_LAMBDA_CALL:
+                result += "%s\t%08d     OP_STRUCT_LAMBDA_CALL     %s\n" % (
                     interval, i, self.strings[self.codes[i+1]])
                 i = i+1
             elif self.codes[i] == OpCode.OP_REF:

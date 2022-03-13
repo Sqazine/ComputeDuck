@@ -15,18 +15,19 @@ class AstType(IntEnum):
     PREFIX = 7,
     INFIX = 8,
     INDEX = 9,
-    REF=10
-    FUNCTION_CALL = 11,
-    STRUCT_CALL = 12,
+    REF=10,
+    LAMBDA=11,
+    FUNCTION_CALL = 12,
+    STRUCT_CALL = 13,
     #stmt
-    VAR = 13,
-    EXPR = 14,
-    RETURN = 15,
-    IF = 16,
-    SCOPE = 17,
-    FUNCTION = 18,
-    WHILE = 19,
-    STRUCT = 20,
+    VAR = 14,
+    EXPR = 15,
+    RETURN = 16,
+    IF = 17,
+    SCOPE = 18,
+    FUNCTION = 19,
+    WHILE = 20,
+    STRUCT = 21,
 
 
 class AstNode:
@@ -188,7 +189,7 @@ class IndexExpr(Expr):
 
 
 class FunctionCallExpr(Expr):
-    name: str = ""
+    name: Expr = None
     arguments: list[Expr] = []
 
     def __init__(self, name, arguments) -> None:
@@ -196,7 +197,7 @@ class FunctionCallExpr(Expr):
         self.arguments = arguments
 
     def Stringify(self) -> str:
-        result = self.name+"("
+        result = self.name.Stringify()+"("
         if len(self.arguments) > 0:
             for value in self.arguments:
                 result += value.Stringify()+","
@@ -345,6 +346,26 @@ class FunctionStmt(Stmt):
     def Type(self) -> AstType:
         return AstType.FUNCTION
 
+class LambdaExpr(Expr):
+    parameters: list[IdentifierExpr] = []
+    body: ScopeStmt = None
+
+    def __init__(self,parameters, body) -> None:
+        self.parameters = parameters
+        self.body = body
+
+    def Stringify(self) -> str:
+        result = "lambda("
+        if len(self.parameters) > 0:
+            for param in self.parameters:
+                result += param.Stringify()+","
+            result = result[0:len(result)-1]
+        result += ")"
+        result += self.body.Stringify()
+        return result
+
+    def Type(self) -> AstType:
+        return AstType.LAMBDA
 
 class WhileStmt(Stmt):
     condition: Expr = None
