@@ -316,6 +316,124 @@ fn fib(x)
 var a=fib(10);
 println(a);#55
 ```
+10. lambda函数
+```sh
+var lam=lambda()
+{
+    return 10;
+};
+
+var x=lam();
+
+println(x);#10
+
+struct Vec2
+{
+    var length=lambda(x,y)
+    {
+        return x*x+y*y;
+    };
+} 
+struct Vec3
+{
+    var super=Vec2;
+} 
+var a=Vec3;
+var b=a.super.length(10,8);
+println(b);    #164
+```
+
+11. 面向对象模拟
+```sh
+
+struct Shape
+{
+    var x=0;
+    var y=0;
+    var area=lambda(self)
+    {
+        return 0;
+    };
+}
+
+fn ShapeCtor(self,x,y)
+{
+    self.x=x;
+    self.y=y;
+}
+
+fn ShapeArea(self)
+{
+    return self.area(self);
+}
+
+var s1=Shape;
+ShapeCtor(ref s1,10,10);
+println(s1);
+println(ShapeArea(s1));
+
+
+struct Rectangle
+{
+    var super=Shape;
+    var area=lambda(self)
+    {
+        return self.width*self.height;
+    };
+    var width;
+    var height;
+}
+
+
+fn RectangleCtor(self,x,y,w,h)
+{
+    ShapeCtor(self.super,x,y);
+    self.width=w;
+    self.height=h;
+}
+
+var r1=Rectangle;
+RectangleCtor(ref r1,10,10,3,5);
+println(r1);#struct instance Rectangle:
+            #   super=struct instance Shape:
+            #       x=10.000000
+            #       y=10.000000
+            #       area=lambda:0
+            #area=lambda:1
+            #width=3.000000
+            #height=5.000000
+
+println(ShapeArea(r1));#15
+
+struct Circle
+{
+    var super=Shape;
+    var area=lambda(self)
+    {
+        return self.radius*self.radius;
+    };
+    var radius=1;
+}
+
+fn CircleCtor(self,x,y,r)
+{
+    ShapeCtor(self.super,x,y);
+    self.radius=r;
+}
+
+var c1=Circle;
+CircleCtor(ref c1,10,10,10);#struct instance Circle:
+                            #   super=struct instance Shape:
+                            #       x=10.000000
+                            #       y=10.000000
+                            #       area=lambda:0
+                            #area=lambda:2
+                            #radius=10.000000
+
+println(c1);
+println(ShapeArea(c1));#100
+```
+
 ## 3. 特性
 1. 基本语法
 
@@ -507,6 +625,33 @@ fn resetVec2(v)
 
 resetVec2(ref a);
 println(b);#struct instance Vec2: x=100.0 y=100.0 
+```
+
+11. lambda函数
+```sh
+var lam=lambda()#将函数赋值给变量lam
+{
+    return 10;
+};
+
+var x=lam();
+
+println(x);#10
+
+struct Vec2
+{
+    var length=lambda(x,y)
+    {
+        return x*x+y*y;
+    };
+} 
+struct Vec3
+{
+    var super=Vec2;
+} 
+var a=Vec3;
+var b=a.super.length(10,8);#支持调用结构体中的lambda
+println(b);    #164
 ```
 
 ## 4. 版权说明
