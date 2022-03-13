@@ -221,12 +221,18 @@ struct RefExpr:public Expr
 struct FunctionCallExpr : public Expr
 {
 	FunctionCallExpr() {}
-	FunctionCallExpr(std::string_view name, std::vector<Expr *> arguments) : name(name), arguments(arguments) {}
-	~FunctionCallExpr() {}
+	FunctionCallExpr(Expr* name, std::vector<Expr *> arguments) : name(name), arguments(arguments) {}
+	~FunctionCallExpr() 
+	{
+		delete name;
+		name = nullptr;
+
+		std::vector<Expr *>().swap(arguments);
+	}
 
 	std::string Stringify() override
 	{
-		std::string result = name + "(";
+		std::string result = name->Stringify() + "(";
 
 		if (!arguments.empty())
 		{
@@ -239,7 +245,7 @@ struct FunctionCallExpr : public Expr
 	}
 	AstType Type() override { return AstType::FUNCTION_CALL; }
 
-	std::string name;
+	Expr* name;
 	std::vector<Expr *> arguments;
 };
 
@@ -293,7 +299,7 @@ struct VarStmt : public Stmt
 
 	std::string Stringify() override
 	{
-		return "var " + name->Stringify() + "=" + value->Stringify();
+		return "var " + name->Stringify() + "=" + value->Stringify() + ";";
 	}
 
 	AstType Type() override { return AstType::VAR; }

@@ -356,14 +356,28 @@ void Compiler::CompileFunctionCallExpr(FunctionCallExpr *expr, Frame &frame)
 	for (const auto &arg : expr->arguments)
 		CompileExpr(arg, frame);
 
+
 	//argument count
 	frame.AddOpCode(OP_NEW_NUM);
 	uint64_t offset = frame.AddNum(expr->arguments.size());
 	frame.AddOpCode(offset);
+	if (expr->name->Type() == AstType::IDENTIFIER)
+	{
+		frame.AddOpCode(OP_FUNCTION_CALL);
+		offset = frame.AddString(((IdentifierExpr*)expr->name)->literal);
+		frame.AddOpCode(offset);
+	}
+	else if(expr->name->Type()==AstType::STRUCT_CALL)
+	{
+		auto structCallExpr = ((StructCallExpr *)expr->name);
+		CompileExpr(structCallExpr->callee, frame);
+		if (structCallExpr->callMember->Type() == AstType::STRUCT_CALL)
+			CompileExpr(((StructCallExpr *)structCallExpr->callMember)->callee, frame, STRUCT_READ);
 
-	frame.AddOpCode(OP_FUNCTION_CALL);
-	offset = frame.AddString(expr->name);
-	frame.AddOpCode(offset);
+		frame.AddOpCode(OP_STRUCT_LAMBDA_CALL);
+		offset = frame.AddString(((IdentifierExpr *)structCallExpr->callMember)->literal);
+		frame.AddOpCode(offset);
+	}
 }
 
 void Compiler::CompileStructCallExpr(StructCallExpr *expr, Frame &frame, ObjectState state)
