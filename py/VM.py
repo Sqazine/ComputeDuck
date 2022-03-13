@@ -366,6 +366,9 @@ class VM:
                     result = self.GetNativeFunction(fnName)(args)
                     if result != None:
                         self.PushObject(result)
+                elif self.__context.GetVariableByName(fnName)!=None and self.__context.GetVariableByName(fnName).Type()==ObjectType.LAMBDA:
+                    idx=self.__context.GetVariableByName(fnName).idx
+                    self.PushObject(self.Execute(frame.GetLambdaFrame(idx)))
                 else:
                     Assert("No function:"+fnName)
 
