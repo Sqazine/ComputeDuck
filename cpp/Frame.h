@@ -17,6 +17,7 @@ enum OpCode
 	OP_NEW_NIL,
 	OP_NEW_ARRAY,
 	OP_NEW_STRUCT,
+	OP_NEW_LAMBDA,
 	OP_GET_VAR,
 	OP_SET_VAR,
 	OP_DEFINE_VAR,
@@ -70,6 +71,10 @@ public:
 	Frame GetStructFrame(std::string_view name);
 	bool HasStructFrame(std::string_view name);
 
+	uint64_t AddLambdaFrame(Frame frame);
+	Frame GetLambdaFrame(uint64_t idx);
+	bool HasLambdaFrame(uint64_t idx);
+
 	std::string Stringify(int depth = 0);
 
 	void Clear();
@@ -82,6 +87,7 @@ private:
 	std::vector<double> m_Nums;
 	std::vector<std::string> m_Strings;
 
+	std::vector<Frame> m_LambdaFrames;
 	std::unordered_map<std::string, Frame> m_FunctionFrames;
 	std::unordered_map<std::string, Frame> m_StructFrames;
 

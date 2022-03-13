@@ -13,6 +13,7 @@ std::unordered_map<TokenType, PrefixFn> Parser::m_PrefixFunctions =
 		{TokenType::LPAREN, &Parser::ParseGroupExpr},
 		{TokenType::LBRACKET, &Parser::ParseArrayExpr},
 		{TokenType::REF, &Parser::ParseRefExpr},
+		{TokenType::LAMBDA, &Parser::ParseLambdaExpr},
 };
 
 std::unordered_map<TokenType, InfixFn> Parser::m_InfixFunctions =
@@ -341,6 +342,31 @@ Expr *Parser::ParseRefExpr()
 		Assert("Invalid reference type, only variable can be referenced.");
 
 	return new RefExpr((IdentifierExpr *)refExpr);
+}
+
+Expr *Parser::ParseLambdaExpr()
+{
+	Consume(TokenType::LAMBDA, "Expect 'lambda' keyword");
+
+	auto lambdaExpr = new LambdaExpr();
+
+	Consume(TokenType::LPAREN, "Expect '(' after keyword 'lambda'");
+
+	if (!IsMatchCurToken(TokenType::RPAREN)) //has parameter
+	{
+		IdentifierExpr *idenExpr = (IdentifierExpr *)ParseIdentifierExpr();
+		lambdaExpr->parameters.emplace_back(idenExpr);
+		while (IsMatchCurTokenAndStepOnce(TokenType::COMMA))
+		{
+			idenExpr = (IdentifierExpr *)ParseIdentifierExpr();
+			lambdaExpr->parameters.emplace_back(idenExpr);
+		}
+	}
+	Consume(TokenType::RPAREN, "Expect ')' after function expr's '('");
+
+	lambdaExpr->body = (ScopeStmt *)ParseScopeStmt();
+
+	return lambdaExpr;
 }
 
 Expr *Parser::ParseFunctionCallExpr(Expr *prefixExpr)

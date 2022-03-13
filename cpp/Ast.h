@@ -19,6 +19,7 @@ enum class AstType
 	INFIX,
 	INDEX,
 	REF,
+	LAMBDA,
 	FUNCTION_CALL,
 	STRUCT_CALL,
 	//stmt
@@ -373,7 +374,7 @@ struct ScopeStmt : public Stmt
 struct FunctionStmt : public Stmt
 {
 	FunctionStmt() : body(nullptr) {}
-	FunctionStmt(std::string_view name, std::vector<IdentifierExpr *> parameters, ScopeStmt *body) : parameters(parameters), body(body) {}
+	FunctionStmt(std::string_view name, std::vector<IdentifierExpr *> parameters, ScopeStmt *body) : name(name),parameters(parameters), body(body) {}
 	~FunctionStmt()
 	{
 		std::vector<IdentifierExpr *>().swap(parameters);
@@ -398,6 +399,37 @@ struct FunctionStmt : public Stmt
 	AstType Type() override { return AstType::FUNCTION; }
 
 	std::string name;
+	std::vector<IdentifierExpr *> parameters;
+	ScopeStmt *body;
+};
+
+struct LambdaExpr : public Expr
+{
+	LambdaExpr() : body(nullptr) {}
+	LambdaExpr(std::string_view name, std::vector<IdentifierExpr *> parameters, ScopeStmt *body) : parameters(parameters), body(body) {}
+	~LambdaExpr()
+	{
+		std::vector<IdentifierExpr *>().swap(parameters);
+
+		delete body;
+		body = nullptr;
+	}
+
+	std::string Stringify() override
+	{
+		std::string result = "lambda(";
+		if (!parameters.empty())
+		{
+			for (auto param : parameters)
+				result += param->Stringify() + ",";
+			result = result.substr(0, result.size() - 1);
+		}
+		result += ")";
+		result += body->Stringify();
+		return result;
+	}
+	AstType Type() override { return AstType::LAMBDA; }
+
 	std::vector<IdentifierExpr *> parameters;
 	ScopeStmt *body;
 };

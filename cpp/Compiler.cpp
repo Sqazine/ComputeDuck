@@ -121,7 +121,7 @@ void Compiler::CompileWhileStmt(WhileStmt *stmt, Frame &frame)
 
 void Compiler::CompileFunctionStmt(FunctionStmt *stmt, Frame &frame)
 {
-	Frame functionFrame=Frame(&frame);
+	Frame functionFrame = Frame(&frame);
 
 	functionFrame.AddOpCode(OP_ENTER_SCOPE);
 
@@ -138,7 +138,7 @@ void Compiler::CompileFunctionStmt(FunctionStmt *stmt, Frame &frame)
 
 void Compiler::CompileStructStmt(StructStmt *stmt, Frame &frame)
 {
-	Frame structFrame=Frame(&frame);
+	Frame structFrame = Frame(&frame);
 
 	structFrame.AddOpCode(OP_ENTER_SCOPE);
 
@@ -192,10 +192,13 @@ void Compiler::CompileExpr(Expr *expr, Frame &frame, ObjectState state)
 		CompileFunctionCallExpr((FunctionCallExpr *)expr, frame);
 		break;
 	case AstType::STRUCT_CALL:
-		CompileStructCallExpr((StructCallExpr *)expr, frame,state);
+		CompileStructCallExpr((StructCallExpr *)expr, frame, state);
 		break;
 	case AstType::REF:
 		CompileRefExpr((RefExpr *)expr, frame);
+		break;
+	case AstType::LAMBDA:
+		CompileLambdaExpr((LambdaExpr *)expr, frame);
 		break;
 	default:
 		break;
@@ -275,6 +278,25 @@ void Compiler::CompileRefExpr(RefExpr *expr, Frame &frame)
 {
 	frame.AddOpCode(OP_REF);
 	size_t offset = frame.AddString(expr->refExpr->literal);
+	frame.AddOpCode(offset);
+}
+
+void Compiler::CompileLambdaExpr(LambdaExpr *expr, Frame &frame)
+{
+	Frame lambdaFrame = Frame(frame);
+
+	lambdaFrame.AddOpCode(OP_ENTER_SCOPE);
+
+	for (int64_t i = expr->parameters.size() - 1; i >= 0; --i)
+		CompileIdentifierExpr(expr->parameters[i], lambdaFrame, INIT);
+
+	for (const auto &s : expr->body->stmts)
+		CompileStmt(s, lambdaFrame);
+
+	lambdaFrame.AddOpCode(OP_EXIT_SCOPE);
+
+	frame.AddOpCode(OP_NEW_LAMBDA);
+	size_t offset = frame.AddNum(frame.AddLambdaFrame(lambdaFrame));
 	frame.AddOpCode(offset);
 }
 
