@@ -489,7 +489,7 @@ Object *VM::Execute(Frame frame)
 			std::string memberName = frame.m_Strings[frame.m_Codes[++ip]];
 			Object *stackTop = PopObject();
 			if (!IS_STRUCT_OBJ(stackTop))
-				Assert("Not a class object of the callee of:" + memberName);
+				Assert("Not a struct object of the callee of:" + memberName);
 			StructObject *structObj = TO_STRUCT_OBJ(stackTop);
 			PushObject(structObj->GetMember(memberName));
 			break;
@@ -499,7 +499,7 @@ Object *VM::Execute(Frame frame)
 			std::string memberName = frame.m_Strings[frame.m_Codes[++ip]];
 			Object *stackTop = PopObject();
 			if (!IS_STRUCT_OBJ(stackTop))
-				Assert("Not a class object of the callee of:" + memberName);
+				Assert("Not a struct object of the callee of:" + memberName);
 			StructObject *structObj = TO_STRUCT_OBJ(stackTop);
 
 			Object *assigner = PopObject();

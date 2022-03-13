@@ -326,14 +326,14 @@ class VM:
                 memberName = frame.strings[frame.codes[ip]]
                 stackTop = self.PopObject()
                 if stackTop.Type() != ObjectType.STRUCT:
-                    Assert("Not a class object of the callee of:" + memberName)
+                    Assert("Not a struct object of the callee of:" + memberName)
                 self.PushObject(stackTop.GetMember(memberName))
             elif instruction == OpCode.OP_SET_STRUCT_VAR:
                 ip += 1
                 memberName = frame.strings[frame.codes[ip]]
                 stackTop = self.PopObject()
                 if stackTop.Type() != ObjectType.STRUCT:
-                    Assert("Not a class object of the callee of:" + memberName)
+                    Assert("Not a struct object of the callee of:" + memberName)
                 assigner = self.PopObject()
                 stackTop.AssignMember(memberName, assigner)
             elif instruction == OpCode.OP_ENTER_SCOPE:
