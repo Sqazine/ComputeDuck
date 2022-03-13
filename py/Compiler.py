@@ -2,7 +2,7 @@ from enum import IntEnum
 from Utils import Assert
 from Frame import Frame
 from Ast import Stmt
-from Ast import ArrayExpr, AstType, BoolExpr, Expr, ExprStmt, FunctionCallExpr, FunctionStmt, GroupExpr, IdentifierExpr, IfStmt, IndexExpr, InfixExpr, NilExpr, NumExpr, PrefixExpr, ReturnStmt, ScopeStmt, StrExpr, StructCallExpr, StructStmt, VarStmt, WhileStmt, RefExpr
+from Ast import ArrayExpr, AstType, BoolExpr, Expr, ExprStmt, FunctionCallExpr, FunctionStmt, GroupExpr, IdentifierExpr, IfStmt, IndexExpr, InfixExpr, NilExpr, NumExpr, PrefixExpr, ReturnStmt, ScopeStmt, StrExpr, StructCallExpr, StructStmt, VarStmt, WhileStmt, RefExpr,LambdaExpr
 from Frame import OpCode
 
 
@@ -153,6 +153,8 @@ class Compiler:
             self.CompileStructCallExpr(expr, frame, state)
         elif expr.Type() == AstType.REF:
             self.CompileRefExpr(expr, frame)
+        elif expr.Type()==AstType.LAMBDA:
+            self.CompileLambdaExpr(expr,frame)
 
     def CompileNumExpr(self, expr: NumExpr, frame: Frame):
         frame.AddOpCode(OpCode.OP_NEW_NUM)
@@ -254,6 +256,24 @@ class Compiler:
         offset=frame.AddString(expr.refExpr.literal)
         frame.AddOpCode(offset)
 
+    def CompileLambdaExpr(self,expr:LambdaExpr,frame:Frame):
+        lambdaFrame=Frame(frame)
+        lambdaFrame.AddOpCode(OpCode.OP_ENTER_SCOPE)
+
+        for i in range(len(expr.parameters)-1, -1, -1):
+            self.CompileIdentifierExpr(
+                expr.parameters[i], lambdaFrame, ObjectState.INIT)
+
+        for s in expr.body.stmts:
+            self.CompileStmt(s, lambdaFrame)
+
+        lambdaFrame.AddOpCode(OpCode.OP_EXIT_SCOPE)
+
+        frame.AddOpCode(OpCode.OP_NEW_LAMBDA)
+        offset=frame.AddNum(frame.AddLambdaFrame(lambdaFrame))
+        frame.AddOpCode(offset)
+
+
     def CompileFunctionCallExpr(self, expr: FunctionCallExpr, frame: Frame):
         for arg in expr.arguments:
             self.CompileExpr(arg, frame)
@@ -262,9 +282,20 @@ class Compiler:
         offset = frame.AddNum(len(expr.arguments))
         frame.AddOpCode(offset)
 
-        frame.AddOpCode(OpCode.OP_FUNCTION_CALL)
-        offset = frame.AddString(expr.name)
-        frame.AddOpCode(offset)
+        if(expr.name.Type()==AstType.IDENTIFIER):
+            frame.AddOpCode(OpCode.OP_FUNCTION_CALL)
+            offset = frame.AddString(expr.name.literal)
+            frame.AddOpCode(offset)
+        elif expr.name.Type()==AstType.STRUCT_CALL:
+            structCallExpr=expr.name
+            self.CompileExpr(structCallExpr.callee, frame)
+            if structCallExpr.callMember.Type() == AstType.STRUCT_CALL:
+                self.CompileExpr(structCallExpr.callMember.callee,
+                                 frame, ObjectState.STRUCT_READ)
+            
+            frame.AddOpCode(OpCode.OP_STRUCT_LAMBDA_CALL)
+            offset = frame.AddString(structCallExpr.callMember.literal)
+            frame.AddOpCode(offset)
 
     def CompileStructCallExpr(self, expr: StructCallExpr, frame: Frame, state: ObjectState = ObjectState.READ):
         self.CompileExpr(expr.callee, frame)

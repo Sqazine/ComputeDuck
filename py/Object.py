@@ -1,6 +1,7 @@
 from audioop import add
 from enum import IntEnum
 import abc
+from xml.etree.ElementTree import tostring
 from Utils import Assert
 
 class ObjectType(IntEnum):
@@ -10,7 +11,8 @@ class ObjectType(IntEnum):
     NIL = 3,
     ARRAY = 4,
     STRUCT = 5,
-    REF=6
+    REF=6,
+    LAMBDA=7
 
 
 class Object:
@@ -145,6 +147,23 @@ class RefObject(Object):
         if other.Type()!=ObjectType.REF:
             return False
         return self.name==other.name
+
+class LambdaObject(Object):
+    idx:int=-1
+
+    def __init__(self,idx:int) -> None:
+        self.idx=idx
+
+    def Stringify(self) -> str:
+        return "lambda:"+ str(self.idx)
+
+    def Type(self) -> ObjectType:
+        return ObjectType.LAMBDA
+
+    def IsEqualTo(self, other) -> bool:
+        if other.Type()!=ObjectType.LAMBDA:
+            return False
+        return self.idx==other.idx
 
 class StructObject(Object):
     name = ""

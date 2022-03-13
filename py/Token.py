@@ -40,8 +40,9 @@ class TokenType(Enum):
    NOT = 35,		   # not
    STRUCT = 36,		   # struct
    REF = 37,           # ref
-   UNKNOWN = 38,
-   END = 39
+   LAMBDA= 38,         # lambda
+   UNKNOWN = 39,
+   END = 40
 
 
 class Token:

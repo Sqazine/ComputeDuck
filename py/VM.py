@@ -1,3 +1,4 @@
+from inspect import stack
 from typing import Any
 from Context import Context
 from Frame import Frame
@@ -6,7 +7,7 @@ from Utils import Assert
 from Object import ObjectType
 from Frame import OpCode
 from Object import BoolObject, NilObject, NumObject, StrObject
-from Object import ArrayObject, StructObject,RefObject
+from Object import ArrayObject, StructObject,RefObject,LambdaObject
 
 
 def println(args: list[Object]) -> Object:
@@ -276,6 +277,9 @@ class VM:
                 ip = ip+1
                 self.PushObject(StructObject(
                     frame.strings[frame.codes[ip]], self.__context.values))
+            elif instruction==OpCode.OP_NEW_LAMBDA:
+                ip=ip+1
+                self.PushObject(LambdaObject(frame.nums[frame.codes[ip]]))
             elif instruction == OpCode.OP_GET_INDEX_VAR:
                 index = self.PopObject()
                 object = self.PopObject()
@@ -346,6 +350,7 @@ class VM:
                 ip = ip+1
                 address = int(frame.nums[frame.codes[ip]])
                 ip = address
+
             elif instruction == OpCode.OP_FUNCTION_CALL:
                 ip = ip+1
                 fnName = frame.strings[frame.codes[ip]]
@@ -363,6 +368,23 @@ class VM:
                         self.PushObject(result)
                 else:
                     Assert("No function:"+fnName)
+
+            elif instruction==OpCode.OP_STRUCT_LAMBDA_CALL:
+                ip=ip+1
+                fnName=frame.strings[frame.codes[ip]]
+                stackTop=self.PopObject()
+                argCount=self.PopObject()
+                if stackTop.Type()!=ObjectType.STRUCT:
+                    Assert("Cannot call a struct lambda function:" +
+                           fnName + ",the callee isn't a struct object")
+                member=stackTop.GetMember(fnName)
+                if member==None:
+                    Assert("Mo member in srtruct:"+stackTop.Stringify())
+                if member.Type()!=ObjectType.LAMBDA:
+                    Assert("Not a lambda function:" + fnName + " in struct object" + stackTop.Stringify())
+
+                self.PushObject(self.Execute(frame.GetLambdaFrame(member.idx)))
+
             elif instruction==OpCode.OP_REF:
                 ip=ip+1
                 self.PushObject(RefObject(frame.strings[frame.codes[ip]]))
