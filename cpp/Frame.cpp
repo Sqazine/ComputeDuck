@@ -286,6 +286,9 @@ std::string Frame::Stringify(int depth)
 		case OP_FUNCTION_CALL:
 			CONSTANT_INSTR_STRINGIFY(OP_FUNCTION_CALL, m_Strings);
 			break;
+		case OP_STRUCT_LAMBDA_CALL:
+			CONSTANT_INSTR_STRINGIFY(OP_STRUCT_LAMBDA_CALL, m_Strings);
+			break;
 		case OP_REF:
 			CONSTANT_INSTR_STRINGIFY(OP_REF, m_Strings);
 			break;

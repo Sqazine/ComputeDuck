@@ -373,7 +373,7 @@ Expr *Parser::ParseFunctionCallExpr(Expr *prefixExpr)
 {
 	auto funcCallExpr = new FunctionCallExpr();
 
-	funcCallExpr->name = ((IdentifierExpr *)prefixExpr)->literal;
+	funcCallExpr->name = prefixExpr;
 	Consume(TokenType::LPAREN, "Expect '('.");
 	if (!IsMatchCurToken(TokenType::RPAREN)) //has arguments
 	{

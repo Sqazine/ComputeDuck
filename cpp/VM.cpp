@@ -561,6 +561,25 @@ Object *VM::Execute(Frame frame)
 
 			break;
 		}
+		case OP_STRUCT_LAMBDA_CALL:
+		{
+			std::string fnName = frame.m_Strings[frame.m_Codes[++ip]];
+			auto stackTop = PopObject();
+			NumObject *argCount = TO_NUM_OBJ(PopObject());
+			if (!IS_STRUCT_OBJ(stackTop))
+				Assert("Cannot call a struct lambda function:" + fnName + ",the callee isn't a struct object");
+			auto structObj = TO_STRUCT_OBJ(stackTop);
+
+			auto member = structObj->GetMember(fnName);
+			if(!member)
+				Assert("No member in struct:" + structObj->Stringify());
+			if(!IS_LAMBDA_OBJ(member))
+				Assert("Not a lambda function:" + fnName + " in struct object" + structObj->Stringify());
+
+			auto lambdaObject = TO_LAMBDA_OBJ(member);
+			PushObject(Execute(frame.GetLambdaFrame(lambdaObject->idx)));
+			break;
+		}
 		case OP_REF:
 		{
 			PushObject(CreateRefObject(frame.m_Strings[frame.m_Codes[++ip]]));
