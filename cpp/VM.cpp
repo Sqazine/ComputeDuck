@@ -572,9 +572,9 @@ Object *VM::Execute(Frame frame)
 
 			auto member = structObj->GetMember(fnName);
 			if(!member)
-				Assert("No member in struct:" + structObj->Stringify());
+				Assert("No member in struct:" + structObj->name);
 			if(!IS_LAMBDA_OBJ(member))
-				Assert("Not a lambda function:" + fnName + " in struct object" + structObj->Stringify());
+				Assert("Not a lambda function:" + fnName + " in struct:" + structObj->name);
 
 			auto lambdaObject = TO_LAMBDA_OBJ(member);
 			PushObject(Execute(frame.GetLambdaFrame(lambdaObject->idx)));

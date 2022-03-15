@@ -257,7 +257,7 @@ class Compiler:
         frame.AddOpCode(offset)
 
     def CompileLambdaExpr(self,expr:LambdaExpr,frame:Frame):
-        lambdaFrame=Frame(frame)
+        lambdaFrame=Frame()
         lambdaFrame.AddOpCode(OpCode.OP_ENTER_SCOPE)
 
         for i in range(len(expr.parameters)-1, -1, -1):

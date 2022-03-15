@@ -1,87 +1,72 @@
+struct ShapeVtbl
+{
+    var area=nil;
+}
 
 struct Shape
 {
+    var vptr=ShapeVtbl;
+    var super=nil;
     var x=0;
     var y=0;
-    var area=lambda(self)
-    {
-        return 0;
-    };
 }
 
 fn ShapeCtor(self,x,y)
 {
     self.x=x;
     self.y=y;
+    self.vptr.area=lambda(self)
+    {
+        return 0;
+    };
 }
 
 fn ShapeArea(self)
 {
-    return self.area(self);
+    if(self.super==nil)
+        return self.vptr.area(self);
+    return self.super.vptr.area(self);
 }
 
 var s1=Shape;
 ShapeCtor(ref s1,10,10);
-println(s1);
-println(ShapeArea(s1));
+println(s1);#struct instance Shape:
+            #   vptr=struct instance ShapeVtbl:
+            #       area=lambda:0
+            #super=nil
+            #x=10.0
+            #y=10.0
+println(ShapeArea(s1));#0.0
 
 
 struct Rectangle
 {
     var super=Shape;
-    var area=lambda(self)
-    {
-        return self.width*self.height;
-    };
     var width;
     var height;
 }
-
 
 fn RectangleCtor(self,x,y,w,h)
 {
     ShapeCtor(self.super,x,y);
     self.width=w;
     self.height=h;
+    self.super.vptr.area=lambda(self)
+    {
+        return self.width*self.height;
+    };
 }
 
 var r1=Rectangle;
 RectangleCtor(ref r1,10,10,3,5);
 println(r1);#struct instance Rectangle:
-            #   super=struct instance Shape:
-            #       x=10.000000
-            #       y=10.000000
-            #       area=lambda:0
-            #area=lambda:1
-            #width=3.000000
-            #height=5.000000
+            #super=struct instance Shape:
+            #        vptr=struct instance ShapeVtbl:
+            #                area=lambda:1
+            #        super=nil
+            #        x=10.0
+            #        y=10.0
+            #width=3.0
+            #height=5.0
 
 println(ShapeArea(r1));#15
-
-struct Circle
-{
-    var super=Shape;
-    var area=lambda(self)
-    {
-        return self.radius*self.radius;
-    };
-    var radius=1;
-}
-
-fn CircleCtor(self,x,y,r)
-{
-    ShapeCtor(self.super,x,y);
-    self.radius=r;
-}
-
-var c1=Circle;
-CircleCtor(ref c1,10,10,10);#struct instance Circle:
-                            #   super=struct instance Shape:
-                            #       x=10.000000
-                            #       y=10.000000
-                            #       area=lambda:0
-                            #area=lambda:2
-                            #radius=10.000000
-
-println(c1);
-println(ShapeArea(c1));#100
