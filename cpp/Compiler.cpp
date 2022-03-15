@@ -283,7 +283,7 @@ void Compiler::CompileRefExpr(RefExpr *expr, Frame &frame)
 
 void Compiler::CompileLambdaExpr(LambdaExpr *expr, Frame &frame)
 {
-	Frame lambdaFrame = Frame(frame);
+	Frame lambdaFrame = Frame();
 
 	lambdaFrame.AddOpCode(OP_ENTER_SCOPE);
 

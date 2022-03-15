@@ -382,9 +382,9 @@ class VM:
                            fnName + ",the callee isn't a struct object")
                 member=stackTop.GetMember(fnName)
                 if member==None:
-                    Assert("Mo member in srtruct:"+stackTop.Stringify())
+                    Assert("Mo member in struct:"+stackTop.name)
                 if member.Type()!=ObjectType.LAMBDA:
-                    Assert("Not a lambda function:" + fnName + " in struct object" + stackTop.Stringify())
+                    Assert("Not a lambda function:" + fnName + " in struct:" + stackTop.name)
 
                 self.PushObject(self.Execute(frame.GetLambdaFrame(member.idx)))
 
