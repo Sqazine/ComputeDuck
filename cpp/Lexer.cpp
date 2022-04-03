@@ -198,11 +198,11 @@ char Lexer::GetCurChar()
 void Lexer::AddToken(TokenType type)
 {
     auto literal = m_Source.substr(m_StartPos, m_CurPos - m_StartPos);
-    m_Tokens.emplace_back(Token(type, literal, m_Line));
+    m_Tokens.emplace_back(type, literal, m_Line);
 }
 void Lexer::AddToken(TokenType type, std::string_view literal)
 {
-    m_Tokens.emplace_back(Token(type, literal, m_Line));
+    m_Tokens.emplace_back(type, literal, m_Line);
 }
 
 bool Lexer::IsAtEnd()
@@ -270,7 +270,7 @@ void Lexer::String()
     }
 
     if (IsAtEnd())
-        std::cout << "[line " << m_Line << "]:Uniterminated string." << std::endl;
+        Assert("[line " +std::to_string(m_Line) + "]:Uniterminated string.");
 
     GetCurCharAndStepOnce(); //eat the second '\"'
 
