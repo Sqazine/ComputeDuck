@@ -177,7 +177,7 @@ struct ArrayObject : public Object
 			return false;
 
 		for (size_t i = 0; i < elements.size(); ++i)
-			if (elements[i]->IsEqualTo(arrayOther->elements[i]))
+			if (!elements[i]->IsEqualTo(arrayOther->elements[i]))
 				return false;
 
 		return true;
