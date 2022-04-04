@@ -255,8 +255,9 @@ struct StructObject : public Object
 
 		for (auto [key1, value1] : members)
 			for (auto [key2, value2] : TO_STRUCT_OBJ(other)->members)
-				if (key1 != key2 || !value1->IsEqualTo(value2))
-					return false;
+				if (key1 == key2) 
+					if(value1!=value2)
+						return false;
 		return true;
 	}
 

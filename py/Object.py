@@ -194,8 +194,9 @@ class StructObject(Object):
 
         for key1,value1 in self.members.items():
             for key2,value2 in other.members.items():
-                if (key1!=key2) and (not value1.IsEqualTo(value2)):
-                    return False
+                if (key1==key2):
+                    if(not value1.IsEqualTo(value2)):
+                        return False
         return True
     
     def DefineMember(self,name:str,value:Object):
