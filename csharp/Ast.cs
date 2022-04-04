@@ -119,7 +119,7 @@ namespace ComputeDuck
 
         public override string Stringify() { return op + right.Stringify(); }
         public override AstType Type() { return AstType.PREFIX; }
-        string op;
+        public string op;
         public Expr right;
     }
 
@@ -130,7 +130,7 @@ namespace ComputeDuck
 
         public override string Stringify() { return this.left.Stringify() + op + right.Stringify(); }
         public override AstType Type() { return AstType.INFIX; }
-        string op;
+        public string op;
         public Expr left;
         public Expr right;
     }

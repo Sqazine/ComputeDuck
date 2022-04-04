@@ -6,10 +6,11 @@ namespace ComputeDuck
     {
         static void Repl()
         {
-            string line;
+            string line="var a=10;";
             Lexer lexer = new Lexer();
+            Parser parser = new Parser();
             Console.Write("> ");
-            line = Console.ReadLine();
+           // line = Console.ReadLine();
             while (line != "")
             {
                 var tokens = lexer.GenerateTokens(line);
@@ -17,7 +18,10 @@ namespace ComputeDuck
                 foreach (var token in tokens)
                     Console.WriteLine(token.Stringify());
 
+                var stmts = parser.Parse(tokens);
 
+                foreach (var stmt in stmts)
+                    Console.WriteLine(stmt.Stringify());
 
                 Console.Write("> ");
                 line = Console.ReadLine();
@@ -28,10 +32,17 @@ namespace ComputeDuck
         {
             string content = Utils.ReadFile(path);
             Lexer lexer = new Lexer();
+            Parser parser = new Parser();
+
             var tokens = lexer.GenerateTokens(content);
 
             foreach (var token in tokens)
                 Console.WriteLine(token.Stringify());
+
+            var stmts = parser.Parse(tokens);
+
+            foreach (var stmt in stmts)
+                Console.WriteLine(stmt.Stringify());
 
         }
         static void Main(string[] args)

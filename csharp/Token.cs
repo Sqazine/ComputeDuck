@@ -62,6 +62,6 @@ namespace ComputeDuck
 
         public TokenType type;
         public string literal;
-        int line;
+        public int line;
     }
 }
