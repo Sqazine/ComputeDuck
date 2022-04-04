@@ -234,8 +234,9 @@ namespace ComputeDuck
 
             foreach (var entry in this.members)
                 foreach (var entry2 in structOther.members)
-                    if (entry.Key != entry2.Key || !entry.Value.IsEqualTo(entry2.Value))
-                        return false;
+                    if (entry.Key == entry2.Key)
+                        if (!entry.Value.IsEqualTo(entry2.Value))
+                            return false;
             return true;
         }
 
