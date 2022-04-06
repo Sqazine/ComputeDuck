@@ -480,6 +480,22 @@ Object *VM::Execute(Frame frame)
 
 				arrayObject->elements[iIndex] = assigner;
 			}
+			else if(IS_STR_OBJ(object))
+			{
+				StrObject *strObject = TO_STR_OBJ(object);
+				if (!IS_NUM_OBJ(index))
+					Assert("Invalid index op.The index type of the string object must ba a int num type,but got:" + index->Stringify());
+
+				int64_t iIndex = (int64_t)TO_NUM_OBJ(index)->value;
+
+				if (iIndex < 0 || iIndex >= (int64_t)strObject->value.size())
+					Assert("Index out of string range,string size:" + std::to_string(strObject->value.size()) + ",index:" + std::to_string(iIndex));
+
+				if(!IS_STR_OBJ(assigner))
+					Assert("The assigner isn't a string.");
+
+				strObject->value.insert(iIndex,TO_STR_OBJ(assigner)->value);
+			}
 			else
 				Assert("Invalid index op.The indexed object isn't a array object:" + object->Stringify());
 			break;

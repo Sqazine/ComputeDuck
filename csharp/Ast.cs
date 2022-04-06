@@ -140,7 +140,7 @@ namespace ComputeDuck
         public IndexExpr() { this.ds = null; this.index = null; }
         public IndexExpr(Expr ds, Expr index) { this.ds = ds; this.index = index; }
         public override string Stringify() { return this.ds.Stringify() + "[" + this.index.Stringify() + "]"; }
-        public override AstType Type() { return AstType.INFIX; }
+        public override AstType Type() { return AstType.INDEX; }
         public Expr ds;
         public Expr index;
     }

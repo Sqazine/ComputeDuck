@@ -6,19 +6,19 @@ namespace ComputeDuck
 
         //helper class 
         public static class Lists
-{
-    public static List<T> RepeatedDefault<T>(int count)
-    {
-        return Repeated(default(T), count);
-    }
+        {
+            public static List<T> RepeatedDefault<T>(int count)
+            {
+                return Repeated(default(T), count);
+            }
 
-    public static List<T> Repeated<T>(T value, int count)
-    {
-        List<T> ret = new List<T>(count);
-        ret.AddRange(Enumerable.Repeat(value, count));
-        return ret;
-    }
-}
+            public static List<T> Repeated<T>(T value, int count)
+            {
+                List<T> ret = new List<T>(count);
+                ret.AddRange(Enumerable.Repeat(value, count));
+                return ret;
+            }
+        }
 
         public VM()
         {
@@ -118,7 +118,7 @@ namespace ComputeDuck
         }
 
 
-       public  Object Execute(Frame frame)
+        public Object Execute(Frame frame)
         {
             for (var ip = 0; ip < frame.m_Codes.Count; ++ip)
             {
@@ -360,9 +360,9 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_SET_INDEX_VAR:
                         {
-                            var index = PopObject();
-                            var obj = PopObject();
-                            var assigner = PopObject();
+                            Object index = PopObject();
+                            Object obj = PopObject();
+                            Object assigner = PopObject();
 
                             if (obj.Type() == ObjectType.ARRAY)
                             {
@@ -373,6 +373,22 @@ namespace ComputeDuck
                                 if (iIndex < 0 || iIndex >= arrayObject.elements.Count)
                                     Utils.Assert("Index out of array range,array size:" + arrayObject.elements.Count.ToString() + ",index:" + iIndex.ToString());
                                 arrayObject.elements[iIndex] = assigner;
+                            }
+                            else if (obj.Type() == ObjectType.STR)
+                            {
+                                StrObject strObject = (StrObject)obj;
+                                if (!(index.Type() == ObjectType.NUM))
+                                    Utils.Assert("Invalid index op.The index type of the array object must ba a int num type,but got:" + index.Stringify());
+                                int iIndex = (int)((NumObject)index).value;
+                                if (iIndex < 0 || iIndex >= strObject.value.Length)
+                                    Utils.Assert("Index out of array range,array size:" + strObject.value.Length.ToString() + ",index:" + iIndex.ToString());
+
+                                if (assigner.Type() != ObjectType.STR)
+                                    Utils.Assert("The assigner isn't a string.");
+
+                                StrObject strAssigner=(StrObject)assigner;
+
+                                strObject.value=strObject.value.Substring(0,iIndex)+strAssigner.value+strObject.value.Substring(iIndex);
                             }
                             else
                                 Utils.Assert("Invalid index op.The indexed object isn't a array object:" + obj.Stringify());
