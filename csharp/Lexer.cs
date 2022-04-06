@@ -218,7 +218,6 @@ namespace ComputeDuck
                         GetCurCharAndStepOnce();
                 else
                     Utils.Assert("[line " + m_Line.ToString() + "]:Number cannot end with '.'");
-                AddToken(TokenType.NUMBER);
             }
             AddToken(TokenType.NUMBER);
         }

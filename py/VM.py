@@ -318,6 +318,17 @@ class VM:
                         Assert("Index out of array range,array size:" +
                                len(object.elements) + ",index:" + iIndex)
                     object.elements[iIndex] = assigner
+                elif object.Type()==ObjectType.STR:
+                    if index.Type() != ObjectType.NUM:
+                        Assert("Invalid index op.The index type of the string object must ba a int num type,but got:" + index.Stringify())
+                    iIndex = int(index.value)
+                    if iIndex < 0 or iIndex > len(object.value):
+                        Assert("Index out of array range,array size:" +
+                               len(object.value) + ",index:" + iIndex)
+                    if assigner.Type()!=ObjectType.STR:
+                        Assert("The assigner isn't a string.")
+                    
+                    object.value=object.value[:iIndex]+assigner.value+object.value[iIndex:]
                 else:
                     Assert(
                         "Invalid index op.The indexed object isn't a array object:" + object.Stringify())

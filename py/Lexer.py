@@ -143,8 +143,7 @@ class Lexer:
             Assert("[line " + self.__line + "]:Uniterminated string.")
         self.GetCurCharAndStepOnce()  # eat the second '\"'
 
-        self.AddToken(TokenType.STRING,
-                      self.__source[self.__startPos+1, self.__curPos-2])
+        self.AddToken(TokenType.STRING,self.__source[self.__startPos+1:self.__curPos-1])
 
     def GenerateToken(self):
         c = self.GetCurCharAndStepOnce()

@@ -216,7 +216,7 @@ namespace ComputeDuck
             {
                 result += ":\n";
                 foreach (var entry in members)
-                    result += entry.Key + "=" + entry.Value + "\n";
+                    result += entry.Key + "=" + entry.Value.Stringify() + "\n";
                 result = result.Substring(0, result.Length - 1);
             }
             return result;
