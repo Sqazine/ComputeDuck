@@ -6,12 +6,13 @@ namespace ComputeDuck
     {
         static void Repl()
         {
-            string line ="";
+            string line = "var a=10;println(a);";
             Lexer lexer = new Lexer();
             Parser parser = new Parser();
             Compiler compiler = new Compiler();
+            VM vm = new VM();
             Console.Write("> ");
-            line = Console.ReadLine();
+            //line = Console.ReadLine();
             while (line != "")
             {
                 var tokens = lexer.GenerateTokens(line);
@@ -28,6 +29,9 @@ namespace ComputeDuck
 
                 Console.WriteLine(frame.Stringify());
 
+                vm.ResetStatus();
+                vm.Execute(frame);
+
                 Console.Write("> ");
                 line = Console.ReadLine();
             }
@@ -39,7 +43,7 @@ namespace ComputeDuck
             Lexer lexer = new Lexer();
             Parser parser = new Parser();
             Compiler compiler = new Compiler();
-
+            VM vm = new VM();
             var tokens = lexer.GenerateTokens(content);
 
             foreach (var token in tokens)
@@ -52,6 +56,8 @@ namespace ComputeDuck
 
 
             Frame frame = compiler.Compile(stmts);
+
+            vm.Execute(frame);
 
             Console.WriteLine(frame.Stringify());
 

@@ -144,7 +144,7 @@ namespace ComputeDuck
             return true;
         }
 
-        List<Object> elements;
+        public List<Object> elements;
     }
 
 
@@ -253,14 +253,14 @@ namespace ComputeDuck
             else Utils.Assert("Undefine struct member:" + name);
         }
 
-        public Object GetMember()
+        public Object GetMember(string name)
         {
             if (this.members.ContainsKey(name))
                 return this.members[name];
             return null;
         }
 
-        string name;
-        Dictionary<string, Object> members;
+       public string name;
+       public Dictionary<string, Object> members;
     }
 }
