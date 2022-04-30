@@ -614,7 +614,7 @@ void VM::ResetStatus()
 	sp = 0;
 	firstObject = nullptr;
 	curObjCount = 0;
-	maxObjCount = INIT_OBJ_NUM_MAX;
+	maxObjCount = INITIAL_GC_THRESHOLD;
 
 	std::array<Object *, STACK_MAX>().swap(m_ObjectStack);
 
@@ -656,15 +656,27 @@ void VM::Gc()
 {
 	int objNum = curObjCount;
 
-	//mark all object which in stack;
+	//mark all object which in stack and in context
 	for (size_t i = 0; i < sp; ++i)
 		m_ObjectStack[i]->Mark();
+	if(m_Context)
+	{
+		auto contextPtr = m_Context;
+		for (const auto &[k, v] : contextPtr->m_Values)
+			v->Mark();
+		while (contextPtr->m_UpContext)
+		{
+			contextPtr = contextPtr->m_UpContext;
+			for (const auto &[k, v] : contextPtr->m_Values)
+				v->Mark();
+		}
+	}
 
 	//sweep objects which is not reachable
 	Object **object = &firstObject;
 	while (*object)
 	{
-		if (!((*object)->marked))
+		if (!(*object)->marked)
 		{
 			Object *unreached = *object;
 			*object = unreached->next;
@@ -679,6 +691,8 @@ void VM::Gc()
 			object = &(*object)->next;
 		}
 	}
+
+	maxObjCount = curObjCount == 0 ? INITIAL_GC_THRESHOLD : curObjCount * 2;
 
 	std::cout << "Collected " << objNum - curObjCount << " objects," << curObjCount << " remaining." << std::endl;
 }
