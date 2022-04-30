@@ -11,8 +11,8 @@
 #include "Utils.h"
 #include "Context.h"
 
-#define STACK_MAX 4096
-#define INIT_OBJ_NUM_MAX 4096
+#define STACK_MAX 512
+#define INITIAL_GC_THRESHOLD 128
 
 class VM
 {
@@ -32,9 +32,9 @@ public:
 	RefObject *CreateRefObject(std::string_view name);
 	LambdaObject *CreateLambdaObject(int64_t idx);
 
-	void Gc();
 
 private:
+	void Gc();
 	std::function<Object *(std::vector<Object *>)> GetNativeFunction(std::string_view fnName);
 	bool HasNativeFunction(std::string_view name);
 

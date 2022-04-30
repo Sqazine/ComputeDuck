@@ -149,19 +149,13 @@ struct ArrayObject : public Object
 	ObjectType Type() override { return ObjectType::ARRAY; }
 	void Mark() override
 	{
-		if (marked)
-			return;
 		marked = true;
-
 		for (const auto &e : elements)
 			e->Mark();
 	}
 	void UnMark() override
 	{
-		if (!marked)
-			return;
 		marked = false;
-
 		for (const auto &e : elements)
 			e->UnMark();
 	}
@@ -210,7 +204,7 @@ struct LambdaObject : public Object
 	LambdaObject(int64_t idx) : idx(idx) {}
 	~LambdaObject() {}
 
-	std::string Stringify() override { return "lambda:"+std::to_string(idx); }
+	std::string Stringify() override { return "lambda:" + std::to_string(idx); }
 	ObjectType Type() override { return ObjectType::LAMBDA; }
 	void Mark() override { marked = true; }
 	void UnMark() override { marked = false; }
@@ -243,8 +237,18 @@ struct StructObject : public Object
 		return result;
 	}
 	ObjectType Type() override { return ObjectType::STRUCT; }
-	void Mark() override { marked = true; }
-	void UnMark() override { marked = false; }
+	void Mark() override
+	{
+		marked = true;
+		for (const auto &[k, v] : members)
+			v->Mark();
+	}
+	void UnMark() override
+	{
+		marked = false;
+		for (const auto &[k, v] : members)
+			v->UnMark();
+	}
 	bool IsEqualTo(Object *other) override
 	{
 		if (!IS_STRUCT_OBJ(other))
@@ -255,8 +259,8 @@ struct StructObject : public Object
 
 		for (auto [key1, value1] : members)
 			for (auto [key2, value2] : TO_STRUCT_OBJ(other)->members)
-				if (key1 == key2) 
-					if(value1!=value2)
+				if (key1 == key2)
+					if (value1 != value2)
 						return false;
 		return true;
 	}
