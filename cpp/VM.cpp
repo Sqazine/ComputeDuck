@@ -5,6 +5,16 @@ VM::VM()
 {
 	ResetStatus();
 
+	m_NativeFunctions["print"] = [this](std::vector<Object *> args) -> Object *
+	{
+		if (args.empty())
+			return nullptr;
+
+		std::cout << args[0]->Stringify();
+		return nullptr;
+	};
+
+
 	m_NativeFunctions["println"] = [this](std::vector<Object *> args) -> Object *
 	{
 		if (args.empty())

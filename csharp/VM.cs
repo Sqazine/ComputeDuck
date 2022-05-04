@@ -26,6 +26,14 @@ namespace ComputeDuck
 
             m_NativeFunctions = new Dictionary<string, NativeFunction>();
 
+             m_NativeFunctions["print"] = (List<Object> args) =>
+            {
+                if (args.Count == 0)
+                    return null;
+                Console.Write(args[0].Stringify());
+                return null;
+            };
+
             m_NativeFunctions["println"] = (List<Object> args) =>
             {
                 if (args.Count == 0)
