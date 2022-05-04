@@ -16,6 +16,12 @@ def println(args: list[Object]) -> Object:
     print(args[0].Stringify())
     return None
 
+def print_(args: list[Object]) -> Object:
+    if len(args) == 0:
+        return None
+    print(args[0].Stringify(),end="")
+    return None
+
 
 def sizeof(args: list[Object]) -> Object:
     if len(args) == 0 or len(args) > 1:
@@ -84,7 +90,10 @@ class VM:
         self.ResetStatus()
 
         self.nativeFunctions["println"] = println
+        self.nativeFunctions["print"] = print_
         self.nativeFunctions["sizeof"] = sizeof
+        self.nativeFunctions["insert"] = insert
+        self.nativeFunctions["erase"] = erase
 
     def ResetStatus(self) -> None:
         self.__sp = 0
