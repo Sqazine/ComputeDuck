@@ -62,8 +62,6 @@ public:
 	uint64_t AddNum(double value);
 	uint64_t AddString(std::string_view value);
 
-	std::vector<double> &GetNums();
-
 	void AddFunctionFrame(std::string_view name, Frame frame);
 	Frame GetFunctionFrame(std::string_view name);
 	bool HasFunctionFrame(std::string_view name);
@@ -82,6 +80,7 @@ public:
 
 private:
 	friend class VM;
+	friend class Compiler;
 
 	std::vector<uint64_t> m_Codes;
 
