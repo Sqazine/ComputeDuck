@@ -94,12 +94,12 @@ void Compiler::CompileIfStmt(IfStmt *stmt, Frame &frame)
 	uint64_t jmpOffset = frame.AddNum(0);
 	frame.AddOpCode(jmpOffset);
 
-	frame.GetNums()[jmpIfFalseOffset] = (double)frame.GetOpCodeSize() - 1.0;
+	frame.m_Nums[jmpIfFalseOffset] = (double)frame.GetOpCodeSize() - 1.0;
 
 	if (stmt->elseBranch)
 		CompileStmt(stmt->elseBranch, frame);
 
-	frame.GetNums()[jmpOffset] = (double)frame.GetOpCodeSize() - 1.0;
+	frame.m_Nums[jmpOffset] = (double)frame.GetOpCodeSize() - 1.0;
 }
 void Compiler::CompileWhileStmt(WhileStmt *stmt, Frame &frame)
 {
@@ -116,7 +116,7 @@ void Compiler::CompileWhileStmt(WhileStmt *stmt, Frame &frame)
 	uint64_t offset = frame.AddNum(jmpAddress);
 	frame.AddOpCode(offset);
 
-	frame.GetNums()[jmpIfFalseOffset] = (double)frame.GetOpCodeSize() - 1.0;
+	frame.m_Nums[jmpIfFalseOffset] = (double)frame.GetOpCodeSize() - 1.0;
 }
 
 void Compiler::CompileFunctionStmt(FunctionStmt *stmt, Frame &frame)

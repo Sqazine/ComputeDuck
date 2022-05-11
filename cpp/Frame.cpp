@@ -37,11 +37,6 @@ uint64_t Frame::AddString(std::string_view value)
 	return m_Strings.size() - 1;
 }
 
-std::vector<double> &Frame::GetNums()
-{
-	return m_Nums;
-}
-
 void Frame::AddFunctionFrame(std::string_view name, Frame frame)
 {
 	if (m_FunctionFrames.find(name.data()) != m_FunctionFrames.end())
