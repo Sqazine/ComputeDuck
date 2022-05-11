@@ -37,7 +37,7 @@ std::string Value::Stringify() const
     switch (type)
     {
     case ValueType::NIL:
-        return "null";
+        return "nil";
     case ValueType::NUM:
         return std::to_string(number);
     case ValueType::BOOL:
@@ -45,9 +45,9 @@ std::string Value::Stringify() const
     case ValueType::OBJECT:
         return object->Stringify();
     default:
-        return "null";
+        return "nil";
     }
-    return "null";
+    return "nil";
 }
 
 bool Value::IsEqualTo(const Value &other) const
