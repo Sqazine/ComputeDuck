@@ -4,6 +4,7 @@
 #include "Parser.h"
 #include "Compiler.h"
 #include "VM.h"
+#include <time.h>
 void Repl()
 {
 	std::string line;
@@ -74,6 +75,5 @@ int main(int argc, char **argv)
 		Repl();
 	else
 		std::cout << "Usage: ComputeDuck [filepath]" << std::endl;
-
 	return 0;
 }

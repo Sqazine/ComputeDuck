@@ -7,7 +7,7 @@ Context::Context() : m_UpContext(nullptr) {}
 Context::Context(Context *upContext) : m_UpContext(upContext) {}
 Context::~Context() {}
 
-void Context::DefineVariableByName(std::string_view name, Object *value)
+void Context::DefineVariableByName(std::string_view name, const Value &value)
 {
 	auto iter = m_Values.find(name.data());
 	if (iter != m_Values.end())
@@ -16,7 +16,7 @@ void Context::DefineVariableByName(std::string_view name, Object *value)
 		m_Values[name.data()] = value;
 }
 
-void Context::AssignVariableByName(std::string_view name, Object *value)
+void Context::AssignVariableByName(std::string_view name, const Value &value)
 {
 	auto iter = m_Values.find(name.data());
 	if (iter != m_Values.end())
@@ -27,12 +27,13 @@ void Context::AssignVariableByName(std::string_view name, Object *value)
 		Assert("Undefine variable:" + std::string(name) + " in current context");
 }
 
-Object *Context::GetVariableByName(std::string_view name)
+Value Context::GetVariableByName(std::string_view name)
 {
 	auto iter = m_Values.find(name.data());
 	if (iter != m_Values.end())
 		return iter->second;
-	if (m_UpContext != nullptr)
+	else if (m_UpContext != nullptr)
 		return m_UpContext->GetVariableByName(name);
-	return nullptr;
+	else
+		return g_UnknownValue;
 }

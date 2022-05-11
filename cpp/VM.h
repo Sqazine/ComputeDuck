@@ -7,6 +7,7 @@
 #include <string>
 #include <string_view>
 #include "Frame.h"
+#include "Value.h"
 #include "Object.h"
 #include "Utils.h"
 #include "Context.h"
@@ -21,28 +22,25 @@ public:
 	~VM();
 
 	void ResetStatus();
-	Object *Execute(Frame frame);
+	Value Execute(Frame frame);
 
-	NumObject *CreateNumObject(double value = 0.0);
 	StrObject *CreateStrObject(std::string_view value = "");
-	BoolObject *CreateBoolObject(bool value = false);
-	NilObject *CreateNilObject();
-	ArrayObject *CreateArrayObject(const std::vector<Object *> &elements = {});
-	StructObject *CreateStructObject(std::string_view name,const std::unordered_map<std::string, Object *> &members={});
+	ArrayObject *CreateArrayObject(const std::vector<Value> &elements = {});
+	StructObject *CreateStructObject(std::string_view name,const std::unordered_map<std::string,Value> &members={});
 	RefObject *CreateRefObject(std::string_view name);
 	LambdaObject *CreateLambdaObject(int64_t idx);
 
 
 private:
 	void Gc();
-	std::function<Object *(std::vector<Object *>)> GetNativeFunction(std::string_view fnName);
+	std::function<Value(std::vector<Value>)> GetNativeFunction(std::string_view fnName);
 	bool HasNativeFunction(std::string_view name);
 
-	void PushObject(Object *object);
-	Object *PopObject();
+	void Push(Value value);
+	Value Pop();
 
 	uint8_t sp;
-	std::array<Object *, STACK_MAX> m_ObjectStack;
+	std::array<Value, STACK_MAX> m_ValueStack;
 
 	Object *firstObject;
 	int curObjCount;
@@ -50,5 +48,5 @@ private:
 
 	Context *m_Context;
 
-	std::unordered_map<std::string, std::function<Object *(std::vector<Object *>)>> m_NativeFunctions;
+	std::unordered_map<std::string, std::function<Value(std::vector<Value>)>> m_NativeFunctions;
 };

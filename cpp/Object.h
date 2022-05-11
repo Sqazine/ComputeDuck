@@ -5,20 +5,15 @@
 #include <functional>
 #include "Utils.h"
 #include "Context.h"
+#include "Value.h"
 
-#define TO_NUM_OBJ(obj) ((NumObject *)obj)
 #define TO_STR_OBJ(obj) ((StrObject *)obj)
-#define TO_NIL_OBJ(obj) ((NilObject *)obj)
-#define TO_BOOL_OBJ(obj) ((BoolObject *)obj)
 #define TO_ARRAY_OBJ(obj) ((ArrayObject *)obj)
 #define TO_STRUCT_OBJ(obj) ((StructObject *)obj)
 #define TO_REF_OBJ(obj) ((RefObject *)obj)
 #define TO_LAMBDA_OBJ(obj) ((LambdaObject *)obj)
 
-#define IS_NUM_OBJ(obj) (obj->Type() == ObjectType::NUM)
 #define IS_STR_OBJ(obj) (obj->Type() == ObjectType::STR)
-#define IS_BOOL_OBJ(obj) (obj->Type() == ObjectType::BOOL)
-#define IS_NIL_OBJ(obj) (obj->Type() == ObjectType::NIL)
 #define IS_ARRAY_OBJ(obj) (obj->Type() == ObjectType::ARRAY)
 #define IS_STRUCT_OBJ(obj) (obj->Type() == ObjectType::STRUCT)
 #define IS_REF_OBJ(obj) (obj->Type() == ObjectType::REF)
@@ -26,10 +21,8 @@
 
 enum class ObjectType
 {
-	NUM,
+
 	STR,
-	BOOL,
-	NIL,
 	ARRAY,
 	STRUCT,
 	REF,
@@ -49,26 +42,6 @@ struct Object
 
 	bool marked;
 	Object *next;
-};
-
-struct NumObject : public Object
-{
-	NumObject() : value(0.0) {}
-	NumObject(double value) : value(value) {}
-	~NumObject() {}
-
-	std::string Stringify() override { return std::to_string(value); }
-	ObjectType Type() override { return ObjectType::NUM; }
-	void Mark() override { marked = true; }
-	void UnMark() override { marked = false; }
-	bool IsEqualTo(Object *other) override
-	{
-		if (!IS_NUM_OBJ(other))
-			return false;
-		return value == TO_NUM_OBJ(other)->value;
-	}
-
-	double value;
 };
 
 struct StrObject : public Object
@@ -91,47 +64,10 @@ struct StrObject : public Object
 	std::string value;
 };
 
-struct BoolObject : public Object
-{
-	BoolObject() : value(false) {}
-	BoolObject(bool value) : value(value) {}
-	~BoolObject() {}
-
-	std::string Stringify() override { return value ? "true" : "false"; }
-	ObjectType Type() override { return ObjectType::BOOL; }
-	void Mark() override { marked = true; }
-	void UnMark() override { marked = false; }
-	bool IsEqualTo(Object *other) override
-	{
-		if (!IS_BOOL_OBJ(other))
-			return false;
-		return value == TO_BOOL_OBJ(other)->value;
-	}
-
-	bool value;
-};
-
-struct NilObject : public Object
-{
-	NilObject() {}
-	~NilObject() {}
-
-	std::string Stringify() override { return "nil"; }
-	ObjectType Type() override { return ObjectType::NIL; }
-	void Mark() override { marked = true; }
-	void UnMark() override { marked = false; }
-	bool IsEqualTo(Object *other) override
-	{
-		if (!IS_NIL_OBJ(other))
-			return false;
-		return true;
-	}
-};
-
 struct ArrayObject : public Object
 {
 	ArrayObject() {}
-	ArrayObject(const std::vector<Object *> &elements) : elements(elements) {}
+	ArrayObject(const std::vector<Value> &elements) : elements(elements) {}
 	~ArrayObject() {}
 
 	std::string Stringify() override
@@ -140,7 +76,7 @@ struct ArrayObject : public Object
 		if (!elements.empty())
 		{
 			for (const auto &e : elements)
-				result += e->Stringify() + ",";
+				result += e.Stringify() + ",";
 			result = result.substr(0, result.size() - 1);
 		}
 		result += "]";
@@ -151,13 +87,13 @@ struct ArrayObject : public Object
 	{
 		marked = true;
 		for (const auto &e : elements)
-			e->Mark();
+			e.Mark();
 	}
 	void UnMark() override
 	{
 		marked = false;
 		for (const auto &e : elements)
-			e->UnMark();
+			e.UnMark();
 	}
 
 	bool IsEqualTo(Object *other) override
@@ -171,13 +107,13 @@ struct ArrayObject : public Object
 			return false;
 
 		for (size_t i = 0; i < elements.size(); ++i)
-			if (!elements[i]->IsEqualTo(arrayOther->elements[i]))
+			if (!elements[i].IsEqualTo(arrayOther->elements[i]))
 				return false;
 
 		return true;
 	}
 
-	std::vector<Object *> elements;
+	std::vector<Value> elements;
 };
 
 struct RefObject : public Object
@@ -221,7 +157,7 @@ struct LambdaObject : public Object
 struct StructObject : public Object
 {
 	StructObject() {}
-	StructObject(std::string_view name, const std::unordered_map<std::string, Object *> &members) : name(name), members(members) {}
+	StructObject(std::string_view name, const std::unordered_map<std::string, Value> &members) : name(name), members(members) {}
 	~StructObject() {}
 
 	std::string Stringify() override
@@ -231,7 +167,7 @@ struct StructObject : public Object
 		{
 			result += ":\n";
 			for (const auto &[key, value] : members)
-				result += key + "=" + value->Stringify() + "\n";
+				result += key + "=" + value.Stringify() + "\n";
 			result = result.substr(0, result.size() - 1);
 		}
 		return result;
@@ -241,13 +177,13 @@ struct StructObject : public Object
 	{
 		marked = true;
 		for (const auto &[k, v] : members)
-			v->Mark();
+			v.Mark();
 	}
 	void UnMark() override
 	{
 		marked = false;
 		for (const auto &[k, v] : members)
-			v->UnMark();
+			v.UnMark();
 	}
 	bool IsEqualTo(Object *other) override
 	{
@@ -260,12 +196,12 @@ struct StructObject : public Object
 		for (auto [key1, value1] : members)
 			for (auto [key2, value2] : TO_STRUCT_OBJ(other)->members)
 				if (key1 == key2)
-					if (value1 != value2)
+					if (value1.IsEqualTo(value2))
 						return false;
 		return true;
 	}
 
-	void AssignMember(std::string_view name, Object *value)
+	void AssignMember(std::string_view name, Value value)
 	{
 		auto iter = members.find(name.data());
 		if (iter != members.end())
@@ -274,13 +210,13 @@ struct StructObject : public Object
 			Assert("Undefine struct member:" + std::string(name));
 	}
 
-	Object *GetMember(std::string_view name)
+	Value GetMember(std::string_view name)
 	{
 		auto iter = members.find(name.data());
 		if (iter != members.end())
 			return iter->second;
-		return nullptr;
+		return g_UnknownValue;
 	}
 	std::string name;
-	std::unordered_map<std::string, Object *> members;
+	std::unordered_map<std::string, Value> members;
 };
