@@ -37,7 +37,3 @@ println(a);
 #}
 
 println(a.vec3.vec2.x);# 1000.000000
-
-
-
-#for repl debug: struct Vec2{var x=0;var y=0;}struct Vec3{var vec2=Vec2;var z=0;}struct Vec4{var vec3=Vec3;var w=0;}var a=Vec4;a.vec3.vec2.x=1000;println(a);println(a.vec3.vec2.x);
