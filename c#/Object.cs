@@ -2,10 +2,7 @@ namespace ComputeDuck
 {
     public enum ObjectType
     {
-        NUM,
         STR,
-        BOOL,
-        NIL,
         ARRAY,
         STRUCT,
         REF,
@@ -19,28 +16,6 @@ namespace ComputeDuck
         public abstract bool IsEqualTo(Object other);
     }
 
-    public class NumObject : Object
-    {
-        public NumObject() { this.value = 0.0; }
-        public NumObject(double value) { this.value = value; }
-
-        public override string Stringify()
-        {
-            return value.ToString();
-        }
-        public override ObjectType Type()
-        {
-            return ObjectType.NUM;
-        }
-        public override bool IsEqualTo(Object other)
-        {
-            if (other.Type() != ObjectType.NUM)
-                return false;
-            return this.value == ((NumObject)other).value;
-        }
-
-        public double value;
-    }
 
     public class StrObject : Object
     {
@@ -64,51 +39,9 @@ namespace ComputeDuck
         public string value;
     }
 
-    public class BoolObject : Object
-    {
-        public BoolObject() { this.value = false; }
-        public BoolObject(bool value) { this.value = value; }
-
-        public override string Stringify()
-        {
-            return value ? "true" : "false";
-        }
-        public override ObjectType Type()
-        {
-            return ObjectType.BOOL;
-        }
-        public override bool IsEqualTo(Object other)
-        {
-            if (other.Type() != ObjectType.BOOL)
-                return false;
-            return this.value == ((BoolObject)other).value;
-        }
-        public bool value;
-    }
-
-
-    public class NilObject : Object
-    {
-        public NilObject() { }
-        public override string Stringify()
-        {
-            return "nil";
-        }
-        public override ObjectType Type()
-        {
-            return ObjectType.NIL;
-        }
-        public override bool IsEqualTo(Object other)
-        {
-            if (other.Type() != ObjectType.NIL)
-                return false;
-            return true;
-        }
-    }
-
     public class ArrayObject : Object
     {
-        public ArrayObject(List<Object> elements) { this.elements = elements; }
+        public ArrayObject(List<Value> elements) { this.elements = elements; }
 
         public override string Stringify()
         {
@@ -144,7 +77,7 @@ namespace ComputeDuck
             return true;
         }
 
-        public List<Object> elements;
+        public List<Value> elements;
     }
 
 
@@ -200,10 +133,10 @@ namespace ComputeDuck
         public StructObject()
         {
             this.name = "";
-            this.members = new Dictionary<string, Object>();
+            this.members = new Dictionary<string, Value>();
         }
 
-        public StructObject(string name, Dictionary<string, Object> members)
+        public StructObject(string name, Dictionary<string, Value> members)
         {
             this.name = name;
             this.members = members;
@@ -246,21 +179,21 @@ namespace ComputeDuck
         }
 
 
-        public void AssignMember(string name, Object value)
+        public void AssignMember(string name, Value value)
         {
             if (this.members.ContainsKey(name))
                 this.members[name] = value;
             else Utils.Assert("Undefine struct member:" + name);
         }
 
-        public Object GetMember(string name)
+        public Value GetMember(string name)
         {
             if (this.members.ContainsKey(name))
                 return this.members[name];
-            return null;
+            return Value.g_UnknownValue;
         }
 
        public string name;
-       public Dictionary<string, Object> members;
+       public Dictionary<string, Value> members;
     }
 }
