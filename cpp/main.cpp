@@ -4,7 +4,7 @@
 #include "Parser.h"
 #include "Compiler.h"
 #include "VM.h"
-#include <time.h>
+
 void Repl()
 {
 	std::string line;
@@ -12,6 +12,7 @@ void Repl()
 	Parser parser;
 	Compiler compiler;
 	VM vm;
+
 	std::cout << "> ";
 	while (getline(std::cin, line))
 	{
@@ -29,12 +30,11 @@ void Repl()
 			for (const auto &stmt : stmts)
 				std::cout << stmt->Stringify() << std::endl;
 
-			Frame frame = compiler.Compile(stmts);
+			auto chunk = compiler.Compile(stmts);
 
-			std::cout << frame.Stringify() << std::endl;
+			chunk.Stringify();
 
-			vm.ResetStatus();
-			vm.Execute(frame);
+			vm.Run(chunk);
 		}
 		std::cout << "> ";
 	}
@@ -60,11 +60,11 @@ void RunFile(std::string path)
 	for (const auto &stmt : stmts)
 		std::cout << stmt->Stringify() << std::endl;
 
-	Frame frame = compiler.Compile(stmt);
+	auto chunk = compiler.Compile(stmts);
 
-	std::cout << frame.Stringify() << std::endl;
+	chunk.Stringify();
 
-	vm.Execute(frame);
+	vm.Run(chunk);
 }
 
 int main(int argc, char **argv)
@@ -75,5 +75,8 @@ int main(int argc, char **argv)
 		Repl();
 	else
 		std::cout << "Usage: ComputeDuck [filepath]" << std::endl;
+
+	//  RunFile("C:\\Users\\Sqazi\\OneDrive\\.sc\\ComputeDuck\\examples\\linkedlist.cd");
+
 	return 0;
 }

@@ -9,14 +9,15 @@ const std::unordered_map<std::string, TokenType> keywords =
         {"false", TokenType::FALSE},
         {"nil", TokenType::NIL},
         {"while", TokenType::WHILE},
-        {"fn", TokenType::FUNCTION},
+        {"function", TokenType::FUNCTION},
         {"return", TokenType::RETURN},
         {"and", TokenType::AND},
         {"or", TokenType::OR},
         {"not", TokenType::NOT},
         {"struct", TokenType::STRUCT},
         {"ref", TokenType::REF},
-        {"lambda",TokenType::LAMBDA}};
+        {"lambda",TokenType::LAMBDA},
+};
 
 Lexer::Lexer()
 {
@@ -270,7 +271,7 @@ void Lexer::String()
     }
 
     if (IsAtEnd())
-        Assert("[line " +std::to_string(m_Line) + "]:Uniterminated string.");
+        Assert("[line " + std::to_string(m_Line) + "]:Uniterminated string.");
 
     GetCurCharAndStepOnce(); //eat the second '\"'
 
