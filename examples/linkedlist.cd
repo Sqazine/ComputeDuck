@@ -24,31 +24,31 @@ println(head);
 
 #struct{
 #    v=0.000000
-#    next=struct
+#    next=struct instance:
 #        {
 #            v=1.000000
-#            next=struct
+#            next=struct instance:
 #                {
 #                    v=2.000000
-#                    next=struct
+#                    next=struct instance:
 #                        {
 #                            v=3.000000
-#                            next=struct
+#                            next=struct instance:
 #                                {
 #                                    v=4.000000
-#                                    next=struct
+#                                    next=struct instance:
 #                                        {
 #                                            v=5.000000
-#                                            next=struct
+#                                            next=struct instance:
 #                                                {
 #                                                    v=6.000000
-#                                                    next=struct
+#                                                    next=struct instance:
 #                                                        {
 #                                                            v=7.000000
-#                                                            next=struct
+#                                                            next=struct instance:
 #                                                                {
 #                                                                    v=8.000000
-#                                                                    next=struct
+#                                                                    next=struct instance:
 #                                                                        {
 #                                                                            v=9.000000
 #                                                                            next=nil

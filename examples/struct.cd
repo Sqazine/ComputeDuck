@@ -24,10 +24,10 @@ println(a);
 
 #struct
 #{
-#    vec3=struct
+#    vec3=struct instance:
 #         {
 #            z=0.000000
-#           vec2=struct
+#           vec2=struct instance:
 #                 {
 #                    x=1000.000000
 #                    y=0.000000

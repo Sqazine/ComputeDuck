@@ -1,4 +1,4 @@
-fn fib(x)
+function fib(x)
 {
     if(x==0) 
         return 0;
@@ -7,5 +7,8 @@ fn fib(x)
     else 
         return fib(x-1)+fib(x-2);
 }
-var a=fib(10);
-println(a);# 55
+var start=clock();
+var a=fib(35);
+println(a);# 9227465
+var end=clock();
+println(end-start);

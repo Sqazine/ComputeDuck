@@ -1,0 +1,44 @@
+var a=10;
+{
+    var a=a;
+    a=20;
+    println(a);#20
+} 
+
+{
+    var b=a;
+    b=30;
+    println(b);#30
+} 
+
+println(a);#10
+
+
+{
+    var b=20;
+    {
+        b=30;
+        println(b);#30
+        {
+            b=40;
+            println(b);#40
+            {
+                b=50;
+                println(b);#50
+                {
+                    b=60;
+                    println(b);#60
+                    {
+                        b=70;
+                        println(b);#70
+                        {
+                            b=80;
+                            println(b);#80
+                        }
+                    }
+                }
+            }
+        }
+    } 
+    println(b);#80
+}

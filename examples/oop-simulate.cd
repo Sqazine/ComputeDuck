@@ -11,7 +11,7 @@ struct Shape
     var y=0;
 }
 
-fn ShapeCtor(self,x,y)
+function ShapeCtor(self,x,y)
 {
     self.x=x;
     self.y=y;
@@ -21,7 +21,7 @@ fn ShapeCtor(self,x,y)
     };
 }
 
-fn ShapeArea(self)
+function ShapeArea(self)
 {
     if(self.super==nil)
         return self.vptr.area(self);
@@ -30,9 +30,9 @@ fn ShapeArea(self)
 
 var s1=Shape;
 ShapeCtor(ref s1,10,10);
-println(s1);#struct instance Shape:
-            #   vptr=struct instance ShapeVtbl:
-            #       area=lambda:0
+println(s1);#struct instance:
+            #   vptr=struct instance:
+            #       area=closure
             #super=nil
             #x=10.0
             #y=10.0
@@ -46,7 +46,7 @@ struct Rectangle
     var height;
 }
 
-fn RectangleCtor(self,x,y,w,h)
+function RectangleCtor(self,x,y,w,h)
 {
     ShapeCtor(self.super,x,y);
     self.width=w;
@@ -59,10 +59,10 @@ fn RectangleCtor(self,x,y,w,h)
 
 var r1=Rectangle;
 RectangleCtor(ref r1,10,10,3,5);
-println(r1);#struct instance Rectangle:
-            #super=struct instance Shape:
-            #        vptr=struct instance ShapeVtbl:
-            #                area=lambda:1
+println(r1);#struct instance:
+            #super=struct instance:
+            #        vptr=struct instance :
+            #                area=closure
             #        super=nil
             #        x=10.0
             #        y=10.0

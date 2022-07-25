@@ -14,9 +14,9 @@ struct Vec2
 }
 
 a=Vec2;
-println(b);#struct instance Vec2: x=0.0 y=0.0
+println(b);#struct instance: x=0.0 y=0.0
 
-fn resetVec2(v)
+function resetVec2(v)
 {
     #reset vec2 value in function
     v.x=100;
@@ -24,4 +24,4 @@ fn resetVec2(v)
 }
 
 resetVec2(ref a);
-println(b);#struct instance Vec2: x=100.0 y=100.0
+println(b);#struct instance: x=100.0 y=100.0
