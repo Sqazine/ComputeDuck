@@ -159,44 +159,32 @@ void Chunk::OpCodeStringify(const OpCodes &opcodes)
             ++i;
             break;
         }
-        case OP_CLOSURE:
-        {
-            auto fnIdx = opcodes[i + 1];
-            auto upValueCount = opcodes[i + 2];
-            std::cout << std::setfill('0') << std::setw(8) << i << "    "
-                      << "OP_CLOSURE    " << fnIdx << "    " << upValueCount << std::endl;
-            ++i;
-            ++i;
-            break;
-        }
         case OP_GET_UPVALUE:
         {
-            auto upValueIdx = opcodes[i + 1];
-            auto scopeDepth = opcodes[i + 2];
-            auto upScopeLocation = opcodes[i + 3];
+            auto scopeDepth = opcodes[i + 1];
+            auto upScopeLocation = opcodes[i + 2];
             std::cout << std::setfill('0') << std::setw(8) << i << "    "
-                      << "OP_GET_UPVALUE    " << upValueIdx << "    " << scopeDepth << "    " << upScopeLocation << std::endl;
-            ++i;
+                      << "OP_GET_UPVALUE    "
+                      << "    " << scopeDepth << "    " << upScopeLocation << std::endl;
             ++i;
             ++i;
             break;
         }
         case OP_SET_UPVALUE:
         {
-            auto upValueIdx = opcodes[i + 1];
-            auto scopeDepth = opcodes[i + 2];
-            auto upScopeLocation = opcodes[i + 3];
+            auto scopeDepth = opcodes[i + 1];
+            auto upScopeLocation = opcodes[i + 2];
             std::cout << std::setfill('0') << std::setw(8) << i << "    "
-                      << "OP_SET_UPVALUE    " << upValueIdx << "    " << scopeDepth << "    " << upScopeLocation << std::endl;
-            ++i;
+                      << "OP_SET_UPVALUE    "
+                      << "    " << scopeDepth << "    " << upScopeLocation << std::endl;
             ++i;
             ++i;
             break;
         }
-        case OP_GET_CURRENT_CLOSURE:
+        case OP_GET_CURRENT_FUNCTION:
         {
             std::cout << std::setfill('0') << std::setw(8) << i << "    "
-                      << "OP_GET_CURRENT_CLOSURE" << std::endl;
+                      << "OP_GET_CURRENT_FUNCTION" << std::endl;
             break;
         }
         case OP_STRUCT:
@@ -237,11 +225,12 @@ void Chunk::OpCodeStringify(const OpCodes &opcodes)
         }
         case OP_REF_UPVALUE:
         {
-            auto idx = opcodes[i + 1];
-            auto scopeDepth = opcodes[i + 2];
-            auto upScopeLocation = opcodes[i + 3];
+            auto scopeDepth = opcodes[i + 1];
+            auto upScopeLocation = opcodes[i + 2];
             std::cout << std::setfill('0') << std::setw(8) << i << "    "
-                      << "OP_REF_UPVALUE    " << idx << "    " << scopeDepth << "    " << upScopeLocation << std::endl;
+                      << "OP_REF_UPVALUE    "
+                      << "    " << scopeDepth << "    " << upScopeLocation << std::endl;
+            ++i;
             ++i;
             break;
         }

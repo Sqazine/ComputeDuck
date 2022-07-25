@@ -19,21 +19,21 @@
 struct CallFrame
 {
 	CallFrame()
-		:closure(nullptr), ip(-1),basePtr(0)
+		:fn(nullptr), ip(-1),basePtr(0)
 	{
 	}
 
-	CallFrame(ClosureObject* closure, int32_t basePtr)
-		: closure(closure), ip(-1), basePtr(basePtr)
+	CallFrame(FunctionObject* fn, int32_t basePtr)
+		: fn(fn), ip(-1), basePtr(basePtr)
 	{
 	}
 
 	const OpCodes& GetOpCodes() const
 	{
-		return closure->fn->opCodes;
+		return fn->opCodes;
 	}
 
-	ClosureObject* closure;
+	FunctionObject* fn;
 	int32_t ip;
 	int32_t basePtr;
 };

@@ -100,7 +100,6 @@ void Compiler::CompileScopeStmt(ScopeStmt *stmt)
     for (const auto &s : stmt->stmts)
         CompileStmt(s);
 
-    auto upvalueSymbols = m_SymbolTable->upvalueSymbols;
     auto localVarCount = m_SymbolTable->definitionCount;
     auto opCodes = ExitScope();
 
@@ -110,15 +109,9 @@ void Compiler::CompileScopeStmt(ScopeStmt *stmt)
         opCodes.emplace_back(0);
     }
 
-    for (const auto &symbol : upvalueSymbols)
-        LoadSymbol(symbol);
-
     auto fn = new FunctionObject(opCodes, localVarCount);
 
-    auto fnIdx = AddConstant(fn);
-    Emit(OP_CLOSURE);
-    Emit(fnIdx);
-    Emit((int32_t)upvalueSymbols.size());
+    EmitConstant(AddConstant(fn));
     Emit(OP_FUNCTION_CALL);
     Emit(0);
 }
@@ -150,7 +143,7 @@ void Compiler::CompileReturnStmt(ReturnStmt *stmt)
     else
     {
         Emit(OP_RETURN);
-        Emit(1);
+        Emit(0);
     }
 }
 
@@ -190,15 +183,9 @@ void Compiler::CompileFunctionStmt(FunctionStmt *stmt)
         opCodes.emplace_back(0);
     }
 
-    for (const auto &symbol : upvalueSymbols)
-        LoadSymbol(symbol);
-
     auto fn = new FunctionObject(opCodes, localVarCount, (int32_t)stmt->parameters.size());
 
-    auto fnIdx = AddConstant(fn);
-    Emit(OP_CLOSURE);
-    Emit(fnIdx);
-    Emit((int32_t)upvalueSymbols.size());
+    EmitConstant(AddConstant(fn));
 
     if (symbol.scope == SymbolScope::GLOBAL)
         Emit(OP_SET_GLOBAL);
@@ -229,15 +216,9 @@ void Compiler::CompileStructStmt(StructStmt *stmt)
     opCodes.emplace_back(OP_RETURN);
     opCodes.emplace_back(1);
 
-    for (const auto &symbol : upvalueSymbols)
-        LoadSymbol(symbol);
-
     auto fn = new FunctionObject(opCodes, localVarCount);
 
-    auto fnIdx = AddConstant(fn);
-    Emit(OP_CLOSURE);
-    Emit(fnIdx);
-    Emit((int32_t)upvalueSymbols.size());
+    EmitConstant(AddConstant(fn));
 
     if (symbol.scope == SymbolScope::GLOBAL)
         Emit(OP_SET_GLOBAL);
@@ -428,7 +409,6 @@ void Compiler::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state)
             break;
         case SymbolScope::UPVALUE:
             Emit(OP_SET_UPVALUE);
-            Emit(symbol.index);
             Emit(symbol.scopeDepth);
             Emit(symbol.upScopeLocation);
             break;
@@ -461,15 +441,9 @@ void Compiler::CompileLambdaExpr(LambdaExpr *expr)
         opCodes.emplace_back(0);
     }
 
-    for (const auto &symbol : upvalueSymbols)
-        LoadSymbol(symbol);
-
     auto fn = new FunctionObject(opCodes, localVarCount, (int32_t)expr->parameters.size());
 
-    auto fnIdx = AddConstant(fn);
-    Emit(OP_CLOSURE);
-    Emit(fnIdx);
-    Emit((int32_t)upvalueSymbols.size());
+    EmitConstant(AddConstant(fn));
 }
 
 void Compiler::CompileFunctionCallExpr(FunctionCallExpr *expr)
@@ -533,7 +507,6 @@ void Compiler::CompileRefExpr(RefExpr *expr)
         break;
     case SymbolScope::UPVALUE:
         Emit(OP_REF_UPVALUE);
-        Emit(symbol.index);
         Emit(symbol.scopeDepth);
         Emit(symbol.upScopeLocation);
         break;
@@ -606,12 +579,11 @@ void Compiler::LoadSymbol(const Symbol &symbol)
         break;
     case SymbolScope::UPVALUE:
         Emit(OP_GET_UPVALUE);
-        Emit(symbol.index);
         Emit(symbol.scopeDepth);
         Emit(symbol.upScopeLocation);
         break;
     case SymbolScope::FUNCTION:
-        Emit(OP_GET_CURRENT_CLOSURE);
+        Emit(OP_GET_CURRENT_FUNCTION);
         break;
     default:
         break;
