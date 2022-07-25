@@ -13,7 +13,6 @@
 #define TO_REF_OBJ(obj) ((RefObject *)obj)
 #define TO_FUNCTION_OBJ(obj) ((FunctionObject *)obj)
 #define TO_BUILTIN_OBJ(obj) ((BuiltinObject *)obj)
-#define TO_CLOSURE_OBJ(obj) ((ClosureObject *)obj)
 
 #define IS_STR_OBJ(obj) (obj->Type() == ObjectType::STR)
 #define IS_ARRAY_OBJ(obj) (obj->Type() == ObjectType::ARRAY)
@@ -21,7 +20,6 @@
 #define IS_REF_OBJ(obj) (obj->Type() == ObjectType::REF)
 #define IS_FUNCTION_OBJ(obj) (obj->Type() == ObjectType::FUNCTION)
 #define IS_BUILTIN_OBJ(obj) (obj->Type() == ObjectType::BUILTIN)
-#define IS_CLOSURE_OBJ(obj) (obj->Type() == ObjectType::CLOSURE)
 
 enum class ObjectType
 {
@@ -31,7 +29,6 @@ enum class ObjectType
 	REF,
 	FUNCTION,
 	BUILTIN,
-	CLOSURE,
 };
 
 struct Object
@@ -222,55 +219,6 @@ struct BuiltinObject : public Object
 	BuiltinFn fn;
 };
 
-struct ClosureObject : public Object
-{
-	ClosureObject(FunctionObject *fn, const std::vector<Value> &upValues = {})
-		: fn(fn), upValues(upValues)
-	{
-	}
-	~ClosureObject()
-	{
-	}
-
-	std::string Stringify() override { return "closure:(0x" + PointerAddressToString(this) + ") of " + fn->Stringify(); }
-	ObjectType Type() override { return ObjectType::CLOSURE; }
-	void Mark() override
-	{
-		marked = true;
-		fn->Mark();
-		for(const auto& upvalue:upValues)
-			upvalue.Mark();
-	}
-	void UnMark() override
-	{
-		marked = false;
-		fn->UnMark();
-		for(const auto& upvalue:upValues)
-			upvalue.UnMark();
-	}
-	bool IsEqualTo(Object *other) override
-	{
-		if (!IS_BUILTIN_OBJ(other))
-			return false;
-
-		auto otherClosure = TO_CLOSURE_OBJ(other);
-
-		if (!fn->IsEqualTo(otherClosure))
-			return false;
-
-		if (upValues.size() != otherClosure->upValues.size())
-			return false;
-
-		for (int32_t i = 0; i < upValues.size(); ++i)
-			if (upValues[i] != (otherClosure->upValues[i]))
-				return false;
-		return true;
-	}
-
-	FunctionObject *fn;
-	std::vector<Value> upValues;
-};
-
 struct StructInstanceObject : public Object
 {
 	StructInstanceObject(const std::unordered_map<std::string, Value> &members) : members(members) {}
@@ -278,10 +226,11 @@ struct StructInstanceObject : public Object
 
 	std::string Stringify() override
 	{
-		std::string result = "struct instance(0x" + PointerAddressToString(this) + "):\n";
+		std::string result = "struct instance(0x" + PointerAddressToString(this) + "):\n{\n";
 		for (const auto &[k, v] : members)
 			result += k + ":" + v.Stringify() + "\n";
 		result = result.substr(0, result.size() - 1);
+		result+="\n}\n";
 		return result;
 	}
 	ObjectType Type() override { return ObjectType::STRUCT_INSTANCE; }

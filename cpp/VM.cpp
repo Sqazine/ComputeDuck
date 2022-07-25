@@ -127,8 +127,7 @@ void VM::Run(const Chunk &chunk)
     ResetStatus();
 
     auto mainFn = CreateObject<FunctionObject>(chunk.opCodes);
-    auto mainClosure = CreateObject<ClosureObject>(mainFn);
-    auto mainCallFrame = CallFrame(mainClosure, 0);
+    auto mainCallFrame = CallFrame(mainFn, 0);
 
     m_CallFrames[0] = mainCallFrame;
     m_CallFrameIndex = 1;
@@ -373,16 +372,16 @@ void VM::Execute()
             auto argCount = CurCallFrame().GetOpCodes()[++ip];
 
             auto value = m_ValueStack[sp - 1 - argCount];
-            if (IS_CLOSURE_VALUE(value))
+            if (IS_FUNCTION_VALUE(value))
             {
-                auto closure = TO_CLOSURE_VALUE(value);
+                auto fn = TO_FUNCTION_VALUE(value);
 
-                if (argCount != closure->fn->parameterCount)
-                    Assert("Non matching function parameters for calling arguments,parameter count:" + std::to_string(closure->fn->parameterCount) + ",argument count:" + std::to_string(argCount));
+                if (argCount != fn->parameterCount)
+                    Assert("Non matching function parameters for calling arguments,parameter count:" + std::to_string(fn->parameterCount) + ",argument count:" + std::to_string(argCount));
 
-                auto callFrame = CallFrame(closure, sp - argCount);
+                auto callFrame = CallFrame(fn, sp - argCount);
                 PushCallFrame(callFrame);
-                sp = callFrame.basePtr + closure->fn->localVarCount;
+                sp = callFrame.basePtr + fn->localVarCount;
             }
             else if (IS_BUILTIN_VALUE(value))
             {
@@ -429,55 +428,24 @@ void VM::Execute()
             Push(builtinObj);
             break;
         }
-        case OP_CLOSURE:
-        {
-            auto fnIdx = CurCallFrame().GetOpCodes()[++ip];
-            auto upValueCount = CurCallFrame().GetOpCodes()[++ip];
-
-            auto value = m_Constants[fnIdx];
-            RegisterToGCRecordChain(value); //the value in constant list maybe not regisiter to the gc chain
-
-            if (!IS_FUNCTION_VALUE(value))
-                Assert("Not a function for creating a closure");
-
-            std::vector<Value> upValues(upValueCount);
-
-            for (int32_t i = 0; i < upValueCount; ++i)
-                upValues[i] = m_ValueStack[sp - upValueCount + i];
-
-            auto closure = CreateObject<ClosureObject>(TO_FUNCTION_VALUE(value), upValues);
-
-            sp -= upValueCount;
-
-            Push(closure);
-            break;
-        }
         case OP_GET_UPVALUE:
         {
-            auto upvalueIdx = CurCallFrame().GetOpCodes()[++ip];
             auto scopeDepth = CurCallFrame().GetOpCodes()[++ip];
             auto upScopeLocation = CurCallFrame().GetOpCodes()[++ip];
             Push(m_ValueStack[PeekCallFrame(scopeDepth).basePtr + upScopeLocation]);
-            // auto curClosure = CurCallFrame().closure;
-            //  Push(curClosure->upValues[upvalueIdx]);
             break;
         }
         case OP_SET_UPVALUE:
         {
-            auto value = Pop();
-            auto upvalueIdx = CurCallFrame().GetOpCodes()[++ip];
             auto scopeDepth = CurCallFrame().GetOpCodes()[++ip];
             auto upScopeLocation = CurCallFrame().GetOpCodes()[++ip];
-            auto curClosure = CurCallFrame().closure;
-            curClosure->upValues[upvalueIdx] = value;
+            auto value = Pop();
             m_ValueStack[PeekCallFrame(scopeDepth).basePtr + upScopeLocation] = value;
-
             break;
         }
-        case OP_GET_CURRENT_CLOSURE:
+        case OP_GET_CURRENT_FUNCTION:
         {
-            auto curClosure = CurCallFrame().closure;
-            Push(curClosure);
+            Push(CurCallFrame().fn);
             break;
         }
         case OP_STRUCT:
@@ -546,7 +514,6 @@ void VM::Execute()
         }
         case OP_REF_UPVALUE:
         {
-            auto upvalueIdx = CurCallFrame().GetOpCodes()[++ip];
             auto scopeDepth = CurCallFrame().GetOpCodes()[++ip];
             auto upScopeLocation = CurCallFrame().GetOpCodes()[++ip];
 
@@ -636,7 +603,7 @@ void VM::Gc(bool isExitingVM)
         for (auto &g : m_GlobalVariables)
             g.Mark();
         for (int32_t i = 0; i < m_CallFrameIndex; ++i)
-            m_CallFrames[i].closure->Mark();
+            m_CallFrames[i].fn->Mark();
     }
     else
     {
@@ -650,7 +617,7 @@ void VM::Gc(bool isExitingVM)
         for (auto &g : m_GlobalVariables)
             g.UnMark();
         for (int32_t i = 0; i < m_CallFrameIndex; ++i)
-            m_CallFrames[i].closure->UnMark();
+            m_CallFrames[i].fn->UnMark();
     }
 
     //sweep objects which is not reachable

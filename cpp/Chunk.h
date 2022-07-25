@@ -28,10 +28,9 @@ enum OpCode
     OP_FUNCTION_CALL,
     OP_RETURN,
     OP_GET_BUILTIN,
-    OP_CLOSURE,
     OP_GET_UPVALUE,
     OP_SET_UPVALUE,
-    OP_GET_CURRENT_CLOSURE,
+    OP_GET_CURRENT_FUNCTION,
     OP_STRUCT,
     OP_GET_STRUCT,
     OP_SET_STRUCT,
@@ -42,7 +41,7 @@ enum OpCode
 
 typedef std::vector<int32_t> OpCodes;
 
-#define CONSTANT_MAX 2048
+#define CONSTANT_MAX 8192
 
 class Chunk
 {
