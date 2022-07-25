@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 #include <memory>
@@ -42,7 +42,7 @@ struct AstNode
 	virtual AstType Type() = 0;
 };
 
-struct Expr:public AstNode
+struct Expr : public AstNode
 {
 	Expr() {}
 	virtual ~Expr() {}
@@ -175,7 +175,8 @@ struct InfixExpr : public Expr
 		right = nullptr;
 	}
 
-	std::string Stringify() override { return left->Stringify() + op + right->Stringify(); }
+	std::string Stringify() override { return left->Stringify() + " " + op + " " + right->Stringify(); }
+
 	AstType Type() override { return AstType::INFIX; }
 
 	std::string op;
@@ -202,16 +203,16 @@ struct IndexExpr : public Expr
 	Expr *index;
 };
 
-struct RefExpr:public Expr
+struct RefExpr : public Expr
 {
-	RefExpr() : refExpr(nullptr){}
-	RefExpr(IdentifierExpr* refExpr) : refExpr(refExpr) {}
+	RefExpr() : refExpr(nullptr) {}
+	RefExpr(IdentifierExpr *refExpr) : refExpr(refExpr) {}
 	~RefExpr()
 	{
 		delete refExpr;
 		refExpr = nullptr;
 	}
-	std::string Stringify() override { return "ref "+refExpr->Stringify(); }
+	std::string Stringify() override { return "ref " + refExpr->Stringify(); }
 
 	AstType Type() override { return AstType::REF; }
 
@@ -220,9 +221,9 @@ struct RefExpr:public Expr
 
 struct FunctionCallExpr : public Expr
 {
-	FunctionCallExpr() {}
-	FunctionCallExpr(Expr* name, std::vector<Expr *> arguments) : name(name), arguments(arguments) {}
-	~FunctionCallExpr() 
+	FunctionCallExpr():name(nullptr) {}
+	FunctionCallExpr(Expr *name, std::vector<Expr *> arguments) : name(name), arguments(arguments) {}
+	~FunctionCallExpr()
 	{
 		delete name;
 		name = nullptr;
@@ -245,21 +246,21 @@ struct FunctionCallExpr : public Expr
 	}
 	AstType Type() override { return AstType::FUNCTION_CALL; }
 
-	Expr* name;
+	Expr *name;
 	std::vector<Expr *> arguments;
 };
 
-struct StructCallExpr :public Expr
+struct StructCallExpr : public Expr
 {
-	StructCallExpr():callee(nullptr),callMember(nullptr) {}
-	StructCallExpr(Expr* callee, Expr* callMember) : callee(callee), callMember(callMember) {}
+	StructCallExpr() : callee(nullptr), callMember(nullptr) {}
+	StructCallExpr(Expr *callee, Expr *callMember) : callee(callee), callMember(callMember) {}
 	~StructCallExpr() {}
 
 	std::string Stringify() override { return callee->Stringify() + "." + callMember->Stringify(); }
 	AstType Type() override { return AstType::STRUCT_CALL; }
 
-	Expr* callee;
-	Expr* callMember;
+	Expr *callee;
+	Expr *callMember;
 };
 
 struct Stmt : public AstNode
@@ -289,7 +290,7 @@ struct ExprStmt : public Stmt
 
 struct VarStmt : public Stmt
 {
-	VarStmt() {}
+	VarStmt():name(nullptr),value(nullptr) {}
 	VarStmt(IdentifierExpr *name, Expr *value) : name(name), value(value) {}
 	~VarStmt()
 	{
@@ -380,7 +381,7 @@ struct ScopeStmt : public Stmt
 struct FunctionStmt : public Stmt
 {
 	FunctionStmt() : body(nullptr) {}
-	FunctionStmt(std::string_view name, std::vector<IdentifierExpr *> parameters, ScopeStmt *body) : name(name),parameters(parameters), body(body) {}
+	FunctionStmt(std::string_view name, std::vector<IdentifierExpr *> parameters, ScopeStmt *body) : name(name), parameters(parameters), body(body) {}
 	~FunctionStmt()
 	{
 		std::vector<IdentifierExpr *>().swap(parameters);
@@ -391,7 +392,7 @@ struct FunctionStmt : public Stmt
 
 	std::string Stringify() override
 	{
-		std::string result = "fn " + name + "(";
+		std::string result = "function " + name + "(";
 		if (!parameters.empty())
 		{
 			for (auto param : parameters)
@@ -412,7 +413,7 @@ struct FunctionStmt : public Stmt
 struct LambdaExpr : public Expr
 {
 	LambdaExpr() : body(nullptr) {}
-	LambdaExpr(std::vector<IdentifierExpr *> parameters, ScopeStmt *body) : parameters(parameters), body(body) {}
+	LambdaExpr(std::string_view name, std::vector<IdentifierExpr *> parameters, ScopeStmt *body) : name(name), parameters(parameters), body(body) {}
 	~LambdaExpr()
 	{
 		std::vector<IdentifierExpr *>().swap(parameters);
@@ -436,6 +437,7 @@ struct LambdaExpr : public Expr
 	}
 	AstType Type() override { return AstType::LAMBDA; }
 
+	std::string name;
 	std::vector<IdentifierExpr *> parameters;
 	ScopeStmt *body;
 };

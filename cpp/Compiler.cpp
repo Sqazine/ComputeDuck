@@ -1,394 +1,625 @@
 #include "Compiler.h"
-#include "Utils.h"
+#include "Object.h"
 Compiler::Compiler()
+    : m_SymbolTable(nullptr)
 {
+    ResetStatus();
 }
 Compiler::~Compiler()
 {
 }
 
-Frame Compiler::Compile(std::vector<Stmt *> stmts)
+Chunk Compiler::Compile(const std::vector<Stmt *> &stmts)
 {
-	for (const auto &s : stmts)
-		CompileStmt(s, m_RootFrame);
-	return m_RootFrame;
+    for (const auto &stmt : stmts)
+        CompileStmt(stmt);
+
+    return Chunk(CurOpCodes(), m_Constants, m_ConstantCount);
 }
 
 void Compiler::ResetStatus()
 {
-	m_RootFrame.Clear();
+    for (int32_t i = 0; i < CONSTANT_MAX; ++i)
+        m_Constants[i] = Value();
+    m_ConstantCount = 0;
+
+    m_ScopeIndex = 0;
+    std::vector<OpCodes>().swap(m_Scopes);
+    m_Scopes.emplace_back(OpCodes()); //set a default opcodes
+
+    if (m_SymbolTable)
+        delete m_SymbolTable;
+    m_SymbolTable = new SymbolTable();
+
+    for (int32_t i = 0; i < m_BuiltinFnIndex.size(); ++i)
+        m_SymbolTable->DefineBuiltin(m_BuiltinFnIndex[i], i);
 }
 
-void Compiler::CompileStmt(Stmt *stmt, Frame &frame)
+void Compiler::CompileStmt(Stmt *stmt)
 {
-	switch (stmt->Type())
-	{
-	case AstType::RETURN:
-		CompileReturnStmt((ReturnStmt *)stmt, frame);
-		break;
-	case AstType::EXPR:
-		CompileExprStmt((ExprStmt *)stmt, frame);
-		break;
-	case AstType::VAR:
-		CompileVarStmt((VarStmt *)stmt, frame);
-		break;
-	case AstType::SCOPE:
-		CompileScopeStmt((ScopeStmt *)stmt, frame);
-		break;
-	case AstType::IF:
-		CompileIfStmt((IfStmt *)stmt, frame);
-		break;
-	case AstType::WHILE:
-		CompileWhileStmt((WhileStmt *)stmt, frame);
-		break;
-	case AstType::FUNCTION:
-		CompileFunctionStmt((FunctionStmt *)stmt, frame);
-		break;
-	case AstType::STRUCT:
-		CompileStructStmt((StructStmt *)stmt, frame);
-		break;
-	default:
-		break;
-	}
-}
-void Compiler::CompileReturnStmt(ReturnStmt *stmt, Frame &frame)
-{
-	if (stmt->expr)
-		CompileExpr(stmt->expr, frame);
-
-	frame.AddOpCode(OP_RETURN);
+    switch (stmt->Type())
+    {
+    case AstType::RETURN:
+        CompileReturnStmt((ReturnStmt *)stmt);
+        break;
+    case AstType::EXPR:
+        CompileExprStmt((ExprStmt *)stmt);
+        break;
+    case AstType::VAR:
+        CompileVarStmt((VarStmt *)stmt);
+        break;
+    case AstType::SCOPE:
+        CompileScopeStmt((ScopeStmt *)stmt);
+        break;
+    case AstType::IF:
+        CompileIfStmt((IfStmt *)stmt);
+        break;
+    case AstType::WHILE:
+        CompileWhileStmt((WhileStmt *)stmt);
+        break;
+    case AstType::FUNCTION:
+        CompileFunctionStmt((FunctionStmt *)stmt);
+        break;
+    case AstType::STRUCT:
+        CompileStructStmt((StructStmt *)stmt);
+        break;
+    default:
+        break;
+    }
 }
 
-void Compiler::CompileExprStmt(ExprStmt *stmt, Frame &frame)
+void Compiler::CompileExprStmt(ExprStmt *stmt)
 {
-	CompileExpr(stmt->expr, frame);
+    CompileExpr(stmt->expr);
 }
 
-void Compiler::CompileVarStmt(VarStmt *stmt, Frame &frame)
+void Compiler::CompileIfStmt(IfStmt *stmt)
 {
-	CompileExpr(stmt->value, frame);
-	CompileExpr(stmt->name, frame, INIT);
+    CompileExpr(stmt->condition);
+    Emit(OP_JUMP_IF_FALSE);
+    auto jumpIfFalseAddress = Emit(65536); //65536 just a temp address
+
+    CompileStmt(stmt->thenBranch);
+
+    Emit(OP_JUMP);
+    auto jumpAddress = Emit(65536);
+
+    ModifyOpCode(jumpIfFalseAddress, (int32_t)CurOpCodes().size() - 1);
+
+    if (stmt->elseBranch)
+        CompileStmt(stmt->elseBranch);
+
+    ModifyOpCode(jumpAddress, (int32_t)CurOpCodes().size() - 1);
 }
 
-void Compiler::CompileScopeStmt(ScopeStmt *stmt, Frame &frame)
+void Compiler::CompileScopeStmt(ScopeStmt *stmt)
 {
-	frame.AddOpCode(OP_ENTER_SCOPE);
+    //treat scope as function,in order to be lazy
+    EnterScope();
 
-	for (const auto &s : stmt->stmts)
-		CompileStmt(s, frame);
+    for (const auto &s : stmt->stmts)
+        CompileStmt(s);
 
-	frame.AddOpCode(OP_EXIT_SCOPE);
+    auto upvalueSymbols = m_SymbolTable->upvalueSymbols;
+    auto localVarCount = m_SymbolTable->definitionCount;
+    auto opCodes = ExitScope();
+
+    if (opCodes.empty() || opCodes[opCodes.size() - 2] != OP_RETURN)
+    {
+        opCodes.emplace_back(OP_RETURN);
+        opCodes.emplace_back(0);
+    }
+
+    for (const auto &symbol : upvalueSymbols)
+        LoadSymbol(symbol);
+
+    auto fn = new FunctionObject(opCodes, localVarCount);
+
+    auto fnIdx = AddConstant(fn);
+    Emit(OP_CLOSURE);
+    Emit(fnIdx);
+    Emit((int32_t)upvalueSymbols.size());
+    Emit(OP_FUNCTION_CALL);
+    Emit(0);
 }
 
-void Compiler::CompileIfStmt(IfStmt *stmt, Frame &frame)
+void Compiler::CompileWhileStmt(WhileStmt *stmt)
 {
-	CompileExpr(stmt->condition, frame);
+    auto jumpAddress = (int32_t)CurOpCodes().size() - 1;
+    CompileExpr(stmt->condition);
 
-	frame.AddOpCode(OP_JUMP_IF_FALSE);
-	uint64_t jmpIfFalseOffset = frame.AddNum(0);
-	frame.AddOpCode(jmpIfFalseOffset);
+    Emit(OP_JUMP_IF_FALSE);
+    auto jumpIfFalseAddress = Emit(65536); //65536 just a temp address
 
-	CompileStmt(stmt->thenBranch, frame);
+    CompileStmt(stmt->body);
 
-	frame.AddOpCode(OP_JUMP);
-	uint64_t jmpOffset = frame.AddNum(0);
-	frame.AddOpCode(jmpOffset);
+    Emit(OP_JUMP);
+    Emit(jumpAddress);
 
-	frame.m_Nums[jmpIfFalseOffset] = (double)frame.GetOpCodeSize() - 1.0;
-
-	if (stmt->elseBranch)
-		CompileStmt(stmt->elseBranch, frame);
-
-	frame.m_Nums[jmpOffset] = (double)frame.GetOpCodeSize() - 1.0;
-}
-void Compiler::CompileWhileStmt(WhileStmt *stmt, Frame &frame)
-{
-	uint64_t jmpAddress = frame.GetOpCodeSize() - 1;
-	CompileExpr(stmt->condition, frame);
-
-	frame.AddOpCode(OP_JUMP_IF_FALSE);
-	uint64_t jmpIfFalseOffset = frame.AddNum(0);
-	frame.AddOpCode(jmpIfFalseOffset);
-
-	CompileStmt(stmt->body, frame);
-
-	frame.AddOpCode(OP_JUMP);
-	uint64_t offset = frame.AddNum(jmpAddress);
-	frame.AddOpCode(offset);
-
-	frame.m_Nums[jmpIfFalseOffset] = (double)frame.GetOpCodeSize() - 1.0;
+    ModifyOpCode(jumpIfFalseAddress, (int32_t)CurOpCodes().size() - 1);
 }
 
-void Compiler::CompileFunctionStmt(FunctionStmt *stmt, Frame &frame)
+void Compiler::CompileReturnStmt(ReturnStmt *stmt)
 {
-	Frame functionFrame = Frame(&frame);
-
-	functionFrame.AddOpCode(OP_ENTER_SCOPE);
-
-	for (int64_t i = stmt->parameters.size() - 1; i >= 0; --i)
-		CompileIdentifierExpr(stmt->parameters[i], functionFrame, INIT);
-
-	for (const auto &s : stmt->body->stmts)
-		CompileStmt(s, functionFrame);
-
-	functionFrame.AddOpCode(OP_EXIT_SCOPE);
-
-	frame.AddFunctionFrame(stmt->name, functionFrame);
+    if (stmt->expr)
+    {
+        CompileExpr(stmt->expr);
+        Emit(OP_RETURN);
+        Emit(1);
+    }
+    else
+    {
+        Emit(OP_RETURN);
+        Emit(1);
+    }
 }
 
-void Compiler::CompileStructStmt(StructStmt *stmt, Frame &frame)
+void Compiler::CompileVarStmt(VarStmt *stmt)
 {
-	Frame structFrame = Frame(&frame);
-
-	structFrame.AddOpCode(OP_ENTER_SCOPE);
-
-	for (const auto &m : stmt->members)
-		CompileVarStmt(m, structFrame);
-
-	structFrame.AddOpCode(OP_NEW_STRUCT);
-	uint64_t offset = structFrame.AddString(stmt->name);
-	structFrame.AddOpCode(offset);
-
-	structFrame.AddOpCode(OP_RETURN);
-
-	frame.AddStructFrame(stmt->name, structFrame);
+    CompileExpr(stmt->value);
+    Symbol symbol = m_SymbolTable->Define(stmt->name->literal);
+    if (symbol.scope == SymbolScope::GLOBAL)
+        Emit(OP_SET_GLOBAL);
+    else
+        Emit(OP_SET_LOCAL);
+    Emit(symbol.index);
 }
 
-void Compiler::CompileExpr(Expr *expr, Frame &frame, ObjectState state)
+void Compiler::CompileFunctionStmt(FunctionStmt *stmt)
 {
-	switch (expr->Type())
-	{
-	case AstType::NUM:
-		CompileNumExpr((NumExpr *)expr, frame);
-		break;
-	case AstType::STR:
-		CompileStrExpr((StrExpr *)expr, frame);
-		break;
-	case AstType::BOOL:
-		CompileBoolExpr((BoolExpr *)expr, frame);
-		break;
-	case AstType::NIL:
-		CompileNilExpr((NilExpr *)expr, frame);
-		break;
-	case AstType::IDENTIFIER:
-		CompileIdentifierExpr((IdentifierExpr *)expr, frame, state);
-		break;
-	case AstType::GROUP:
-		CompileGroupExpr((GroupExpr *)expr, frame);
-		break;
-	case AstType::ARRAY:
-		CompileArrayExpr((ArrayExpr *)expr, frame);
-		break;
-	case AstType::INDEX:
-		CompileIndexExpr((IndexExpr *)expr, frame, state);
-		break;
-	case AstType::PREFIX:
-		CompilePrefixExpr((PrefixExpr *)expr, frame);
-		break;
-	case AstType::INFIX:
-		CompileInfixExpr((InfixExpr *)expr, frame);
-		break;
-	case AstType::FUNCTION_CALL:
-		CompileFunctionCallExpr((FunctionCallExpr *)expr, frame);
-		break;
-	case AstType::STRUCT_CALL:
-		CompileStructCallExpr((StructCallExpr *)expr, frame, state);
-		break;
-	case AstType::REF:
-		CompileRefExpr((RefExpr *)expr, frame);
-		break;
-	case AstType::LAMBDA:
-		CompileLambdaExpr((LambdaExpr *)expr, frame);
-		break;
-	default:
-		break;
-	}
+    auto symbol = m_SymbolTable->Define(stmt->name);
+
+    EnterScope();
+
+    m_SymbolTable->DefineFunction(stmt->name);
+
+    for (const auto &param : stmt->parameters)
+        m_SymbolTable->Define(param->literal);
+
+    for (const auto &s : stmt->body->stmts)
+        CompileStmt(s);
+
+    auto upvalueSymbols = m_SymbolTable->upvalueSymbols;
+    auto localVarCount = m_SymbolTable->definitionCount;
+    auto opCodes = ExitScope();
+
+    //for non return lambda or empty stmt in lambda scope:add a return to return nothing
+    if (opCodes.empty() || opCodes[opCodes.size() - 2] != OP_RETURN)
+    {
+        opCodes.emplace_back(OP_RETURN);
+        opCodes.emplace_back(0);
+    }
+
+    for (const auto &symbol : upvalueSymbols)
+        LoadSymbol(symbol);
+
+    auto fn = new FunctionObject(opCodes, localVarCount, (int32_t)stmt->parameters.size());
+
+    auto fnIdx = AddConstant(fn);
+    Emit(OP_CLOSURE);
+    Emit(fnIdx);
+    Emit((int32_t)upvalueSymbols.size());
+
+    if (symbol.scope == SymbolScope::GLOBAL)
+        Emit(OP_SET_GLOBAL);
+    else
+        Emit(OP_SET_LOCAL);
+    Emit(symbol.index);
+}
+void Compiler::CompileStructStmt(StructStmt *stmt)
+{
+    auto symbol = m_SymbolTable->Define(stmt->name, true);
+
+    EnterScope();
+
+    for (int32_t i = stmt->members.size() - 1; i >= 0; --i)
+    {
+        CompileExpr(stmt->members[i]->value);
+        EmitConstant(AddConstant(new StrObject(stmt->members[i]->name->literal)));
+    }
+
+    auto upvalueSymbols = m_SymbolTable->upvalueSymbols;
+    auto localVarCount = m_SymbolTable->definitionCount;
+
+    Emit(OP_STRUCT);
+    Emit((int32_t)stmt->members.size());
+
+    auto opCodes = ExitScope();
+
+    opCodes.emplace_back(OP_RETURN);
+    opCodes.emplace_back(1);
+
+    for (const auto &symbol : upvalueSymbols)
+        LoadSymbol(symbol);
+
+    auto fn = new FunctionObject(opCodes, localVarCount);
+
+    auto fnIdx = AddConstant(fn);
+    Emit(OP_CLOSURE);
+    Emit(fnIdx);
+    Emit((int32_t)upvalueSymbols.size());
+
+    if (symbol.scope == SymbolScope::GLOBAL)
+        Emit(OP_SET_GLOBAL);
+    else
+        Emit(OP_SET_LOCAL);
+    Emit(symbol.index);
 }
 
-void Compiler::CompileNumExpr(NumExpr *expr, Frame &frame)
+void Compiler::CompileExpr(Expr *expr, const RWState &state)
 {
-	frame.AddOpCode(OP_NEW_NUM);
-	size_t offset = frame.AddNum(expr->value);
-	frame.AddOpCode(offset);
+    switch (expr->Type())
+    {
+    case AstType::NUM:
+        CompileNumExpr((NumExpr *)expr);
+        break;
+    case AstType::STR:
+        CompileStrExpr((StrExpr *)expr);
+        break;
+    case AstType::BOOL:
+        CompileBoolExpr((BoolExpr *)expr);
+        break;
+    case AstType::NIL:
+        CompileNilExpr((NilExpr *)expr);
+        break;
+    case AstType::IDENTIFIER:
+        CompileIdentifierExpr((IdentifierExpr *)expr, state);
+        break;
+    case AstType::GROUP:
+        CompileGroupExpr((GroupExpr *)expr);
+        break;
+    case AstType::ARRAY:
+        CompileArrayExpr((ArrayExpr *)expr);
+        break;
+    case AstType::INDEX:
+        CompileIndexExpr((IndexExpr *)expr);
+        break;
+    case AstType::PREFIX:
+        CompilePrefixExpr((PrefixExpr *)expr);
+        break;
+    case AstType::INFIX:
+        CompileInfixExpr((InfixExpr *)expr);
+        break;
+    case AstType::FUNCTION_CALL:
+        CompileFunctionCallExpr((FunctionCallExpr *)expr);
+        break;
+    case AstType::STRUCT_CALL:
+        CompileStructCallExpr((StructCallExpr *)expr, state);
+        break;
+    case AstType::REF:
+        CompileRefExpr((RefExpr *)expr);
+        break;
+    case AstType::LAMBDA:
+        CompileLambdaExpr((LambdaExpr *)expr);
+        break;
+    default:
+        break;
+    }
 }
 
-void Compiler::CompileStrExpr(StrExpr *expr, Frame &frame)
+void Compiler::CompileInfixExpr(InfixExpr *expr)
 {
-	frame.AddOpCode(OP_NEW_STR);
-	size_t offset = frame.AddString(expr->value);
-	frame.AddOpCode(offset);
+
+    if (expr->op == "=")
+    {
+        CompileExpr(expr->right);
+        CompileExpr(expr->left, RWState::WRITE);
+    }
+    else
+    {
+        CompileExpr(expr->right);
+        CompileExpr(expr->left);
+
+        if (expr->op == "+")
+            Emit(OP_ADD);
+        else if (expr->op == "-")
+            Emit(OP_SUB);
+        else if (expr->op == "*")
+            Emit(OP_MUL);
+        else if (expr->op == "/")
+            Emit(OP_DIV);
+        else if (expr->op == ">")
+            Emit(OP_GREATER);
+        else if (expr->op == "<")
+            Emit(OP_LESS);
+        else if (expr->op == ">=")
+        {
+            Emit(OP_LESS);
+            Emit(OP_NOT);
+        }
+        else if (expr->op == "<=")
+        {
+            Emit(OP_GREATER);
+            Emit(OP_NOT);
+        }
+        else if (expr->op == "==")
+            Emit(OP_EQUAL);
+        else if (expr->op == "!=")
+        {
+            Emit(OP_EQUAL);
+            Emit(OP_NOT);
+        }
+        else if (expr->op == "and")
+            Emit(OP_AND);
+        else if (expr->op == "or")
+            Emit(OP_OR);
+    }
 }
 
-void Compiler::CompileBoolExpr(BoolExpr *expr, Frame &frame)
+void Compiler::CompileNumExpr(NumExpr *expr)
 {
-	if (expr->value)
-		frame.AddOpCode(OP_NEW_TRUE);
-	else
-		frame.AddOpCode(OP_NEW_FALSE);
+    auto value = Value(expr->value);
+    auto pos = AddConstant(value);
+    EmitConstant(pos);
 }
 
-void Compiler::CompileNilExpr(NilExpr *expr, Frame &frame)
+void Compiler::CompileBoolExpr(BoolExpr *expr)
 {
-	frame.AddOpCode(OP_NEW_NIL);
+    if (expr->value)
+        EmitConstant(AddConstant(Value(true)));
+    else
+        EmitConstant(AddConstant(Value(false)));
 }
 
-void Compiler::CompileIdentifierExpr(IdentifierExpr *expr, Frame &frame, ObjectState state)
+void Compiler::CompilePrefixExpr(PrefixExpr *expr)
 {
-	if (state == READ)
-		frame.AddOpCode(OP_GET_VAR);
-	else if (state == WRITE)
-		frame.AddOpCode(OP_SET_VAR);
-	else if (state == INIT)
-		frame.AddOpCode(OP_DEFINE_VAR);
-	else if (state == STRUCT_READ)
-		frame.AddOpCode(OP_GET_STRUCT_VAR);
-	else if (state == STRUCT_WRITE)
-		frame.AddOpCode(OP_SET_STRUCT_VAR);
-
-	uint64_t offset = frame.AddString(expr->literal);
-	frame.AddOpCode(offset);
+    CompileExpr(expr->right);
+    if (expr->op == "-")
+        Emit(OP_MINUS);
+    else if (expr->op == "not")
+        Emit(OP_NOT);
+    else
+        Assert("Unrecognized prefix op");
 }
 
-void Compiler::CompileGroupExpr(GroupExpr *expr, Frame &frame)
+void Compiler::CompileStrExpr(StrExpr *expr)
 {
-	CompileExpr(expr->expr, frame);
+    auto value = Value(new StrObject(expr->value));
+    auto pos = AddConstant(value);
+    EmitConstant(pos);
 }
 
-void Compiler::CompileArrayExpr(ArrayExpr *expr, Frame &frame)
+void Compiler::CompileNilExpr(NilExpr *expr)
 {
-	for (const auto &e : expr->elements)
-		CompileExpr(e, frame);
-
-	frame.AddOpCode(OP_NEW_ARRAY);
-	size_t offset = frame.AddNum(expr->elements.size());
-	frame.AddOpCode(offset);
+    EmitConstant(AddConstant(Value()));
 }
 
-void Compiler::CompileIndexExpr(IndexExpr *expr, Frame &frame, ObjectState state)
+void Compiler::CompileGroupExpr(GroupExpr *expr)
 {
-	CompileExpr(expr->ds, frame);
-	CompileExpr(expr->index, frame);
-	if (state == READ)
-		frame.AddOpCode(OP_GET_INDEX_VAR);
-	else if (state == WRITE)
-		frame.AddOpCode(OP_SET_INDEX_VAR);
+    CompileExpr(expr->expr);
 }
 
-void Compiler::CompileRefExpr(RefExpr *expr, Frame &frame)
+void Compiler::CompileArrayExpr(ArrayExpr *expr)
 {
-	frame.AddOpCode(OP_REF);
-	size_t offset = frame.AddString(expr->refExpr->literal);
-	frame.AddOpCode(offset);
+    for (const auto &e : expr->elements)
+        CompileExpr(e);
+
+    Emit(OP_ARRAY);
+    Emit((uint32_t)expr->elements.size());
 }
 
-void Compiler::CompileLambdaExpr(LambdaExpr *expr, Frame &frame)
+void Compiler::CompileIndexExpr(IndexExpr *expr)
 {
-	Frame lambdaFrame = Frame();
-
-	lambdaFrame.AddOpCode(OP_ENTER_SCOPE);
-
-	for (int64_t i = expr->parameters.size() - 1; i >= 0; --i)
-		CompileIdentifierExpr(expr->parameters[i], lambdaFrame, INIT);
-
-	for (const auto &s : expr->body->stmts)
-		CompileStmt(s, lambdaFrame);
-
-	lambdaFrame.AddOpCode(OP_EXIT_SCOPE);
-
-	frame.AddOpCode(OP_NEW_LAMBDA);
-	size_t offset = frame.AddNum(frame.AddLambdaFrame(lambdaFrame));
-	frame.AddOpCode(offset);
+    CompileExpr(expr->ds);
+    CompileExpr(expr->index);
+    Emit(OP_INDEX);
 }
 
-void Compiler::CompilePrefixExpr(PrefixExpr *expr, Frame &frame)
+void Compiler::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state)
 {
-	CompileExpr(expr->right, frame);
-	if (expr->op == "-")
-		frame.AddOpCode(OP_NEG);
-	else if (expr->op == "not")
-		frame.AddOpCode(OP_NOT);
+    Symbol symbol;
+    bool isFound = m_SymbolTable->Resolve(expr->literal, symbol);
+    if (!isFound)
+        Assert("Undefined variable:" + expr->Stringify());
+
+    if (state == RWState::READ)
+        LoadSymbol(symbol);
+    else
+    {
+        switch (symbol.scope)
+        {
+        case SymbolScope::GLOBAL:
+            Emit(OP_SET_GLOBAL);
+            Emit(symbol.index);
+            break;
+        case SymbolScope::LOCAL:
+            Emit(OP_SET_LOCAL);
+            Emit(symbol.index);
+            break;
+        case SymbolScope::UPVALUE:
+            Emit(OP_SET_UPVALUE);
+            Emit(symbol.index);
+            Emit(symbol.scopeDepth);
+            Emit(symbol.upScopeLocation);
+            break;
+        default:
+            break;
+        }
+    }
 }
 
-void Compiler::CompileInfixExpr(InfixExpr *expr, Frame &frame)
+void Compiler::CompileLambdaExpr(LambdaExpr *expr)
 {
-	if (expr->op == "=")
-	{
-		CompileExpr(expr->right, frame);
-		CompileExpr(expr->left, frame, WRITE);
-	}
-	else
-	{
-		CompileExpr(expr->right, frame);
-		CompileExpr(expr->left, frame);
+    EnterScope();
 
-		if (expr->op == "+")
-			frame.AddOpCode(OP_ADD);
-		else if (expr->op == "-")
-			frame.AddOpCode(OP_SUB);
-		else if (expr->op == "*")
-			frame.AddOpCode(OP_MUL);
-		else if (expr->op == "/")
-			frame.AddOpCode(OP_DIV);
-		else if (expr->op == "and")
-			frame.AddOpCode(OP_AND);
-		else if (expr->op == "or")
-			frame.AddOpCode(OP_OR);
-		else if (expr->op == ">")
-			frame.AddOpCode(OP_GREATER);
-		else if (expr->op == "<")
-			frame.AddOpCode(OP_LESS);
-		else if (expr->op == ">=")
-			frame.AddOpCode(OP_GREATER_EQUAL);
-		else if (expr->op == "<=")
-			frame.AddOpCode(OP_LESS_EQUAL);
-		else if (expr->op == "==")
-			frame.AddOpCode(OP_EQUAL);
-		else if (expr->op == "!=")
-			frame.AddOpCode(OP_NOT_EQUAL);
-		else
-			Assert("Unknown binary op:" + expr->op);
-	}
+    m_SymbolTable->DefineFunction(expr->name);
+
+    for (const auto &param : expr->parameters)
+        m_SymbolTable->Define(param->literal);
+
+    for (const auto &s : expr->body->stmts)
+        CompileStmt(s);
+
+    auto upvalueSymbols = m_SymbolTable->upvalueSymbols;
+    auto localVarCount = m_SymbolTable->definitionCount;
+    auto opCodes = ExitScope();
+
+    //for non return lambda or empty stmt in lambda scope:add a return to return nothing
+    if (opCodes.empty() || opCodes[opCodes.size() - 2] != OP_RETURN)
+    {
+        opCodes.emplace_back(OP_RETURN);
+        opCodes.emplace_back(0);
+    }
+
+    for (const auto &symbol : upvalueSymbols)
+        LoadSymbol(symbol);
+
+    auto fn = new FunctionObject(opCodes, localVarCount, (int32_t)expr->parameters.size());
+
+    auto fnIdx = AddConstant(fn);
+    Emit(OP_CLOSURE);
+    Emit(fnIdx);
+    Emit((int32_t)upvalueSymbols.size());
 }
 
-void Compiler::CompileFunctionCallExpr(FunctionCallExpr *expr, Frame &frame)
+void Compiler::CompileFunctionCallExpr(FunctionCallExpr *expr)
 {
+    CompileExpr(expr->name);
 
-	for (const auto &arg : expr->arguments)
-		CompileExpr(arg, frame);
+    for (const auto &argu : expr->arguments)
+        CompileExpr(argu);
 
-
-	//argument count
-	frame.AddOpCode(OP_NEW_NUM);
-	uint64_t offset = frame.AddNum(expr->arguments.size());
-	frame.AddOpCode(offset);
-	if (expr->name->Type() == AstType::IDENTIFIER)
-	{
-		frame.AddOpCode(OP_FUNCTION_CALL);
-		offset = frame.AddString(((IdentifierExpr*)expr->name)->literal);
-		frame.AddOpCode(offset);
-	}
-	else if(expr->name->Type()==AstType::STRUCT_CALL)
-	{
-		auto structCallExpr = ((StructCallExpr *)expr->name);
-		CompileExpr(structCallExpr->callee, frame);
-		if (structCallExpr->callMember->Type() == AstType::STRUCT_CALL)
-			CompileExpr(((StructCallExpr *)structCallExpr->callMember)->callee, frame, STRUCT_READ);
-
-		frame.AddOpCode(OP_STRUCT_LAMBDA_CALL);
-		offset = frame.AddString(((IdentifierExpr *)structCallExpr->callMember)->literal);
-		frame.AddOpCode(offset);
-	}
+    Emit(OP_FUNCTION_CALL);
+    Emit((int32_t)expr->arguments.size());
 }
 
-void Compiler::CompileStructCallExpr(StructCallExpr *expr, Frame &frame, ObjectState state)
+void Compiler::CompileStructCallExpr(StructCallExpr *expr, const RWState &state)
 {
-	CompileExpr(expr->callee, frame);
+    if (expr->callMember->Type() == AstType::FUNCTION_CALL && state == RWState::WRITE)
+        Assert("Cannot assign to a struct's function call expr");
 
-	if (expr->callMember->Type() == AstType::STRUCT_CALL) //continuous struct call such as a.b.c;
-		CompileExpr(((StructCallExpr *)expr->callMember)->callee, frame, STRUCT_READ);
+    CompileExpr(expr->callee);
 
-	if (state == READ)
-		CompileExpr(expr->callMember, frame, STRUCT_READ);
-	else if (state == WRITE)
-		CompileExpr(expr->callMember, frame, STRUCT_WRITE);
+    if (expr->callMember->Type() == AstType::IDENTIFIER)
+        EmitConstant(AddConstant(new StrObject(((IdentifierExpr *)expr->callMember)->literal)));
+    else if (expr->callMember->Type() == AstType::FUNCTION_CALL)
+        EmitConstant(AddConstant(new StrObject(((IdentifierExpr *)((FunctionCallExpr *)expr->callMember)->name)->literal)));
+
+    if (state == RWState::READ)
+    {
+        Emit(OP_GET_STRUCT);
+
+        if (expr->callMember->Type() == AstType::FUNCTION_CALL)
+        {
+            auto funcCall = (FunctionCallExpr *)expr->callMember;
+            for (const auto &argu : funcCall->arguments)
+                CompileExpr(argu);
+
+            Emit(OP_FUNCTION_CALL);
+            Emit((int32_t)funcCall->arguments.size());
+        }
+    }
+    else
+        Emit(OP_SET_STRUCT);
+}
+
+void Compiler::CompileRefExpr(RefExpr *expr)
+{
+
+    Symbol symbol;
+    bool isFound = m_SymbolTable->Resolve(expr->refExpr->literal, symbol);
+    if (!isFound)
+        Assert("Undefined variable:" + expr->Stringify());
+
+    switch (symbol.scope)
+    {
+    case SymbolScope::GLOBAL:
+        Emit(OP_REF_GLOBAL);
+        Emit(symbol.index);
+        break;
+    case SymbolScope::LOCAL:
+        Emit(OP_REF_LOCAL);
+        Emit(symbol.index);
+        break;
+    case SymbolScope::UPVALUE:
+        Emit(OP_REF_UPVALUE);
+        Emit(symbol.index);
+        Emit(symbol.scopeDepth);
+        Emit(symbol.upScopeLocation);
+        break;
+    default:
+        break;
+    }
+}
+
+void Compiler::EnterScope()
+{
+    m_SymbolTable = new SymbolTable(m_SymbolTable);
+    m_Scopes.emplace_back(OpCodes());
+    m_ScopeIndex++;
+}
+OpCodes Compiler::ExitScope()
+{
+    auto opCodes = CurOpCodes();
+    m_Scopes.pop_back();
+    m_ScopeIndex--;
+
+    m_SymbolTable = m_SymbolTable->enclosing;
+
+    return opCodes;
+}
+
+OpCodes &Compiler::CurOpCodes()
+{
+    return m_Scopes[m_ScopeIndex];
+}
+
+uint32_t Compiler::Emit(int32_t opcode)
+{
+    CurOpCodes().emplace_back(opcode);
+    return (int32_t)CurOpCodes().size() - 1;
+}
+
+uint32_t Compiler::EmitConstant(uint32_t pos)
+{
+    Emit(OP_CONSTANT);
+    Emit(pos);
+    return (int32_t)CurOpCodes().size() - 1;
+}
+
+void Compiler::ModifyOpCode(uint32_t pos, int32_t opcode)
+{
+    CurOpCodes()[pos] = opcode;
+}
+
+uint32_t Compiler::AddConstant(const Value &value)
+{
+    m_Constants[m_ConstantCount++] = value;
+    return m_ConstantCount - 1;
+}
+
+void Compiler::LoadSymbol(const Symbol &symbol)
+{
+    switch (symbol.scope)
+    {
+    case SymbolScope::GLOBAL:
+        Emit(OP_GET_GLOBAL);
+        Emit(symbol.index);
+        break;
+    case SymbolScope::LOCAL:
+        Emit(OP_GET_LOCAL);
+        Emit(symbol.index);
+        break;
+    case SymbolScope::BUILTIN:
+        Emit(OP_GET_BUILTIN);
+        Emit(symbol.index);
+        break;
+    case SymbolScope::UPVALUE:
+        Emit(OP_GET_UPVALUE);
+        Emit(symbol.index);
+        Emit(symbol.scopeDepth);
+        Emit(symbol.upScopeLocation);
+        break;
+    case SymbolScope::FUNCTION:
+        Emit(OP_GET_CURRENT_CLOSURE);
+        break;
+    default:
+        break;
+    }
+
+    if (symbol.isStructSymbol)
+    {
+        Emit(OP_FUNCTION_CALL);
+        Emit(0);
+    }
 }

@@ -6,14 +6,37 @@
 #include <unordered_map>
 #include <string>
 #include <string_view>
-#include "Frame.h"
 #include "Value.h"
 #include "Object.h"
 #include "Utils.h"
-#include "Context.h"
+#include "Chunk.h"
 
 #define STACK_MAX 512
-#define INITIAL_GC_THRESHOLD 128
+#define INITIAL_GC_THRESHOLD 256
+
+#define GLOBAL_VARIABLE_MAX 1024
+
+struct CallFrame
+{
+	CallFrame()
+		:closure(nullptr), ip(-1),basePtr(0)
+	{
+	}
+
+	CallFrame(ClosureObject* closure, int32_t basePtr)
+		: closure(closure), ip(-1), basePtr(basePtr)
+	{
+	}
+
+	const OpCodes& GetOpCodes() const
+	{
+		return closure->fn->opCodes;
+	}
+
+	ClosureObject* closure;
+	int32_t ip;
+	int32_t basePtr;
+};
 
 class VM
 {
@@ -22,31 +45,54 @@ public:
 	~VM();
 
 	void ResetStatus();
-	Value Execute(Frame frame);
 
-	StrObject *CreateStrObject(std::string_view value = "");
-	ArrayObject *CreateArrayObject(const std::vector<Value> &elements = {});
-	StructObject *CreateStructObject(std::string_view name,const std::unordered_map<std::string,Value> &members={});
-	RefObject *CreateRefObject(std::string_view name);
-	LambdaObject *CreateLambdaObject(int64_t idx);
-
+	void Run(const Chunk& chunk);
 
 private:
-	void Gc();
-	std::function<Value(std::vector<Value>)> GetNativeFunction(std::string_view fnName);
-	bool HasNativeFunction(std::string_view name);
+	void Execute();
 
-	void Push(Value value);
-	Value Pop();
+	template <class T, typename... Args>
+	T* CreateObject(Args &&...params);
 
-	uint8_t sp;
-	std::array<Value, STACK_MAX> m_ValueStack;
+	void RegisterToGCRecordChain(const Value& value);
 
-	Object *firstObject;
+	void Gc(bool isExitingVM=false);
+
+	void Push(const Value& value);
+	const Value& Pop();
+
+	CallFrame& CurCallFrame();
+	void PushCallFrame(const CallFrame& callFrame);
+	const CallFrame& PopCallFrame();
+	CallFrame& PeekCallFrame(int32_t distance);
+
+	Value m_Constants[CONSTANT_MAX];
+
+	Value m_GlobalVariables[GLOBAL_VARIABLE_MAX];
+
+	int32_t sp;
+	Value m_ValueStack[STACK_MAX];
+
+	CallFrame m_CallFrames[STACK_MAX];
+	int32_t m_CallFrameIndex;
+
+	Object* firstObject;
 	int curObjCount;
 	int maxObjCount;
 
-	Context *m_Context;
-
-	std::unordered_map<std::string, std::function<Value(std::vector<Value>)>> m_NativeFunctions;
+	std::vector<BuiltinObject*> m_Builtins;
 };
+
+template <class T, typename... Args>
+inline T* VM::CreateObject(Args &&...params)
+{
+	if (curObjCount >= maxObjCount)
+		Gc();
+
+	T* object = new T(std::forward<Args>(params)...);
+	object->marked = false;
+	object->next = firstObject;
+	firstObject = object;
+	curObjCount++;
+	return object;
+}

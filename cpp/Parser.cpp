@@ -69,6 +69,7 @@ std::vector<Stmt *> Parser::Parse(const std::vector<Token> &tokens)
 {
 	m_CurPos = 0;
 	m_Tokens = tokens;
+	m_IsInFunctionOrLambdaScope=false;
 
 	std::vector<Stmt *> stmts;
 	while (!IsMatchCurToken(TokenType::END))
@@ -100,6 +101,7 @@ Stmt *Parser::ParseExprStmt()
 {
 	auto exprStmt = new ExprStmt(ParseExpr());
 	Consume(TokenType::SEMICOLON, "Expect ';' after expr stmt.");
+	
 	return exprStmt;
 }
 
@@ -114,11 +116,18 @@ Stmt *Parser::ParseVarStmt()
 
 	Consume(TokenType::SEMICOLON, "Expect ';' after var stmt.");
 
+	//set property 'name' to function
+	if (value->Type() == AstType::LAMBDA)
+		((LambdaExpr *)value)->name = name->literal;
+
 	return new VarStmt(name, value);
 }
 
 Stmt *Parser::ParseReturnStmt()
 {
+	if(m_IsInFunctionOrLambdaScope==false)
+		Assert("Return statement only available in function or lambda");
+
 	Consume(TokenType::RETURN, "Expect 'return' key word.");
 
 	auto returnStmt = new ReturnStmt();
@@ -127,6 +136,7 @@ Stmt *Parser::ParseReturnStmt()
 		returnStmt->expr = ParseExpr();
 
 	Consume(TokenType::SEMICOLON, "Expect ';' after return stmt");
+
 	return returnStmt;
 }
 
@@ -156,6 +166,9 @@ Stmt *Parser::ParseScopeStmt()
 	while (!IsMatchCurToken(TokenType::RBRACE))
 		scopeStmt->stmts.emplace_back(ParseStmt());
 	Consume(TokenType::RBRACE, "Expect '}'.");
+
+		
+
 	return scopeStmt;
 }
 
@@ -172,11 +185,16 @@ Stmt *Parser::ParseWhileStmt()
 
 	whileStmt->body = ParseStmt();
 
+		
+
 	return whileStmt;
 }
 
 Stmt *Parser::ParseFunctionStmt()
 {
+	m_IsInFunctionOrLambdaScope=true;
+
+
 	Consume(TokenType::FUNCTION, "Expect 'fn' keyword");
 
 	auto funcStmt = new FunctionStmt();
@@ -198,6 +216,8 @@ Stmt *Parser::ParseFunctionStmt()
 	Consume(TokenType::RPAREN, "Expect ')' after function expr's '('");
 
 	funcStmt->body = (ScopeStmt *)ParseScopeStmt();
+
+	m_IsInFunctionOrLambdaScope=false;
 
 	return funcStmt;
 }
@@ -346,6 +366,8 @@ Expr *Parser::ParseRefExpr()
 
 Expr *Parser::ParseLambdaExpr()
 {
+	m_IsInFunctionOrLambdaScope=true;
+
 	Consume(TokenType::LAMBDA, "Expect 'lambda' keyword");
 
 	auto lambdaExpr = new LambdaExpr();
@@ -365,6 +387,8 @@ Expr *Parser::ParseLambdaExpr()
 	Consume(TokenType::RPAREN, "Expect ')' after function expr's '('");
 
 	lambdaExpr->body = (ScopeStmt *)ParseScopeStmt();
+
+	m_IsInFunctionOrLambdaScope=false;
 
 	return lambdaExpr;
 }

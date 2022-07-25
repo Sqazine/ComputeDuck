@@ -17,7 +17,7 @@ enum class Precedence
 	COMPARE,	// < <= > >=
 	ADD_PLUS,	// + -
 	MUL_DIV,	// * /
-	PREFIX,		// !
+	PREFIX,		// not -
 	INFIX,		// [] () .
 };
 
@@ -83,6 +83,8 @@ private:
 	int64_t m_CurPos;
 
 	std::vector<Token> m_Tokens;
+
+	bool m_IsInFunctionOrLambdaScope;
 
 	static std::unordered_map<TokenType, PrefixFn> m_PrefixFunctions;
 	static std::unordered_map<TokenType, InfixFn> m_InfixFunctions;

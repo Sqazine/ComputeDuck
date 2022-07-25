@@ -4,35 +4,45 @@
 #include <unordered_map>
 #include <functional>
 #include "Utils.h"
-#include "Context.h"
 #include "Value.h"
+#include "Chunk.h"
 
 #define TO_STR_OBJ(obj) ((StrObject *)obj)
 #define TO_ARRAY_OBJ(obj) ((ArrayObject *)obj)
-#define TO_STRUCT_OBJ(obj) ((StructObject *)obj)
+#define TO_STRUCT_INSTANCE_OBJ(obj) ((StructInstanceObject *)obj)
 #define TO_REF_OBJ(obj) ((RefObject *)obj)
-#define TO_LAMBDA_OBJ(obj) ((LambdaObject *)obj)
+#define TO_FUNCTION_OBJ(obj) ((FunctionObject *)obj)
+#define TO_BUILTIN_OBJ(obj) ((BuiltinObject *)obj)
+#define TO_CLOSURE_OBJ(obj) ((ClosureObject *)obj)
 
 #define IS_STR_OBJ(obj) (obj->Type() == ObjectType::STR)
 #define IS_ARRAY_OBJ(obj) (obj->Type() == ObjectType::ARRAY)
-#define IS_STRUCT_OBJ(obj) (obj->Type() == ObjectType::STRUCT)
+#define IS_STRUCT_INSTANCE_OBJ(obj) (obj->Type() == ObjectType::STRUCT_INSTANCE)
 #define IS_REF_OBJ(obj) (obj->Type() == ObjectType::REF)
-#define IS_LAMBDA_OBJ(obj) (obj->Type() == ObjectType::LAMBDA)
+#define IS_FUNCTION_OBJ(obj) (obj->Type() == ObjectType::FUNCTION)
+#define IS_BUILTIN_OBJ(obj) (obj->Type() == ObjectType::BUILTIN)
+#define IS_CLOSURE_OBJ(obj) (obj->Type() == ObjectType::CLOSURE)
 
 enum class ObjectType
 {
-
 	STR,
 	ARRAY,
-	STRUCT,
+	STRUCT_INSTANCE,
 	REF,
-	LAMBDA
+	FUNCTION,
+	BUILTIN,
+	CLOSURE,
 };
 
 struct Object
 {
-	Object() : marked(false), next(nullptr) {}
-	virtual ~Object() {}
+	Object()
+		: marked(false), next(nullptr)
+	{
+	}
+	virtual ~Object()
+	{
+	}
 
 	virtual std::string Stringify() = 0;
 	virtual ObjectType Type() = 0;
@@ -46,9 +56,13 @@ struct Object
 
 struct StrObject : public Object
 {
-	StrObject() {}
-	StrObject(std::string_view value) : value(value) {}
-	~StrObject() {}
+	StrObject(std::string_view value)
+		: value(value)
+	{
+	}
+	~StrObject()
+	{
+	}
 
 	std::string Stringify() override { return value; }
 	ObjectType Type() override { return ObjectType::STR; }
@@ -66,9 +80,13 @@ struct StrObject : public Object
 
 struct ArrayObject : public Object
 {
-	ArrayObject() {}
-	ArrayObject(const std::vector<Value> &elements) : elements(elements) {}
-	~ArrayObject() {}
+	ArrayObject(const std::vector<Value> &elements)
+		: elements(elements)
+	{
+	}
+	~ArrayObject()
+	{
+	}
 
 	std::string Stringify() override
 	{
@@ -107,7 +125,7 @@ struct ArrayObject : public Object
 			return false;
 
 		for (size_t i = 0; i < elements.size(); ++i)
-			if (!elements[i].IsEqualTo(arrayOther->elements[i]))
+			if (elements[i] != arrayOther->elements[i])
 				return false;
 
 		return true;
@@ -118,61 +136,155 @@ struct ArrayObject : public Object
 
 struct RefObject : public Object
 {
-	RefObject(std::string_view name) : name(name) {}
+	RefObject(Value *pointer) : pointer(pointer) {}
 	~RefObject() {}
 
-	std::string Stringify() override { return name; }
+	std::string Stringify() override { return pointer->Stringify(); }
 	ObjectType Type() override { return ObjectType::REF; }
-	void Mark() override { marked = true; }
-	void UnMark() override { marked = false; }
+	void Mark() override
+	{
+		marked = true;
+		pointer->Mark();
+	}
+	void UnMark() override
+	{
+		marked = false;
+		pointer->UnMark();
+	}
 	bool IsEqualTo(Object *other) override
 	{
 		if (!IS_REF_OBJ(other))
 			return false;
-		return name == TO_REF_OBJ(other)->name;
+		return *pointer == *TO_REF_OBJ(other)->pointer;
 	}
 
-	std::string name;
+	Value *pointer;
 };
 
-struct LambdaObject : public Object
+struct FunctionObject : public Object
 {
-	LambdaObject(int64_t idx) : idx(idx) {}
-	~LambdaObject() {}
+	FunctionObject(const OpCodes &opCodes, int32_t localVarCount = 0, int32_t parameterCount = 0)
+		: opCodes(opCodes), localVarCount(localVarCount), parameterCount(parameterCount)
+	{
+	}
+	~FunctionObject()
+	{
+	}
 
-	std::string Stringify() override { return "lambda:" + std::to_string(idx); }
-	ObjectType Type() override { return ObjectType::LAMBDA; }
+	std::string Stringify() override { return "function:(0x" + PointerAddressToString(this) + ")"; }
+	ObjectType Type() override { return ObjectType::FUNCTION; }
 	void Mark() override { marked = true; }
 	void UnMark() override { marked = false; }
 	bool IsEqualTo(Object *other) override
 	{
-		if (!IS_LAMBDA_OBJ(other))
+		if (!IS_FUNCTION_OBJ(other))
 			return false;
-		return idx == TO_LAMBDA_OBJ(other)->idx;
+
+		auto otherOpCodes = TO_FUNCTION_OBJ(other)->opCodes;
+
+		if (opCodes.size() != otherOpCodes.size())
+			return false;
+
+		for (int32_t i = 0; i < opCodes.size(); ++i)
+			if (opCodes[i] != otherOpCodes[i])
+				return false;
+		return true;
 	}
 
-	int64_t idx;
+	OpCodes opCodes;
+	int32_t localVarCount;
+	int32_t parameterCount;
 };
 
-struct StructObject : public Object
+using BuiltinFn = std::function<bool(const std::vector<Value> &, Value &)>;
+
+struct BuiltinObject : public Object
 {
-	StructObject() {}
-	StructObject(std::string_view name, const std::unordered_map<std::string, Value> &members) : name(name), members(members) {}
-	~StructObject() {}
+	BuiltinObject(std::string_view name, const BuiltinFn &fn)
+		: name(name), fn(fn)
+	{
+	}
+	~BuiltinObject()
+	{
+	}
+
+	std::string Stringify() override { return "builtin function:(0x" + PointerAddressToString(this) + ")"; }
+	ObjectType Type() override { return ObjectType::BUILTIN; }
+	void Mark() override { marked = true; }
+	void UnMark() override { marked = false; }
+	bool IsEqualTo(Object *other) override
+	{
+		if (!IS_BUILTIN_OBJ(other))
+			return false;
+		return name == TO_BUILTIN_OBJ(other)->name;
+	}
+	std::string_view name;
+	BuiltinFn fn;
+};
+
+struct ClosureObject : public Object
+{
+	ClosureObject(FunctionObject *fn, const std::vector<Value> &upValues = {})
+		: fn(fn), upValues(upValues)
+	{
+	}
+	~ClosureObject()
+	{
+	}
+
+	std::string Stringify() override { return "closure:(0x" + PointerAddressToString(this) + ") of " + fn->Stringify(); }
+	ObjectType Type() override { return ObjectType::CLOSURE; }
+	void Mark() override
+	{
+		marked = true;
+		fn->Mark();
+		for(const auto& upvalue:upValues)
+			upvalue.Mark();
+	}
+	void UnMark() override
+	{
+		marked = false;
+		fn->UnMark();
+		for(const auto& upvalue:upValues)
+			upvalue.UnMark();
+	}
+	bool IsEqualTo(Object *other) override
+	{
+		if (!IS_BUILTIN_OBJ(other))
+			return false;
+
+		auto otherClosure = TO_CLOSURE_OBJ(other);
+
+		if (!fn->IsEqualTo(otherClosure))
+			return false;
+
+		if (upValues.size() != otherClosure->upValues.size())
+			return false;
+
+		for (int32_t i = 0; i < upValues.size(); ++i)
+			if (upValues[i] != (otherClosure->upValues[i]))
+				return false;
+		return true;
+	}
+
+	FunctionObject *fn;
+	std::vector<Value> upValues;
+};
+
+struct StructInstanceObject : public Object
+{
+	StructInstanceObject(const std::unordered_map<std::string, Value> &members) : members(members) {}
+	~StructInstanceObject() {}
 
 	std::string Stringify() override
 	{
-		std::string result = "struct instance " + name;
-		if (!members.empty())
-		{
-			result += ":\n";
-			for (const auto &[key, value] : members)
-				result += key + "=" + value.Stringify() + "\n";
-			result = result.substr(0, result.size() - 1);
-		}
+		std::string result = "struct instance(0x" + PointerAddressToString(this) + "):\n";
+		for (const auto &[k, v] : members)
+			result += k + ":" + v.Stringify() + "\n";
+		result = result.substr(0, result.size() - 1);
 		return result;
 	}
-	ObjectType Type() override { return ObjectType::STRUCT; }
+	ObjectType Type() override { return ObjectType::STRUCT_INSTANCE; }
 	void Mark() override
 	{
 		marked = true;
@@ -187,36 +299,16 @@ struct StructObject : public Object
 	}
 	bool IsEqualTo(Object *other) override
 	{
-		if (!IS_STRUCT_OBJ(other))
+		if (!IS_STRUCT_INSTANCE_OBJ(other))
 			return false;
 
-		if (name != TO_STRUCT_OBJ(other)->name)
-			return false;
-
-		for (auto [key1, value1] : members)
-			for (auto [key2, value2] : TO_STRUCT_OBJ(other)->members)
-				if (key1 == key2)
-					if (value1.IsEqualTo(value2))
-						return false;
+		for (const auto &[k1, v1] : members)
+		{
+			auto iter = TO_STRUCT_INSTANCE_OBJ(other)->members.find(k1);
+			if (iter == TO_STRUCT_INSTANCE_OBJ(other)->members.end())
+				return false;
+		}
 		return true;
 	}
-
-	void AssignMember(std::string_view name, Value value)
-	{
-		auto iter = members.find(name.data());
-		if (iter != members.end())
-			members[name.data()] = value;
-		else
-			Assert("Undefine struct member:" + std::string(name));
-	}
-
-	Value GetMember(std::string_view name)
-	{
-		auto iter = members.find(name.data());
-		if (iter != members.end())
-			return iter->second;
-		return g_UnknownValue;
-	}
-	std::string name;
 	std::unordered_map<std::string, Value> members;
 };
