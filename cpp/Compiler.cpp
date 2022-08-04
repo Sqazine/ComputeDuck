@@ -94,26 +94,22 @@ void Compiler::CompileIfStmt(IfStmt *stmt)
 
 void Compiler::CompileScopeStmt(ScopeStmt *stmt)
 {
-    //treat scope as function,in order to be lazy
     EnterScope();
+    Emit(OP_SP_OFFSET);
+    auto idx=Emit(0);
 
     for (const auto &s : stmt->stmts)
         CompileStmt(s);
 
     auto localVarCount = m_SymbolTable->definitionCount;
+    CurOpCodes()[idx]=localVarCount;
+
+    Emit(OP_SP_OFFSET);
+    Emit(-localVarCount);
+
     auto opCodes = ExitScope();
 
-    if (opCodes.empty() || opCodes[opCodes.size() - 2] != OP_RETURN)
-    {
-        opCodes.emplace_back(OP_RETURN);
-        opCodes.emplace_back(0);
-    }
-
-    auto fn = new FunctionObject(opCodes, localVarCount);
-
-    EmitConstant(AddConstant(fn));
-    Emit(OP_FUNCTION_CALL);
-    Emit(0);
+    CurOpCodes().insert(CurOpCodes().end(),opCodes.begin(),opCodes.end());
 }
 
 void Compiler::CompileWhileStmt(WhileStmt *stmt)
