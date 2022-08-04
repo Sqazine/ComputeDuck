@@ -408,7 +408,7 @@ void Compiler::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state)
         case SymbolScope::UPVALUE:
             Emit(OP_SET_UPVALUE);
             Emit(symbol.scopeDepth);
-            Emit(symbol.upScopeLocation);
+            Emit(symbol.index);
             break;
         default:
             break;
@@ -505,7 +505,7 @@ void Compiler::CompileRefExpr(RefExpr *expr)
     case SymbolScope::UPVALUE:
         Emit(OP_REF_UPVALUE);
         Emit(symbol.scopeDepth);
-        Emit(symbol.upScopeLocation);
+        Emit(symbol.index);
         break;
     default:
         break;
@@ -577,7 +577,7 @@ void Compiler::LoadSymbol(const Symbol &symbol)
     case SymbolScope::UPVALUE:
         Emit(OP_GET_UPVALUE);
         Emit(symbol.scopeDepth);
-        Emit(symbol.upScopeLocation);
+        Emit(symbol.index);
         break;
     case SymbolScope::FUNCTION:
         Emit(OP_GET_CURRENT_FUNCTION);

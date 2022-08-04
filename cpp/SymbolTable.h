@@ -27,7 +27,6 @@ struct Symbol
     SymbolScope scope;
     int32_t index;
     int32_t scopeDepth;
-    int32_t upScopeLocation;
 };
 
 struct SymbolTable
@@ -81,7 +80,6 @@ struct SymbolTable
     Symbol DefineUpValue(const Symbol &origin)
     {
         auto symbol = Symbol(origin.name, SymbolScope::UPVALUE, origin.index, origin.scopeDepth);
-        symbol.upScopeLocation = origin.index;
         symbolMaps[symbol.name] = symbol;
         return symbol;
     }
