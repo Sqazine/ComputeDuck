@@ -234,6 +234,14 @@ void Chunk::OpCodeStringify(const OpCodes &opcodes)
             ++i;
             break;
         }
+        case OP_SP_OFFSET:
+        {
+            auto offset = opcodes[i + 1];
+            std::cout << std::setfill('0') << std::setw(8) << i << "    "
+                      << "OP_SP_OFFSET    " << offset << std::endl;
+            ++i;
+            break;
+        }
         default:
             break;
         }

@@ -37,6 +37,7 @@ enum OpCode
     OP_REF_GLOBAL,
     OP_REF_LOCAL,
     OP_REF_UPVALUE,
+    OP_SP_OFFSET,
 };
 
 typedef std::vector<int32_t> OpCodes;

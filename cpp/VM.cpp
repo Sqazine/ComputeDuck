@@ -421,6 +421,12 @@ void VM::Execute()
             Push(m_ValueStack[CurCallFrame().basePtr + localVarIdx]);
             break;
         }
+        case OP_SP_OFFSET:
+        {
+            auto offset = CurCallFrame().GetOpCodes()[++ip];
+            sp+=offset;
+            break;
+        }
         case OP_GET_BUILTIN:
         {
             auto idx = CurCallFrame().GetOpCodes()[++ip];
