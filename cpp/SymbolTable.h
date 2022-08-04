@@ -80,8 +80,7 @@ struct SymbolTable
 
     Symbol DefineUpValue(const Symbol &origin)
     {
-        upvalueSymbols.emplace_back(origin);
-        auto symbol = Symbol(origin.name, SymbolScope::UPVALUE, upvalueSymbols.size() - 1, origin.scopeDepth);
+        auto symbol = Symbol(origin.name, SymbolScope::UPVALUE, origin.index, origin.scopeDepth);
         symbol.upScopeLocation = origin.index;
         symbolMaps[symbol.name] = symbol;
         return symbol;
@@ -117,8 +116,6 @@ struct SymbolTable
     }
 
     SymbolTable *enclosing;
-
-    std::vector<Symbol> upvalueSymbols;
 
     std::unordered_map<std::string_view, Symbol> symbolMaps;
     int32_t definitionCount;
