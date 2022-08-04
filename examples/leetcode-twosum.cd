@@ -8,13 +8,9 @@ function twosum(nums,target)
 
     while(i<sizeof(nums)-1)
     {
-        println(i);
-        println(j);
         j=i+1;
         while(j<sizeof(nums))
         {
-            println(i);
-            println(j);
             if(nums[i]+nums[j]==target)
                 return [i,j];
             j=j+1;
