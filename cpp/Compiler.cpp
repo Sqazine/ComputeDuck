@@ -172,7 +172,6 @@ void Compiler::CompileFunctionStmt(FunctionStmt *stmt)
     for (const auto &s : stmt->body->stmts)
         CompileStmt(s);
 
-    auto upvalueSymbols = m_SymbolTable->upvalueSymbols;
     auto localVarCount = m_SymbolTable->definitionCount;
     auto opCodes = ExitScope();
 
@@ -205,7 +204,6 @@ void Compiler::CompileStructStmt(StructStmt *stmt)
         EmitConstant(AddConstant(new StrObject(stmt->members[i]->name->literal)));
     }
 
-    auto upvalueSymbols = m_SymbolTable->upvalueSymbols;
     auto localVarCount = m_SymbolTable->definitionCount;
 
     Emit(OP_STRUCT);
@@ -430,7 +428,6 @@ void Compiler::CompileLambdaExpr(LambdaExpr *expr)
     for (const auto &s : expr->body->stmts)
         CompileStmt(s);
 
-    auto upvalueSymbols = m_SymbolTable->upvalueSymbols;
     auto localVarCount = m_SymbolTable->definitionCount;
     auto opCodes = ExitScope();
 
