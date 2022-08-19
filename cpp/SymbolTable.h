@@ -6,19 +6,18 @@ enum class SymbolScope
     GLOBAL,
     LOCAL,
     BUILTIN,
-    UPVALUE,
     FUNCTION,
 };
 
 struct Symbol
 {
     Symbol()
-        : scope(SymbolScope::GLOBAL), index(0), scopeDepth(0)
+        : scope(SymbolScope::GLOBAL), index(0), scopeDepth(0),isInUpScope(0)
     {
     }
 
     Symbol(std::string_view name, const SymbolScope &scope, int32_t index, int32_t scopeDepth = 0, bool isStructSymbol = false)
-        : name(name), scope(scope), index(index), isStructSymbol(isStructSymbol), scopeDepth(scopeDepth)
+        : name(name), scope(scope), index(index), isStructSymbol(isStructSymbol), scopeDepth(scopeDepth),isInUpScope(0)
     {
     }
 
@@ -27,6 +26,7 @@ struct Symbol
     SymbolScope scope;
     int32_t index;
     int32_t scopeDepth;
+    int32_t isInUpScope;
 };
 
 struct SymbolTable
@@ -77,13 +77,6 @@ struct SymbolTable
         return symbol;
     }
 
-    Symbol DefineUpValue(const Symbol &origin)
-    {
-        auto symbol = Symbol(origin.name, SymbolScope::UPVALUE, origin.index, origin.scopeDepth);
-        symbolMaps[symbol.name] = symbol;
-        return symbol;
-    }
-
     Symbol DefineFunction(std::string_view name)
     {
         auto symbol = Symbol(name, SymbolScope::FUNCTION, 0, scopeDepth);
@@ -106,7 +99,10 @@ struct SymbolTable
                 return false;
             if (symbol.scope == SymbolScope::GLOBAL || symbol.scope == SymbolScope::BUILTIN)
                 return true;
-            symbol = DefineUpValue(symbol);
+                
+            symbol.isInUpScope=1;
+            
+            symbolMaps[symbol.name] = symbol;
             return true;
         }
 

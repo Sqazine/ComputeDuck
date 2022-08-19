@@ -96,20 +96,20 @@ void Compiler::CompileScopeStmt(ScopeStmt *stmt)
 {
     EnterScope();
     Emit(OP_SP_OFFSET);
-    auto idx=Emit(0);
+    auto idx = Emit(0);
 
     for (const auto &s : stmt->stmts)
         CompileStmt(s);
 
     auto localVarCount = m_SymbolTable->definitionCount;
-    CurOpCodes()[idx]=localVarCount;
+    CurOpCodes()[idx] = localVarCount;
 
     Emit(OP_SP_OFFSET);
     Emit(-localVarCount);
 
     auto opCodes = ExitScope();
 
-    CurOpCodes().insert(CurOpCodes().end(),opCodes.begin(),opCodes.end());
+    CurOpCodes().insert(CurOpCodes().end(), opCodes.begin(), opCodes.end());
 }
 
 void Compiler::CompileWhileStmt(WhileStmt *stmt)
@@ -150,7 +150,11 @@ void Compiler::CompileVarStmt(VarStmt *stmt)
     if (symbol.scope == SymbolScope::GLOBAL)
         Emit(OP_SET_GLOBAL);
     else
+    {
         Emit(OP_SET_LOCAL);
+        Emit(symbol.isInUpScope);
+        Emit(symbol.scopeDepth);
+    }
     Emit(symbol.index);
 }
 
@@ -185,7 +189,11 @@ void Compiler::CompileFunctionStmt(FunctionStmt *stmt)
     if (symbol.scope == SymbolScope::GLOBAL)
         Emit(OP_SET_GLOBAL);
     else
+    {
         Emit(OP_SET_LOCAL);
+        Emit(symbol.isInUpScope);
+        Emit(symbol.scopeDepth);
+    }
     Emit(symbol.index);
 }
 void Compiler::CompileStructStmt(StructStmt *stmt)
@@ -217,7 +225,11 @@ void Compiler::CompileStructStmt(StructStmt *stmt)
     if (symbol.scope == SymbolScope::GLOBAL)
         Emit(OP_SET_GLOBAL);
     else
+    {
         Emit(OP_SET_LOCAL);
+        Emit(symbol.isInUpScope);
+        Emit(symbol.scopeDepth);
+    }
     Emit(symbol.index);
 }
 
@@ -399,10 +411,7 @@ void Compiler::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state)
             break;
         case SymbolScope::LOCAL:
             Emit(OP_SET_LOCAL);
-            Emit(symbol.index);
-            break;
-        case SymbolScope::UPVALUE:
-            Emit(OP_SET_UPVALUE);
+            Emit(symbol.isInUpScope);
             Emit(symbol.scopeDepth);
             Emit(symbol.index);
             break;
@@ -496,10 +505,7 @@ void Compiler::CompileRefExpr(RefExpr *expr)
         break;
     case SymbolScope::LOCAL:
         Emit(OP_REF_LOCAL);
-        Emit(symbol.index);
-        break;
-    case SymbolScope::UPVALUE:
-        Emit(OP_REF_UPVALUE);
+        Emit(symbol.isInUpScope);
         Emit(symbol.scopeDepth);
         Emit(symbol.index);
         break;
@@ -564,15 +570,12 @@ void Compiler::LoadSymbol(const Symbol &symbol)
         break;
     case SymbolScope::LOCAL:
         Emit(OP_GET_LOCAL);
+        Emit(symbol.isInUpScope);
+        Emit(symbol.scopeDepth);
         Emit(symbol.index);
         break;
     case SymbolScope::BUILTIN:
         Emit(OP_GET_BUILTIN);
-        Emit(symbol.index);
-        break;
-    case SymbolScope::UPVALUE:
-        Emit(OP_GET_UPVALUE);
-        Emit(symbol.scopeDepth);
         Emit(symbol.index);
         break;
     case SymbolScope::FUNCTION:
