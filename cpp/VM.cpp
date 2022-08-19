@@ -406,9 +406,17 @@ void VM::Execute()
         }
         case OP_SET_LOCAL:
         {
-            auto localVarIdx = CurCallFrame().GetOpCodes()[++ip];
+            auto isInUpScope = CurCallFrame().GetOpCodes()[++ip];
+            auto scopeDepth = CurCallFrame().GetOpCodes()[++ip];
+            auto index = CurCallFrame().GetOpCodes()[++ip];
             auto value = Pop();
-            auto fullIdx = CurCallFrame().basePtr + localVarIdx;
+
+            auto fullIdx = 0;
+
+            if (isInUpScope == 0)
+                fullIdx = CurCallFrame().basePtr + index;
+            else
+                fullIdx = PeekCallFrame(scopeDepth).basePtr + index;
             if (IS_REF_VALUE(m_ValueStack[fullIdx]))
                 *TO_REF_VALUE(m_ValueStack[fullIdx])->pointer = value;
             else
@@ -417,14 +425,24 @@ void VM::Execute()
         }
         case OP_GET_LOCAL:
         {
-            auto localVarIdx = CurCallFrame().GetOpCodes()[++ip];
-            Push(m_ValueStack[CurCallFrame().basePtr + localVarIdx]);
+            auto isInUpScope = CurCallFrame().GetOpCodes()[++ip];
+            auto scopeDepth = CurCallFrame().GetOpCodes()[++ip];
+            auto index = CurCallFrame().GetOpCodes()[++ip];
+
+            auto fullIdx = 0;
+
+            if (isInUpScope == 0)
+                fullIdx = CurCallFrame().basePtr + index;
+            else
+                fullIdx = PeekCallFrame(scopeDepth).basePtr + index;
+
+            Push(m_ValueStack[fullIdx]);
             break;
         }
         case OP_SP_OFFSET:
         {
             auto offset = CurCallFrame().GetOpCodes()[++ip];
-            sp+=offset;
+            sp += offset;
             break;
         }
         case OP_GET_BUILTIN:
@@ -432,21 +450,6 @@ void VM::Execute()
             auto idx = CurCallFrame().GetOpCodes()[++ip];
             auto builtinObj = m_Builtins[idx];
             Push(builtinObj);
-            break;
-        }
-        case OP_GET_UPVALUE:
-        {
-            auto scopeDepth = CurCallFrame().GetOpCodes()[++ip];
-            auto upScopeLocation = CurCallFrame().GetOpCodes()[++ip];
-            Push(m_ValueStack[PeekCallFrame(scopeDepth).basePtr + upScopeLocation]);
-            break;
-        }
-        case OP_SET_UPVALUE:
-        {
-            auto scopeDepth = CurCallFrame().GetOpCodes()[++ip];
-            auto upScopeLocation = CurCallFrame().GetOpCodes()[++ip];
-            auto value = Pop();
-            m_ValueStack[PeekCallFrame(scopeDepth).basePtr + upScopeLocation] = value;
             break;
         }
         case OP_GET_CURRENT_FUNCTION:
@@ -501,7 +504,7 @@ void VM::Execute()
             {
                 auto iter = structInstance->members.find(TO_STR_VALUE(memberName)->value);
                 if (iter == structInstance->members.end())
-                    Assert("no member named:(" + memberName.Stringify() + ") in " + PointerAddressToString(structInstance));
+                    Assert("no member named:(" + memberName.Stringify() + ") in struct instance:(0x" + PointerAddressToString(structInstance) + ")");
                 structInstance->members[TO_STR_VALUE(memberName)->value] = value;
             }
             break;
@@ -514,16 +517,18 @@ void VM::Execute()
         }
         case OP_REF_LOCAL:
         {
-            auto localVarIdx = CurCallFrame().GetOpCodes()[++ip];
-            Push(CreateObject<RefObject>(&m_ValueStack[CurCallFrame().basePtr + localVarIdx]));
-            break;
-        }
-        case OP_REF_UPVALUE:
-        {
+            auto isInUpScope = CurCallFrame().GetOpCodes()[++ip];
             auto scopeDepth = CurCallFrame().GetOpCodes()[++ip];
-            auto upScopeLocation = CurCallFrame().GetOpCodes()[++ip];
+            auto index = CurCallFrame().GetOpCodes()[++ip];
 
-            Push(CreateObject<RefObject>(&m_ValueStack[PeekCallFrame(scopeDepth).basePtr + upScopeLocation]));
+            auto fullIdx = 0;
+
+            if (isInUpScope == 0)
+                fullIdx = CurCallFrame().basePtr + index;
+            else
+                fullIdx = PeekCallFrame(scopeDepth).basePtr + index;
+
+            Push(CreateObject<RefObject>(&m_ValueStack[fullIdx]));
             break;
         }
         default:
