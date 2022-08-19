@@ -69,7 +69,7 @@ std::vector<Stmt *> Parser::Parse(const std::vector<Token> &tokens)
 {
 	m_CurPos = 0;
 	m_Tokens = tokens;
-	m_IsInFunctionOrLambdaScope=false;
+	m_FunctionOrLambdaScopeDepth=0;
 
 	std::vector<Stmt *> stmts;
 	while (!IsMatchCurToken(TokenType::END))
@@ -125,7 +125,7 @@ Stmt *Parser::ParseVarStmt()
 
 Stmt *Parser::ParseReturnStmt()
 {
-	if(m_IsInFunctionOrLambdaScope==false)
+	if(m_FunctionOrLambdaScopeDepth==0)
 		Assert("Return statement only available in function or lambda");
 
 	Consume(TokenType::RETURN, "Expect 'return' key word.");
@@ -192,7 +192,7 @@ Stmt *Parser::ParseWhileStmt()
 
 Stmt *Parser::ParseFunctionStmt()
 {
-	m_IsInFunctionOrLambdaScope=true;
+	m_FunctionOrLambdaScopeDepth++;
 
 
 	Consume(TokenType::FUNCTION, "Expect 'fn' keyword");
@@ -217,7 +217,7 @@ Stmt *Parser::ParseFunctionStmt()
 
 	funcStmt->body = (ScopeStmt *)ParseScopeStmt();
 
-	m_IsInFunctionOrLambdaScope=false;
+	m_FunctionOrLambdaScopeDepth--;
 
 	return funcStmt;
 }
@@ -366,7 +366,7 @@ Expr *Parser::ParseRefExpr()
 
 Expr *Parser::ParseLambdaExpr()
 {
-	m_IsInFunctionOrLambdaScope=true;
+	m_FunctionOrLambdaScopeDepth++;
 
 	Consume(TokenType::LAMBDA, "Expect 'lambda' keyword");
 
@@ -388,7 +388,7 @@ Expr *Parser::ParseLambdaExpr()
 
 	lambdaExpr->body = (ScopeStmt *)ParseScopeStmt();
 
-	m_IsInFunctionOrLambdaScope=false;
+	m_FunctionOrLambdaScopeDepth--;
 
 	return lambdaExpr;
 }

@@ -84,7 +84,7 @@ private:
 
 	std::vector<Token> m_Tokens;
 
-	bool m_IsInFunctionOrLambdaScope;
+	int32_t m_FunctionOrLambdaScopeDepth;
 
 	static std::unordered_map<TokenType, PrefixFn> m_PrefixFunctions;
 	static std::unordered_map<TokenType, InfixFn> m_InfixFunctions;
