@@ -40,7 +40,7 @@ class TokenType(Enum):
    NOT = 35,		   # not
    STRUCT = 36,		   # struct
    REF = 37,           # ref
-   LAMBDA= 38,         # lambda
+   LAMBDA = 38,         # lambda
    UNKNOWN = 39,
    END = 40
 
@@ -55,5 +55,5 @@ class Token:
         self.literal = literal
         self.line = line
 
-    def Print(self):
-        print("%s,%d" % (self.literal, self.line))
+    def __str__(self):
+        return "\""+self.literal+"," + str(self.line)+"\""

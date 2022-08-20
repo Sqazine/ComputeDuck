@@ -80,7 +80,7 @@ println(c);#"nil"
 ```
 2. Function
 ```sh
-fn add(x,y){
+function add(x,y){
     return x+y;
 }
 
@@ -96,11 +96,11 @@ sizeof(a);#get the size of array
 3. Array
 ```sh
 
-fn add(vec1,vec2){
+function add(vec1,vec2){
     return [vec1[0]+vec2[0],vec1[1]+vec2[1]];
 }
 
-fn sub(vec1,vec2){
+function sub(vec1,vec2){
     return [vec1[0]-vec2[0],vec1[1]-vec2[1]];
 }
 
@@ -278,7 +278,7 @@ println(head);
 var nums=[2,7,11,15];
 var target=9;
 
-fn twosum(nums,target)
+function twosum(nums,target)
 {
     var i=0;
     var j=i+1;
@@ -303,7 +303,7 @@ println(twosum(nums,target));#[0.000000,1.000000]
 ```
 9. Fibonacci numbers
 ```sh
-fn fib(x)
+function fib(x)
 {
     if(x==0) 
         return 0;
@@ -358,7 +358,7 @@ struct Shape
     var y=0;
 }
 
-fn ShapeCtor(self,x,y)
+function ShapeCtor(self,x,y)
 {
     self.x=x;
     self.y=y;
@@ -368,7 +368,7 @@ fn ShapeCtor(self,x,y)
     };
 }
 
-fn ShapeArea(self)
+function ShapeArea(self)
 {
     if(self.super==nil)
         return self.vptr.area(self);
@@ -393,7 +393,7 @@ struct Rectangle
     var height;
 }
 
-fn RectangleCtor(self,x,y,w,h)
+function RectangleCtor(self,x,y,w,h)
 {
     ShapeCtor(self.super,x,y);
     self.width=w;
@@ -437,7 +437,7 @@ var a;#Variable a is assigned nil by default
 
 4.Keywords:
 var : Declare variable
-fn : Declare function
+function : Declare function
 struct : Declare struct
 if : If-statement
 else : Conditional statements negate branches (used with if, not alone)
@@ -552,7 +552,7 @@ while(true)
 
 7. Function
 ```sh
-fn add(x,y)
+function add(x,y)
 {
     return x+y;
 }
@@ -608,7 +608,7 @@ struct Vec2
 a=Vec2;
 println(b);#struct instance Vec2: x=0.0 y=0.0 it is legal to reference a structure object
 
-fn resetVec2(v)
+function resetVec2(v)
 {
     #modifies the value of a reference object argument in a function
     v.x=100;

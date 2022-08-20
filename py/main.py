@@ -1,3 +1,4 @@
+import chunk
 import sys
 from Lexer import Lexer
 from Token import Token
@@ -18,24 +19,21 @@ def Repl():
     while(True):
         if line == "clear":
             compiler.ResetStatus()
-        elif line == "exit":
-            break
         else:
             tokens = lexer.GenerateTokens(line)
             for token in tokens:
-                token.Print()
+                print(token)
 
             stmts = parser.Parse(tokens)
 
             for stmt in stmts:
                 print(stmt.Stringify())
 
-            frame = compiler.Compile(stmts)
+            chunk = compiler.Compile(stmts)
 
-            print(frame.Stringify())
+            chunk.Stringify()
 
-            vm.ResetStatus()
-            vm.Execute(frame)
+            vm.Run(chunk)
 
         print("> ", end="")
         line = input()
@@ -49,24 +47,21 @@ def RunFile(filePath):
     vm = VM()
     tokens = lexer.GenerateTokens(content)
     for token in tokens:
-        token.Print()
+        print(token)
 
     stmts = parser.Parse(tokens)
-
     for stmt in stmts:
         print(stmt.Stringify())
-
-    frame = compiler.Compile(stmts)
-
-    print(frame.Stringify())
-
-    vm.Execute(frame)
+    chunk = compiler.Compile(stmts)
+    chunk.Stringify()
+    vm.Run(chunk)
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 2:
-        RunFile(sys.argv[1])
-    elif len(sys.argv) == 1:
-        Repl()
-    else:
-        print("Usage: ComputeDuck [filepath]")
+    # if len(sys.argv) == 2:
+    #     RunFile(sys.argv[1])
+    # elif len(sys.argv) == 1:
+    #     Repl()
+    # else:
+    #     print("Usage: ComputeDuck [filepath]")
+    RunFile("C:\\Users\\Sqazi\\OneDrive\\.sc\\ComputeDuck\\examples\\oop-simulate.cd")

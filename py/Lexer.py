@@ -9,7 +9,7 @@ keywords: dict = {
     "false": TokenType.FALSE,
     "nil": TokenType.NIL,
     "while": TokenType.WHILE,
-    "fn": TokenType.FUNCTION,
+    "function": TokenType.FUNCTION,
     "return": TokenType.RETURN,
     "and": TokenType.AND,
     "or": TokenType.OR,

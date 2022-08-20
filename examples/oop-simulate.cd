@@ -32,7 +32,7 @@ var s1=Shape;
 ShapeCtor(ref s1,10,10);
 println(s1);#struct instance:
             #   vptr=struct instance:
-            #       area=closure
+            #       area=function
             #super=nil
             #x=10.0
             #y=10.0
@@ -62,7 +62,7 @@ RectangleCtor(ref r1,10,10,3,5);
 println(r1);#struct instance:
             #super=struct instance:
             #        vptr=struct instance :
-            #                area=closure
+            #                area=function
             #        super=nil
             #        x=10.0
             #        y=10.0
