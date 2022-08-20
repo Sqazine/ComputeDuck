@@ -1,43 +1,50 @@
-from inspect import stack
-from typing import Any
-from Context import Context
-from Frame import Frame
+from audioop import add
+import ctypes
+import time
+from typing import Any, List
 from Object import Object
 from Utils import Assert
 from Object import ObjectType
-from Frame import OpCode
 from Object import BoolObject, NilObject, NumObject, StrObject
-from Object import ArrayObject, StructObject,RefObject,LambdaObject
+from Compiler import CONSTANT_MAX
+from Object import FunctionObject
+from Chunk import Chunk
+from Object import BuiltinObject
+from Object import RefObject
+from Chunk import OpCode
+from Object import ArrayObject
+from Object import StructInstanceObject
 
 
-def println(args: list[Object]) -> Object:
+def println(args: list[Object]):
     if len(args) == 0:
-        return None
-    print(args[0].Stringify())
-    return None
+        return False,None
+    print(args[0])
+    return False,None
 
-def print_(args: list[Object]) -> Object:
+
+def print_(args: list[Object]) -> bool:
     if len(args) == 0:
-        return None
-    print(args[0].Stringify(),end="")
-    return None
+        return False,None
+    print(args[0], end="")
+    return False,None
 
 
-def sizeof(args: list[Object]) -> Object:
+def sizeof(args: list[Object]):
     if len(args) == 0 or len(args) > 1:
         Assert("Native function 'siezeof':Expect a argument.")
     if args[0].Type() == ObjectType.ARRAY:
-        return NumObject(len(args[0].elements))
+        result = NumObject(len(args[0].elements))
     elif args[0].Type == ObjectType.STR:
-        return NumObject(len(args[0].value))
+        result = NumObject(len(args[0].value))
     else:
         Assert("[Native function 'sizeof']:Expect a array or string argument.")
-    return NilObject()
+    return True,result
 
 
-def insert(args: list[Object]) -> Object:
+def insert(args: list[Object]):
     if len(args) == 0 or len(args) != 3:
-        Assert("[Native function 'insert']:Expect 3 arguments,the arg0 must be array,table or string object.The arg1 is the index object.The arg2 is the value object.")
+        Assert("[Native function 'insert']:Expect 3 arguments,the arg0 must be array,table or string obj.The arg1 is the index obj.The arg2 is the value obj.")
 
     if args[0].Type() == ObjectType.ARRAY:
         if args[1].Type() != ObjectType.NUM:
@@ -55,12 +62,12 @@ def insert(args: list[Object]) -> Object:
         if iIndex < 0 or iIndex >= len(args[0].values):
             Assert("[Native function 'insert']:Index out of array's range")
         args[0].values.insert(iIndex, args[2].Stringify())
-    return None
+    return False,None
 
 
-def erase(args: list[Object]) -> Object:
+def erase(args: list[Object] ) -> bool:
     if len(args) or len(args) != 2:
-        Assert("[Native function 'erase']:Expect 2 arguments,the arg0 must be array,table or string object.The arg1 is the corresponding index object.")
+        Assert("[Native function 'erase']:Expect 2 arguments,the arg0 must be array,table or string obj.The arg1 is the corresponding index obj.")
 
     if args[0].Type() == ObjectType.ARRAY:
         if args[1].Type() != ObjectType.NUM:
@@ -78,339 +85,478 @@ def erase(args: list[Object]) -> Object:
         if iIndex < 0 or iIndex >= len(args[0].values):
             Assert("[Native function 'insert']:Index out of array's range")
         args[0].values.pop(iIndex)
+    else:
+        Assert("[Native function 'erase']:Expect a array,table ot string argument.")
+    return False,None
+
+
+def clock(args: list[Object] ) -> bool:
+    result = NumObject(time.perf_counter())
+    return True,result
+
+
+STACK_MAX = 512
+INITIAL_GC_THRESHOLD = 256
+GLOBAL_VARIABLE_MAX = 1024
+
+
+class CallFrame:
+    fn: FunctionObject
+    ip: int
+    basePtr: int
+
+    def __init__(self, fn=None, basePtr=0) -> None:
+        self.fn = fn
+        self.basePtr = basePtr
+        self.ip = -1
+
+    def GetOpCodes(self) -> List[int]:
+        return self.fn.opCodes
 
 
 class VM:
-    __context: Context = Context()
-    __sp: int = 0
-    __objectStack: list = [None]*128
-    nativeFunctions: dict[str, Any] = {}
+
+    __constants: List[Object] = []
+    __globalVariables: List[Object] = []
+    __sp: int
+    __objectStack: List[Object] = []
+    __callFrames: List[Object] = []
+    __callFrameIndex: int
+    __builtins: List[BuiltinObject] = []
+    __curCallFrame: CallFrame = None
 
     def __init__(self) -> None:
         self.ResetStatus()
 
-        self.nativeFunctions["println"] = println
-        self.nativeFunctions["print"] = print_
-        self.nativeFunctions["sizeof"] = sizeof
-        self.nativeFunctions["insert"] = insert
-        self.nativeFunctions["erase"] = erase
+        self.__builtins.append(BuiltinObject("print",print_))
+        self.__builtins.append(BuiltinObject("println",println))
+        self.__builtins.append(BuiltinObject("sizeof",sizeof))
+        self.__builtins.append(BuiltinObject("insert",insert))
+        self.__builtins.append(BuiltinObject("erase",erase))
+        self.__builtins.append(BuiltinObject("clock",clock))
 
     def ResetStatus(self) -> None:
         self.__sp = 0
-        self.__objectStack = [None]*128
-        self.__context = Context()
+        self.__objectStack = [NilObject()]*STACK_MAX
+        self.__globalVariables = [NilObject()]*GLOBAL_VARIABLE_MAX
+        self.__callFrames = [CallFrame()]*STACK_MAX
 
-    def GetNativeFunction(self, fnName: str):
-        if self.nativeFunctions.get(fnName) != None:
-            return self.nativeFunctions[fnName]
-        Assert("No native function:"+fnName)
+    def Run(self, chunk: Chunk) -> None:
+        self.ResetStatus()
 
-    def HasNativeFunction(self, name: str) -> bool:
-        return self.nativeFunctions.get(name) != None
+        mainFn = FunctionObject(chunk.opCodes)
+        mainCallFrame = CallFrame(mainFn, 0)
+        self.__callFrames[0] = mainCallFrame
+        self.__callFrameIndex = 1
+        self.__curCallFrame = self.__callFrames[self.__callFrameIndex-1]
 
-    def PushObject(self, object: Object) -> None:
-        self.__objectStack[self.__sp] = object
-        self.__sp += 1
+        self.__constants = [None]*chunk.constantCount
+        for i in range(0, chunk.constantCount):
+            self.__constants[i] = chunk.constants[i]
 
-    def PopObject(self) -> Object:
-        self.__sp -= 1
-        return self.__objectStack[self.__sp]
+        self.__Execute()
 
-    def Execute(self, frame: Frame) -> Object:
-        ip = 0
-        while ip < len(frame.codes):
-            instruction = frame.codes[ip]
+    def __Execute(self) -> None:
+        while self.__curCallFrame.ip < len(self.__curCallFrame.GetOpCodes())-1:
+
+            self.__curCallFrame.ip += 1
+            instruction = self.__curCallFrame.GetOpCodes()[
+                self.__curCallFrame.ip]
+
             if instruction == OpCode.OP_RETURN:
-                if self.__context.upContext!=None:
-                    self.__context=self.__context.upContext
-                return self.PopObject()
-            elif instruction == OpCode.OP_NEW_NUM:
-                ip = ip+1
-                self.PushObject(NumObject(frame.nums[frame.codes[ip]]))
-            elif instruction == OpCode.OP_NEW_STR:
-                ip = ip+1
-                self.PushObject(StrObject(frame.strings[frame.codes[ip]]))
-            elif instruction == OpCode.OP_NEW_TRUE:
-                self.PushObject(BoolObject(True))
-            elif instruction == OpCode.OP_NEW_FALSE:
-                self.PushObject(BoolObject(False))
-            elif instruction == OpCode.OP_NEW_NIL:
-                self.PushObject(NilObject())
-            elif instruction == OpCode.OP_NEG:
-                object = self.PopObject()
-                if object.Type() == ObjectType.NUM:
-                    self.PushObject(NumObject(-object.value))
-                else:
-                    Assert("Invalid op:'-'" + object.Stringify())
-            elif instruction == OpCode.OP_NOT:
-                object = self.PopObject()
-                if object.Type() == ObjectType.BOOL:
-                    self.PushObject(BoolObject(not object.value))
-                else:
-                    Assert("Invalid op:'!'" + object.Stringify())
+                self.__curCallFrame.ip += 1
+                returnCount = self.__curCallFrame.GetOpCodes()[
+                    self.__curCallFrame.ip]
+                object = NilObject()
+                if returnCount == 1:
+                    object = self.__Pop()
+
+                callFrame = self.__PopCallFrame()
+                self.__sp = callFrame.basePtr-1
+                self.__Push(object)
+
+            elif instruction == OpCode.OP_CONSTANT:
+                self.__curCallFrame.ip += 1
+                idx = self.__curCallFrame.GetOpCodes()[self.__curCallFrame.ip]
+                object = self.__constants[idx]
+                self.__Push(object)
+
             elif instruction == OpCode.OP_ADD:
-                left = self.PopObject()
-                right = self.PopObject()
-                if right.Type() == ObjectType.NUM and left.Type() == ObjectType.NUM:
-                    self.PushObject(NumObject(left.value+right.value))
+                left = self.__Pop()
+                right = self.__Pop()
+                if left.Type() == ObjectType.REF:
+                    left = self.SearchObjectByAddress(left.pointer)
+                if left.Type() == ObjectType.REF:
+                    right = self.SearchObjectByAddress(right.pointer)
+                if left.Type() == ObjectType.NUM and right.Type() == ObjectType.NUM:
+                    self.__Push(NumObject(left.value+right.value))
+                elif left.Type() == ObjectType.STR and right.Type() == ObjectType.STR:
+                    self.__Push(StrObject(left.value+right.value))
                 else:
                     Assert("Invalid binary op:" +
                            left.Stringify()+"+"+right.Stringify())
+
             elif instruction == OpCode.OP_SUB:
-                left = self.PopObject()
-                right = self.PopObject()
-                if right.Type() == ObjectType.NUM and left.Type() == ObjectType.NUM:
-                    self.PushObject(NumObject(left.value-right.value))
+                left = self.__Pop()
+                right = self.__Pop()
+                if left.Type() == ObjectType.REF:
+                    left = self.SearchObjectByAddress(left.pointer)
+                if left.Type() == ObjectType.REF:
+                    right = self.SearchObjectByAddress(right.pointer)
+                if left.Type() == ObjectType.NUM and right.Type() == ObjectType.NUM:
+                    self.__Push(NumObject(left.value-right.value))
                 else:
                     Assert("Invalid binary op:" +
                            left.Stringify()+"-"+right.Stringify())
+
             elif instruction == OpCode.OP_MUL:
-                left = self.PopObject()
-                right = self.PopObject()
-                if right.Type() == ObjectType.NUM and left.Type() == ObjectType.NUM:
-                    self.PushObject(NumObject(left.value*right.value))
+                left = self.__Pop()
+                right = self.__Pop()
+                if left.Type() == ObjectType.REF:
+                    left = self.SearchObjectByAddress(left.pointer)
+                if left.Type() == ObjectType.REF:
+                    right = self.SearchObjectByAddress(right.pointer)
+                if left.Type() == ObjectType.NUM and right.Type() == ObjectType.NUM:
+                    self.__Push(NumObject(left.value*right.value))
                 else:
                     Assert("Invalid binary op:" +
                            left.Stringify()+"*"+right.Stringify())
+
             elif instruction == OpCode.OP_DIV:
-                left = self.PopObject()
-                right = self.PopObject()
-                if right.Type() == ObjectType.NUM and left.Type() == ObjectType.NUM:
-                    self.PushObject(NumObject(left.value/right.value))
+                left = self.__Pop()
+                right = self.__Pop()
+                if left.Type() == ObjectType.REF:
+                    left = self.SearchObjectByAddress(left.pointer)
+                if left.Type() == ObjectType.REF:
+                    right =self.SearchObjectByAddress( right.pointer)
+                if left.Type() == ObjectType.NUM and right.Type() == ObjectType.NUM:
+                    self.__Push(NumObject(left.value/right.value))
                 else:
                     Assert("Invalid binary op:" +
                            left.Stringify()+"/"+right.Stringify())
+
             elif instruction == OpCode.OP_GREATER:
-                left = self.PopObject()
-                right = self.PopObject()
-                if right.Type() == ObjectType.NUM and left.Type() == ObjectType.NUM:
-                    if left.value > right.value:
-                        self.PushObject(BoolObject(True))
-                    else:
-                        self.PushObject(BoolObject(False))
+                left = self.__Pop()
+                right = self.__Pop()
+                if left.Type() == ObjectType.REF:
+                    left =self.SearchObjectByAddress( left.pointer)
+                if left.Type() == ObjectType.REF:
+                    right =self.SearchObjectByAddress( right.pointer)
+                if left.Type() == ObjectType.NUM and right.Type() == ObjectType.NUM:
+                    self.__Push(BoolObject(left.value > right.value))
                 else:
-                    self.PushObject(BoolObject(False))
+                    self.__Push(BoolObject(False))
+
             elif instruction == OpCode.OP_LESS:
-                left = self.PopObject()
-                right = self.PopObject()
-                if right.Type() == ObjectType.NUM and left.Type() == ObjectType.NUM:
-                    if left.value < right.value:
-                        self.PushObject(BoolObject(True))
-                    else:
-                        self.PushObject(BoolObject(False))
+                left = self.__Pop()
+                right = self.__Pop()
+                if left.Type() == ObjectType.REF:
+                    left = self.SearchObjectByAddress(left.pointer)
+                if left.Type() == ObjectType.REF:
+                    right = self.SearchObjectByAddress(right.pointer)
+                if left.Type() == ObjectType.NUM and right.Type() == ObjectType.NUM:
+                    self.__Push(BoolObject(left.value < right.value))
                 else:
-                    self.PushObject(BoolObject(False))
-            elif instruction == OpCode.OP_GREATER_EQUAL:
-                left = self.PopObject()
-                right = self.PopObject()
-                if right.Type() == ObjectType.NUM and left.Type() == ObjectType.NUM:
-                    if left.value >= right.value:
-                        self.PushObject(BoolObject(True))
-                    else:
-                        self.PushObject(BoolObject(False))
-                else:
-                    self.PushObject(BoolObject(False))
-            elif instruction == OpCode.OP_LESS_EQUAL:
-                left = self.PopObject()
-                right = self.PopObject()
-                if right.Type() == ObjectType.NUM and left.Type() == ObjectType.NUM:
-                    if left.value <= right.value:
-                        self.PushObject(BoolObject(True))
-                    else:
-                        self.PushObject(BoolObject(False))
-                else:
-                    self.PushObject(BoolObject(False))
+                    self.__Push(BoolObject(False))
+
             elif instruction == OpCode.OP_EQUAL:
-                left = self.PopObject()
-                right = self.PopObject()
-                self.PushObject(BoolObject(left.IsEqualTo(right)))
-            elif instruction == OpCode.OP_NOT_EQUAL:
-                left = self.PopObject()
-                right = self.PopObject()
-                self.PushObject(BoolObject(not left.IsEqualTo(right)))
+                left = self.__Pop()
+                right = self.__Pop()
+                if left.Type() == ObjectType.REF:
+                    left = self.SearchObjectByAddress(left.pointer)
+                if left.Type() == ObjectType.REF:
+                    right =self.SearchObjectByAddress( right.pointer)
+                self.__Push(BoolObject(left.IsEqualTo(right)))
+
+            elif instruction == OpCode.OP_NOT:
+                obj = self.__Pop()
+                if obj.Type() == ObjectType.REF:
+                    obj = self.SearchObjectByAddress(obj.pointer)
+                if obj.Type() != ObjectType.BOOL:
+                    Assert("Not a boolean obj of the obj:" +
+                           obj.Stringify())
+                self.__Push(not obj.value)
+
+            elif instruction == OpCode.OP_MINUS:
+                obj = self.__Pop()
+                if obj.Type() == ObjectType.REF:
+                    obj = self.SearchObjectByAddress(obj.pointer)
+                if obj.Type() != ObjectType.NUM:
+                    Assert("Not a valid op:'-'"+obj.Stringify())
+                self.__Push(-obj.value)
+
             elif instruction == OpCode.OP_AND:
-                left = self.PopObject()
-                right = self.PopObject()
-                if left.Type() == ObjectType.BOOL and right.Type == ObjectType.BOOL:
-                    self.PushObject(left.value and right.value)
+                left = self.__Pop()
+                right = self.__Pop()
+                if left.Type() == ObjectType.REF:
+                    left = self.SearchObjectByAddress(left.pointer)
+                if left.Type() == ObjectType.REF:
+                    right = self.SearchObjectByAddress(right.pointer)
+                if left.Type() == ObjectType.BOOL and right.Type() == ObjectType.BOOL:
+                    self.__Push(BoolObject(left.value and right.value))
                 else:
-                    Assert("Invalid op:"+left.Stringify() +
-                           " and "+right.Stringify())
+                    Assert("Invalid op:" + left.Stringify() +
+                           " and " + right.Stringify())
+
             elif instruction == OpCode.OP_OR:
-                left = self.PopObject()
-                right = self.PopObject()
-                if left.Type() == ObjectType.BOOL and right.Type == ObjectType.BOOL:
-                    self.PushObject(left.value or right.value)
+                left = self.__Pop()
+                right = self.__Pop()
+                if left.Type() == ObjectType.REF:
+                    left =self.SearchObjectByAddress( left.pointer)
+                if left.Type() == ObjectType.REF:
+                    right =self.SearchObjectByAddress( right.pointer)
+                if left.Type() == ObjectType.BOOL and right.Type() == ObjectType.BOOL:
+                    self.__Push(BoolObject(left.value or right.value))
                 else:
-                    Assert("Invalid op:"+left.Stringify() +
-                           " or "+right.Stringify())
-            elif instruction == OpCode.OP_DEFINE_VAR:
-                value = self.PopObject()
-                ip = ip+1
-                self.__context.DefineVariableByName(
-                    frame.strings[frame.codes[ip]], value)
-            elif instruction == OpCode.OP_SET_VAR:
-                ip = ip+1
-                name = frame.strings[frame.codes[ip]]
-                value = self.PopObject()
-                variable=self.__context.GetVariableByName(name)
+                    Assert("Invalid op:" + left.Stringify() +
+                           " or " + right.Stringify())
 
-                if variable.Type()==ObjectType.REF:
-                    self.__context.AssignVariableByName(variable.name,value)
-                else:
-                    self.__context.AssignVariableByName(name, value)
-            elif instruction == OpCode.OP_GET_VAR:
-                ip = ip+1
-                name = frame.strings[frame.codes[ip]]
-                varObject = self.__context.GetVariableByName(name)
+            elif instruction == OpCode.OP_ARRAY:
+                self.__curCallFrame.ip += 1
+                numElements = self.__curCallFrame.GetOpCodes()[
+                    self.__curCallFrame.ip]
+                startIndex = self.__sp-numElements
+                endIndex = self.__sp
+                elements = [Object]*numElements
 
-                #create a struct object
-                if varObject == None:
-                    if frame.HasStructFrame(name):
-                        self.PushObject(self.Execute(frame.GetStructFrame(name)))
+                for i in range(startIndex, endIndex):
+                    elements[i-startIndex] = self.__objectStack[i]
+                array = ArrayObject(elements)
+                self.__sp -= numElements
+                self.__Push(array)
+
+            elif instruction == OpCode.OP_INDEX:
+                index = self.__Pop()
+                ds = self.__Pop()
+                if ds.Type() == ObjectType.ARRAY and index.Type() == ObjectType.NUM:
+                    i = int(index.value)
+                    if i < 0 or i >= len(ds.elements):
+                        self.__Push(NilObject())
                     else:
-                        Assert("No Struct definition:"+name)
-                elif varObject.Type()==ObjectType.REF:
-                    varObject=self.__context.GetVariableByName(varObject.name)
-                    self.PushObject(varObject)
-                else:
-                    self.PushObject(varObject)
-            elif instruction == OpCode.OP_NEW_ARRAY:
-                elements: list[Object] = []
-                ip = ip+1
-                arraySize = frame.nums[frame.codes[ip]]
-                for i in range(arraySize):
-                    elements.insert(0, self.PopObject())
-                self.PushObject(ArrayObject(elements))
-            elif instruction == OpCode.OP_NEW_STRUCT:
-                ip = ip+1
-                self.PushObject(StructObject(
-                    frame.strings[frame.codes[ip]], self.__context.values))
-            elif instruction==OpCode.OP_NEW_LAMBDA:
-                ip=ip+1
-                self.PushObject(LambdaObject(frame.nums[frame.codes[ip]]))
-            elif instruction == OpCode.OP_GET_INDEX_VAR:
-                index = self.PopObject()
-                object = self.PopObject()
-                if object.Type() == ObjectType.ARRAY:
-                    if index.Type() != ObjectType.NUM:
-                        Assert(
-                            "Invalid index op.The index type of the array object must ba a int num type,but got:" + index.Stringify())
-                    iIndex = int(index.value)
-                    if iIndex < 0 or iIndex > len(object.elements):
-                        Assert("Index out of array range,array size:" +
-                               len(object.elements) + ",index:" + iIndex)
-                    self.PushObject(object.elements[iIndex])
-                elif object.Type() == ObjectType.STR:
-                    if index.Type() != ObjectType.NUM:
-                        Assert(
-                            "Invalid index op.The index type of the string object must ba a int num type,but got:" + index.Stringify())
-                    iIndex = int(index.value)
-                    if iIndex < 0 or iIndex > len(object.value):
-                        Assert("Index out of array range,array size:" +
-                               len(object.value) + ",index:" + iIndex)
-                    self.PushObject(object.value[iIndex])
-                else:
-                    Assert(
-                        "Invalid index op.The indexed object isn't a array or a string object:" + object.Stringify())
-            elif instruction == OpCode.OP_SET_INDEX_VAR:
-                index = self.PopObject()
-                object = self.PopObject()
-                assigner = self.PopObject()
+                        self.__Push(ds.elements[i])
 
-                if object.Type() == ObjectType.ARRAY:
-                    if index.Type() != ObjectType.NUM:
-                        Assert(
-                            "Invalid index op.The index type of the array object must ba a int num type,but got:" + index.Stringify())
-                    iIndex = int(index.value)
-                    if iIndex < 0 or iIndex > len(object.elements):
-                        Assert("Index out of array range,array size:" +
-                               len(object.elements) + ",index:" + iIndex)
-                    object.elements[iIndex] = assigner
-                elif object.Type()==ObjectType.STR:
-                    if index.Type() != ObjectType.NUM:
-                        Assert("Invalid index op.The index type of the string object must ba a int num type,but got:" + index.Stringify())
-                    iIndex = int(index.value)
-                    if iIndex < 0 or iIndex > len(object.value):
-                        Assert("Index out of array range,array size:" +
-                               len(object.value) + ",index:" + iIndex)
-                    if assigner.Type()!=ObjectType.STR:
-                        Assert("The assigner isn't a string.")
-                    
-                    object.value=object.value[:iIndex]+assigner.value+object.value[iIndex:]
-                else:
-                    Assert(
-                        "Invalid index op.The indexed object isn't a array object:" + object.Stringify())
-            elif instruction == OpCode.OP_GET_STRUCT_VAR:
-                ip += 1
-                memberName = frame.strings[frame.codes[ip]]
-                stackTop = self.PopObject()
-                if stackTop.Type() != ObjectType.STRUCT:
-                    Assert("Not a struct object of the callee of:" + memberName)
-                self.PushObject(stackTop.GetMember(memberName))
-            elif instruction == OpCode.OP_SET_STRUCT_VAR:
-                ip += 1
-                memberName = frame.strings[frame.codes[ip]]
-                stackTop = self.PopObject()
-                if stackTop.Type() != ObjectType.STRUCT:
-                    Assert("Not a struct object of the callee of:" + memberName)
-                assigner = self.PopObject()
-                stackTop.AssignMember(memberName, assigner)
-            elif instruction == OpCode.OP_ENTER_SCOPE:
-                self.__context = Context(self.__context)
-            elif instruction == OpCode.OP_EXIT_SCOPE:
-                self.__context = self.__context.upContext
             elif instruction == OpCode.OP_JUMP_IF_FALSE:
-                isJump = not (self.PopObject()).value
-                ip = ip+1
-                address = int(frame.nums[frame.codes[ip]])
-                if isJump:
-                    ip = address
+                self.__curCallFrame.ip += 1
+                address = self.__curCallFrame.GetOpCodes()[
+                    self.__curCallFrame.ip]
+                obj = self.__Pop()
+                if obj.Type() != ObjectType.BOOL:
+                    Assert("The if condition not a boolean value:"+obj.Stringify())
+                if obj.value != True:
+                    self.__curCallFrame.ip = address
+
             elif instruction == OpCode.OP_JUMP:
-                ip = ip+1
-                address = int(frame.nums[frame.codes[ip]])
-                ip = address
+                self.__curCallFrame.ip += 1
+                address = self.__curCallFrame.GetOpCodes()[
+                    self.__curCallFrame.ip]
+                self.__curCallFrame.ip = address
+
+            elif instruction == OpCode.OP_SET_GLOBAL:
+                self.__curCallFrame.ip += 1
+                index = self.__curCallFrame.GetOpCodes()[
+                    self.__curCallFrame.ip]
+                obj = self.__Pop()
+                if self.__globalVariables[index].Type() == ObjectType.REF:
+                    self.AssignObjectByAddress(self.__globalVariables[index].pointer,obj)
+                    self.__globalVariables[index].pointer=id(obj)
+                else:
+                    self.UpdateRefAddress(id(self.__globalVariables[index]),id(obj))
+                    self.__globalVariables[index] = obj
+
+            elif instruction == OpCode.OP_GET_GLOBAL:
+                self.__curCallFrame.ip += 1
+                index = self.__curCallFrame.GetOpCodes()[
+                    self.__curCallFrame.ip]
+                self.__Push(self.__globalVariables[index])
 
             elif instruction == OpCode.OP_FUNCTION_CALL:
-                ip = ip+1
-                fnName = frame.strings[frame.codes[ip]]
-                argCount = self.PopObject()
+                self.__curCallFrame.ip += 1
+                argCount = self.__curCallFrame.GetOpCodes()[self.__curCallFrame.ip]
+                obj = self.__objectStack[self.__sp-1-argCount]
+                if obj.Type() == ObjectType.FUNCTION:
+                    if argCount != obj.parameterCount:
+                        Assert("Non matching function parameters for calling arguments,parameter count:" +
+                               obj.parameterCount + ",argument count:" + argCount)
+                    callFrame = CallFrame(obj, self.__sp-argCount)
+                    self.__PushCallFrame(callFrame)
+                    self.__sp = callFrame.basePtr+obj.localVarCount
+                elif obj.Type() == ObjectType.BUILTIN:
+                    args = [Object]*argCount
 
-                if frame.HasFunctionFrame(fnName):
-                    self.PushObject(self.Execute(
-                        frame.GetFunctionFrame(fnName)))
-                elif self.HasNativeFunction(fnName):
-                    args: list[Object] = []
-                    for i in range(argCount.value):
-                        args.insert(0, self.PopObject())
-                    result = self.GetNativeFunction(fnName)(args)
-                    if result != None:
-                        self.PushObject(result)
-                elif self.__context.GetVariableByName(fnName)!=None and self.__context.GetVariableByName(fnName).Type()==ObjectType.LAMBDA:
-                    idx=self.__context.GetVariableByName(fnName).idx
-                    self.PushObject(self.Execute(frame.GetLambdaFrame(idx)))
+                    j = 0
+                    for i in range(self.__sp-argCount, self.__sp):
+                        args[j] = self.__objectStack[i]
+                        j += 1
+
+                    self.__sp = self.__sp-argCount-1
+
+                    hasReturnValue,returnValue = obj.fn(args)
+                    if hasReturnValue == True:
+                        self.__Push(returnValue)
                 else:
-                    Assert("No function:"+fnName)
+                    Assert("Calling not a function or a builtinFn")
 
-            elif instruction==OpCode.OP_STRUCT_LAMBDA_CALL:
-                ip=ip+1
-                fnName=frame.strings[frame.codes[ip]]
-                stackTop=self.PopObject()
-                argCount=self.PopObject()
-                if stackTop.Type()!=ObjectType.STRUCT:
-                    Assert("Cannot call a struct lambda function:" +
-                           fnName + ",the callee isn't a struct object")
-                member=stackTop.GetMember(fnName)
-                if member==None:
-                    Assert("Mo member in struct:"+stackTop.name)
-                if member.Type()!=ObjectType.LAMBDA:
-                    Assert("Not a lambda function:" + fnName + " in struct:" + stackTop.name)
+            elif instruction == OpCode.OP_SET_LOCAL:
+                self.__curCallFrame.ip += 1
+                isInUpScope = self.__curCallFrame.GetOpCodes()[self.__curCallFrame.ip]
+                self.__curCallFrame.ip += 1
+                scopeDepth = self.__curCallFrame.GetOpCodes()[self.__curCallFrame.ip]
+                self.__curCallFrame.ip += 1
+                index = self.__curCallFrame.GetOpCodes()[self.__curCallFrame.ip]
+                obj = self.__Pop()
 
-                self.PushObject(self.Execute(frame.GetLambdaFrame(member.idx)))
+                fullIdx=0
+                if isInUpScope==0:
+                    fullIdx = self.__curCallFrame.basePtr+index
+                else:
+                    fullIdx=self.__PeekCallFrame(scopeDepth).basePtr+index
 
-            elif instruction==OpCode.OP_REF:
-                ip=ip+1
-                self.PushObject(RefObject(frame.strings[frame.codes[ip]]))
+                if self.__objectStack[fullIdx].Type() == ObjectType.REF:
+                    self.AssignObjectByAddress(self.__objectStack[fullIdx].pointer,obj)
+                    self.__objectStack[fullIdx].pointer = id(obj)
+                else:
+                    self.UpdateRefAddress(id(self.__objectStack[fullIdx]),id(obj))
+                    self.__objectStack[fullIdx] = obj
 
-            ip += 1
-        return NilObject()
+            elif instruction == OpCode.OP_GET_LOCAL:
+                self.__curCallFrame.ip += 1
+                isInUpScope = self.__curCallFrame.GetOpCodes()[self.__curCallFrame.ip]
+                self.__curCallFrame.ip += 1
+                scopeDepth = self.__curCallFrame.GetOpCodes()[self.__curCallFrame.ip]
+                self.__curCallFrame.ip += 1
+                index = self.__curCallFrame.GetOpCodes()[self.__curCallFrame.ip]
+                
+                fullIdx=0
+                if isInUpScope==0:
+                    fullIdx = self.__curCallFrame.basePtr+index
+                else:
+                    fullIdx=self.__PeekCallFrame(scopeDepth).basePtr+index
+                
+                self.__Push(
+                    self.__objectStack[fullIdx])
+
+            elif instruction == OpCode.OP_SP_OFFSET:
+                self.__curCallFrame.ip += 1
+                offset = self.__curCallFrame.GetOpCodes()[
+                    self.__curCallFrame.ip]
+                self.__sp += offset
+
+            elif instruction == OpCode.OP_GET_BUILTIN:
+                self.__curCallFrame.ip += 1
+                idx = self.__curCallFrame.GetOpCodes()[self.__curCallFrame.ip]
+                builtinObj = self.__builtins[idx]
+                self.__Push(builtinObj)
+
+            elif instruction == OpCode.OP_GET_CURRENT_FUNCTION:
+                self.__Push(self.__curCallFrame.fn)
+
+            elif instruction == OpCode.OP_STRUCT:
+                members:dict[str, Object]={}
+                self.__curCallFrame.ip += 1
+                memberCount = self.__curCallFrame.GetOpCodes()[
+                    self.__curCallFrame.ip]
+                tmpPtr = self.__sp
+
+                for i in range(0, memberCount):
+                    tmpPtr -= 1
+                    name = self.__objectStack[tmpPtr].value
+                    tmpPtr -= 1
+                    obj = self.__objectStack[tmpPtr]
+                    members[name] = obj
+
+                structInstance = StructInstanceObject(members)
+                self.__sp = tmpPtr
+                self.__Push(structInstance)
+
+            elif instruction == OpCode.OP_GET_STRUCT:
+                memberName = self.__Pop()
+                instance = self.__Pop()
+                if instance.Type() == ObjectType.REF:
+                    instance =self.SearchObjectByAddress( instance.pointer)
+                if memberName.Type() == ObjectType.STR:
+                    iter = instance.members.get(memberName.value, None)
+                    if iter == None:
+                        Assert("no member named:(" + memberName.Stringify() +
+                               ") in struct instance:" + instance.Stringify())
+                    self.__Push(iter)
+
+            elif instruction == OpCode.OP_SET_STRUCT:
+                memberName = self.__Pop()
+                instance = self.__Pop()
+                if instance.Type() == ObjectType.REF:
+                    instance = self.SearchObjectByAddress(instance.pointer)
+                obj = self.__Pop()
+                if memberName.Type() == ObjectType.STR:
+                    iter = instance.members.get(memberName.value, None)
+                    if iter == None:
+                        Assert("no member named:(" + memberName.Stringify() +
+                               ") in struct instance:" + instance.Stringify())
+                    instance.members[memberName.value] = obj
+
+            elif instruction == OpCode.OP_REF_GLOBAL:
+                self.__curCallFrame.ip += 1
+                index = self.__curCallFrame.GetOpCodes()[
+                    self.__curCallFrame.ip]
+                self.__Push(RefObject(id(self.__globalVariables[index])))
+            elif instruction == OpCode.OP_REF_LOCAL:
+                self.__curCallFrame.ip += 1
+                isInUpScope = self.__curCallFrame.GetOpCodes()[self.__curCallFrame.ip]
+                self.__curCallFrame.ip += 1
+                scopeDepth = self.__curCallFrame.GetOpCodes()[self.__curCallFrame.ip]
+                self.__curCallFrame.ip += 1
+                index = self.__curCallFrame.GetOpCodes()[self.__curCallFrame.ip]
+                
+                fullIdx=0
+                if isInUpScope==0:
+                    fullIdx = self.__curCallFrame.basePtr+index
+                else:
+                    fullIdx=self.__PeekCallFrame(scopeDepth).basePtr+index
+
+                self.__Push(RefObject(id(self.__objectStack[fullIdx])))
+
+    def __Push(self, obj: Object) -> None:
+        self.__objectStack[self.__sp] = obj
+        self.__sp += 1
+
+    def __Pop(self) -> Object:
+        self.__sp -= 1
+        return self.__objectStack[self.__sp]
+
+    def __PushCallFrame(self, callFrame: CallFrame) -> None:
+        self.__callFrames[self.__callFrameIndex] = callFrame
+        self.__callFrameIndex += 1
+        self.__curCallFrame = self.__callFrames[self.__callFrameIndex-1]
+
+    def __PopCallFrame(self) -> CallFrame:
+        self.__callFrameIndex -= 1
+        self.__curCallFrame = self.__callFrames[self.__callFrameIndex-1]
+        return self.__callFrames[self.__callFrameIndex]
+
+    def __PeekCallFrame(self, distance: int) -> CallFrame:
+        return self.__callFrames[distance]
+
+    def SearchObjectByAddress(self,address):
+         return ctypes.cast(address,ctypes.py_object).value
+
+    def AssignObjectByAddress(self,address,obj:Object):
+        for i in range(0,len(self.__globalVariables)):
+            if id(self.__globalVariables[i])==address:
+                self.__globalVariables[i]=obj
+                pass
+        
+        for p in range(0,self.__sp):
+            if id(self.__objectStack[p])==address:
+                self.__objectStack[p]=obj
+    
+    def UpdateRefAddress(self,originAddress,newAddress):
+        for i in range(0,len(self.__globalVariables)):
+            if self.__globalVariables[i].Type()==ObjectType.REF:
+                if self.__globalVariables[i].pointer==originAddress:
+                    self.__globalVariables[i].pointer=newAddress
+                    pass
+        
+        for p in range(0,self.__sp):
+            if self.__objectStack[p].Type()==ObjectType.REF:
+                if self.__objectStack[p].pointer==originAddress:
+                    self.__objectStack[p].pointer=newAddress
+                    pass

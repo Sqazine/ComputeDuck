@@ -1,8 +1,8 @@
-from audioop import add
-from enum import IntEnum
 import abc
-from xml.etree.ElementTree import tostring
-from Utils import Assert
+import ctypes
+from enum import IntEnum
+from typing import List
+
 
 class ObjectType(IntEnum):
     NUM = 0,
@@ -10,16 +10,13 @@ class ObjectType(IntEnum):
     BOOL = 2,
     NIL = 3,
     ARRAY = 4,
-    STRUCT = 5,
-    REF=6,
-    LAMBDA=7
+    STRUCT_INSTANCE = 5,
+    REF = 6,
+    FUNCTION = 7,
+    BUILTIN = 8
 
 
 class Object:
-    @abc.abstractmethod
-    def Stringify(self) -> str:
-        pass
-
     @abc.abstractmethod
     def Type(self) -> ObjectType:
         pass
@@ -35,7 +32,7 @@ class NumObject(Object):
     def __init__(self, value) -> None:
         self.value = value
 
-    def Stringify(self) -> str:
+    def __str__(self) -> str:
         return str(self.value)
 
     def Type(self) -> ObjectType:
@@ -53,7 +50,7 @@ class StrObject(Object):
     def __init__(self, value) -> None:
         self.value = value
 
-    def Stringify(self) -> str:
+    def __str__(self) -> str:
         return self.value
 
     def Type(self) -> ObjectType:
@@ -71,7 +68,7 @@ class BoolObject(Object):
     def __init__(self, value) -> None:
         self.value = value
 
-    def Stringify(self) -> str:
+    def __str__(self) -> str:
         if self.value == True:
             return "true"
         else:
@@ -88,7 +85,7 @@ class BoolObject(Object):
 
 class NilObject(Object):
 
-    def Stringify(self) -> str:
+    def __str__(self) -> str:
         return "nil"
 
     def Type(self) -> ObjectType:
@@ -106,11 +103,11 @@ class ArrayObject(Object):
     def __init__(self, elements) -> None:
         self.elements = elements
 
-    def Stringify(self) -> str:
+    def __str__(self) -> str:
         result = "["
         if len(self.elements) > 0:
             for e in self.elements:
-                result += e.Stringify()+","
+                result += e.__str__()+","
             result = result[0:len(result)-1]
         return result+"]"
 
@@ -128,92 +125,111 @@ class ArrayObject(Object):
         while i < (len(self.elements)):
             if not self.elements[i].IsEqualTo(other.elements[i]):
                 return False
-            i=i+1
+            i = i+1
         return True
 
+
 class RefObject(Object):
-    name:str
+    #TODO
+    # this a bit different from C++ part,C++ allow pointer to pointing to the actual object
+    # but in python the RefObject only record the actual object's address,and search the object in runtime
+    # this is not a good way to implemente reference feature,because it waste much time to search the global object and local object in vm's __globalVariable and __objectStack
+    # but now i don't have better propose
+    # welcome for better idea!
+    pointer:int 
 
-    def __init__(self,name:str) -> None:
-        self.name=name
+    def __init__(self,pointer: int) -> None:
+        self.pointer=pointer
 
-    def Stringify(self) -> str:
-        return self.name
+    def __str__(self) -> str:
+        return str(ctypes.cast(self.pointer,ctypes.py_object).value)
 
     def Type(self) -> ObjectType:
         return ObjectType.REF
 
     def IsEqualTo(self, other) -> bool:
-        if other.Type()!=ObjectType.REF:
+        if other.Type() != ObjectType.REF:
             return False
-        return self.name==other.name
+        return self.pointer==other.pointer
 
-class LambdaObject(Object):
-    idx:int=-1
 
-    def __init__(self,idx:int) -> None:
-        self.idx=idx
+class FunctionObject(Object):
+    opCodes: List[int]
+    localVarCount: int
+    parameterCount: int
 
-    def Stringify(self) -> str:
-        return "lambda:"+ str(self.idx)
+    def __init__(self, opCodes: List[int], localVarCount: int = 0, parameterCount: int = 0) -> None:
+        self.opCodes = opCodes
+        self.localVarCount = localVarCount
+        self.parameterCount = parameterCount
+
+    def __str__(self) -> str:
+        return "function:(0x"+str(id(self))+")"
 
     def Type(self) -> ObjectType:
-        return ObjectType.LAMBDA
+        return ObjectType.FUNCTION
 
     def IsEqualTo(self, other) -> bool:
-        if other.Type()!=ObjectType.LAMBDA:
+        if other.Type() != ObjectType.FUNCTION:
             return False
-        return self.idx==other.idx
+        otherOpCodes = other.opCodes
+        if len(self.opCodes) != len(otherOpCodes):
+            return False
 
-class StructObject(Object):
-    name = ""
-    members: dict[str, Object] = {}
+        for i in range(0, len(self.opCodes)):
+            if self.opCodes[i] != otherOpCodes[i]:
+                return False
 
-    def __init__(self, name, members) -> None:
+        return True
+
+
+class BuiltinObject(Object):
+    name: str
+    fn: any
+
+    def __init__(self, name: str, fn: any) -> None:
         self.name = name
+        self.fn = fn
+
+    def __str__(self) -> str:
+        return "builtin function:(0x"+str(id(self))+")"
+
+    def Type(self) -> ObjectType:
+        return ObjectType.BUILTIN
+
+    def IsEqualTo(self, other) -> bool:
+        if other.Type() != ObjectType.BUILTIN:
+            return False
+        return self.name == other.name
+
+
+class StructInstanceObject(Object):
+    members: dict[str, Object]
+
+    def __init__(self, members: dict[str, Object]) -> None:
         self.members = members
 
-    def Stringify(self) -> str:
-        result = "struct instance "+self.name
-        if len(self.members) > 0:
-            result += ":\n"
-            for key, value in self.members.items():
-                result += key + "="+value.Stringify()+"\n"
-            result = result[0:len(result)-1]
+    def __str__(self) -> str:
+        result = "struct instance(0x"+str(id(self))+"):\n{\n"
+        for k, v in self.members.items():
+            result += k+":"+v.__str__()+"\n"
+        result = result[0:len(result)-1]
+        result += "\n}\n"
         return result
 
     def Type(self) -> ObjectType:
-        return ObjectType.STRUCT
+        return ObjectType.STRUCT_INSTANCE
 
     def IsEqualTo(self, other) -> bool:
-        if other.Type() != ObjectType.STRUCT:
+        if other.Type() != ObjectType.STRUCT_INSTANCE:
             return False
 
         if len(self.members) != len(other.members):
             return False
 
-        for key1,value1 in self.members.items():
-            for key2,value2 in other.members.items():
-                if (key1==key2):
-                    if(not value1.IsEqualTo(value2)):
-                        return False
+        for key1, value1 in self.members.items():
+            v2 = other.members.get(key1)
+            if(v2 == None or (not v2.IsEqualTo(value1))):
+                return False
+
         return True
-    
-    def DefineMember(self,name:str,value:Object):
-        if self.members.get(name)!=None:
-            Assert("Redefined struct member:" + name)
-        else:
-            self.members[name]=value
-
-    def AssignMember(self,name:str,value:Object):
-        if self.members.get(name)!=None:
-            self.members[name]=value
-        else:
-            Assert("Undefine struct member:" + name)
-
-    def GetMember(self,name)->Object:
-        if self.members.get(name)!=None:
-            return self.members[name]
-        else:
-            return None
-        

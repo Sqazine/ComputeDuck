@@ -121,7 +121,7 @@ class ArrayExpr(Expr):
         if len(self.elements) > 0:
             for value in self.elements:
                 result += value.Stringify()+","
-            result = result[0: len(result)-1]
+            result = result[0: len(result)-1]+"]"
         return result
 
     def Type(self) -> AstType:
@@ -334,7 +334,7 @@ class FunctionStmt(Stmt):
         self.body = body
 
     def Stringify(self) -> str:
-        result = "fn "+self.name+"("
+        result = "function "+self.name+"("
         if len(self.parameters) > 0:
             for param in self.parameters:
                 result += param.Stringify()+","
@@ -347,10 +347,12 @@ class FunctionStmt(Stmt):
         return AstType.FUNCTION
 
 class LambdaExpr(Expr):
+    name:str
     parameters: list[IdentifierExpr] = []
     body: ScopeStmt = None
 
-    def __init__(self,parameters, body) -> None:
+    def __init__(self,name=None,parameters=[], body=None) -> None:
+        self.name=name
         self.parameters = parameters
         self.body = body
 

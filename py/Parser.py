@@ -29,6 +29,7 @@ class Parser:
     __prefixFunctions: dict[TokenType, Any] = {}
     __infixFunctions: dict[TokenType, Any] = {}
     __precedence: dict[TokenType, Any] = {}
+    __isInFunctionOrLambdascope=False
 
     def __init__(self) -> None:
         self.__curPos: int = 0
@@ -36,6 +37,8 @@ class Parser:
         self.__prefixFunctions: dict[TokenType, Any] = {}
         self.__infixFunctions: dict[TokenType, Any] = {}
         self.__precedence: dict[TokenType, Any] = {}
+
+        self.__isInFunctionOrLambdascope=False
         
         self.__prefixFunctions = {
             TokenType.IDENTIFIER: self.ParseIdentifierExpr,
@@ -183,14 +186,23 @@ class Parser:
 
     def ParseVarStmt(self) -> Stmt:
         self.Consume(TokenType.VAR, "Expect 'var' key word")
-        name = (self.ParseIdentifierExpr())
+        name = self.ParseIdentifierExpr()
         value = NilExpr()
         if self.IsMatchCurTokenAndStepOnce(TokenType.EQUAL):
             value = self.ParseExpr()
         self.Consume(TokenType.SEMICOLON, "Expect ';' after var stmt")
+
+        if value.Type()==AstType.LAMBDA:
+            value.name=name.literal
+
+
         return VarStmt(name, value)
 
     def ParseReturnStmt(self) -> Stmt:
+
+        if self.__isInFunctionOrLambdascope==False:
+            Assert("Return statement only available in function or lambda")
+
         self.Consume(TokenType.RETURN, "Expecr 'return' keyword")
         expr = None
         if not self.IsMatchCurToken(TokenType.SEMICOLON):
@@ -235,20 +247,26 @@ class Parser:
         return WhileStmt(condition, body)
 
     def ParseFunctionStmt(self) -> Stmt:
-       self.Consume(TokenType.FUNCTION, "Expect 'fn' keyword")
-       funcStmt = FunctionStmt("", [], None)
-       funcStmt.name = self.ParseIdentifierExpr().Stringify()
-       self.Consume(TokenType.LPAREN, "Expect '(' after function name")
 
-       if (not self.IsMatchCurToken(TokenType.RPAREN)):
-           idenExpr = self.ParseIdentifierExpr()
-           funcStmt.parameters.append(idenExpr)
-           while self.IsMatchCurTokenAndStepOnce(TokenType.COMMA):
-               idenExpr = self.ParseIdentifierExpr()
-               funcStmt.parameters.append(idenExpr)
-       self.Consume(TokenType.RPAREN, "Expect ')' after function expr's '('")
-       funcStmt.body = self.ParseScopeStmt()
-       return funcStmt
+        self.__isInFunctionOrLambdascope=True
+
+        self.Consume(TokenType.FUNCTION, "Expect 'function' keyword")
+        funcStmt = FunctionStmt("", [], None)
+        funcStmt.name = self.ParseIdentifierExpr().Stringify()
+        self.Consume(TokenType.LPAREN, "Expect '(' after function name")
+ 
+        if (not self.IsMatchCurToken(TokenType.RPAREN)):
+            idenExpr = self.ParseIdentifierExpr()
+            funcStmt.parameters.append(idenExpr)
+            while self.IsMatchCurTokenAndStepOnce(TokenType.COMMA):
+                idenExpr = self.ParseIdentifierExpr()
+                funcStmt.parameters.append(idenExpr)
+        self.Consume(TokenType.RPAREN, "Expect ')' after function expr's '('")
+        funcStmt.body = self.ParseScopeStmt()
+
+        self.__isInFunctionOrLambdascope=False
+
+        return funcStmt
 
     def ParseStructStmt(self) -> Stmt:
         self.Consume(TokenType.STRUCT, "Expect 'struct keyword'")
@@ -346,6 +364,8 @@ class Parser:
         return RefExpr(refExpr)
 
     def ParseLambdaExpr(self)->Expr:
+        self.__isInFunctionOrLambdascope=True
+
         self.Consume(TokenType.LAMBDA,"Expect 'lambda' keyword.")
         self.Consume(TokenType.LPAREN,"Expect '(' after keyword 'lambda'.")
         parameters: list[IdentifierExpr] = []
@@ -358,7 +378,10 @@ class Parser:
                parameters.append(idenExpr)
         self.Consume(TokenType.RPAREN, "Expect ')' after lambda expr's '('.")
         body = self.ParseScopeStmt()
-        return LambdaExpr(parameters,body)
+
+        self.__isInFunctionOrLambdascope=False
+
+        return LambdaExpr("",parameters,body)
 
 
     def ParseFunctionCallExpr(self, prefixExpr: Expr) -> Expr:
