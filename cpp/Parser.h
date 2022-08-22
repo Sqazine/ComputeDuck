@@ -6,6 +6,7 @@
 #include "Token.h"
 #include "Ast.h"
 #include "Utils.h"
+#include "SemanticAnalyzer.h"
 
 enum class Precedence
 {
@@ -85,6 +86,8 @@ private:
 	std::vector<Token> m_Tokens;
 
 	int32_t m_FunctionOrLambdaScopeDepth;
+
+	SemanticAnalyzer m_SemanticAnalyzer;
 
 	static std::unordered_map<TokenType, PrefixFn> m_PrefixFunctions;
 	static std::unordered_map<TokenType, InfixFn> m_InfixFunctions;
