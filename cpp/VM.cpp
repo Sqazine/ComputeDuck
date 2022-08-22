@@ -6,7 +6,7 @@ VM::VM()
 {
     ResetStatus();
 
-    m_Builtins.emplace_back(CreateObject<BuiltinObject>("print", [this](const std::vector<Value> &args, Value &result) -> bool
+    m_Builtins.emplace_back(CreateObject<BuiltinObject>("print", [&](const std::vector<Value> &args, Value &result) -> bool
                                                         {
                                                             if (args.empty())
                                                                 return false;
@@ -15,7 +15,7 @@ VM::VM()
                                                             return false;
                                                         }));
 
-    m_Builtins.emplace_back(CreateObject<BuiltinObject>("println", [this](const std::vector<Value> &args, Value &result) -> bool
+    m_Builtins.emplace_back(CreateObject<BuiltinObject>("println", [&](const std::vector<Value> &args, Value &result) -> bool
                                                         {
                                                             if (args.empty())
                                                                 return false;
@@ -24,7 +24,7 @@ VM::VM()
                                                             return false;
                                                         }));
 
-    m_Builtins.emplace_back(CreateObject<BuiltinObject>("sizeof", [this](const std::vector<Value> &args, Value &result) -> bool
+    m_Builtins.emplace_back(CreateObject<BuiltinObject>("sizeof", [&](const std::vector<Value> &args, Value &result) -> bool
                                                         {
                                                             if (args.empty() || args.size() > 1)
                                                                 Assert("[Native function 'sizeof']:Expect a argument.");
@@ -38,7 +38,7 @@ VM::VM()
                                                             return true;
                                                         }));
 
-    m_Builtins.emplace_back(CreateObject<BuiltinObject>("insert", [this](const std::vector<Value> &args, Value &result) -> bool
+    m_Builtins.emplace_back(CreateObject<BuiltinObject>("insert", [&](const std::vector<Value> &args, Value &result) -> bool
                                                         {
                                                             if (args.empty() || args.size() != 3)
                                                                 Assert("[Native function 'insert']:Expect 3 arguments,the arg0 must be array,table or string object.The arg1 is the index object.The arg2 is the value object.");
@@ -74,7 +74,7 @@ VM::VM()
                                                             return false;
                                                         }));
 
-    m_Builtins.emplace_back(CreateObject<BuiltinObject>("erase", [this](const std::vector<Value> &args, Value &result) -> bool
+    m_Builtins.emplace_back(CreateObject<BuiltinObject>("erase", [&](const std::vector<Value> &args, Value &result) -> bool
                                                         {
                                                             if (args.empty() || args.size() != 2)
                                                                 Assert("[Native function 'erase']:Expect 2 arguments,the arg0 must be array,table or string object.The arg1 is the corresponding index object.");
@@ -110,7 +110,7 @@ VM::VM()
                                                             return false;
                                                         }));
 
-    m_Builtins.emplace_back(CreateObject<BuiltinObject>("clock", [this](const std::vector<Value> &args, Value &result) -> bool
+    m_Builtins.emplace_back(CreateObject<BuiltinObject>("clock", [&](const std::vector<Value> &args, Value &result) -> bool
                                                         {
                                                             result = Value((double)clock() / CLOCKS_PER_SEC);
                                                             return true;

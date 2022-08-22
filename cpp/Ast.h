@@ -137,7 +137,10 @@ struct GroupExpr : public Expr
 {
 	GroupExpr() : expr(nullptr) {}
 	GroupExpr(Expr *expr) : expr(expr) {}
-	~GroupExpr() {}
+	~GroupExpr() {
+		delete expr;
+		expr=nullptr;
+	}
 
 	std::string Stringify() override { return "(" + expr->Stringify() + ")"; }
 	AstType Type() override { return AstType::GROUP; }
@@ -254,7 +257,12 @@ struct StructCallExpr : public Expr
 {
 	StructCallExpr() : callee(nullptr), callMember(nullptr) {}
 	StructCallExpr(Expr *callee, Expr *callMember) : callee(callee), callMember(callMember) {}
-	~StructCallExpr() {}
+	~StructCallExpr() {
+		delete callee;
+		callee=nullptr;
+		delete callMember;
+		callMember=nullptr;
+	}
 
 	std::string Stringify() override { return callee->Stringify() + "." + callMember->Stringify(); }
 	AstType Type() override { return AstType::STRUCT_CALL; }
@@ -295,7 +303,9 @@ struct VarStmt : public Stmt
 	~VarStmt()
 	{
 		delete name;
+		name=nullptr;
 		delete value;
+		value=nullptr;
 	}
 
 	std::string Stringify() override
