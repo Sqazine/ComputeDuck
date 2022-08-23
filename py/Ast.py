@@ -307,15 +307,15 @@ class IfStmt(Stmt):
 
 
 class ScopeStmt(Stmt):
-    stmts: list[Stmt] = []
+    stmts: List[Stmt] = []
 
     def __init__(self, stmts) -> None:
         self.stmts = stmts
 
     def Stringify(self) -> str:
         result = "{"
-        for value in self.stmts:
-            result += value.Stringify()
+        for s in self.stmts:
+            result += s.Stringify()
         result += "}"
         return result
 

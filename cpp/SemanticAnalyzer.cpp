@@ -148,6 +148,7 @@ Expr *SemanticAnalyzer::AnalyzeBoolExpr(BoolExpr *expr)
 }
 Expr *SemanticAnalyzer::AnalyzePrefixExpr(PrefixExpr *expr)
 {
+    expr->right=AnalyzeExpr(expr->right);
     return ConstantFold(expr);
 }
 Expr *SemanticAnalyzer::AnalyzeStrExpr(StrExpr *expr)

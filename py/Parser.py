@@ -8,6 +8,7 @@ from Ast import Expr
 from Token import Token, TokenType
 from Utils import Assert
 from Ast import AstType, ArrayExpr, BoolExpr, ExprStmt, FunctionCallExpr, FunctionStmt, GroupExpr, IdentifierExpr, IfStmt, IndexExpr, InfixExpr, NilExpr, NumExpr, PrefixExpr, ReturnStmt, ScopeStmt, StrExpr, StructCallExpr, StructStmt, VarStmt, WhileStmt, RefExpr,LambdaExpr
+from SemanticAnalyzer import SemanticAnalyzer
 
 
 class Precedence(IntEnum):
@@ -30,6 +31,7 @@ class Parser:
     __infixFunctions: dict[TokenType, Any] = {}
     __precedence: dict[TokenType, Any] = {}
     __isInFunctionOrLambdascope=False
+    __semanticAnalyzer:SemanticAnalyzer
 
     def __init__(self) -> None:
         self.__curPos: int = 0
@@ -37,6 +39,7 @@ class Parser:
         self.__prefixFunctions: dict[TokenType, Any] = {}
         self.__infixFunctions: dict[TokenType, Any] = {}
         self.__precedence: dict[TokenType, Any] = {}
+        self.__semanticAnalyzer=SemanticAnalyzer()
 
         self.__isInFunctionOrLambdascope=False
         
@@ -101,6 +104,9 @@ class Parser:
         stmts: list[Stmt] = []
         while (not self.IsMatchCurToken(TokenType.END)):
             stmts.append(self.ParseStmt())
+
+        self.__semanticAnalyzer.Analyze(stmts)
+
         return stmts
 
     def IsAtEnd(self) -> bool:
