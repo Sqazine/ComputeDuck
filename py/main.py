@@ -58,10 +58,9 @@ def RunFile(filePath):
 
 
 if __name__ == "__main__":
-    # if len(sys.argv) == 2:
-    #     RunFile(sys.argv[1])
-    # elif len(sys.argv) == 1:
-    #     Repl()
-    # else:
-    #     print("Usage: ComputeDuck [filepath]")
-    RunFile("C:\\Users\\Sqazi\\OneDrive\\.sc\\ComputeDuck\\examples\\oop-simulate.cd")
+    if len(sys.argv) == 2:
+        RunFile(sys.argv[1])
+    elif len(sys.argv) == 1:
+        Repl()
+    else:
+        print("Usage: ComputeDuck [filepath]")
