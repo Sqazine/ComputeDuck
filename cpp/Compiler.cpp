@@ -14,6 +14,10 @@ Chunk Compiler::Compile(const std::vector<Stmt *> &stmts)
     for (const auto &stmt : stmts)
         CompileStmt(stmt);
 
+    //tag as program exit
+    Emit(OP_RETURN);
+    Emit(0);
+
     return Chunk(CurOpCodes(), m_Constants, m_ConstantCount);
 }
 

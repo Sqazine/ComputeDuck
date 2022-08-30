@@ -191,22 +191,26 @@ void VM::Execute()
 
     auto frame = m_CallFrameTop - 1;
 
-    while (frame->ip < (int32_t)frame->GetOpCodes().size() - 1)
+    while (1)
     {
         frame = m_CallFrameTop - 1;
-        frame->ip++;
-        int32_t &ip = frame->ip;
-        int32_t instruction = frame->GetOpCodes()[ip];
+  
+        int32_t instruction = *frame->ip++;
         switch (instruction)
         {
         case OP_RETURN:
         {
-            auto returnCount = frame->GetOpCodes()[++ip];
+            auto returnCount = *frame->ip++;
             Value value;
             if (returnCount == 1)
                 value = Pop();
 
             auto callFrame = PopCallFrame();
+
+
+            if (m_CallFrameTop == m_CallFrames)
+                return;
+
             frame = m_CallFrameTop - 1;
 
             m_StackTop=callFrame->slot-1;
@@ -216,7 +220,7 @@ void VM::Execute()
         }
         case OP_CONSTANT:
         {
-            auto idx = frame->GetOpCodes()[++ip];
+            auto idx = *frame->ip++;
             auto value = m_Constants[idx];
 
             RegisterToGCRecordChain(value); //the value in constant list maybe not regisiter to the gc chain
@@ -308,7 +312,7 @@ void VM::Execute()
         }
         case OP_ARRAY:
         {
-            auto numElements = frame->GetOpCodes()[++ip];
+            auto numElements = *frame->ip++;
             
             m_StackTop -= numElements;
 
@@ -342,24 +346,24 @@ void VM::Execute()
         }
         case OP_JUMP_IF_FALSE:
         {
-            auto address = frame->GetOpCodes()[++ip];
+            auto address = *frame->ip++;
             auto value = Pop();
             if (!IS_BOOL_VALUE(value))
                 Assert("The if condition not a boolean value");
             if (!TO_BOOL_VALUE(value))
-                ip = address;
+                frame->ip = frame->fn->opCodes.data()+address;
 
             break;
         }
         case OP_JUMP:
         {
-            auto address = frame->GetOpCodes()[++ip];
-            ip = address;
+            auto address = *frame->ip++;
+            frame->ip = frame->fn->opCodes.data() + address;
             break;
         }
         case OP_SET_GLOBAL:
         {
-            auto index = frame->GetOpCodes()[++ip];
+            auto index = *frame->ip++;
             auto value = Pop();
             if (IS_REF_VALUE(m_GlobalVariables[index])) //if is a reference object,then set the actual value which the reference object points
                 *TO_REF_VALUE(m_GlobalVariables[index])->pointer = value;
@@ -369,13 +373,13 @@ void VM::Execute()
         }
         case OP_GET_GLOBAL:
         {
-            auto index = frame->GetOpCodes()[++ip];
+            auto index = *frame->ip++;
             Push(m_GlobalVariables[index]);
             break;
         }
         case OP_FUNCTION_CALL:
         {
-            auto argCount = frame->GetOpCodes()[++ip];
+            auto argCount = *frame->ip++;
 
             auto value = *(m_StackTop-argCount-1);
             if (IS_FUNCTION_VALUE(value))
@@ -414,9 +418,9 @@ void VM::Execute()
         }
         case OP_SET_LOCAL:
         {
-            auto isInUpScope = frame->GetOpCodes()[++ip];
-            auto scopeDepth = frame->GetOpCodes()[++ip];
-            auto index = frame->GetOpCodes()[++ip];
+            auto isInUpScope = *frame->ip++;
+            auto scopeDepth = *frame->ip++;
+            auto index = *frame->ip++;
             auto value = Pop();
 
             Value* slot = nullptr;
@@ -434,9 +438,9 @@ void VM::Execute()
         }
         case OP_GET_LOCAL:
         {
-            auto isInUpScope = frame->GetOpCodes()[++ip];
-            auto scopeDepth = frame->GetOpCodes()[++ip];
-            auto index = frame->GetOpCodes()[++ip];
+            auto isInUpScope = *frame->ip++;
+            auto scopeDepth = *frame->ip++;
+            auto index = *frame->ip++;
 
             Value* slot = nullptr;
 
@@ -450,13 +454,13 @@ void VM::Execute()
         }
         case OP_SP_OFFSET:
         {
-            auto offset = frame->GetOpCodes()[++ip];
+            auto offset = *frame->ip++;
             m_StackTop+= offset;
             break;
         }
         case OP_GET_BUILTIN:
         {
-            auto idx = frame->GetOpCodes()[++ip];
+            auto idx = *frame->ip++;
             auto builtinObj = m_Builtins[idx];
             Push(builtinObj);
             break;
@@ -469,7 +473,7 @@ void VM::Execute()
         case OP_STRUCT:
         {
             std::unordered_map<std::string, Value> members;
-            auto memberCount = frame->GetOpCodes()[++ip];
+            auto memberCount = *frame->ip++;
 
             auto tmpPtr = m_StackTop; //save the locale,to avoid gc system delete the tmp object before finish the struct instance creation
 
@@ -520,15 +524,15 @@ void VM::Execute()
         }
         case OP_REF_GLOBAL:
         {
-            auto index = frame->GetOpCodes()[++ip];
+            auto index = *frame->ip++;
             Push(CreateObject<RefObject>(&m_GlobalVariables[index]));
             break;
         }
         case OP_REF_LOCAL:
         {
-            auto isInUpScope = frame->GetOpCodes()[++ip];
-            auto scopeDepth = frame->GetOpCodes()[++ip];
-            auto index = frame->GetOpCodes()[++ip];
+            auto isInUpScope = *frame->ip++;
+            auto scopeDepth = *frame->ip++;
+            auto index = *frame->ip++;
 
             Value* slot = nullptr;
 

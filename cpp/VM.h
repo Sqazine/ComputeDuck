@@ -19,22 +19,17 @@
 struct CallFrame
 {
 	CallFrame()
-		: fn(nullptr), ip(-1), slot(nullptr)
+		: fn(nullptr), ip(nullptr), slot(nullptr)
 	{
 	}
 
 	CallFrame(FunctionObject *fn, Value *slot)
-		: fn(fn), ip(-1), slot(slot)
+		: fn(fn), ip(fn->opCodes.data()), slot(slot)
 	{
-	}
-
-	const OpCodes &GetOpCodes() const
-	{
-		return fn->opCodes;
 	}
 
 	FunctionObject *fn;
-	int32_t ip;
+	int32_t* ip;
 	Value *slot;
 };
 
