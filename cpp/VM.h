@@ -19,23 +19,23 @@
 struct CallFrame
 {
 	CallFrame()
-		:fn(nullptr), ip(-1),basePtr(0)
+		: fn(nullptr), ip(-1), slot(nullptr)
 	{
 	}
 
-	CallFrame(FunctionObject* fn, int32_t basePtr)
-		: fn(fn), ip(-1), basePtr(basePtr)
+	CallFrame(FunctionObject *fn, Value *slot)
+		: fn(fn), ip(-1), slot(slot)
 	{
 	}
 
-	const OpCodes& GetOpCodes() const
+	const OpCodes &GetOpCodes() const
 	{
 		return fn->opCodes;
 	}
 
-	FunctionObject* fn;
+	FunctionObject *fn;
 	int32_t ip;
-	int32_t basePtr;
+	Value *slot;
 };
 
 class VM
@@ -46,50 +46,50 @@ public:
 
 	void ResetStatus();
 
-	void Run(const Chunk& chunk);
+	void Run(const Chunk &chunk);
 
 private:
 	void Execute();
 
 	template <class T, typename... Args>
-	T* CreateObject(Args &&...params);
+	T *CreateObject(Args &&...params);
 
-	void RegisterToGCRecordChain(const Value& value);
+	void RegisterToGCRecordChain(const Value &value);
 
-	void Gc(bool isExitingVM=false);
+	void Gc(bool isExitingVM = false);
 
-	void Push(const Value& value);
-	const Value& Pop();
+	void Push(const Value &value);
+	const Value &Pop();
 
-	CallFrame& CurCallFrame();
+	CallFrame* CurCallFrame();
 	void PushCallFrame(const CallFrame& callFrame);
-	const CallFrame& PopCallFrame();
-	CallFrame& PeekCallFrame(int32_t distance);
+	CallFrame* PopCallFrame();
+	CallFrame* PeekCallFrame(int32_t distance);
 
 	Value m_Constants[CONSTANT_MAX];
 
 	Value m_GlobalVariables[GLOBAL_VARIABLE_MAX];
 
-	int32_t sp;
+	Value *m_StackTop;
 	Value m_ValueStack[STACK_MAX];
 
+	CallFrame* m_CallFrameTop;
 	CallFrame m_CallFrames[STACK_MAX];
-	int32_t m_CallFrameIndex;
 
-	Object* firstObject;
+	Object *firstObject;
 	int curObjCount;
 	int maxObjCount;
 
-	std::vector<BuiltinObject*> m_Builtins;
+	std::vector<BuiltinObject *> m_Builtins;
 };
 
 template <class T, typename... Args>
-inline T* VM::CreateObject(Args &&...params)
+inline T *VM::CreateObject(Args &&...params)
 {
 	if (curObjCount >= maxObjCount)
 		Gc();
 
-	T* object = new T(std::forward<Args>(params)...);
+	T *object = new T(std::forward<Args>(params)...);
 	object->marked = false;
 	object->next = firstObject;
 	firstObject = object;
