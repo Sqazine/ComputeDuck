@@ -189,21 +189,25 @@ void VM::Execute()
             Assert("Invalid op:" + left.Stringify() + (#op) + right.Stringify());           \
     } while (0);
 
-    while (CurCallFrame()->ip < (int32_t)CurCallFrame()->GetOpCodes().size() - 1)
+    auto frame = m_CallFrameTop - 1;
+
+    while (frame->ip < (int32_t)frame->GetOpCodes().size() - 1)
     {
-        CurCallFrame()->ip++;
-        int32_t &ip = CurCallFrame()->ip;
-        int32_t instruction = CurCallFrame()->GetOpCodes()[ip];
+        frame = m_CallFrameTop - 1;
+        frame->ip++;
+        int32_t &ip = frame->ip;
+        int32_t instruction = frame->GetOpCodes()[ip];
         switch (instruction)
         {
         case OP_RETURN:
         {
-            auto returnCount = CurCallFrame()->GetOpCodes()[++ip];
+            auto returnCount = frame->GetOpCodes()[++ip];
             Value value;
             if (returnCount == 1)
                 value = Pop();
 
             auto callFrame = PopCallFrame();
+            frame = m_CallFrameTop - 1;
 
             m_StackTop=callFrame->slot-1;
 
@@ -212,7 +216,7 @@ void VM::Execute()
         }
         case OP_CONSTANT:
         {
-            auto idx = CurCallFrame()->GetOpCodes()[++ip];
+            auto idx = frame->GetOpCodes()[++ip];
             auto value = m_Constants[idx];
 
             RegisterToGCRecordChain(value); //the value in constant list maybe not regisiter to the gc chain
@@ -304,7 +308,7 @@ void VM::Execute()
         }
         case OP_ARRAY:
         {
-            auto numElements = CurCallFrame()->GetOpCodes()[++ip];
+            auto numElements = frame->GetOpCodes()[++ip];
             
             m_StackTop -= numElements;
 
@@ -338,7 +342,7 @@ void VM::Execute()
         }
         case OP_JUMP_IF_FALSE:
         {
-            auto address = CurCallFrame()->GetOpCodes()[++ip];
+            auto address = frame->GetOpCodes()[++ip];
             auto value = Pop();
             if (!IS_BOOL_VALUE(value))
                 Assert("The if condition not a boolean value");
@@ -349,13 +353,13 @@ void VM::Execute()
         }
         case OP_JUMP:
         {
-            auto address = CurCallFrame()->GetOpCodes()[++ip];
+            auto address = frame->GetOpCodes()[++ip];
             ip = address;
             break;
         }
         case OP_SET_GLOBAL:
         {
-            auto index = CurCallFrame()->GetOpCodes()[++ip];
+            auto index = frame->GetOpCodes()[++ip];
             auto value = Pop();
             if (IS_REF_VALUE(m_GlobalVariables[index])) //if is a reference object,then set the actual value which the reference object points
                 *TO_REF_VALUE(m_GlobalVariables[index])->pointer = value;
@@ -365,13 +369,13 @@ void VM::Execute()
         }
         case OP_GET_GLOBAL:
         {
-            auto index = CurCallFrame()->GetOpCodes()[++ip];
+            auto index = frame->GetOpCodes()[++ip];
             Push(m_GlobalVariables[index]);
             break;
         }
         case OP_FUNCTION_CALL:
         {
-            auto argCount = CurCallFrame()->GetOpCodes()[++ip];
+            auto argCount = frame->GetOpCodes()[++ip];
 
             auto value = *(m_StackTop-argCount-1);
             if (IS_FUNCTION_VALUE(value))
@@ -410,15 +414,15 @@ void VM::Execute()
         }
         case OP_SET_LOCAL:
         {
-            auto isInUpScope = CurCallFrame()->GetOpCodes()[++ip];
-            auto scopeDepth = CurCallFrame()->GetOpCodes()[++ip];
-            auto index = CurCallFrame()->GetOpCodes()[++ip];
+            auto isInUpScope = frame->GetOpCodes()[++ip];
+            auto scopeDepth = frame->GetOpCodes()[++ip];
+            auto index = frame->GetOpCodes()[++ip];
             auto value = Pop();
 
             Value* slot = nullptr;
 
             if (isInUpScope == 0)
-                slot = CurCallFrame()->slot + index;
+                slot = frame->slot + index;
             else
                 slot = PeekCallFrame(scopeDepth)->slot + index;
 
@@ -430,14 +434,14 @@ void VM::Execute()
         }
         case OP_GET_LOCAL:
         {
-            auto isInUpScope = CurCallFrame()->GetOpCodes()[++ip];
-            auto scopeDepth = CurCallFrame()->GetOpCodes()[++ip];
-            auto index = CurCallFrame()->GetOpCodes()[++ip];
+            auto isInUpScope = frame->GetOpCodes()[++ip];
+            auto scopeDepth = frame->GetOpCodes()[++ip];
+            auto index = frame->GetOpCodes()[++ip];
 
             Value* slot = nullptr;
 
             if (isInUpScope == 0)
-                slot = (CurCallFrame()->slot + index);
+                slot = (frame->slot + index);
             else
                 slot = (PeekCallFrame(scopeDepth)->slot + index);
 
@@ -446,26 +450,26 @@ void VM::Execute()
         }
         case OP_SP_OFFSET:
         {
-            auto offset = CurCallFrame()->GetOpCodes()[++ip];
+            auto offset = frame->GetOpCodes()[++ip];
             m_StackTop+= offset;
             break;
         }
         case OP_GET_BUILTIN:
         {
-            auto idx = CurCallFrame()->GetOpCodes()[++ip];
+            auto idx = frame->GetOpCodes()[++ip];
             auto builtinObj = m_Builtins[idx];
             Push(builtinObj);
             break;
         }
         case OP_GET_CURRENT_FUNCTION:
         {
-            Push(CurCallFrame()->fn);
+            Push(frame->fn);
             break;
         }
         case OP_STRUCT:
         {
             std::unordered_map<std::string, Value> members;
-            auto memberCount = CurCallFrame()->GetOpCodes()[++ip];
+            auto memberCount = frame->GetOpCodes()[++ip];
 
             auto tmpPtr = m_StackTop; //save the locale,to avoid gc system delete the tmp object before finish the struct instance creation
 
@@ -516,20 +520,20 @@ void VM::Execute()
         }
         case OP_REF_GLOBAL:
         {
-            auto index = CurCallFrame()->GetOpCodes()[++ip];
+            auto index = frame->GetOpCodes()[++ip];
             Push(CreateObject<RefObject>(&m_GlobalVariables[index]));
             break;
         }
         case OP_REF_LOCAL:
         {
-            auto isInUpScope = CurCallFrame()->GetOpCodes()[++ip];
-            auto scopeDepth = CurCallFrame()->GetOpCodes()[++ip];
-            auto index = CurCallFrame()->GetOpCodes()[++ip];
+            auto isInUpScope = frame->GetOpCodes()[++ip];
+            auto scopeDepth = frame->GetOpCodes()[++ip];
+            auto index = frame->GetOpCodes()[++ip];
 
             Value* slot = nullptr;
 
             if (isInUpScope == 0)
-                slot = CurCallFrame()->slot + index;
+                slot = frame->slot + index;
             else
                 slot = PeekCallFrame(scopeDepth)->slot + index;
 
@@ -586,10 +590,6 @@ const Value &VM::Pop()
     return *(--m_StackTop);
 }
 
-CallFrame* VM::CurCallFrame()
-{
-    return m_CallFrameTop - 1;
-}
 void VM::PushCallFrame(const CallFrame& callFrame)
 {
     *m_CallFrameTop++ = callFrame;
