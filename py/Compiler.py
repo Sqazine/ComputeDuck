@@ -150,8 +150,6 @@ class Compiler:
 
         self.__EnterScope()
 
-        self.__symbolTable.DefineFunction(stmt.name)
-
         for param in stmt.parameters:
             self.__symbolTable.Define(param.literal)
 
@@ -340,8 +338,6 @@ class Compiler:
 
     def __CompileLambdaExpr(self, expr: LambdaExpr) -> None:
         self.__EnterScope()
-
-        self.__symbolTable.DefineFunction(expr.name)
 
         for param in expr.parameters:
             self.__symbolTable.Define(param.literal)
