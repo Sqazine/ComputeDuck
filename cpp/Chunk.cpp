@@ -163,13 +163,6 @@ void Chunk::OpCodeStringify(const OpCodes &opcodes)
             ++i;
             break;
         }
-    
-        case OP_GET_CURRENT_FUNCTION:
-        {
-            std::cout << std::setfill('0') << std::setw(8) << i << "    "
-                      << "OP_GET_CURRENT_FUNCTION" << std::endl;
-            break;
-        }
         case OP_STRUCT:
         {
             auto memberCount = opcodes[i + 1];
