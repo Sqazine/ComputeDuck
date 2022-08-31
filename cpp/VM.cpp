@@ -128,6 +128,7 @@ void VM::Run(const Chunk &chunk)
 
     auto mainFn = CreateObject<FunctionObject>(chunk.opCodes);
     auto mainCallFrame = CallFrame(mainFn, 0);
+    mainCallFrame.slot = m_StackTop;
 
     m_CallFrames[0] = mainCallFrame;
     m_CallFrameTop = m_CallFrames;
@@ -349,14 +350,14 @@ void VM::Execute()
             if (!IS_BOOL_VALUE(value))
                 Assert("The if condition not a boolean value");
             if (!TO_BOOL_VALUE(value))
-                frame->ip = frame->fn->opCodes.data()+address;
+                frame->ip = frame->fn->opCodes.data()+address+1;
 
             break;
         }
         case OP_JUMP:
         {
             auto address = *frame->ip++;
-            frame->ip = frame->fn->opCodes.data() + address;
+            frame->ip = frame->fn->opCodes.data() + address+1;
             break;
         }
         case OP_SET_GLOBAL:
@@ -461,11 +462,6 @@ void VM::Execute()
             auto idx = *frame->ip++;
             auto builtinObj = m_Builtins[idx];
             Push(builtinObj);
-            break;
-        }
-        case OP_GET_CURRENT_FUNCTION:
-        {
-            Push(frame->fn);
             break;
         }
         case OP_STRUCT:
