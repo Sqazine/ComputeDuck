@@ -168,7 +168,6 @@ void Compiler::CompileFunctionStmt(FunctionStmt *stmt)
 
     EnterScope();
 
-    m_SymbolTable->DefineFunction(stmt->name);
 
     for (const auto &param : stmt->parameters)
         m_SymbolTable->Define(param->literal);
@@ -429,8 +428,6 @@ void Compiler::CompileLambdaExpr(LambdaExpr *expr)
 {
     EnterScope();
 
-    m_SymbolTable->DefineFunction(expr->name);
-
     for (const auto &param : expr->parameters)
         m_SymbolTable->Define(param->literal);
 
@@ -581,9 +578,6 @@ void Compiler::LoadSymbol(const Symbol &symbol)
     case SymbolScope::BUILTIN:
         Emit(OP_GET_BUILTIN);
         Emit(symbol.index);
-        break;
-    case SymbolScope::FUNCTION:
-        Emit(OP_GET_CURRENT_FUNCTION);
         break;
     default:
         break;
