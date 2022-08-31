@@ -6,7 +6,6 @@ enum class SymbolScope
     GLOBAL,
     LOCAL,
     BUILTIN,
-    FUNCTION,
 };
 
 struct Symbol
@@ -73,13 +72,6 @@ struct SymbolTable
     Symbol DefineBuiltin(std::string_view name, int32_t index)
     {
         auto symbol = Symbol(name, SymbolScope::BUILTIN, index, scopeDepth);
-        symbolMaps[name] = symbol;
-        return symbol;
-    }
-
-    Symbol DefineFunction(std::string_view name)
-    {
-        auto symbol = Symbol(name, SymbolScope::FUNCTION, 0, scopeDepth);
         symbolMaps[name] = symbol;
         return symbol;
     }

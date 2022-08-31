@@ -189,11 +189,9 @@ void VM::Execute()
             Assert("Invalid op:" + left.Stringify() + (#op) + right.Stringify());           \
     } while (0);
 
-    auto frame = m_CallFrameTop - 1;
-
     while (1)
     {
-        frame = m_CallFrameTop - 1;
+       auto frame = m_CallFrameTop - 1;
   
         int32_t instruction = *frame->ip++;
         switch (instruction)
