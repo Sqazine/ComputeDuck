@@ -27,13 +27,12 @@ class OpCode(IntEnum):
     OP_FUNCTION_CALL=20,
     OP_RETURN=21,
     OP_GET_BUILTIN=22,
-    OP_GET_CURRENT_FUNCTION=23,
-    OP_STRUCT=24,
-    OP_GET_STRUCT=25,
-    OP_SET_STRUCT=26,
-    OP_REF_GLOBAL=27,
-    OP_REF_LOCAL=28,
-    OP_SP_OFFSET=29,
+    OP_STRUCT=23,
+    OP_GET_STRUCT=24,
+    OP_SET_STRUCT=25,
+    OP_REF_GLOBAL=26,
+    OP_REF_LOCAL=27,
+    OP_SP_OFFSET=28,
 
 class Chunk:
     opCodes:List[int]
@@ -124,8 +123,6 @@ class Chunk:
                 builtinIdx=opcodes[i+1]
                 print("%8d    OP_GET_BUILTIN    %d" % (i,builtinIdx))
                 i=i+1
-            elif opcodes[i]==OpCode.OP_GET_CURRENT_FUNCTION:
-                print("%8d    OP_GET_CURRENT_FUNCTION" % (i))
             elif opcodes[i]==OpCode.OP_STRUCT:
                 memberCount=opcodes[i+1]
                 print("%8d    OP_STRUCT    %d" % (i,memberCount))

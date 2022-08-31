@@ -6,8 +6,6 @@ class SymbolScope(IntEnum):
     GLOBAL = 0,
     LOCAL = 1,
     BUILTIN = 2,
-    UPVALUE = 3,
-    FUNCTION = 4
 
 
 class Symbol:
@@ -58,11 +56,6 @@ class SymbolTable:
 
     def DefineBuiltin(self, name: str, index: int) -> Symbol:
         symbol = Symbol(name, SymbolScope.BUILTIN, index, self.scopeDepth)
-        self.symbolMaps[name] = symbol
-        return symbol
-
-    def DefineFunction(self, name: str) -> Symbol:
-        symbol = Symbol(name, SymbolScope.FUNCTION, 0, self.scopeDepth)
         self.symbolMaps[name] = symbol
         return symbol
 

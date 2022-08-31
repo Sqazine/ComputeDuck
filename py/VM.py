@@ -447,9 +447,6 @@ class VM:
                 builtinObj = self.__builtins[idx]
                 self.__Push(builtinObj)
 
-            elif instruction == OpCode.OP_GET_CURRENT_FUNCTION:
-                self.__Push(self.__curCallFrame.fn)
-
             elif instruction == OpCode.OP_STRUCT:
                 members:dict[str, Object]={}
                 self.__curCallFrame.ip += 1
