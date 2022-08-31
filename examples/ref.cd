@@ -23,5 +23,15 @@ function resetVec2(v)
     v.y=100;
 }
 
+function resetVec2Bigger(v)
+{
+    #reset vec2 value in function
+    v.x=1000;
+    v.y=1000;
+}
+
 resetVec2(ref a);
+println(b);#struct instance: x=100.0 y=100.0
+
+resetVec2Bigger(a);# pass by reference(same as resetVec2Bigger(ref a))
 println(b);#struct instance: x=100.0 y=100.0
