@@ -56,7 +56,6 @@ private:
 	void Push(const Value &value);
 	const Value &Pop();
 
-	void PushCallFrame(const CallFrame& callFrame);
 	CallFrame* PopCallFrame();
 	CallFrame* PeekCallFrame(int32_t distance);
 

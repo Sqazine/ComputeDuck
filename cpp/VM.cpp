@@ -389,7 +389,9 @@ void VM::Execute()
                     Assert("Non matching function parameters for calling arguments,parameter count:" + std::to_string(fn->parameterCount) + ",argument count:" + std::to_string(argCount));
 
                 auto callFrame = CallFrame(fn, m_StackTop - argCount);
-                PushCallFrame(callFrame);
+
+                *m_CallFrameTop++ = callFrame;
+
                 m_StackTop= callFrame.slot + fn->localVarCount;
             }
             else if (IS_BUILTIN_VALUE(value))
@@ -588,10 +590,6 @@ const Value &VM::Pop()
     return *(--m_StackTop);
 }
 
-void VM::PushCallFrame(const CallFrame& callFrame)
-{
-    *m_CallFrameTop++ = callFrame;
-}
 CallFrame* VM::PopCallFrame()
 {
     return --m_CallFrameTop;
