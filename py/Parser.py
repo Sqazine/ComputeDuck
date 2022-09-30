@@ -197,11 +197,6 @@ class Parser:
         if self.IsMatchCurTokenAndStepOnce(TokenType.EQUAL):
             value = self.ParseExpr()
         self.Consume(TokenType.SEMICOLON, "Expect ';' after var stmt")
-
-        if value.Type()==AstType.LAMBDA:
-            value.name=name.literal
-
-
         return VarStmt(name, value)
 
     def ParseReturnStmt(self) -> Stmt:
@@ -387,7 +382,7 @@ class Parser:
 
         self.__isInFunctionOrLambdascope=False
 
-        return LambdaExpr("",parameters,body)
+        return LambdaExpr(parameters,body)
 
 
     def ParseFunctionCallExpr(self, prefixExpr: Expr) -> Expr:
