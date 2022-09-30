@@ -347,12 +347,10 @@ class FunctionStmt(Stmt):
         return AstType.FUNCTION
 
 class LambdaExpr(Expr):
-    name:str
     parameters: list[IdentifierExpr] = []
     body: ScopeStmt = None
 
-    def __init__(self,name=None,parameters=[], body=None) -> None:
-        self.name=name
+    def __init__(self,parameters=[], body=None) -> None:
         self.parameters = parameters
         self.body = body
 

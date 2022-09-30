@@ -134,8 +134,8 @@ class Compiler:
             self.__Emit(0)
 
     def __CompileVarStmt(self, stmt: VarStmt) -> None:
-        self.__CompileExpr(stmt.value)
         symbol = self.__symbolTable.Define(stmt.name.literal)
+        self.__CompileExpr(stmt.value)
         if symbol.scope == SymbolScope.GLOBAL:
             self.__Emit(OpCode.OP_SET_GLOBAL)
         else:
