@@ -149,8 +149,8 @@ void Compiler::CompileReturnStmt(ReturnStmt *stmt)
 
 void Compiler::CompileVarStmt(VarStmt *stmt)
 {
-    CompileExpr(stmt->value);
     Symbol symbol = m_SymbolTable->Define(stmt->name->literal);
+    CompileExpr(stmt->value);
     if (symbol.scope == SymbolScope::GLOBAL)
         Emit(OP_SET_GLOBAL);
     else

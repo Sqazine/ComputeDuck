@@ -119,10 +119,6 @@ Stmt *Parser::ParseVarStmt()
 
 	Consume(TokenType::SEMICOLON, "Expect ';' after var stmt.");
 
-	//set property 'name' to function
-	if (value->Type() == AstType::LAMBDA)
-		((LambdaExpr *)value)->name = name->literal;
-
 	return new VarStmt(name, value);
 }
 
