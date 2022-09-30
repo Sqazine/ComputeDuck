@@ -423,7 +423,7 @@ struct FunctionStmt : public Stmt
 struct LambdaExpr : public Expr
 {
 	LambdaExpr() : body(nullptr) {}
-	LambdaExpr(std::string_view name, std::vector<IdentifierExpr *> parameters, ScopeStmt *body) : name(name), parameters(parameters), body(body) {}
+	LambdaExpr(std::vector<IdentifierExpr *> parameters, ScopeStmt *body) : parameters(parameters), body(body) {}
 	~LambdaExpr()
 	{
 		std::vector<IdentifierExpr *>().swap(parameters);
@@ -447,7 +447,6 @@ struct LambdaExpr : public Expr
 	}
 	AstType Type() override { return AstType::LAMBDA; }
 
-	std::string name;
 	std::vector<IdentifierExpr *> parameters;
 	ScopeStmt *body;
 };
