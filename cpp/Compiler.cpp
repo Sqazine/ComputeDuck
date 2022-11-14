@@ -527,8 +527,6 @@ void Compiler::CompileAnonyStructExpr(AnonyStructExpr *expr)
         EmitConstant(AddConstant(new StrObject(k->literal)));
     }
 
-    auto localVarCount = m_SymbolTable->definitionCount;
-
     Emit(OP_STRUCT);
     Emit((int32_t)expr->memberPairs.size());
 
