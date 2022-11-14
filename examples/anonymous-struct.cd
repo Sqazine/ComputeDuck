@@ -1,0 +1,11 @@
+var a={
+    x:10,
+    y:20
+};
+
+println(a);
+#struct instance:
+#{
+#y:20.000000
+#x:10.000000
+#}

@@ -14,6 +14,7 @@ std::unordered_map<TokenType, PrefixFn> Parser::m_PrefixFunctions =
 		{TokenType::LBRACKET, &Parser::ParseArrayExpr},
 		{TokenType::REF, &Parser::ParseRefExpr},
 		{TokenType::LAMBDA, &Parser::ParseLambdaExpr},
+		{TokenType::LBRACE, &Parser::ParseAnonyStructExpr},
 };
 
 std::unordered_map<TokenType, InfixFn> Parser::m_InfixFunctions =
@@ -391,6 +392,23 @@ Expr *Parser::ParseLambdaExpr()
 
 	return lambdaExpr;
 }
+
+	Expr *Parser::ParseAnonyStructExpr()
+	{
+		std::unordered_map<IdentifierExpr*,Expr*> memPairs;
+		Consume(TokenType::LBRACE,"Expect '{'.");
+		while(!IsMatchCurToken(TokenType::RBRACE))
+		{
+			auto k=(IdentifierExpr*)ParseIdentifierExpr();
+			Consume(TokenType::COLON,"Expect ':'");
+			auto v=ParseExpr();
+			IsMatchCurTokenAndStepOnce(TokenType::COMMA);
+			memPairs[k]=v;
+		}
+
+		Consume(TokenType::RBRACE,"Expect '}'.");
+		return new AnonyStructExpr(memPairs);
+	}
 
 Expr *Parser::ParseFunctionCallExpr(Expr *prefixExpr)
 {

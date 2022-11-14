@@ -59,6 +59,7 @@ private:
 	Expr *ParsePrefixExpr();
 	Expr *ParseRefExpr();
 	Expr *ParseLambdaExpr();
+	Expr *ParseAnonyStructExpr();
 	Expr *ParseInfixExpr(Expr *prefixExpr);
 	Expr *ParseIndexExpr(Expr *prefixExpr);
 	Expr *ParseFunctionCallExpr(Expr *prefixExpr);
