@@ -2,7 +2,7 @@ from enum import IntEnum
 from typing import List
 from Utils import Assert
 from Ast import Stmt
-from Ast import ArrayExpr, BoolExpr, Expr, ExprStmt, FunctionCallExpr, FunctionStmt, GroupExpr, IdentifierExpr, IfStmt, IndexExpr, InfixExpr, NilExpr, NumExpr, PrefixExpr, ReturnStmt, ScopeStmt, StrExpr, StructCallExpr, StructStmt, VarStmt, WhileStmt, RefExpr, LambdaExpr
+from Ast import ArrayExpr, BoolExpr, Expr, ExprStmt, FunctionCallExpr, FunctionStmt, GroupExpr, IdentifierExpr, IfStmt, IndexExpr, InfixExpr, NilExpr, NumExpr, PrefixExpr, ReturnStmt, ScopeStmt, StrExpr, StructCallExpr, StructStmt, VarStmt, WhileStmt, RefExpr, LambdaExpr,AnonyStructExpr
 from SymbolTable import SymbolTable, Symbol
 from Chunk import Chunk
 from Object import Object
@@ -239,6 +239,8 @@ class Compiler:
             self.__CompileRefExpr(expr)
         elif expr.Type() == AstType.LAMBDA:
             self.__CompileLambdaExpr(expr)
+        elif expr.Type()==AstType.ANONY_STRUCT:
+            self.__CompileAnonyStructExpr(expr)
 
     def __CompileInfixExpr(self, expr: InfixExpr) -> None:
         if expr.op == "=":
@@ -356,6 +358,20 @@ class Compiler:
         fn = FunctionObject(opCodes, localVarCount, len(expr.parameters))
 
         self.__EmitConstant(self.__AddConstant(fn))
+
+    def __CompileAnonyStructExpr(self,expr:AnonyStructExpr)->None:
+        self.__EnterScope()
+
+        for k,v in expr.memberPairs.items():
+            self.__CompileExpr(v)
+            self.__EmitConstant(self.__AddConstant(StrObject(k.literal)))
+
+        self.__Emit(OpCode.OP_STRUCT)
+        self.__Emit(len(expr.memberPairs))
+
+        opCodes=self.__ExitScope()
+
+        self.__CurOpCodes().extend(opCodes)
 
     def __CompileFunctionCallExpr(self, expr: FunctionCallExpr) -> None:
         self.__CompileExpr(expr.name)

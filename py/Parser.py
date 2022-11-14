@@ -7,7 +7,7 @@ from Ast import Expr
 
 from Token import Token, TokenType
 from Utils import Assert
-from Ast import AstType, ArrayExpr, BoolExpr, ExprStmt, FunctionCallExpr, FunctionStmt, GroupExpr, IdentifierExpr, IfStmt, IndexExpr, InfixExpr, NilExpr, NumExpr, PrefixExpr, ReturnStmt, ScopeStmt, StrExpr, StructCallExpr, StructStmt, VarStmt, WhileStmt, RefExpr,LambdaExpr
+from Ast import AstType, ArrayExpr, BoolExpr, ExprStmt, FunctionCallExpr, FunctionStmt, GroupExpr, IdentifierExpr, IfStmt, IndexExpr, InfixExpr, NilExpr, NumExpr, PrefixExpr, ReturnStmt, ScopeStmt, StrExpr, StructCallExpr, StructStmt, VarStmt, WhileStmt, RefExpr,LambdaExpr,AnonyStructExpr
 from SemanticAnalyzer import SemanticAnalyzer
 
 
@@ -56,7 +56,7 @@ class Parser:
             TokenType.LBRACKET: self.ParseArrayExpr,
             TokenType.REF:self.ParseRefExpr,
             TokenType.LAMBDA:self.ParseLambdaExpr,
-
+            TokenType.LBRACE:self.ParseAnonyStructExpr,
         }
 
         self.__infixFunctions = {
@@ -384,6 +384,18 @@ class Parser:
 
         return LambdaExpr(parameters,body)
 
+    def ParseAnonyStructExpr(self)->Expr:
+        memPairs:dict[IdentifierExpr,Expr]={}
+        self.Consume(TokenType.LBRACE,"Expect '{'.")
+        while not self.IsMatchCurToken(TokenType.RBRACE):
+            k=self.ParseIdentifierExpr()
+            self.Consume(TokenType.COLON,"Expect ':'")
+            v=self.ParseExpr()
+            self.IsMatchCurTokenAndStepOnce(TokenType.COMMA)
+            memPairs[k]=v
+
+        self.Consume(TokenType.RBRACE,"Expect '}'.")
+        return AnonyStructExpr(memPairs)
 
     def ParseFunctionCallExpr(self, prefixExpr: Expr) -> Expr:
         funcCallExpr = FunctionCallExpr("", [])

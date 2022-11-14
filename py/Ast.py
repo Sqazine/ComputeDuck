@@ -17,17 +17,18 @@ class AstType(IntEnum):
     INDEX = 9,
     REF=10,
     LAMBDA=11,
-    FUNCTION_CALL = 12,
-    STRUCT_CALL = 13,
+    ANONY_STRUCT=12,
+    FUNCTION_CALL = 13,
+    STRUCT_CALL = 14,
     #stmt
-    VAR = 14,
-    EXPR = 15,
-    RETURN = 16,
-    IF = 17,
-    SCOPE = 18,
-    FUNCTION = 19,
-    WHILE = 20,
-    STRUCT = 21,
+    VAR = 15,
+    EXPR = 16,
+    RETURN = 17,
+    IF = 18,
+    SCOPE = 19,
+    FUNCTION = 20,
+    WHILE = 21,
+    STRUCT = 22,
 
 
 class AstNode:
@@ -366,6 +367,22 @@ class LambdaExpr(Expr):
 
     def Type(self) -> AstType:
         return AstType.LAMBDA
+
+class AnonyStructExpr(Expr):
+    memberPairs: dict[IdentifierExpr,Expr] = {}
+    
+    def __init__(self,memberPairs=[]) -> None:
+        self.memberPairs = memberPairs
+
+    def Stringify(self) -> str:
+        result = "{"
+        for k,v in self.memberPairs.items():
+            result += k.Stringify()+":"+v.Stringify()+",\n"
+        result += "}"
+        return result
+
+    def Type(self) -> AstType:
+        return AstType.ANONY_STRUCT
 
 class WhileStmt(Stmt):
     condition: Expr = None

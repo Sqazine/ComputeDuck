@@ -1,7 +1,7 @@
 from typing import List
 from Ast import IfStmt, Stmt
 from Ast import ExprStmt, FunctionStmt, ReturnStmt, ScopeStmt, StructStmt, VarStmt, WhileStmt
-from Ast import ArrayExpr, AstType, BoolExpr, Expr, FunctionCallExpr, GroupExpr, IdentifierExpr, IndexExpr, InfixExpr, LambdaExpr, NilExpr, NumExpr, PrefixExpr, RefExpr, StrExpr, StructCallExpr
+from Ast import ArrayExpr, AstType, BoolExpr, Expr, FunctionCallExpr, GroupExpr, IdentifierExpr, IndexExpr, InfixExpr, LambdaExpr, NilExpr, NumExpr, PrefixExpr, RefExpr, StrExpr, StructCallExpr,AnonyStructExpr
 
 
 class SemanticAnalyzer:
@@ -104,6 +104,8 @@ class SemanticAnalyzer:
             return self.__AnalyzeRefExpr(expr)
         elif expr.Type() == AstType.LAMBDA:
             return self.__AnalyzeLambdaExpr(expr)
+        elif expr.Type()==AstType.ANONY_STRUCT:
+            return self.__AnalyzeAnonyStructExpr(expr)
 
     def __AnalyzeInfixExpr(self, expr: InfixExpr) -> Expr:
         expr.left = self.__AnalyzeExpr(expr.left)
@@ -146,6 +148,11 @@ class SemanticAnalyzer:
         for e in expr.parameters:
             e = self.__AnalyzeIdentifierExpr(e)
         expr.body = self.__AnalyzeScopeStmt(expr.body)
+        return expr
+
+    def __AnalyzeAnonyStructExpr(self,expr:AnonyStructExpr)->Expr:
+        for k,v in expr.memberPairs.items():
+            v=self.__AnalyzeExpr(v)
         return expr
 
     def __AnalyzeFunctionCallExpr(self, expr: FunctionCallExpr) -> Expr:
