@@ -12,7 +12,7 @@
 #define IS_REF_VALUE(v) (IS_OBJECT_VALUE(v)&&IS_REF_OBJ(v.object))
 #define IS_FUNCTION_VALUE(v) (IS_OBJECT_VALUE(v)&&IS_FUNCTION_OBJ(v.object))
 #define IS_BUILTIN_VALUE(v) (IS_OBJECT_VALUE(v)&&IS_BUILTIN_OBJ(v.object))
-#define IS_STRUCT_INSTANCE_VALUE(v) (IS_OBJECT_VALUE(v)&&IS_STRUCT_INSTANCE_OBJ(v.object))
+#define IS_STRUCT_VALUE(v) (IS_OBJECT_VALUE(v)&&IS_STRUCT_OBJ(v.object))
 
 #define TO_NUM_VALUE(v) (v.number)
 #define TO_BOOL_VALUE(v) (v.boolean)
@@ -23,7 +23,7 @@
 #define TO_REF_VALUE(v) (TO_REF_OBJ(v.object))
 #define TO_FUNCTION_VALUE(v) (TO_FUNCTION_OBJ(v.object))
 #define TO_BUILTIN_VALUE(v) (TO_BUILTIN_OBJ(v.object))
-#define TO_STRUCT_INSTANCE_VALUE(v) (TO_STRUCT_INSTANCE_OBJ(v.object))
+#define TO_STRUCT_VALUE(v) (TO_STRUCT_OBJ(v.object))
 
 enum class ValueType
 {

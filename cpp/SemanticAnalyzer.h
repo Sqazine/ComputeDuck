@@ -35,6 +35,7 @@ private:
     Expr* AnalyzeFunctionCallExpr(FunctionCallExpr *expr);
     Expr* AnalyzeStructCallExpr(StructCallExpr *expr);
     Expr* AnalyzeRefExpr(RefExpr *expr);
+    Expr* AnalyzeAnonyStructExpr(AnonyStructExpr *expr);
 
     Expr *ConstantFold(Expr *expr);
 };

@@ -127,6 +127,8 @@ Expr *SemanticAnalyzer::AnalyzeExpr(Expr *expr)
         return AnalyzeRefExpr((RefExpr *)expr);
     case AstType::LAMBDA:
         return AnalyzeLambdaExpr((LambdaExpr *)expr);
+    case AstType::ANONY_STRUCT:
+        return AnalyzeAnonyStructExpr((AnonyStructExpr*)expr);
     default:
         return nullptr;
     }
@@ -204,6 +206,13 @@ Expr *SemanticAnalyzer::AnalyzeRefExpr(RefExpr *expr)
     expr->refExpr = (IdentifierExpr *)AnalyzeExpr(expr->refExpr);
     return expr;
 }
+
+    Expr* SemanticAnalyzer::AnalyzeAnonyStructExpr(AnonyStructExpr *expr)
+    {
+        for(auto& [k,v]:expr->memberPairs)
+            v=AnalyzeExpr(v);
+        return expr;
+    }
 
 Expr *SemanticAnalyzer::ConstantFold(Expr *expr)
 {

@@ -20,6 +20,7 @@ enum class AstType
 	INDEX,
 	REF,
 	LAMBDA,
+	ANONY_STRUCT,
 	FUNCTION_CALL,
 	STRUCT_CALL,
 	//stmt
@@ -449,6 +450,24 @@ struct LambdaExpr : public Expr
 
 	std::vector<IdentifierExpr *> parameters;
 	ScopeStmt *body;
+};
+
+struct AnonyStructExpr : public Expr
+{
+	AnonyStructExpr(const std::unordered_map<IdentifierExpr*,Expr*>& memberPairs) : memberPairs(memberPairs) {}
+	~AnonyStructExpr(){}
+
+	std::string Stringify() override
+	{
+		std::string result = "{";
+		for (const auto& [k,v] : memberPairs)
+			result += k->Stringify() + ":"+v->Stringify()+",\n";
+		result += "}";
+		return result;
+	}
+	AstType Type() override { return AstType::ANONY_STRUCT; }
+
+	std::unordered_map<IdentifierExpr*,Expr*> memberPairs; 
 };
 
 struct WhileStmt : public Stmt

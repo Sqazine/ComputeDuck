@@ -9,14 +9,14 @@
 
 #define TO_STR_OBJ(obj) ((StrObject *)obj)
 #define TO_ARRAY_OBJ(obj) ((ArrayObject *)obj)
-#define TO_STRUCT_INSTANCE_OBJ(obj) ((StructInstanceObject *)obj)
+#define TO_STRUCT_OBJ(obj) ((StructObject *)obj)
 #define TO_REF_OBJ(obj) ((RefObject *)obj)
 #define TO_FUNCTION_OBJ(obj) ((FunctionObject *)obj)
 #define TO_BUILTIN_OBJ(obj) ((BuiltinObject *)obj)
 
 #define IS_STR_OBJ(obj) (obj->Type() == ObjectType::STR)
 #define IS_ARRAY_OBJ(obj) (obj->Type() == ObjectType::ARRAY)
-#define IS_STRUCT_INSTANCE_OBJ(obj) (obj->Type() == ObjectType::STRUCT_INSTANCE)
+#define IS_STRUCT_OBJ(obj) (obj->Type() == ObjectType::STRUCT)
 #define IS_REF_OBJ(obj) (obj->Type() == ObjectType::REF)
 #define IS_FUNCTION_OBJ(obj) (obj->Type() == ObjectType::FUNCTION)
 #define IS_BUILTIN_OBJ(obj) (obj->Type() == ObjectType::BUILTIN)
@@ -25,7 +25,7 @@ enum class ObjectType
 {
 	STR,
 	ARRAY,
-	STRUCT_INSTANCE,
+	STRUCT,
 	REF,
 	FUNCTION,
 	BUILTIN,
@@ -219,10 +219,10 @@ struct BuiltinObject : public Object
 	BuiltinFn fn;
 };
 
-struct StructInstanceObject : public Object
+struct StructObject : public Object
 {
-	StructInstanceObject(const std::unordered_map<std::string, Value> &members) : members(members) {}
-	~StructInstanceObject() {}
+	StructObject(const std::unordered_map<std::string, Value> &members) : members(members) {}
+	~StructObject() {}
 
 	std::string Stringify() override
 	{
@@ -233,7 +233,7 @@ struct StructInstanceObject : public Object
 		result+="\n}\n";
 		return result;
 	}
-	ObjectType Type() override { return ObjectType::STRUCT_INSTANCE; }
+	ObjectType Type() override { return ObjectType::STRUCT; }
 	void Mark() override
 	{
 		marked = true;
@@ -248,13 +248,13 @@ struct StructInstanceObject : public Object
 	}
 	bool IsEqualTo(Object *other) override
 	{
-		if (!IS_STRUCT_INSTANCE_OBJ(other))
+		if (!IS_STRUCT_OBJ(other))
 			return false;
 
 		for (const auto &[k1, v1] : members)
 		{
-			auto iter = TO_STRUCT_INSTANCE_OBJ(other)->members.find(k1);
-			if (iter == TO_STRUCT_INSTANCE_OBJ(other)->members.end())
+			auto iter = TO_STRUCT_OBJ(other)->members.find(k1);
+			if (iter == TO_STRUCT_OBJ(other)->members.end())
 				return false;
 		}
 		return true;

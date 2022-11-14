@@ -47,6 +47,7 @@ private:
     void CompileFunctionCallExpr(FunctionCallExpr *expr);
     void CompileStructCallExpr(StructCallExpr *expr,const RWState& state=RWState::READ);
     void CompileRefExpr(RefExpr* expr);
+    void CompileAnonyStructExpr(AnonyStructExpr* expr);
 
     void EnterScope();
     OpCodes ExitScope();

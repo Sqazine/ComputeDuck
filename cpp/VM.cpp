@@ -480,7 +480,7 @@ void VM::Execute()
                 members[name] = value;
             }
 
-            auto structInstance = CreateObject<StructInstanceObject>(members);
+            auto structInstance = CreateObject<StructObject>(members);
             m_StackTop = tmpPtr; //recover the locale
             Push(structInstance);
             break;
@@ -491,7 +491,7 @@ void VM::Execute()
             auto instance = Pop();
             if (IS_REF_VALUE(instance))
                 instance = *TO_REF_VALUE(instance)->pointer;
-            auto structInstance = TO_STRUCT_INSTANCE_VALUE(instance);
+            auto structInstance = TO_STRUCT_VALUE(instance);
             if (IS_STR_VALUE(memberName))
             {
                 auto iter = structInstance->members.find(TO_STR_VALUE(memberName)->value);
@@ -507,7 +507,7 @@ void VM::Execute()
             auto instance = Pop();
             if (IS_REF_VALUE(instance))
                 instance = *TO_REF_VALUE(instance)->pointer;
-            auto structInstance = TO_STRUCT_INSTANCE_VALUE(instance);
+            auto structInstance = TO_STRUCT_VALUE(instance);
             auto value = Pop();
             if (IS_STR_VALUE(memberName))
             {

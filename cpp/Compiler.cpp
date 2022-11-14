@@ -168,7 +168,6 @@ void Compiler::CompileFunctionStmt(FunctionStmt *stmt)
 
     EnterScope();
 
-
     for (const auto &param : stmt->parameters)
         m_SymbolTable->Define(param->literal);
 
@@ -281,6 +280,9 @@ void Compiler::CompileExpr(Expr *expr, const RWState &state)
         break;
     case AstType::LAMBDA:
         CompileLambdaExpr((LambdaExpr *)expr);
+        break;
+    case AstType::ANONY_STRUCT:
+        CompileAnonyStructExpr((AnonyStructExpr *)expr);
         break;
     default:
         break;
@@ -513,6 +515,26 @@ void Compiler::CompileRefExpr(RefExpr *expr)
     default:
         break;
     }
+}
+
+void Compiler::CompileAnonyStructExpr(AnonyStructExpr *expr)
+{
+    EnterScope();
+
+    for (const auto &[k, v] : expr->memberPairs)
+    {
+        CompileExpr(v);
+        EmitConstant(AddConstant(new StrObject(k->literal)));
+    }
+
+    auto localVarCount = m_SymbolTable->definitionCount;
+
+    Emit(OP_STRUCT);
+    Emit((int32_t)expr->memberPairs.size());
+
+    auto opCodes = ExitScope();
+
+    CurOpCodes().insert(CurOpCodes().end(), opCodes.begin(), opCodes.end());
 }
 
 void Compiler::EnterScope()
