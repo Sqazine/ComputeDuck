@@ -1,0 +1,14 @@
+function fib(x,pre,cur)
+{
+    if(x==0)
+        return pre;
+    else if(x==1)
+        return cur;
+    else 
+        return fib(x-1,cur,pre+cur);
+}
+var start=clock();
+var a=fib(35,0,1);
+println(a);# 9227465
+var end=clock();
+println(end-start);
