@@ -5,18 +5,19 @@ enum class SymbolScope
 {
     GLOBAL,
     LOCAL,
-    BUILTIN,
+    BUILTIN_FUNCTION,
+    BUILTIN_VARIABLE,
 };
 
 struct Symbol
 {
     Symbol()
-        : scope(SymbolScope::GLOBAL), index(0), scopeDepth(0),isInUpScope(0)
+        : scope(SymbolScope::GLOBAL), index(0), scopeDepth(0), isInUpScope(0)
     {
     }
 
     Symbol(std::string_view name, const SymbolScope &scope, int32_t index, int32_t scopeDepth = 0, bool isStructSymbol = false)
-        : name(name), scope(scope), index(index), isStructSymbol(isStructSymbol), scopeDepth(scopeDepth),isInUpScope(0)
+        : name(name), scope(scope), index(index), isStructSymbol(isStructSymbol), scopeDepth(scopeDepth), isInUpScope(0)
     {
     }
 
@@ -69,9 +70,16 @@ struct SymbolTable
         return symbol;
     }
 
-    Symbol DefineBuiltin(std::string_view name, int32_t index)
+    Symbol DefineBuiltinFunction(std::string_view name, int32_t index)
     {
-        auto symbol = Symbol(name, SymbolScope::BUILTIN, index, scopeDepth);
+        auto symbol = Symbol(name, SymbolScope::BUILTIN_FUNCTION, index, scopeDepth);
+        symbolMaps[name] = symbol;
+        return symbol;
+    }
+
+    Symbol DefineBuiltinVariable(std::string_view name, int32_t index)
+    {
+        auto symbol = Symbol(name, SymbolScope::BUILTIN_VARIABLE, index, scopeDepth);
         symbolMaps[name] = symbol;
         return symbol;
     }
@@ -89,11 +97,11 @@ struct SymbolTable
             bool isFound = enclosing->Resolve(name, symbol);
             if (!isFound)
                 return false;
-            if (symbol.scope == SymbolScope::GLOBAL || symbol.scope == SymbolScope::BUILTIN)
+            if (symbol.scope == SymbolScope::GLOBAL || symbol.scope == SymbolScope::BUILTIN_FUNCTION || symbol.scope == SymbolScope::BUILTIN_VARIABLE)
                 return true;
-                
-            symbol.isInUpScope=1;
-            
+
+            symbol.isInUpScope = 1;
+
             symbolMaps[symbol.name] = symbol;
             return true;
         }

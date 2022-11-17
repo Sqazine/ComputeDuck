@@ -69,21 +69,21 @@ private:
 	CallFrame* m_CallFrameTop;
 	CallFrame m_CallFrames[STACK_MAX];
 
-	Object *firstObject;
-	int curObjCount;
-	int maxObjCount;
+	Object *m_FirstObject;
+	int m_CurObjCount;
+	int m_MaxObjCount;
 };
 
 template <class T, typename... Args>
 inline T *VM::CreateObject(Args &&...params)
 {
-	if (curObjCount >= maxObjCount)
+	if (m_CurObjCount >= m_MaxObjCount)
 		Gc();
 
 	T *object = new T(std::forward<Args>(params)...);
 	object->marked = false;
-	object->next = firstObject;
-	firstObject = object;
-	curObjCount++;
+	object->next = m_FirstObject;
+	m_FirstObject = object;
+	m_CurObjCount++;
 	return object;
 }

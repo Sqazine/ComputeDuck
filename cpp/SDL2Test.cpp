@@ -5,14 +5,16 @@
 #include "Parser.h"
 #include "Compiler.h"
 #include "VM.h"
-#include "BuiltinFunctionManager.h"
+#include "BuiltinManager.h"
 
 #undef main
 int main(int argc, char **argv)
 {
-    BuiltinFunctionManager::Init();
+    BuiltinManager::Init();
 
-    BuiltinFunctionManager::Register("SDL_Init", [&](const std::vector<Value> &args, Value &result) -> bool
+    BuiltinManager::RegisterVariable("SDL_WINDOWPOS_CENTERED", Value((double)SDL_WINDOWPOS_CENTERED));
+
+    BuiltinManager::RegisterFunction("SDL_Init", [&](const std::vector<Value> &args, Value &result) -> bool
                                      {
                                          auto ret = SDL_Init(SDL_INIT_EVERYTHING);
 
@@ -21,11 +23,11 @@ int main(int argc, char **argv)
                                          return true;
                                      });
 
-    BuiltinFunctionManager::Register("SDL_CreateWindow", [&](const std::vector<Value> &args, Value &result) -> bool
+    BuiltinManager::RegisterFunction("SDL_CreateWindow", [&](const std::vector<Value> &args, Value &result) -> bool
                                      {
                                          BuiltinDataObject *builtinData = new BuiltinDataObject();
 
-                                         auto window = SDL_CreateWindow(TO_STR_VALUE(args[0])->value.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, TO_NUM_VALUE(args[1]), TO_NUM_VALUE(args[2]), SDL_WINDOW_ALLOW_HIGHDPI);
+                                         auto window = SDL_CreateWindow(TO_STR_VALUE(args[0])->value.c_str(), (int)TO_NUM_VALUE(TO_BUILTIN_VARIABLE_VALUE(args[1])->value), (int)TO_NUM_VALUE(TO_BUILTIN_VARIABLE_VALUE(args[2])->value), TO_NUM_VALUE(args[3]), TO_NUM_VALUE(args[4]), SDL_WINDOW_ALLOW_HIGHDPI);
 
                                          builtinData->nativeData = (void *)window;
 
@@ -42,7 +44,7 @@ int main(int argc, char **argv)
     std::string content = {"var ok=SDL_Init();\n"
                            "if(ok<0)\n"
                            "println(\"Failed to init sdl2!\");\n"
-                           "var window=SDL_CreateWindow(\"First Window\",800,600);"
+                           "var window=SDL_CreateWindow(\"First Window\",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,800,600);"
                            "while(true)\n"
                            "{\n"
                            "}\n"};
@@ -70,7 +72,7 @@ int main(int argc, char **argv)
 
     vm.Run(chunk);
 
-    BuiltinFunctionManager::Release();
+    BuiltinManager::Release();
 
     return 0;
 }
