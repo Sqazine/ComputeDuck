@@ -597,7 +597,7 @@ void Compiler::LoadSymbol(const Symbol &symbol)
         Emit(symbol.index);
         break;
     case SymbolScope::BUILTIN:
-        Emit(OP_GET_BUILTIN);
+        Emit(OP_GET_BUILTIN_FUNCTION);
         Emit(symbol.index);
         break;
     default:

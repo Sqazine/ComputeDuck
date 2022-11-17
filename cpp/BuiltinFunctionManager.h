@@ -16,6 +16,6 @@ private:
     friend class VM;
     friend class Compiler;
 
-    static std::vector<BuiltinObject *> m_Builtins;
+    static std::vector<BuiltinFunctionObject *> m_Builtins;
     static std::vector<std::string> m_BuiltinIdx;
 };
