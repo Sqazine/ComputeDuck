@@ -4,10 +4,14 @@
 #include "Parser.h"
 #include "Compiler.h"
 #include "VM.h"
+#include "BuiltinFunctionManager.h"
 
 void Repl()
 {
 	std::string line;
+
+	BuiltinFunctionManager::Init();
+
 	Lexer lexer;
 	Parser parser;
 	Compiler compiler;
@@ -22,12 +26,12 @@ void Repl()
 		{
 			auto tokens = lexer.GenerateTokens(line);
 
-			for (const auto& token : tokens)
+			for (const auto &token : tokens)
 				std::cout << token << std::endl;
 
 			auto stmts = parser.Parse(tokens);
 
-			for (const auto& stmt : stmts)
+			for (const auto &stmt : stmts)
 				std::cout << stmt->Stringify() << std::endl;
 
 			auto chunk = compiler.Compile(stmts);
@@ -38,11 +42,16 @@ void Repl()
 		}
 		std::cout << "> ";
 	}
+
+	BuiltinFunctionManager::Release();
 }
 
 void RunFile(std::string path)
 {
 	std::string content = ReadFile(path);
+
+	BuiltinFunctionManager::Init();
+
 	Lexer lexer;
 	Parser parser;
 	Compiler compiler;
@@ -50,14 +59,14 @@ void RunFile(std::string path)
 
 	auto tokens = lexer.GenerateTokens(content);
 
-	for (const auto& token : tokens)
+	for (const auto &token : tokens)
 		std::cout << token << std::endl;
 
 	auto stmt = parser.Parse(tokens);
 
 	auto stmts = parser.Parse(tokens);
 
-	for (const auto& stmt : stmts)
+	for (const auto &stmt : stmts)
 		std::cout << stmt->Stringify() << std::endl;
 
 	auto chunk = compiler.Compile(stmts);
@@ -65,9 +74,11 @@ void RunFile(std::string path)
 	chunk.Stringify();
 
 	vm.Run(chunk);
+
+	BuiltinFunctionManager::Release();
 }
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
 	if (argc == 2)
 		RunFile(argv[1]);

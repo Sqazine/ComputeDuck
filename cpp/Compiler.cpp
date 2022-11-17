@@ -1,5 +1,6 @@
 #include "Compiler.h"
 #include "Object.h"
+#include "BuiltinFunctionManager.h"
 Compiler::Compiler()
     : m_SymbolTable(nullptr)
 {
@@ -35,8 +36,8 @@ void Compiler::ResetStatus()
         delete m_SymbolTable;
     m_SymbolTable = new SymbolTable();
 
-    for (int32_t i = 0; i < m_BuiltinFnIndex.size(); ++i)
-        m_SymbolTable->DefineBuiltin(m_BuiltinFnIndex[i], i);
+    for (int32_t i = 0; i < BuiltinFunctionManager::m_BuiltinIdx.size(); ++i)
+        m_SymbolTable->DefineBuiltin(BuiltinFunctionManager::m_BuiltinIdx[i], i);
 }
 
 void Compiler::CompileStmt(Stmt *stmt)

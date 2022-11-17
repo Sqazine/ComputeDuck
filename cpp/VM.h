@@ -72,8 +72,6 @@ private:
 	Object *firstObject;
 	int curObjCount;
 	int maxObjCount;
-
-	std::vector<BuiltinObject *> m_Builtins;
 };
 
 template <class T, typename... Args>
