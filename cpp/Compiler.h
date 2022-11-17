@@ -70,6 +70,4 @@ private:
     int32_t m_ScopeIndex;
 
     SymbolTable *m_SymbolTable;
-
-    const std::vector<std::string> m_BuiltinFnIndex{"print", "println", "sizeof", "insert", "erase","clock"};
 };
