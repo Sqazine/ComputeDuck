@@ -7,7 +7,7 @@ VM::VM()
 }
 VM::~VM()
 {
-    m_StackTop=m_ValueStack;
+    m_StackTop = m_ValueStack;
     Gc(true);
 }
 
@@ -81,8 +81,8 @@ void VM::Execute()
 
     while (1)
     {
-       auto frame = m_CallFrameTop - 1;
-  
+        auto frame = m_CallFrameTop - 1;
+
         int32_t instruction = *frame->ip++;
         switch (instruction)
         {
@@ -95,13 +95,12 @@ void VM::Execute()
 
             auto callFrame = PopCallFrame();
 
-
             if (m_CallFrameTop == m_CallFrames)
                 return;
 
             frame = m_CallFrameTop - 1;
 
-            m_StackTop=callFrame->slot-1;
+            m_StackTop = callFrame->slot - 1;
 
             Push(value);
             break;
@@ -201,13 +200,13 @@ void VM::Execute()
         case OP_ARRAY:
         {
             auto numElements = *frame->ip++;
-            
+
             m_StackTop -= numElements;
 
             auto elements = std::vector<Value>(numElements);
 
-            int32_t i=0;
-            for (Value* p=m_StackTop; p<m_StackTop+numElements&&i<numElements; ++p,++i)
+            int32_t i = 0;
+            for (Value *p = m_StackTop; p < m_StackTop + numElements && i < numElements; ++p, ++i)
                 elements[i] = *p;
             auto array = CreateObject<ArrayObject>(elements);
 
@@ -239,14 +238,14 @@ void VM::Execute()
             if (!IS_BOOL_VALUE(value))
                 Assert("The if condition not a boolean value");
             if (!TO_BOOL_VALUE(value))
-                frame->ip = frame->fn->opCodes.data()+address+1;
+                frame->ip = frame->fn->opCodes.data() + address + 1;
 
             break;
         }
         case OP_JUMP:
         {
             auto address = *frame->ip++;
-            frame->ip = frame->fn->opCodes.data() + address+1;
+            frame->ip = frame->fn->opCodes.data() + address + 1;
             break;
         }
         case OP_SET_GLOBAL:
@@ -269,7 +268,7 @@ void VM::Execute()
         {
             auto argCount = *frame->ip++;
 
-            auto value = *(m_StackTop-argCount-1);
+            auto value = *(m_StackTop - argCount - 1);
             if (IS_FUNCTION_VALUE(value))
             {
                 auto fn = TO_FUNCTION_VALUE(value);
@@ -281,25 +280,27 @@ void VM::Execute()
 
                 *m_CallFrameTop++ = callFrame;
 
-                m_StackTop= callFrame.slot + fn->localVarCount;
+                m_StackTop = callFrame.slot + fn->localVarCount;
             }
-            else if (IS_BUILTIN_VALUE(value))
+            else if (IS_BUILTIN_FUNCTION_VALUE(value))
             {
-                auto builtin = TO_BUILTIN_VALUE(value);
+                auto builtin = TO_BUILTIN_FUNCTION_VALUE(value);
 
                 std::vector<Value> args(argCount);
 
-                int32_t j=0;
-                for (Value* slot = m_StackTop - argCount;  slot<m_StackTop && j < argCount; ++slot, ++j)
+                int32_t j = 0;
+                for (Value *slot = m_StackTop - argCount; slot < m_StackTop && j < argCount; ++slot, ++j)
                     args[j] = *slot;
 
-                m_StackTop-=(argCount+1);
-
+                m_StackTop -= (argCount + 1);
 
                 Value returnValue;
                 bool hasReturnValue = builtin->fn(args, returnValue);
                 if (hasReturnValue)
+                {
+                    RegisterToGCRecordChain(returnValue);
                     Push(returnValue);
+                }
             }
             else
                 Assert("Calling not a function or a builtinFn");
@@ -313,7 +314,7 @@ void VM::Execute()
             auto index = *frame->ip++;
             auto value = Pop();
 
-            Value* slot = nullptr;
+            Value *slot = nullptr;
 
             if (isInUpScope == 0)
                 slot = frame->slot + index;
@@ -332,7 +333,7 @@ void VM::Execute()
             auto scopeDepth = *frame->ip++;
             auto index = *frame->ip++;
 
-            Value* slot = nullptr;
+            Value *slot = nullptr;
 
             if (isInUpScope == 0)
                 slot = (frame->slot + index);
@@ -345,13 +346,13 @@ void VM::Execute()
         case OP_SP_OFFSET:
         {
             auto offset = *frame->ip++;
-            m_StackTop+= offset;
+            m_StackTop += offset;
             break;
         }
-        case OP_GET_BUILTIN:
+        case OP_GET_BUILTIN_FUNCTION:
         {
             auto idx = *frame->ip++;
-            auto builtinObj =BuiltinFunctionManager::m_Builtins[idx];
+            auto builtinObj = BuiltinFunctionManager::m_Builtins[idx];
             Push(builtinObj);
             break;
         }
@@ -419,7 +420,7 @@ void VM::Execute()
             auto scopeDepth = *frame->ip++;
             auto index = *frame->ip++;
 
-            Value* slot = nullptr;
+            Value *slot = nullptr;
 
             if (isInUpScope == 0)
                 slot = frame->slot + index;
@@ -454,7 +455,7 @@ void VM::RegisterToGCRecordChain(const Value &value)
 
 void VM::ResetStatus()
 {
-    m_StackTop=m_ValueStack;
+    m_StackTop = m_ValueStack;
     firstObject = nullptr;
     curObjCount = 0;
     maxObjCount = INITIAL_GC_THRESHOLD;
@@ -471,7 +472,7 @@ void VM::ResetStatus()
 
 void VM::Push(const Value &value)
 {
-    *m_StackTop++= value;
+    *m_StackTop++ = value;
 }
 
 const Value &VM::Pop()
@@ -479,12 +480,12 @@ const Value &VM::Pop()
     return *(--m_StackTop);
 }
 
-CallFrame* VM::PopCallFrame()
+CallFrame *VM::PopCallFrame()
 {
     return --m_CallFrameTop;
 }
 
-CallFrame* VM::PeekCallFrame(int32_t distance)
+CallFrame *VM::PeekCallFrame(int32_t distance)
 {
     return m_CallFrameTop - distance;
 }
@@ -495,25 +496,25 @@ void VM::Gc(bool isExitingVM)
     if (!isExitingVM)
     {
         //mark all object which in stack and in context
-        for (Value* slot = m_ValueStack; slot < m_StackTop; ++slot)
+        for (Value *slot = m_ValueStack; slot < m_StackTop; ++slot)
             slot->Mark();
         for (const auto &c : m_Constants)
             c.Mark();
         for (auto &g : m_GlobalVariables)
             g.Mark();
-		for (CallFrame* slot = m_CallFrames; slot < m_CallFrameTop; ++slot)
-			slot->fn->Mark();
+        for (CallFrame *slot = m_CallFrames; slot < m_CallFrameTop; ++slot)
+            slot->fn->Mark();
     }
     else
     {
         //unMark all objects while exiting vm
-        for (Value* slot = m_ValueStack; slot < m_StackTop; ++slot)
+        for (Value *slot = m_ValueStack; slot < m_StackTop; ++slot)
             slot->UnMark();
         for (const auto &c : m_Constants)
             c.UnMark();
         for (auto &g : m_GlobalVariables)
             g.UnMark();
-        for (CallFrame* slot=m_CallFrames ; slot < m_CallFrameTop; ++slot)
+        for (CallFrame *slot = m_CallFrames; slot < m_CallFrameTop; ++slot)
             slot->fn->UnMark();
     }
 

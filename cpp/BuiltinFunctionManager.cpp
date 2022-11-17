@@ -1,6 +1,6 @@
 #include "BuiltinFunctionManager.h"
 #include <ctime>
-std::vector<BuiltinObject *> BuiltinFunctionManager::m_Builtins;
+std::vector<BuiltinFunctionObject *> BuiltinFunctionManager::m_Builtins;
 std::vector<std::string> BuiltinFunctionManager::m_BuiltinIdx;
 
 BuiltinFunctionManager::BuiltinFunctionManager()
@@ -124,12 +124,12 @@ void BuiltinFunctionManager::Init()
 }
 void BuiltinFunctionManager::Release()
 {
-    std::vector<BuiltinObject *>().swap(m_Builtins);
+    std::vector<BuiltinFunctionObject *>().swap(m_Builtins);
     std::vector<std::string>().swap(m_BuiltinIdx);
 }
 
 void BuiltinFunctionManager::Register(std::string_view name, const BuiltinFn &fn)
 {
-    m_Builtins.emplace_back(new BuiltinObject(name, fn));
+    m_Builtins.emplace_back(new BuiltinFunctionObject(name, fn));
     m_BuiltinIdx.emplace_back(name);
 }
