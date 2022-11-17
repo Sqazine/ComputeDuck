@@ -262,7 +262,8 @@ struct BuiltinDataObject : public Object
 
 	~BuiltinDataObject()
 	{
-		destroyFunc(nativeData);
+		if(destroyFunc)
+			destroyFunc(nativeData);
 	}
 
 	std::string Stringify() override { return "Builtin Data:(0x" + PointerAddressToString(nativeData) + ")"; }
