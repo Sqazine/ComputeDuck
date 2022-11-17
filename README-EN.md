@@ -18,15 +18,16 @@ A toy-level C-like syntax Scripting language
 [English](https://github.com/Sqazine/ComputeDuck/blob/master/README-EN.md)
 [中文](https://github.com/Sqazine/ComputeDuck/blob/master/README.md)
 ## Environment
-C++:
 1. C++ compiler(>=17)
 2. CMake(>=3.10)
+3. clone Microsoft's vcpkg C++ package manager(https://github.com/Microsoft/vcpkg)
+4. create environment variables:VCPKG_ROOT=(vcpkg repo's root directory)
+5. create environment variables:VCPKG_DEFAULT_TRIPLET=(current target machine's platform and instruction set architecture) (See also:https://vcpkg.io/en/docs/users/triplets.html)
+6. install sdl2 via vcpkg(vcpkg install sdl2)
 
-Python:
-1. Install python development environment(The authors use version 3.9.7, other versions are not tested)
 ## 1. Run
 
-1. Compile(C++ only)
+1. Compile
 
 ```sh
 git clone https://github.com/Sqazine/ComputeDuck.git
@@ -47,24 +48,15 @@ linux(C++):
     chmod 777 computeduck
     ./computeduck 
     > var a=10;println(a); 
-
-window or linux(Python):
-    cd py
-    python main.py
 ```
 3. Run in source code file
 ```sh
 window(C++):
     .\computeduck.exe examples/leetcode-twosum.cd
 
-
 linux(C++):
     chmod 777 computeduck
     ./computeduck examples/leetcode-twosum.cd
-
-window或者linux(Python):
-    cd py
-    python main.py examples/leetcode-twosum.cd
 ```
 
 ## 2. Examples
