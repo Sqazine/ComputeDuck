@@ -1,5 +1,6 @@
 #include "BuiltinManager.h"
 #include <ctime>
+#include <SDL2/SDL.h>
 std::vector<BuiltinFunctionObject *> BuiltinManager::m_BuiltinFunctions;
 std::vector<std::string> BuiltinManager::m_BuiltinFunctionNames;
 
@@ -117,6 +118,66 @@ void BuiltinManager::Init()
                          result = Value((double)clock() / CLOCKS_PER_SEC);
                          return true;
                      });
+
+    BuiltinManager::RegisterVariable("SDL_WINDOWPOS_CENTERED", Value((double)SDL_WINDOWPOS_CENTERED));
+    BuiltinManager::RegisterVariable("SDL_QUIT", Value((double)SDL_QUIT));
+
+    BuiltinManager::RegisterFunction("SDL_Init", [&](const std::vector<Value> &args, Value &result) -> bool
+                                     {
+                                         auto ret = SDL_Init(SDL_INIT_EVERYTHING);
+                                         result = Value((float)ret);
+                                         return true;
+                                     });
+
+    BuiltinManager::RegisterFunction("SDL_Quit", [&](const std::vector<Value> &args, Value &result) -> bool
+                                     {
+                                         SDL_Quit();
+                                         return false;
+                                     });
+
+    BuiltinManager::RegisterFunction("SDL_CreateWindow", [&](const std::vector<Value> &args, Value &result) -> bool
+                                     {
+                                         BuiltinDataObject *builtinData = new BuiltinDataObject();
+                                         auto window = SDL_CreateWindow(TO_STR_VALUE(args[0])->value.c_str(), (int)TO_NUM_VALUE(TO_BUILTIN_VARIABLE_VALUE(args[1])->value), (int)TO_NUM_VALUE(TO_BUILTIN_VARIABLE_VALUE(args[2])->value), TO_NUM_VALUE(args[3]), TO_NUM_VALUE(args[4]), SDL_WINDOW_ALLOW_HIGHDPI);
+                                         builtinData->nativeData = (void *)window;
+                                         result = builtinData;
+                                         return true;
+                                     });
+
+    BuiltinManager::RegisterFunction("SDL_DestroyWindow", [&](const std::vector<Value> &args, Value &result) -> bool
+                                     {
+                                         if (!IS_BUILTIN_DATA_VALUE(args[0]))
+                                             Assert("Not a valid builtin data.");
+                                         auto builtinData = TO_BUILTIN_DATA_VALUE(args[0]);
+                                         if (reinterpret_cast<SDL_Window *>(builtinData->nativeData) == nullptr)
+                                             Assert("Not a valid SDL_Window object.");
+                                         SDL_DestroyWindow((SDL_Window *)builtinData->nativeData);
+                                         return false;
+                                     });
+
+    BuiltinManager::RegisterFunction("SDL_PollEvent", [&](const std::vector<Value> &args, Value &result) -> bool
+                                     {
+                                         SDL_Event *event = new SDL_Event();
+                                         auto retV = SDL_PollEvent(event);
+                                         if (retV == 0)
+                                             return true;
+                                         BuiltinDataObject *builtinData = new BuiltinDataObject();
+                                         builtinData->nativeData = event;
+                                         result = Value(builtinData);
+                                         return true;
+                                     });
+
+    BuiltinManager::RegisterFunction("SDL_GetEventType", [&](const std::vector<Value> &args, Value &result) -> bool
+                                     {
+                                         if (!IS_BUILTIN_DATA_VALUE(args[0]))
+                                             Assert("Not a valid builtin data.");
+                                         auto builtinData = TO_BUILTIN_DATA_VALUE(args[0]);
+                                         if (reinterpret_cast<SDL_Event *>(builtinData->nativeData) == nullptr)
+                                             Assert("Not a valid SDL_Event object.");
+                                         SDL_Event *event = ((SDL_Event *)builtinData->nativeData);
+                                         result = (double)((SDL_Event *)builtinData->nativeData)->type;
+                                         return true;
+                                     });
 }
 void BuiltinManager::Release()
 {
