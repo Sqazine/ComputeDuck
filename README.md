@@ -19,15 +19,16 @@
 [中文](https://github.com/Sqazine/ComputeDuck/blob/master/README.md)
 
 ## 环境
-C++:
 1. C++ 编译器(>=17)
 2. CMake(>=3.10)
+3. 克隆微软 vcpkg C++ 包管理器到本地(https://github.com/Microsoft/vcpkg)
+4. 创建环境变量:VCPKG_ROOT=(vcpkg repo's root directory)
+5. 创建环境变量:VCPKG_DEFAULT_TRIPLET=(当前机器平台与指令集架构) (详见:https://vcpkg.io/en/docs/users/triplets.html)
+6. 通过vcpkg安装sdl2(vcpkg install sdl2)
 
-Python:
-1. 安装python开发环境(作者使用3.9.7版本,其他版本未测试)
 ## 1. 运行
 
-1. 编译(仅C++)
+1. 编译
 
 ```sh
 git clone https://github.com/Sqazine/ComputeDuck.git
@@ -48,10 +49,6 @@ linux(C++):
     chmod 777 computeduck
     ./computeduck 
     > var a=10;println(a); 
-
-window或者linux(Python):
-    cd py
-    python main.py
 ```
 3. 源码文件运行
 ```sh
@@ -62,10 +59,6 @@ window(C++):
 linux(C++):
     chmod 777 computeduck
     ./computeduck examples/leetcode-twosum.cd
-
-window或者linux(Python):
-    cd py
-    python main.py examples/leetcode-twosum.cd
 ```
 
 ## 2. 例子
