@@ -28,7 +28,6 @@ void Compiler::ResetStatus()
         m_Constants[i] = Value();
     m_ConstantCount = 0;
 
-    m_ScopeIndex = 0;
     std::vector<OpCodes>().swap(m_Scopes);
     m_Scopes.emplace_back(OpCodes()); //set a default opcodes
 
@@ -115,9 +114,7 @@ void Compiler::CompileScopeStmt(ScopeStmt *stmt)
     Emit(OP_SP_OFFSET);
     Emit(-localVarCount);
 
-    auto opCodes = ExitScope();
-
-    CurOpCodes().insert(CurOpCodes().end(), opCodes.begin(), opCodes.end());
+    ExitScope();
 }
 
 void Compiler::CompileWhileStmt(WhileStmt *stmt)
@@ -171,6 +168,7 @@ void Compiler::CompileFunctionStmt(FunctionStmt *stmt)
     auto symbol = m_SymbolTable->Define(stmt->name);
 
     EnterScope();
+    m_Scopes.emplace_back(OpCodes());
 
     for (const auto &param : stmt->parameters)
         m_SymbolTable->Define(param->literal);
@@ -179,7 +177,11 @@ void Compiler::CompileFunctionStmt(FunctionStmt *stmt)
         CompileStmt(s);
 
     auto localVarCount = m_SymbolTable->definitionCount;
-    auto opCodes = ExitScope();
+    
+    ExitScope();
+
+    auto opCodes=m_Scopes.back();
+    m_Scopes.pop_back();
 
     //for non return lambda or empty stmt in lambda scope:add a return to return nothing
     if (opCodes.empty() || opCodes[opCodes.size() - 2] != OP_RETURN)
@@ -207,6 +209,7 @@ void Compiler::CompileStructStmt(StructStmt *stmt)
     auto symbol = m_SymbolTable->Define(stmt->name, true);
 
     EnterScope();
+    m_Scopes.emplace_back(OpCodes());
 
     for (int32_t i = stmt->members.size() - 1; i >= 0; --i)
     {
@@ -219,7 +222,10 @@ void Compiler::CompileStructStmt(StructStmt *stmt)
     Emit(OP_STRUCT);
     Emit((int32_t)stmt->members.size());
 
-    auto opCodes = ExitScope();
+    ExitScope();
+
+    auto opCodes=m_Scopes.back();
+    m_Scopes.pop_back();
 
     opCodes.emplace_back(OP_RETURN);
     opCodes.emplace_back(1);
@@ -434,6 +440,8 @@ void Compiler::CompileLambdaExpr(LambdaExpr *expr)
 {
     EnterScope();
 
+    m_Scopes.emplace_back(OpCodes());
+
     for (const auto &param : expr->parameters)
         m_SymbolTable->Define(param->literal);
 
@@ -441,7 +449,11 @@ void Compiler::CompileLambdaExpr(LambdaExpr *expr)
         CompileStmt(s);
 
     auto localVarCount = m_SymbolTable->definitionCount;
-    auto opCodes = ExitScope();
+
+    ExitScope();
+
+    auto opCodes =m_Scopes.back();
+    m_Scopes.pop_back();
 
     //for non return lambda or empty stmt in lambda scope:add a return to return nothing
     if (opCodes.empty() || opCodes[opCodes.size() - 2] != OP_RETURN)
@@ -534,31 +546,21 @@ void Compiler::CompileAnonyStructExpr(AnonyStructExpr *expr)
     Emit(OP_STRUCT);
     Emit((int32_t)expr->memberPairs.size());
 
-    auto opCodes = ExitScope();
-
-    CurOpCodes().insert(CurOpCodes().end(), opCodes.begin(), opCodes.end());
+    ExitScope();
 }
 
 void Compiler::EnterScope()
 {
     m_SymbolTable = new SymbolTable(m_SymbolTable);
-    m_Scopes.emplace_back(OpCodes());
-    m_ScopeIndex++;
 }
-OpCodes Compiler::ExitScope()
+void Compiler::ExitScope()
 {
-    auto opCodes = CurOpCodes();
-    m_Scopes.pop_back();
-    m_ScopeIndex--;
-
     m_SymbolTable = m_SymbolTable->enclosing;
-
-    return opCodes;
 }
 
 OpCodes &Compiler::CurOpCodes()
 {
-    return m_Scopes[m_ScopeIndex];
+    return m_Scopes.back();
 }
 
 uint32_t Compiler::Emit(int32_t opcode)

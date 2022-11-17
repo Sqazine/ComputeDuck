@@ -50,7 +50,7 @@ private:
     void CompileAnonyStructExpr(AnonyStructExpr* expr);
 
     void EnterScope();
-    OpCodes ExitScope();
+    void ExitScope();
 
     OpCodes &CurOpCodes();
 
@@ -67,7 +67,6 @@ private:
     int32_t m_ConstantCount;
 
     std::vector<OpCodes> m_Scopes;
-    int32_t m_ScopeIndex;
 
     SymbolTable *m_SymbolTable;
 };
