@@ -1,6 +1,6 @@
 #include "Compiler.h"
 #include "Object.h"
-#include "BuiltinFunctionManager.h"
+#include "BuiltinManager.h"
 Compiler::Compiler()
     : m_SymbolTable(nullptr)
 {
@@ -36,8 +36,11 @@ void Compiler::ResetStatus()
         delete m_SymbolTable;
     m_SymbolTable = new SymbolTable();
 
-    for (int32_t i = 0; i < BuiltinFunctionManager::m_BuiltinIdx.size(); ++i)
-        m_SymbolTable->DefineBuiltin(BuiltinFunctionManager::m_BuiltinIdx[i], i);
+    for (int32_t i = 0; i < BuiltinManager::m_BuiltinFunctionNames.size(); ++i)
+        m_SymbolTable->DefineBuiltinFunction(BuiltinManager::m_BuiltinFunctionNames[i], i);
+
+    for (int32_t i = 0; i < BuiltinManager::m_BuiltinVariableNames.size(); ++i)
+        m_SymbolTable->DefineBuiltinVariable(BuiltinManager::m_BuiltinVariableNames[i], i);
 }
 
 void Compiler::CompileStmt(Stmt *stmt)
@@ -596,8 +599,12 @@ void Compiler::LoadSymbol(const Symbol &symbol)
         Emit(symbol.scopeDepth);
         Emit(symbol.index);
         break;
-    case SymbolScope::BUILTIN:
+    case SymbolScope::BUILTIN_FUNCTION:
         Emit(OP_GET_BUILTIN_FUNCTION);
+        Emit(symbol.index);
+        break;
+    case SymbolScope::BUILTIN_VARIABLE:
+        Emit(OP_GET_BUILTIN_VARIABLE);
         Emit(symbol.index);
         break;
     default:

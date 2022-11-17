@@ -11,7 +11,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(libcomputeduck Ast.h 
-BuiltinFunctionManager.h BuiltinFunctionManager.cpp
+BuiltinManager.h BuiltinManager.cpp
 Chunk.h Chunk.cpp
 Compiler.h Compiler.cpp
 Lexer.h Lexer.cpp

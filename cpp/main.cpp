@@ -4,13 +4,13 @@
 #include "Parser.h"
 #include "Compiler.h"
 #include "VM.h"
-#include "BuiltinFunctionManager.h"
+#include "BuiltinManager.h"
 
 void Repl()
 {
 	std::string line;
 
-	BuiltinFunctionManager::Init();
+	BuiltinManager::Init();
 
 	Lexer lexer;
 	Parser parser;
@@ -43,14 +43,14 @@ void Repl()
 		std::cout << "> ";
 	}
 
-	BuiltinFunctionManager::Release();
+	BuiltinManager::Release();
 }
 
 void RunFile(std::string path)
 {
 	std::string content = ReadFile(path);
 
-	BuiltinFunctionManager::Init();
+	BuiltinManager::Init();
 
 	Lexer lexer;
 	Parser parser;
@@ -75,7 +75,7 @@ void RunFile(std::string path)
 
 	vm.Run(chunk);
 
-	BuiltinFunctionManager::Release();
+	BuiltinManager::Release();
 }
 
 int main(int argc, char **argv)

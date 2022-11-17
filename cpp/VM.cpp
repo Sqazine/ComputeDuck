@@ -1,6 +1,6 @@
 #include "VM.h"
 #include <iostream>
-#include "BuiltinFunctionManager.h"
+#include "BuiltinManager.h"
 VM::VM()
 {
     ResetStatus();
@@ -352,7 +352,14 @@ void VM::Execute()
         case OP_GET_BUILTIN_FUNCTION:
         {
             auto idx = *frame->ip++;
-            auto builtinObj = BuiltinFunctionManager::m_Builtins[idx];
+            auto builtinObj = BuiltinManager::m_BuiltinFunctions[idx];
+            Push(builtinObj);
+            break;
+        }
+         case OP_GET_BUILTIN_VARIABLE:
+        {
+            auto idx = *frame->ip++;
+            auto builtinObj = BuiltinManager::m_BuiltinVariables[idx];
             Push(builtinObj);
             break;
         }
@@ -441,24 +448,24 @@ void VM::RegisterToGCRecordChain(const Value &value)
     if (IS_OBJECT_VALUE(value) && TO_OBJECT_VALUE(value)->next == nullptr) //check is null to avoid cross-reference in vm's object record chain
     {
         auto object = TO_OBJECT_VALUE(value);
-        if (curObjCount >= maxObjCount)
+        if (m_CurObjCount >= m_MaxObjCount)
             Gc();
 
         object->marked = false;
 
-        object->next = firstObject;
-        firstObject = object;
+        object->next = m_FirstObject;
+        m_FirstObject = object;
 
-        curObjCount++;
+        m_CurObjCount++;
     }
 }
 
 void VM::ResetStatus()
 {
     m_StackTop = m_ValueStack;
-    firstObject = nullptr;
-    curObjCount = 0;
-    maxObjCount = INITIAL_GC_THRESHOLD;
+    m_FirstObject = nullptr;
+    m_CurObjCount = 0;
+    m_MaxObjCount = INITIAL_GC_THRESHOLD;
 
     for (int32_t i = 0; i < STACK_MAX; ++i)
         m_ValueStack[i] = Value();
@@ -492,7 +499,7 @@ CallFrame *VM::PeekCallFrame(int32_t distance)
 
 void VM::Gc(bool isExitingVM)
 {
-    int objNum = curObjCount;
+    int objNum = m_CurObjCount;
     if (!isExitingVM)
     {
         //mark all object which in stack and in context
@@ -519,7 +526,7 @@ void VM::Gc(bool isExitingVM)
     }
 
     //sweep objects which is not reachable
-    Object **object = &firstObject;
+    Object **object = &m_FirstObject;
     while (*object)
     {
         if (!(*object)->marked)
@@ -529,7 +536,7 @@ void VM::Gc(bool isExitingVM)
 
             delete unreached;
             unreached = nullptr;
-            curObjCount--;
+            m_CurObjCount--;
         }
         else
         {
@@ -538,7 +545,7 @@ void VM::Gc(bool isExitingVM)
         }
     }
 
-    maxObjCount = curObjCount == 0 ? INITIAL_GC_THRESHOLD : curObjCount * 2;
+    m_MaxObjCount = m_CurObjCount == 0 ? INITIAL_GC_THRESHOLD : m_CurObjCount * 2;
 
-    std::cout << "Collected " << objNum - curObjCount << " objects," << curObjCount << " remaining." << std::endl;
+    std::cout << "Collected " << objNum - m_CurObjCount << " objects," << m_CurObjCount << " remaining." << std::endl;
 }

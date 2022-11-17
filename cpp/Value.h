@@ -11,9 +11,10 @@
 #define IS_STRUCT(v) (IS_OBJECT_VALUE(v) && IS_STRUCT_OBJ(v.object))
 #define IS_REF_VALUE(v) (IS_OBJECT_VALUE(v) && IS_REF_OBJ(v.object))
 #define IS_FUNCTION_VALUE(v) (IS_OBJECT_VALUE(v) && IS_FUNCTION_OBJ(v.object))
+#define IS_STRUCT_VALUE(v) (IS_OBJECT_VALUE(v) && IS_STRUCT_OBJ(v.object))
 #define IS_BUILTIN_FUNCTION_VALUE(v) (IS_OBJECT_VALUE(v) && IS_BUILTIN_FUNCTION_OBJ(v.object))
 #define IS_BUILTIN_DATA_VALUE(v) (IS_OBJECT_VALUE(v) && IS_BUILTIN_DATA_OBJ(v.object))
-#define IS_STRUCT_VALUE(v) (IS_OBJECT_VALUE(v) && IS_STRUCT_OBJ(v.object))
+#define IS_BUILTIN_VARIABLE_VALUE(v) (IS_OBJECT_VALUE(v) && IS_BUILTIN_VARIABLE_OBJ(v.object))
 
 #define TO_NUM_VALUE(v) (v.number)
 #define TO_BOOL_VALUE(v) (v.boolean)
@@ -23,9 +24,10 @@
 #define TO_STRUCT(v) (TO_STRUCT_OBJ(v.object))
 #define TO_REF_VALUE(v) (TO_REF_OBJ(v.object))
 #define TO_FUNCTION_VALUE(v) (TO_FUNCTION_OBJ(v.object))
+#define TO_STRUCT_VALUE(v) (TO_STRUCT_OBJ(v.object))
 #define TO_BUILTIN_FUNCTION_VALUE(v) (TO_BUILTIN_FUNCTION_OBJ(v.object))
 #define TO_BUILTIN_DATA_VALUE(v) (TO_BUILTIN_DATA_OBJ(v.object))
-#define TO_STRUCT_VALUE(v) (TO_STRUCT_OBJ(v.object))
+#define TO_BUILTIN_VARIABLE_VALUE(v) (TO_BUILTIN_VARIABLE_OBJ(v.object))
 
 enum class ValueType
 {
