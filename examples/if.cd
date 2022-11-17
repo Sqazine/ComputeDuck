@@ -34,3 +34,20 @@ else
     a=300;
 
 println(a);#500.000000
+
+if(true)
+{
+    println(100);
+    if(true)
+    {
+        println(1000);
+        if(true)
+        {
+            println(10000);
+             if(true)
+            {
+                println(100000);
+            }
+        }
+    }
+}

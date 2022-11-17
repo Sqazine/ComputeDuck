@@ -1,0 +1,18 @@
+var ok=SDL_Init();
+if(ok<0)
+    println("Failed to init sdl2!");
+var window=SDL_CreateWindow("First Window",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,800,600);
+var isRunning=true;
+while(isRunning)
+{
+    var event=SDL_PollEvent();
+    if(event!=nil)
+    {
+        if(SDL_GetEventType(event)==SDL_QUIT)
+        {
+            isRunning=false;
+        }
+    }
+}
+SDL_DestroyWindow(window);
+SDL_Quit();

@@ -10,23 +10,7 @@ project(ComputeDuck LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_library(libcomputeduck Ast.h 
-BuiltinManager.h BuiltinManager.cpp
-Chunk.h Chunk.cpp
-Compiler.h Compiler.cpp
-Lexer.h Lexer.cpp
-Object.h
-Parser.h Parser.cpp
-SemanticAnalyzer.h SemanticAnalyzer.cpp
-SymbolTable.h
-Token.h
-Utils.h
-Value.h Value.cpp
-VM.h VM.cpp) 
-
-add_executable(computeduck main.cpp)
-target_link_libraries(computeduck PRIVATE libcomputeduck)
-
+file(GLOB SRC "*.h" "*.cpp")
 find_package(SDL2 CONFIG REQUIRED)
-add_executable(SDL2Test SDL2Test.cpp)
-target_link_libraries(SDL2Test PRIVATE libcomputeduck  SDL2::SDL2)
+add_executable(computeduck ${SRC})
+target_link_libraries(computeduck PRIVATE  SDL2::SDL2)
