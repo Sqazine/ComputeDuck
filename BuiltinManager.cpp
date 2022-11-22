@@ -178,6 +178,115 @@ void BuiltinManager::Init()
                                          result = (double)((SDL_Event *)builtinData->nativeData)->type;
                                          return true;
                                      });
+
+    BuiltinManager::RegisterFunction("SDL_CreateRenderer", [&](const std::vector<Value> &args, Value &result) -> bool
+                                     {
+                                         if (!IS_BUILTIN_DATA_VALUE(args[0]))
+                                             Assert("Not a valid builtin data.");
+                                         auto builtinData = TO_BUILTIN_DATA_VALUE(args[0]);
+                                         if (reinterpret_cast<SDL_Window *>(builtinData->nativeData) == nullptr)
+                                             Assert("Not a valid SDL_Window object.");
+                                         SDL_Window *window = ((SDL_Window *)builtinData->nativeData);
+                                         SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+                                         BuiltinDataObject *resultBuiltinData = new BuiltinDataObject();
+                                         resultBuiltinData->nativeData = renderer;
+                                         result = Value(resultBuiltinData);
+                                         return true;
+                                     });
+
+    BuiltinManager::RegisterFunction("SDL_DestroyRenderer", [&](const std::vector<Value> &args, Value &result) -> bool
+                                     {
+                                         if (!IS_BUILTIN_DATA_VALUE(args[0]))
+                                             Assert("Not a valid builtin value of SDL_DestroyRenderer(args[0]).");
+
+                                         auto renderer = (SDL_Renderer *)(TO_BUILTIN_DATA_VALUE(args[0])->nativeData);
+                                         SDL_DestroyRenderer(renderer);
+                                         return false;
+                                     });
+
+    BuiltinManager::RegisterFunction("SDL_LoadBMP", [&](const std::vector<Value> &args, Value &result) -> bool
+                                     {
+                                         if (!IS_STR_VALUE(args[0]))
+                                             Assert("Not a valid str value.");
+
+                                         SDL_Surface *surface = SDL_LoadBMP(TO_STR_VALUE(args[0])->value.c_str());
+
+                                         BuiltinDataObject *resultBuiltinData = new BuiltinDataObject();
+                                         resultBuiltinData->nativeData = surface;
+                                         result = Value(resultBuiltinData);
+                                         return true;
+                                     });
+
+    BuiltinManager::RegisterFunction("SDL_FreeSurface", [&](const std::vector<Value> &args, Value &result) -> bool
+                                     {
+                                         if (!IS_BUILTIN_DATA_VALUE(args[0]))
+                                             Assert("Not a valid builtin value of SDL_FreeSurface(args[0]).");
+
+                                         auto surface = (SDL_Surface *)(TO_BUILTIN_DATA_VALUE(args[0])->nativeData);
+                                         SDL_FreeSurface(surface);
+
+                                         return false;
+                                     });
+
+    BuiltinManager::RegisterFunction("SDL_CreateTextureFromSurface", [&](const std::vector<Value> &args, Value &result) -> bool
+                                     {
+                                         if (!IS_BUILTIN_DATA_VALUE(args[0]) || !IS_BUILTIN_DATA_VALUE(args[1]))
+                                             Assert("Not a valid builtin value of SDL_CreateTextureFromSurface(args[0] or args[1]).");
+
+                                         auto renderer = (SDL_Renderer *)(TO_BUILTIN_DATA_VALUE(args[0])->nativeData);
+                                         auto surface = (SDL_Surface *)(TO_BUILTIN_DATA_VALUE(args[1])->nativeData);
+
+                                         SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+
+                                         BuiltinDataObject *resultBuiltinData = new BuiltinDataObject();
+                                         resultBuiltinData->nativeData = texture;
+                                         result = Value(resultBuiltinData);
+                                         return true;
+                                     });
+
+    BuiltinManager::RegisterFunction("SDL_DestroyTexture", [&](const std::vector<Value> &args, Value &result) -> bool
+                                     {
+                                         if (!IS_BUILTIN_DATA_VALUE(args[0]))
+                                             Assert("Not a valid builtin value of SDL_CreateTextureFromSurface(args[0]).");
+
+                                         auto texture = (SDL_Texture *)(TO_BUILTIN_DATA_VALUE(args[0])->nativeData);
+                                         SDL_DestroyTexture(texture);
+                                         return false;
+                                     });
+
+    BuiltinManager::RegisterFunction("SDL_RenderClear", [&](const std::vector<Value> &args, Value &result) -> bool
+                                     {
+                                         if (!IS_BUILTIN_DATA_VALUE(args[0]))
+                                             Assert("Not a valid builtin value of SDL_RenderClear(args[0]).");
+
+                                         auto renderer = (SDL_Renderer *)(TO_BUILTIN_DATA_VALUE(args[0])->nativeData);
+                                         SDL_RenderClear(renderer);
+                                         return false;
+                                     });
+
+    BuiltinManager::RegisterFunction("SDL_RenderCopy", [&](const std::vector<Value> &args, Value &result) -> bool
+                                     {
+                                         if (!IS_BUILTIN_DATA_VALUE(args[0]) || !IS_BUILTIN_DATA_VALUE(args[1]))
+                                             Assert("Not a valid builtin value of SDL_RenderCopy(args[0] or args[1]).");
+
+                                         auto renderer = (SDL_Renderer *)(TO_BUILTIN_DATA_VALUE(args[0])->nativeData);
+                                         auto texture = (SDL_Texture *)(TO_BUILTIN_DATA_VALUE(args[1])->nativeData);
+
+                                         auto ret = SDL_RenderCopy(renderer, texture, nullptr, nullptr);
+
+                                         result = Value((double)ret);
+                                         return true;
+                                     });
+
+    BuiltinManager::RegisterFunction("SDL_RenderPresent", [&](const std::vector<Value> &args, Value &result) -> bool
+                                     {
+                                         if (!IS_BUILTIN_DATA_VALUE(args[0]))
+                                             Assert("Not a valid builtin value of SDL_RenderPresent(args[0]).");
+
+                                         auto renderer = (SDL_Renderer *)(TO_BUILTIN_DATA_VALUE(args[0])->nativeData);
+                                         SDL_RenderPresent(renderer);
+                                         return false;
+                                     });
 }
 void BuiltinManager::Release()
 {
