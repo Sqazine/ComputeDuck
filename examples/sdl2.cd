@@ -3,6 +3,25 @@ if(ok<0)
     println("Failed to init sdl2!");
 var window=SDL_CreateWindow("First Window",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,800,600);
 var isRunning=true;
+
+var renderer=SDL_CreateRenderer(window);
+
+if(renderer==nil)
+    println("Failed to create renderer.");
+
+var surface=SDL_LoadBMP("../examples/hello.bmp");
+
+if(surface==nil)
+    println("Failed to load bmp image.");
+
+var texture=SDL_CreateTextureFromSurface(renderer,surface);
+
+SDL_RenderClear(renderer);
+
+SDL_RenderCopy(renderer,texture);
+
+SDL_RenderPresent(renderer);
+
 while(isRunning)
 {
     var event=SDL_PollEvent();
@@ -14,5 +33,9 @@ while(isRunning)
         }
     }
 }
+
+SDL_DestroyTexture(texture);
+SDL_FreeSurface(surface);
+SDL_DestroyRenderer(renderer);
 SDL_DestroyWindow(window);
 SDL_Quit();
