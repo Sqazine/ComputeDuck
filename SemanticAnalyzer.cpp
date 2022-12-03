@@ -126,7 +126,7 @@ Expr *SemanticAnalyzer::AnalyzeExpr(Expr *expr)
     case AstType::REF:
         return AnalyzeRefExpr((RefExpr *)expr);
     case AstType::LAMBDA:
-        return AnalyzeLambdaExpr((LambdaExpr *)expr);
+        return AnalyzeFunctionExpr((FunctionExpr *)expr);
     case AstType::ANONY_STRUCT:
         return AnalyzeAnonyStructExpr((AnonyStructExpr*)expr);
     default:
@@ -181,7 +181,7 @@ Expr *SemanticAnalyzer::AnalyzeIdentifierExpr(IdentifierExpr *expr)
 {
     return expr;
 }
-Expr *SemanticAnalyzer::AnalyzeLambdaExpr(LambdaExpr *expr)
+Expr *SemanticAnalyzer::AnalyzeFunctionExpr(FunctionExpr *expr)
 {
     for (auto &e : expr->parameters)
         e = (IdentifierExpr *)AnalyzeIdentifierExpr(e);

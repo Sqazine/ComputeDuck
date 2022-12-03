@@ -421,11 +421,11 @@ struct FunctionStmt : public Stmt
 	ScopeStmt *body;
 };
 
-struct LambdaExpr : public Expr
+struct FunctionExpr : public Expr
 {
-	LambdaExpr() : body(nullptr) {}
-	LambdaExpr(std::vector<IdentifierExpr *> parameters, ScopeStmt *body) : parameters(parameters), body(body) {}
-	~LambdaExpr()
+	FunctionExpr() : body(nullptr) {}
+	FunctionExpr(std::vector<IdentifierExpr *> parameters, ScopeStmt *body) : parameters(parameters), body(body) {}
+	~FunctionExpr()
 	{
 		std::vector<IdentifierExpr *>().swap(parameters);
 
@@ -435,7 +435,7 @@ struct LambdaExpr : public Expr
 
 	std::string Stringify() override
 	{
-		std::string result = "lambda(";
+		std::string result = "function(";
 		if (!parameters.empty())
 		{
 			for (auto param : parameters)

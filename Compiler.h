@@ -43,7 +43,7 @@ private:
     void CompileArrayExpr(ArrayExpr *expr);
     void CompileIndexExpr(IndexExpr *expr);
     void CompileIdentifierExpr(IdentifierExpr *expr,const RWState& state);
-    void CompileLambdaExpr(LambdaExpr *expr);
+    void CompileFunctionExpr(FunctionExpr *expr);
     void CompileFunctionCallExpr(FunctionCallExpr *expr);
     void CompileStructCallExpr(StructCallExpr *expr,const RWState& state=RWState::READ);
     void CompileRefExpr(RefExpr* expr);

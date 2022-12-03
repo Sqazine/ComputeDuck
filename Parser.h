@@ -58,7 +58,7 @@ private:
 	Expr *ParseArrayExpr();
 	Expr *ParsePrefixExpr();
 	Expr *ParseRefExpr();
-	Expr *ParseLambdaExpr();
+	Expr *ParseFunctionExpr();
 	Expr *ParseAnonyStructExpr();
 	Expr *ParseInfixExpr(Expr *prefixExpr);
 	Expr *ParseIndexExpr(Expr *prefixExpr);
@@ -86,7 +86,7 @@ private:
 
 	std::vector<Token> m_Tokens;
 
-	int32_t m_FunctionOrLambdaScopeDepth;
+	int32_t m_FunctionOrFunctionScopeDepth;
 
 	SemanticAnalyzer m_SemanticAnalyzer;
 

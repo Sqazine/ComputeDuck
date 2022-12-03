@@ -1,4 +1,4 @@
-var lam=lambda()
+var lam=function()
 {
     return 10;
 };
@@ -9,7 +9,7 @@ println(x);#10
 
 struct Vec2
 {
-    var length=lambda(x,y)
+    var length=function(x,y)
     {
         return x*x+y*y;
     };

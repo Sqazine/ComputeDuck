@@ -13,7 +13,7 @@ std::unordered_map<TokenType, PrefixFn> Parser::m_PrefixFunctions =
 		{TokenType::LPAREN, &Parser::ParseGroupExpr},
 		{TokenType::LBRACKET, &Parser::ParseArrayExpr},
 		{TokenType::REF, &Parser::ParseRefExpr},
-		{TokenType::LAMBDA, &Parser::ParseLambdaExpr},
+		{TokenType::FUNCTION, &Parser::ParseFunctionExpr},
 		{TokenType::LBRACE, &Parser::ParseAnonyStructExpr},
 };
 
@@ -70,7 +70,7 @@ std::vector<Stmt *> Parser::Parse(const std::vector<Token> &tokens)
 {
 	m_CurPos = 0;
 	m_Tokens = tokens;
-	m_FunctionOrLambdaScopeDepth=0;
+	m_FunctionOrFunctionScopeDepth=0;
 
 	std::vector<Stmt *> stmts;
 	while (!IsMatchCurToken(TokenType::END))
@@ -125,7 +125,7 @@ Stmt *Parser::ParseVarStmt()
 
 Stmt *Parser::ParseReturnStmt()
 {
-	if(m_FunctionOrLambdaScopeDepth==0)
+	if(m_FunctionOrFunctionScopeDepth==0)
 		Assert("Return statement only available in function or lambda");
 
 	Consume(TokenType::RETURN, "Expect 'return' key word.");
@@ -192,7 +192,7 @@ Stmt *Parser::ParseWhileStmt()
 
 Stmt *Parser::ParseFunctionStmt()
 {
-	m_FunctionOrLambdaScopeDepth++;
+	m_FunctionOrFunctionScopeDepth++;
 
 
 	Consume(TokenType::FUNCTION, "Expect 'fn' keyword");
@@ -217,7 +217,7 @@ Stmt *Parser::ParseFunctionStmt()
 
 	funcStmt->body = (ScopeStmt *)ParseScopeStmt();
 
-	m_FunctionOrLambdaScopeDepth--;
+	m_FunctionOrFunctionScopeDepth--;
 
 	return funcStmt;
 }
@@ -364,33 +364,33 @@ Expr *Parser::ParseRefExpr()
 	return new RefExpr((IdentifierExpr *)refExpr);
 }
 
-Expr *Parser::ParseLambdaExpr()
+Expr *Parser::ParseFunctionExpr()
 {
-	m_FunctionOrLambdaScopeDepth++;
+	m_FunctionOrFunctionScopeDepth++;
 
-	Consume(TokenType::LAMBDA, "Expect 'lambda' keyword");
+	Consume(TokenType::FUNCTION, "Expect 'function' keyword");
 
-	auto lambdaExpr = new LambdaExpr();
+	auto functionExpr = new FunctionExpr();
 
-	Consume(TokenType::LPAREN, "Expect '(' after keyword 'lambda'");
+	Consume(TokenType::LPAREN, "Expect '(' after keyword 'function'");
 
 	if (!IsMatchCurToken(TokenType::RPAREN)) //has parameter
 	{
 		IdentifierExpr *idenExpr = (IdentifierExpr *)ParseIdentifierExpr();
-		lambdaExpr->parameters.emplace_back(idenExpr);
+		functionExpr->parameters.emplace_back(idenExpr);
 		while (IsMatchCurTokenAndStepOnce(TokenType::COMMA))
 		{
 			idenExpr = (IdentifierExpr *)ParseIdentifierExpr();
-			lambdaExpr->parameters.emplace_back(idenExpr);
+			functionExpr->parameters.emplace_back(idenExpr);
 		}
 	}
 	Consume(TokenType::RPAREN, "Expect ')' after function expr's '('");
 
-	lambdaExpr->body = (ScopeStmt *)ParseScopeStmt();
+	functionExpr->body = (ScopeStmt *)ParseScopeStmt();
 
-	m_FunctionOrLambdaScopeDepth--;
+	m_FunctionOrFunctionScopeDepth--;
 
-	return lambdaExpr;
+	return functionExpr;
 }
 
 	Expr *Parser::ParseAnonyStructExpr()

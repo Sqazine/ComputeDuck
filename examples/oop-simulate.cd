@@ -15,7 +15,7 @@ function ShapeCtor(self,x,y)
 {
     self.x=x;
     self.y=y;
-    self.vptr.area=lambda(self)
+    self.vptr.area=function(self)
     {
         return 0;
     };
@@ -51,7 +51,7 @@ function RectangleCtor(self,x,y,w,h)
     ShapeCtor(self.super,x,y);
     self.width=w;
     self.height=h;
-    self.super.vptr.area=lambda(self)
+    self.super.vptr.area=function(self)
     {
         return self.width*self.height;
     };
