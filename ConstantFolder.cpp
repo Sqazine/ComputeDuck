@@ -1,49 +1,49 @@
-#include "SemanticAnalyzer.h"
+#include "ConstantFolder.h"
 
-SemanticAnalyzer::SemanticAnalyzer()
+ConstantFolder::ConstantFolder()
 {
 }
-SemanticAnalyzer::~SemanticAnalyzer()
+ConstantFolder::~ConstantFolder()
 {
 }
 
-void SemanticAnalyzer::Analyze(std::vector<Stmt *> &stmts)
+void ConstantFolder::Fold(std::vector<Stmt *> &stmts)
 {
     for (auto &s : stmts)
-        s = AnalyzeStmt(s);
+        s = FoldStmt(s);
 }
 
-Stmt *SemanticAnalyzer::AnalyzeStmt(Stmt *stmt)
+Stmt *ConstantFolder::FoldStmt(Stmt *stmt)
 {
     switch (stmt->Type())
     {
     case AstType::RETURN:
-        return AnalyzeReturnStmt((ReturnStmt *)stmt);
+        return FoldReturnStmt((ReturnStmt *)stmt);
     case AstType::EXPR:
-        return AnalyzeExprStmt((ExprStmt *)stmt);
+        return FoldExprStmt((ExprStmt *)stmt);
     case AstType::SCOPE:
-        return AnalyzeScopeStmt((ScopeStmt *)stmt);
+        return FoldScopeStmt((ScopeStmt *)stmt);
     case AstType::IF:
-        return AnalyzeIfStmt((IfStmt *)stmt);
+        return FoldIfStmt((IfStmt *)stmt);
     case AstType::WHILE:
-        return AnalyzeWhileStmt((WhileStmt *)stmt);
+        return FoldWhileStmt((WhileStmt *)stmt);
     case AstType::STRUCT:
-        return AnalyzeStructStmt((StructStmt *)stmt);
+        return FoldStructStmt((StructStmt *)stmt);
     default:
         return nullptr;
     }
 }
-Stmt *SemanticAnalyzer::AnalyzeExprStmt(ExprStmt *stmt)
+Stmt *ConstantFolder::FoldExprStmt(ExprStmt *stmt)
 {
-    stmt->expr = AnalyzeExpr(stmt->expr);
+    stmt->expr = FoldExpr(stmt->expr);
     return stmt;
 }
-Stmt *SemanticAnalyzer::AnalyzeIfStmt(IfStmt *stmt)
+Stmt *ConstantFolder::FoldIfStmt(IfStmt *stmt)
 {
-    stmt->condition = AnalyzeExpr(stmt->condition);
-    stmt->thenBranch = AnalyzeStmt(stmt->thenBranch);
+    stmt->condition = FoldExpr(stmt->condition);
+    stmt->thenBranch = FoldStmt(stmt->thenBranch);
     if(stmt->elseBranch)
-        stmt->elseBranch = AnalyzeStmt(stmt->elseBranch);
+        stmt->elseBranch = FoldStmt(stmt->elseBranch);
 
     if (stmt->condition->Type() == AstType::BOOL)
     {
@@ -55,150 +55,150 @@ Stmt *SemanticAnalyzer::AnalyzeIfStmt(IfStmt *stmt)
 
     return stmt;
 }
-Stmt *SemanticAnalyzer::AnalyzeScopeStmt(ScopeStmt *stmt)
+Stmt *ConstantFolder::FoldScopeStmt(ScopeStmt *stmt)
 {
     for (auto &s : stmt->stmts)
-        s = AnalyzeStmt(s);
+        s = FoldStmt(s);
     return stmt;
 }
-Stmt *SemanticAnalyzer::AnalyzeWhileStmt(WhileStmt *stmt)
+Stmt *ConstantFolder::FoldWhileStmt(WhileStmt *stmt)
 {
-    stmt->condition = AnalyzeExpr(stmt->condition);
-    stmt->body = AnalyzeStmt(stmt->body);
+    stmt->condition = FoldExpr(stmt->condition);
+    stmt->body = FoldStmt(stmt->body);
     return stmt;
 }
-Stmt *SemanticAnalyzer::AnalyzeReturnStmt(ReturnStmt *stmt)
+Stmt *ConstantFolder::FoldReturnStmt(ReturnStmt *stmt)
 {
-    stmt->expr = AnalyzeExpr(stmt->expr);
+    stmt->expr = FoldExpr(stmt->expr);
     return stmt;
 }
 
-Stmt *SemanticAnalyzer::AnalyzeStructStmt(StructStmt *stmt)
+Stmt *ConstantFolder::FoldStructStmt(StructStmt *stmt)
 {
     for (auto &[k,v] : stmt->members)
-        v = AnalyzeExpr(v);
+        v = FoldExpr(v);
     return stmt;
 }
-Expr *SemanticAnalyzer::AnalyzeExpr(Expr *expr)
+Expr *ConstantFolder::FoldExpr(Expr *expr)
 {
     switch (expr->Type())
     {
     case AstType::NUM:
-        return AnalyzeNumExpr((NumExpr *)expr);
+        return FoldNumExpr((NumExpr *)expr);
     case AstType::STR:
-        return AnalyzeStrExpr((StrExpr *)expr);
+        return FoldStrExpr((StrExpr *)expr);
     case AstType::BOOL:
-        return AnalyzeBoolExpr((BoolExpr *)expr);
+        return FoldBoolExpr((BoolExpr *)expr);
     case AstType::NIL:
-        return AnalyzeNilExpr((NilExpr *)expr);
+        return FoldNilExpr((NilExpr *)expr);
     case AstType::IDENTIFIER:
-        return AnalyzeIdentifierExpr((IdentifierExpr *)expr);
+        return FoldIdentifierExpr((IdentifierExpr *)expr);
     case AstType::GROUP:
-        return AnalyzeGroupExpr((GroupExpr *)expr);
+        return FoldGroupExpr((GroupExpr *)expr);
     case AstType::ARRAY:
-        return AnalyzeArrayExpr((ArrayExpr *)expr);
+        return FoldArrayExpr((ArrayExpr *)expr);
     case AstType::INDEX:
-        return AnalyzeIndexExpr((IndexExpr *)expr);
+        return FoldIndexExpr((IndexExpr *)expr);
     case AstType::PREFIX:
-        return AnalyzePrefixExpr((PrefixExpr *)expr);
+        return FoldPrefixExpr((PrefixExpr *)expr);
     case AstType::INFIX:
-        return AnalyzeInfixExpr((InfixExpr *)expr);
+        return FoldInfixExpr((InfixExpr *)expr);
     case AstType::FUNCTION_CALL:
-        return AnalyzeFunctionCallExpr((FunctionCallExpr *)expr);
+        return FoldFunctionCallExpr((FunctionCallExpr *)expr);
     case AstType::STRUCT_CALL:
-        return AnalyzeStructCallExpr((StructCallExpr *)expr);
+        return FoldStructCallExpr((StructCallExpr *)expr);
     case AstType::REF:
-        return AnalyzeRefExpr((RefExpr *)expr);
+        return FoldRefExpr((RefExpr *)expr);
     case AstType::FUNCTION:
-        return AnalyzeFunctionExpr((FunctionExpr *)expr);
+        return FoldFunctionExpr((FunctionExpr *)expr);
     case AstType::ANONY_STRUCT:
-        return AnalyzeAnonyStructExpr((AnonyStructExpr*)expr);
+        return FoldAnonyStructExpr((AnonyStructExpr*)expr);
     default:
         return nullptr;
     }
 }
-Expr *SemanticAnalyzer::AnalyzeInfixExpr(InfixExpr *expr)
+Expr *ConstantFolder::FoldInfixExpr(InfixExpr *expr)
 {
-    expr->left = AnalyzeExpr(expr->left);
-    expr->right = AnalyzeExpr(expr->right);
+    expr->left = FoldExpr(expr->left);
+    expr->right = FoldExpr(expr->right);
 
     return ConstantFold(expr);
 }
-Expr *SemanticAnalyzer::AnalyzeNumExpr(NumExpr *expr)
+Expr *ConstantFolder::FoldNumExpr(NumExpr *expr)
 {
     return expr;
 }
-Expr *SemanticAnalyzer::AnalyzeBoolExpr(BoolExpr *expr)
+Expr *ConstantFolder::FoldBoolExpr(BoolExpr *expr)
 {
     return expr;
 }
-Expr *SemanticAnalyzer::AnalyzePrefixExpr(PrefixExpr *expr)
+Expr *ConstantFolder::FoldPrefixExpr(PrefixExpr *expr)
 {
-    expr->right=AnalyzeExpr(expr->right);
+    expr->right=FoldExpr(expr->right);
     return ConstantFold(expr);
 }
-Expr *SemanticAnalyzer::AnalyzeStrExpr(StrExpr *expr)
+Expr *ConstantFolder::FoldStrExpr(StrExpr *expr)
 {
     return expr;
 }
-Expr *SemanticAnalyzer::AnalyzeNilExpr(NilExpr *expr)
+Expr *ConstantFolder::FoldNilExpr(NilExpr *expr)
 {
     return expr;
 }
-Expr *SemanticAnalyzer::AnalyzeGroupExpr(GroupExpr *expr)
+Expr *ConstantFolder::FoldGroupExpr(GroupExpr *expr)
 {
-    return AnalyzeExpr(expr->expr);
+    return FoldExpr(expr->expr);
 }
-Expr *SemanticAnalyzer::AnalyzeArrayExpr(ArrayExpr *expr)
+Expr *ConstantFolder::FoldArrayExpr(ArrayExpr *expr)
 {
     for (auto &e : expr->elements)
-        e = AnalyzeExpr(e);
+        e = FoldExpr(e);
     return expr;
 }
-Expr *SemanticAnalyzer::AnalyzeIndexExpr(IndexExpr *expr)
+Expr *ConstantFolder::FoldIndexExpr(IndexExpr *expr)
 {
-    expr->ds = AnalyzeExpr(expr->ds);
-    expr->index = AnalyzeExpr(expr->index);
+    expr->ds = FoldExpr(expr->ds);
+    expr->index = FoldExpr(expr->index);
     return expr;
 }
-Expr *SemanticAnalyzer::AnalyzeIdentifierExpr(IdentifierExpr *expr)
+Expr *ConstantFolder::FoldIdentifierExpr(IdentifierExpr *expr)
 {
     return expr;
 }
-Expr *SemanticAnalyzer::AnalyzeFunctionExpr(FunctionExpr *expr)
+Expr *ConstantFolder::FoldFunctionExpr(FunctionExpr *expr)
 {
     for (auto &e : expr->parameters)
-        e = (IdentifierExpr *)AnalyzeIdentifierExpr(e);
-    expr->body = (ScopeStmt *)AnalyzeScopeStmt(expr->body);
+        e = (IdentifierExpr *)FoldIdentifierExpr(e);
+    expr->body = (ScopeStmt *)FoldScopeStmt(expr->body);
     return expr;
 }
-Expr *SemanticAnalyzer::AnalyzeFunctionCallExpr(FunctionCallExpr *expr)
+Expr *ConstantFolder::FoldFunctionCallExpr(FunctionCallExpr *expr)
 {
-    expr->name = AnalyzeExpr(expr->name);
+    expr->name = FoldExpr(expr->name);
     for (auto &e : expr->arguments)
-        e = AnalyzeExpr(e);
+        e = FoldExpr(e);
     return expr;
 }
-Expr *SemanticAnalyzer::AnalyzeStructCallExpr(StructCallExpr *expr)
+Expr *ConstantFolder::FoldStructCallExpr(StructCallExpr *expr)
 {
-    expr->callee = AnalyzeExpr(expr->callee);
-    expr->callMember = AnalyzeExpr(expr->callMember);
+    expr->callee = FoldExpr(expr->callee);
+    expr->callMember = FoldExpr(expr->callMember);
     return expr;
 }
-Expr *SemanticAnalyzer::AnalyzeRefExpr(RefExpr *expr)
+Expr *ConstantFolder::FoldRefExpr(RefExpr *expr)
 {
-    expr->refExpr = (IdentifierExpr *)AnalyzeExpr(expr->refExpr);
+    expr->refExpr = (IdentifierExpr *)FoldExpr(expr->refExpr);
     return expr;
 }
 
-    Expr* SemanticAnalyzer::AnalyzeAnonyStructExpr(AnonyStructExpr *expr)
+    Expr* ConstantFolder::FoldAnonyStructExpr(AnonyStructExpr *expr)
     {
         for(auto& [k,v]:expr->memberPairs)
-            v=AnalyzeExpr(v);
+            v=FoldExpr(v);
         return expr;
     }
 
-Expr *SemanticAnalyzer::ConstantFold(Expr *expr)
+Expr *ConstantFolder::ConstantFold(Expr *expr)
 {
     if (expr->Type() == AstType::INFIX)
     {

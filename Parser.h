@@ -6,7 +6,7 @@
 #include "Token.h"
 #include "Ast.h"
 #include "Utils.h"
-#include "SemanticAnalyzer.h"
+#include "ConstantFolder.h"
 
 enum class Precedence
 {
@@ -86,7 +86,7 @@ private:
 
 	int32_t m_FunctionOrFunctionScopeDepth;
 
-	SemanticAnalyzer m_SemanticAnalyzer;
+	ConstantFolder m_ConstantFolder;
 
 	static std::unordered_map<TokenType, PrefixFn> m_PrefixFunctions;
 	static std::unordered_map<TokenType, InfixFn> m_InfixFunctions;

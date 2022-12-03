@@ -76,7 +76,7 @@ std::vector<Stmt *> Parser::Parse(const std::vector<Token> &tokens)
 	while (!IsMatchCurToken(TokenType::END))
 		stmts.emplace_back(ParseStmt());
 
-	m_SemanticAnalyzer.Analyze(stmts);
+	m_ConstantFolder.Fold(stmts);
 
 	return stmts;
 }
