@@ -31,7 +31,7 @@ private:
     Expr* AnalyzeArrayExpr(ArrayExpr *expr);
     Expr* AnalyzeIndexExpr(IndexExpr *expr);
     Expr* AnalyzeIdentifierExpr(IdentifierExpr *expr);
-    Expr* AnalyzeLambdaExpr(LambdaExpr *expr);
+    Expr* AnalyzeFunctionExpr(FunctionExpr *expr);
     Expr* AnalyzeFunctionCallExpr(FunctionCallExpr *expr);
     Expr* AnalyzeStructCallExpr(StructCallExpr *expr);
     Expr* AnalyzeRefExpr(RefExpr *expr);

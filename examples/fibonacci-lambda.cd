@@ -1,4 +1,4 @@
-var fib=lambda(x)
+var fib=function(x)
 {
     if(x<2)
         return x;

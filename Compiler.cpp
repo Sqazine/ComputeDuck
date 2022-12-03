@@ -289,7 +289,7 @@ void Compiler::CompileExpr(Expr *expr, const RWState &state)
         CompileRefExpr((RefExpr *)expr);
         break;
     case AstType::LAMBDA:
-        CompileLambdaExpr((LambdaExpr *)expr);
+        CompileFunctionExpr((FunctionExpr *)expr);
         break;
     case AstType::ANONY_STRUCT:
         CompileAnonyStructExpr((AnonyStructExpr *)expr);
@@ -436,7 +436,7 @@ void Compiler::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state)
     }
 }
 
-void Compiler::CompileLambdaExpr(LambdaExpr *expr)
+void Compiler::CompileFunctionExpr(FunctionExpr *expr)
 {
     EnterScope();
 
