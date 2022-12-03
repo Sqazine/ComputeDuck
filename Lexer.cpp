@@ -2,7 +2,6 @@
 
 const std::unordered_map<std::string, TokenType> keywords =
     {
-        {"var", TokenType::VAR},
         {"if", TokenType::IF},
         {"else", TokenType::ELSE},
         {"true", TokenType::TRUE},

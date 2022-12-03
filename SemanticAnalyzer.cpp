@@ -21,8 +21,6 @@ Stmt *SemanticAnalyzer::AnalyzeStmt(Stmt *stmt)
         return AnalyzeReturnStmt((ReturnStmt *)stmt);
     case AstType::EXPR:
         return AnalyzeExprStmt((ExprStmt *)stmt);
-    case AstType::VAR:
-        return AnalyzeVarStmt((VarStmt *)stmt);
     case AstType::SCOPE:
         return AnalyzeScopeStmt((ScopeStmt *)stmt);
     case AstType::IF:
@@ -74,16 +72,11 @@ Stmt *SemanticAnalyzer::AnalyzeReturnStmt(ReturnStmt *stmt)
     stmt->expr = AnalyzeExpr(stmt->expr);
     return stmt;
 }
-Stmt *SemanticAnalyzer::AnalyzeVarStmt(VarStmt *stmt)
-{
-    stmt->value = AnalyzeExpr(stmt->value);
-    return stmt;
-}
 
 Stmt *SemanticAnalyzer::AnalyzeStructStmt(StructStmt *stmt)
 {
-    for (auto &s : stmt->members)
-        s = (VarStmt *)AnalyzeVarStmt(s);
+    for (auto &[k,v] : stmt->members)
+        v = AnalyzeExpr(v);
     return stmt;
 }
 Expr *SemanticAnalyzer::AnalyzeExpr(Expr *expr)

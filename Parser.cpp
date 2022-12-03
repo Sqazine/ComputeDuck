@@ -70,7 +70,7 @@ std::vector<Stmt *> Parser::Parse(const std::vector<Token> &tokens)
 {
 	m_CurPos = 0;
 	m_Tokens = tokens;
-	m_FunctionOrFunctionScopeDepth=0;
+	m_FunctionOrFunctionScopeDepth = 0;
 
 	std::vector<Stmt *> stmts;
 	while (!IsMatchCurToken(TokenType::END))
@@ -83,9 +83,7 @@ std::vector<Stmt *> Parser::Parse(const std::vector<Token> &tokens)
 
 Stmt *Parser::ParseStmt()
 {
-	if (IsMatchCurToken(TokenType::VAR))
-		return ParseVarStmt();
-	else if (IsMatchCurToken(TokenType::RETURN))
+	if (IsMatchCurToken(TokenType::RETURN))
 		return ParseReturnStmt();
 	else if (IsMatchCurToken(TokenType::IF))
 		return ParseIfStmt();
@@ -103,27 +101,13 @@ Stmt *Parser::ParseExprStmt()
 {
 	auto exprStmt = new ExprStmt(ParseExpr());
 	Consume(TokenType::SEMICOLON, "Expect ';' after expr stmt.");
-	
+
 	return exprStmt;
-}
-
-Stmt *Parser::ParseVarStmt()
-{
-	Consume(TokenType::VAR, "Expect 'var' key word");
-
-	auto name = (IdentifierExpr *)ParseIdentifierExpr();
-	Expr *value = nilExpr;
-	if (IsMatchCurTokenAndStepOnce(TokenType::EQUAL))
-		value = ParseExpr();
-
-	Consume(TokenType::SEMICOLON, "Expect ';' after var stmt.");
-
-	return new VarStmt(name, value);
 }
 
 Stmt *Parser::ParseReturnStmt()
 {
-	if(m_FunctionOrFunctionScopeDepth==0)
+	if (m_FunctionOrFunctionScopeDepth == 0)
 		Assert("Return statement only available in function");
 
 	Consume(TokenType::RETURN, "Expect 'return' key word.");
@@ -165,8 +149,6 @@ Stmt *Parser::ParseScopeStmt()
 		scopeStmt->stmts.emplace_back(ParseStmt());
 	Consume(TokenType::RBRACE, "Expect '}'.");
 
-		
-
 	return scopeStmt;
 }
 
@@ -183,8 +165,6 @@ Stmt *Parser::ParseWhileStmt()
 
 	whileStmt->body = ParseStmt();
 
-		
-
 	return whileStmt;
 }
 
@@ -196,12 +176,21 @@ Stmt *Parser::ParseStructStmt()
 
 	structStmt->name = ParseIdentifierExpr()->Stringify();
 
-	Consume(TokenType::LBRACE, "Expect '{' after struct name");
-
+	Consume(TokenType::LBRACE, "Expect '{'.");
 	while (!IsMatchCurToken(TokenType::RBRACE))
-		structStmt->members.emplace_back((VarStmt *)ParseVarStmt());
+	{
+		auto k = (IdentifierExpr *)ParseIdentifierExpr();
+		Expr *v = nilExpr;
+		if (IsMatchCurToken(TokenType::COLON))
+		{
+			Consume(TokenType::COLON, "Expect ':'");
+			v = ParseExpr();
+		}
+		IsMatchCurTokenAndStepOnce(TokenType::COMMA);
+		structStmt->members.emplace_back(k, v);
+	}
 
-	Consume(TokenType::RBRACE, "Expect '}' after struct's '{'");
+	Consume(TokenType::RBRACE, "Expect '}'.");
 
 	return structStmt;
 }
@@ -359,22 +348,26 @@ Expr *Parser::ParseFunctionExpr()
 	return functionExpr;
 }
 
-	Expr *Parser::ParseAnonyStructExpr()
+Expr *Parser::ParseAnonyStructExpr()
+{
+	std::unordered_map<IdentifierExpr *, Expr *> memPairs;
+	Consume(TokenType::LBRACE, "Expect '{'.");
+	while (!IsMatchCurToken(TokenType::RBRACE))
 	{
-		std::unordered_map<IdentifierExpr*,Expr*> memPairs;
-		Consume(TokenType::LBRACE,"Expect '{'.");
-		while(!IsMatchCurToken(TokenType::RBRACE))
+		auto k = (IdentifierExpr *)ParseIdentifierExpr();
+		Expr *v = nilExpr;
+		if (IsMatchCurToken(TokenType::COLON))
 		{
-			auto k=(IdentifierExpr*)ParseIdentifierExpr();
-			Consume(TokenType::COLON,"Expect ':'");
-			auto v=ParseExpr();
-			IsMatchCurTokenAndStepOnce(TokenType::COMMA);
-			memPairs[k]=v;
+			Consume(TokenType::COLON, "Expect ':'");
+			v = ParseExpr();
 		}
-
-		Consume(TokenType::RBRACE,"Expect '}'.");
-		return new AnonyStructExpr(memPairs);
+		IsMatchCurTokenAndStepOnce(TokenType::COMMA);
+		memPairs[k] = v;
 	}
+
+	Consume(TokenType::RBRACE, "Expect '}'.");
+	return new AnonyStructExpr(memPairs);
+}
 
 Expr *Parser::ParseFunctionCallExpr(Expr *prefixExpr)
 {

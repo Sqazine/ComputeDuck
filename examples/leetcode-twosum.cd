@@ -1,10 +1,10 @@
-var nums=[2,7,11,15];
-var target=9;
+nums=[2,7,11,15];
+target=9;
 
-var twosum=function(nums,target)
+twosum=function(nums,target)
 {
-    var i=0;
-    var j=i+1;
+    i=0;
+    j=i+1;
 
     while(i<sizeof(nums)-1)
     {

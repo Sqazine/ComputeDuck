@@ -52,9 +52,6 @@ void Compiler::CompileStmt(Stmt *stmt)
     case AstType::EXPR:
         CompileExprStmt((ExprStmt *)stmt);
         break;
-    case AstType::VAR:
-        CompileVarStmt((VarStmt *)stmt);
-        break;
     case AstType::SCOPE:
         CompileScopeStmt((ScopeStmt *)stmt);
         break;
@@ -145,21 +142,6 @@ void Compiler::CompileReturnStmt(ReturnStmt *stmt)
     }
 }
 
-void Compiler::CompileVarStmt(VarStmt *stmt)
-{
-    Symbol symbol = m_SymbolTable->Define(stmt->name->literal);
-    CompileExpr(stmt->value);
-    if (symbol.scope == SymbolScope::GLOBAL)
-        Emit(OP_SET_GLOBAL);
-    else
-    {
-        Emit(OP_SET_LOCAL);
-        Emit(symbol.isInUpScope);
-        Emit(symbol.scopeDepth);
-    }
-    Emit(symbol.index);
-}
-
 void Compiler::CompileStructStmt(StructStmt *stmt)
 {
     auto symbol = m_SymbolTable->Define(stmt->name, true);
@@ -169,8 +151,8 @@ void Compiler::CompileStructStmt(StructStmt *stmt)
 
     for (int32_t i = stmt->members.size() - 1; i >= 0; --i)
     {
-        CompileExpr(stmt->members[i]->value);
-        EmitConstant(AddConstant(new StrObject(stmt->members[i]->name->literal)));
+        CompileExpr(stmt->members[i].second);
+        EmitConstant(AddConstant(new StrObject(stmt->members[i].first->literal)));
     }
 
     auto localVarCount = m_SymbolTable->definitionCount;
@@ -180,7 +162,7 @@ void Compiler::CompileStructStmt(StructStmt *stmt)
 
     ExitScope();
 
-    auto opCodes=m_Scopes.back();
+    auto opCodes = m_Scopes.back();
     m_Scopes.pop_back();
 
     opCodes.emplace_back(OP_RETURN);
@@ -260,6 +242,8 @@ void Compiler::CompileInfixExpr(InfixExpr *expr)
 
     if (expr->op == "=")
     {
+        if (expr->left->Type() == AstType::IDENTIFIER && expr->right->Type() == AstType::FUNCTION)
+            m_SymbolTable->Define(((IdentifierExpr *)expr->left)->literal);
         CompileExpr(expr->right);
         CompileExpr(expr->left, RWState::WRITE);
     }
@@ -367,13 +351,16 @@ void Compiler::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state)
 {
     Symbol symbol;
     bool isFound = m_SymbolTable->Resolve(expr->literal, symbol);
-    if (!isFound)
-        Assert("Undefined variable:" + expr->Stringify());
-
     if (state == RWState::READ)
+    {
+        if (!isFound)
+            Assert("Undefined variable:" + expr->Stringify());
         LoadSymbol(symbol);
+    }
     else
     {
+        if (!isFound)
+            symbol = m_SymbolTable->Define(expr->literal);
         switch (symbol.scope)
         {
         case SymbolScope::GLOBAL:
@@ -408,7 +395,7 @@ void Compiler::CompileFunctionExpr(FunctionExpr *expr)
 
     ExitScope();
 
-    auto opCodes =m_Scopes.back();
+    auto opCodes = m_Scopes.back();
     m_Scopes.pop_back();
 
     //for non return  or empty stmt in function scope:add a return to return nothing

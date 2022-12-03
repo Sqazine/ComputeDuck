@@ -1,33 +1,33 @@
-var add=function(x,y){
+add=function(x,y){
     return x+y;
 };
 
-var c=add(1.000000,2.000000);
+c=add(1.000000,2.000000);
 println(c);#3.000000
 
 c=add;
 println(c(1,2));#3.000000
 
-var lam=function()
+lam=function()
 {
     return 10;
 };
 
-var x=lam();
+x=lam();
 
 println(x);#10.000000
 
 struct Vec2
 {
-    var length=function(x,y)
+    length:function(x,y)
     {
         return x*x+y*y;
-    };
+    }
 } 
 struct Vec3
 {
-    var super=Vec2;
+    super:Vec2
 } 
-var a=Vec3;
-var b=a.super.length(10,8);
+a=Vec3;
+b=a.super.length(10,8);
 println(b);    #164.000000

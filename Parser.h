@@ -39,7 +39,6 @@ private:
 
 	Stmt *ParseStmt();
 	Stmt *ParseExprStmt();
-	Stmt *ParseVarStmt();
 	Stmt *ParseReturnStmt();
 	Stmt *ParseIfStmt();
 	Stmt *ParseScopeStmt();

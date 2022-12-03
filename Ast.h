@@ -24,7 +24,6 @@ enum class AstType
 	FUNCTION_CALL,
 	STRUCT_CALL,
 	//stmt
-	VAR,
 	EXPR,
 	RETURN,
 	IF,
@@ -137,9 +136,10 @@ struct GroupExpr : public Expr
 {
 	GroupExpr() : expr(nullptr) {}
 	GroupExpr(Expr *expr) : expr(expr) {}
-	~GroupExpr() {
+	~GroupExpr()
+	{
 		delete expr;
-		expr=nullptr;
+		expr = nullptr;
 	}
 
 	std::string Stringify() override { return "(" + expr->Stringify() + ")"; }
@@ -224,7 +224,7 @@ struct RefExpr : public Expr
 
 struct FunctionCallExpr : public Expr
 {
-	FunctionCallExpr():name(nullptr) {}
+	FunctionCallExpr() : name(nullptr) {}
 	FunctionCallExpr(Expr *name, std::vector<Expr *> arguments) : name(name), arguments(arguments) {}
 	~FunctionCallExpr()
 	{
@@ -257,11 +257,12 @@ struct StructCallExpr : public Expr
 {
 	StructCallExpr() : callee(nullptr), callMember(nullptr) {}
 	StructCallExpr(Expr *callee, Expr *callMember) : callee(callee), callMember(callMember) {}
-	~StructCallExpr() {
+	~StructCallExpr()
+	{
 		delete callee;
-		callee=nullptr;
+		callee = nullptr;
 		delete callMember;
-		callMember=nullptr;
+		callMember = nullptr;
 	}
 
 	std::string Stringify() override { return callee->Stringify() + "." + callMember->Stringify(); }
@@ -294,29 +295,6 @@ struct ExprStmt : public Stmt
 	AstType Type() override { return AstType::EXPR; }
 
 	Expr *expr;
-};
-
-struct VarStmt : public Stmt
-{
-	VarStmt():name(nullptr),value(nullptr) {}
-	VarStmt(IdentifierExpr *name, Expr *value) : name(name), value(value) {}
-	~VarStmt()
-	{
-		delete name;
-		name=nullptr;
-		delete value;
-		value=nullptr;
-	}
-
-	std::string Stringify() override
-	{
-		return "var " + name->Stringify() + "=" + value->Stringify() + ";";
-	}
-
-	AstType Type() override { return AstType::VAR; }
-
-	IdentifierExpr *name;
-	Expr *value;
 };
 
 struct ReturnStmt : public Stmt
@@ -421,20 +399,20 @@ struct FunctionExpr : public Expr
 
 struct AnonyStructExpr : public Expr
 {
-	AnonyStructExpr(const std::unordered_map<IdentifierExpr*,Expr*>& memberPairs) : memberPairs(memberPairs) {}
-	~AnonyStructExpr(){}
+	AnonyStructExpr(const std::unordered_map<IdentifierExpr *, Expr *> &memberPairs) : memberPairs(memberPairs) {}
+	~AnonyStructExpr() {}
 
 	std::string Stringify() override
 	{
 		std::string result = "{";
-		for (const auto& [k,v] : memberPairs)
-			result += k->Stringify() + ":"+v->Stringify()+",\n";
+		for (const auto &[k, v] : memberPairs)
+			result += k->Stringify() + ":" + v->Stringify() + ",\n";
 		result += "}";
 		return result;
 	}
 	AstType Type() override { return AstType::ANONY_STRUCT; }
 
-	std::unordered_map<IdentifierExpr*,Expr*> memberPairs; 
+	std::unordered_map<IdentifierExpr *, Expr *> memberPairs;
 };
 
 struct WhileStmt : public Stmt
@@ -462,25 +440,25 @@ struct WhileStmt : public Stmt
 struct StructStmt : public Stmt
 {
 	StructStmt() {}
-	StructStmt(std::string_view name, std::vector<VarStmt *> members) : name(name), members(members) {}
+	StructStmt(std::string_view name, std::vector<std::pair<IdentifierExpr*, Expr *>> members) : name(name), members(members) {}
 	~StructStmt()
 	{
-		std::vector<VarStmt *>().swap(members);
+		std::vector<std::pair<IdentifierExpr*, Expr *>>().swap(members);
 	}
 
 	std::string Stringify() override
 	{
 		std::string result = "struct " + name + "{";
 
-		for (const auto &varStmt : members)
-			result += varStmt->Stringify() + "\n";
+		for (const auto &member : members)
+			result += member.first->Stringify() + ":" + member.second->Stringify() + "\n";
 
 		return result + "}";
 	}
 	AstType Type() override { return AstType::STRUCT; }
 
 	std::string name;
-	std::vector<VarStmt *> members;
+	std::vector<std::pair<IdentifierExpr*, Expr *>> members;
 };
 
 static NilExpr *nilExpr = new NilExpr();
