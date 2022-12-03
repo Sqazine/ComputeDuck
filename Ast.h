@@ -19,7 +19,7 @@ enum class AstType
 	INFIX,
 	INDEX,
 	REF,
-	LAMBDA,
+	FUNCTION,
 	ANONY_STRUCT,
 	FUNCTION_CALL,
 	STRUCT_CALL,
@@ -29,7 +29,6 @@ enum class AstType
 	RETURN,
 	IF,
 	SCOPE,
-	FUNCTION,
 	WHILE,
 	STRUCT,
 };
@@ -389,38 +388,6 @@ struct ScopeStmt : public Stmt
 	std::vector<Stmt *> stmts;
 };
 
-struct FunctionStmt : public Stmt
-{
-	FunctionStmt() : body(nullptr) {}
-	FunctionStmt(std::string_view name, std::vector<IdentifierExpr *> parameters, ScopeStmt *body) : name(name), parameters(parameters), body(body) {}
-	~FunctionStmt()
-	{
-		std::vector<IdentifierExpr *>().swap(parameters);
-
-		delete body;
-		body = nullptr;
-	}
-
-	std::string Stringify() override
-	{
-		std::string result = "function " + name + "(";
-		if (!parameters.empty())
-		{
-			for (auto param : parameters)
-				result += param->Stringify() + ",";
-			result = result.substr(0, result.size() - 1);
-		}
-		result += ")";
-		result += body->Stringify();
-		return result;
-	}
-	AstType Type() override { return AstType::FUNCTION; }
-
-	std::string name;
-	std::vector<IdentifierExpr *> parameters;
-	ScopeStmt *body;
-};
-
 struct FunctionExpr : public Expr
 {
 	FunctionExpr() : body(nullptr) {}
@@ -446,7 +413,7 @@ struct FunctionExpr : public Expr
 		result += body->Stringify();
 		return result;
 	}
-	AstType Type() override { return AstType::LAMBDA; }
+	AstType Type() override { return AstType::FUNCTION; }
 
 	std::vector<IdentifierExpr *> parameters;
 	ScopeStmt *body;

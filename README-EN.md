@@ -72,9 +72,9 @@ println(c);#"nil"
 ```
 2. Function
 ```sh
-function add(x,y){
+var add=function(x,y){
     return x+y;
-}
+};
 
 var c=add(1.000000,2.000000);
 println(c);#3.000000
@@ -88,11 +88,11 @@ sizeof(a);#get the size of array
 3. Array
 ```sh
 
-function add(vec1,vec2){
+var add=function(vec1,vec2){
     return [vec1[0]+vec2[0],vec1[1]+vec2[1]];
-}
+};
 
-function sub(vec1,vec2){
+var sub=function(vec1,vec2){
     return [vec1[0]-vec2[0],vec1[1]-vec2[1]];
 }
 
@@ -270,7 +270,7 @@ println(head);
 var nums=[2,7,11,15];
 var target=9;
 
-function twosum(nums,target)
+var twosum=function(nums,target)
 {
     var i=0;
     var j=i+1;
@@ -295,7 +295,7 @@ println(twosum(nums,target));#[0.000000,1.000000]
 ```
 9. Fibonacci numbers
 ```sh
-function fib(x)
+var fib=function(x)
 {
     if(x==0) 
         return 0;
@@ -308,34 +308,7 @@ var a=fib(10);
 println(a);#55
 ```
 
-10. lambda
-```sh
-var lam=lambda()
-{
-    return 10;
-};
-
-var x=lam();
-
-println(x);#10
-
-struct Vec2
-{
-    var length=lambda(x,y)
-    {
-        return x*x+y*y;
-    };
-} 
-struct Vec3
-{
-    var super=Vec2;
-} 
-var a=Vec3;
-var b=a.super.length(10,8);
-println(b);    #164
-```
-
-11. OOP simulate
+10. OOP simulate
 ```sh
 struct ShapeVtbl
 {
@@ -350,7 +323,7 @@ struct Shape
     var y=0;
 }
 
-function ShapeCtor(self,x,y)
+var ShapeCtor=function(self,x,y)
 {
     self.x=x;
     self.y=y;
@@ -360,7 +333,7 @@ function ShapeCtor(self,x,y)
     };
 }
 
-function ShapeArea(self)
+var ShapeArea=function(self)
 {
     if(self.super==nil)
         return self.vptr.area(self);
@@ -385,7 +358,7 @@ struct Rectangle
     var height;
 }
 
-function RectangleCtor(self,x,y,w,h)
+var RectangleCtor=function(self,x,y,w,h)
 {
     ShapeCtor(self.super,x,y);
     self.width=w;

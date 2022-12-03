@@ -16,19 +16,19 @@ struct Vec2
 a=Vec2;
 println(b);#struct instance: x=0.0 y=0.0
 
-function resetVec2(v)
+var resetVec2=function(v)
 {
     #reset vec2 value in function
     v.x=100;
     v.y=100;
-}
+};
 
-function resetVec2Bigger(v)
+var resetVec2Bigger=function(v)
 {
     #reset vec2 value in function
     v.x=1000;
     v.y=1000;
-}
+};
 
 resetVec2(ref a);
 println(b);#struct instance: x=100.0 y=100.0

@@ -1,7 +1,7 @@
 var nums=[2,7,11,15];
 var target=9;
 
-function twosum(nums,target)
+var twosum=function(nums,target)
 {
     var i=0;
     var j=i+1;
@@ -17,6 +17,6 @@ function twosum(nums,target)
         }
         i=i+1;
     }
-}
+};
 
 println(twosum(nums,target));#[0.000000,1.000000]
