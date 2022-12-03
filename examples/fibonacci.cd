@@ -1,10 +1,11 @@
-function fib(x)
+var fib=function(x)
 {
     if(x<2)
         return x;
     else 
         return fib(x-1)+fib(x-2);
-}
+};
+
 var start=clock();
 var a=fib(35);
 println(a);# 9227465

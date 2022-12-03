@@ -11,7 +11,7 @@ struct Shape
     var y=0;
 }
 
-function ShapeCtor(self,x,y)
+var ShapeCtor=function(self,x,y)
 {
     self.x=x;
     self.y=y;
@@ -19,14 +19,14 @@ function ShapeCtor(self,x,y)
     {
         return 0;
     };
-}
+};
 
-function ShapeArea(self)
+var ShapeArea=function(self)
 {
     if(self.super==nil)
         return self.vptr.area(self);
     return self.super.vptr.area(self);
-}
+};
 
 var s1=Shape;
 ShapeCtor(ref s1,10,10);
@@ -46,7 +46,7 @@ struct Rectangle
     var height;
 }
 
-function RectangleCtor(self,x,y,w,h)
+var RectangleCtor=function(self,x,y,w,h)
 {
     ShapeCtor(self.super,x,y);
     self.width=w;
@@ -55,7 +55,7 @@ function RectangleCtor(self,x,y,w,h)
     {
         return self.width*self.height;
     };
-}
+};
 
 var r1=Rectangle;
 RectangleCtor(ref r1,10,10,3,5);

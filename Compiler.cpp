@@ -64,9 +64,6 @@ void Compiler::CompileStmt(Stmt *stmt)
     case AstType::WHILE:
         CompileWhileStmt((WhileStmt *)stmt);
         break;
-    case AstType::FUNCTION:
-        CompileFunctionStmt((FunctionStmt *)stmt);
-        break;
     case AstType::STRUCT:
         CompileStructStmt((StructStmt *)stmt);
         break;
@@ -163,47 +160,6 @@ void Compiler::CompileVarStmt(VarStmt *stmt)
     Emit(symbol.index);
 }
 
-void Compiler::CompileFunctionStmt(FunctionStmt *stmt)
-{
-    auto symbol = m_SymbolTable->Define(stmt->name);
-
-    EnterScope();
-    m_Scopes.emplace_back(OpCodes());
-
-    for (const auto &param : stmt->parameters)
-        m_SymbolTable->Define(param->literal);
-
-    for (const auto &s : stmt->body->stmts)
-        CompileStmt(s);
-
-    auto localVarCount = m_SymbolTable->definitionCount;
-    
-    ExitScope();
-
-    auto opCodes=m_Scopes.back();
-    m_Scopes.pop_back();
-
-    //for non return lambda or empty stmt in lambda scope:add a return to return nothing
-    if (opCodes.empty() || opCodes[opCodes.size() - 2] != OP_RETURN)
-    {
-        opCodes.emplace_back(OP_RETURN);
-        opCodes.emplace_back(0);
-    }
-
-    auto fn = new FunctionObject(opCodes, localVarCount, (int32_t)stmt->parameters.size());
-
-    EmitConstant(AddConstant(fn));
-
-    if (symbol.scope == SymbolScope::GLOBAL)
-        Emit(OP_SET_GLOBAL);
-    else
-    {
-        Emit(OP_SET_LOCAL);
-        Emit(symbol.isInUpScope);
-        Emit(symbol.scopeDepth);
-    }
-    Emit(symbol.index);
-}
 void Compiler::CompileStructStmt(StructStmt *stmt)
 {
     auto symbol = m_SymbolTable->Define(stmt->name, true);
@@ -288,7 +244,7 @@ void Compiler::CompileExpr(Expr *expr, const RWState &state)
     case AstType::REF:
         CompileRefExpr((RefExpr *)expr);
         break;
-    case AstType::LAMBDA:
+    case AstType::FUNCTION:
         CompileFunctionExpr((FunctionExpr *)expr);
         break;
     case AstType::ANONY_STRUCT:
@@ -455,7 +411,7 @@ void Compiler::CompileFunctionExpr(FunctionExpr *expr)
     auto opCodes =m_Scopes.back();
     m_Scopes.pop_back();
 
-    //for non return lambda or empty stmt in lambda scope:add a return to return nothing
+    //for non return  or empty stmt in function scope:add a return to return nothing
     if (opCodes.empty() || opCodes[opCodes.size() - 2] != OP_RETURN)
     {
         opCodes.emplace_back(OP_RETURN);

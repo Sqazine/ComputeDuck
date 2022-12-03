@@ -44,7 +44,6 @@ private:
 	Stmt *ParseIfStmt();
 	Stmt *ParseScopeStmt();
 	Stmt *ParseWhileStmt();
-	Stmt *ParseFunctionStmt();
 	Stmt *ParseStructStmt();
 
 	Expr *ParseExpr(Precedence precedence = Precedence::LOWEST);

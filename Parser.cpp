@@ -93,8 +93,6 @@ Stmt *Parser::ParseStmt()
 		return ParseScopeStmt();
 	else if (IsMatchCurToken(TokenType::WHILE))
 		return ParseWhileStmt();
-	else if (IsMatchCurToken(TokenType::FUNCTION))
-		return ParseFunctionStmt();
 	else if (IsMatchCurToken(TokenType::STRUCT))
 		return ParseStructStmt();
 	else
@@ -126,7 +124,7 @@ Stmt *Parser::ParseVarStmt()
 Stmt *Parser::ParseReturnStmt()
 {
 	if(m_FunctionOrFunctionScopeDepth==0)
-		Assert("Return statement only available in function or lambda");
+		Assert("Return statement only available in function");
 
 	Consume(TokenType::RETURN, "Expect 'return' key word.");
 
@@ -188,38 +186,6 @@ Stmt *Parser::ParseWhileStmt()
 		
 
 	return whileStmt;
-}
-
-Stmt *Parser::ParseFunctionStmt()
-{
-	m_FunctionOrFunctionScopeDepth++;
-
-
-	Consume(TokenType::FUNCTION, "Expect 'fn' keyword");
-
-	auto funcStmt = new FunctionStmt();
-
-	funcStmt->name = ParseIdentifierExpr()->Stringify();
-
-	Consume(TokenType::LPAREN, "Expect '(' after function name");
-
-	if (!IsMatchCurToken(TokenType::RPAREN)) //has parameter
-	{
-		IdentifierExpr *idenExpr = (IdentifierExpr *)ParseIdentifierExpr();
-		funcStmt->parameters.emplace_back(idenExpr);
-		while (IsMatchCurTokenAndStepOnce(TokenType::COMMA))
-		{
-			idenExpr = (IdentifierExpr *)ParseIdentifierExpr();
-			funcStmt->parameters.emplace_back(idenExpr);
-		}
-	}
-	Consume(TokenType::RPAREN, "Expect ')' after function expr's '('");
-
-	funcStmt->body = (ScopeStmt *)ParseScopeStmt();
-
-	m_FunctionOrFunctionScopeDepth--;
-
-	return funcStmt;
 }
 
 Stmt *Parser::ParseStructStmt()

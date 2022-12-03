@@ -29,7 +29,6 @@ private:
     void CompileWhileStmt(WhileStmt *stmt);
     void CompileReturnStmt(ReturnStmt *stmt);
     void CompileVarStmt(VarStmt *stmt);
-    void CompileFunctionStmt(FunctionStmt *stmt);
     void CompileStructStmt(StructStmt* stmt);
 
     void CompileExpr(Expr *expr,const RWState& state=RWState::READ);

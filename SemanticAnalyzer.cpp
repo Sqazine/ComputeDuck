@@ -29,8 +29,6 @@ Stmt *SemanticAnalyzer::AnalyzeStmt(Stmt *stmt)
         return AnalyzeIfStmt((IfStmt *)stmt);
     case AstType::WHILE:
         return AnalyzeWhileStmt((WhileStmt *)stmt);
-    case AstType::FUNCTION:
-        return AnalyzeFunctionStmt((FunctionStmt *)stmt);
     case AstType::STRUCT:
         return AnalyzeStructStmt((StructStmt *)stmt);
     default:
@@ -81,14 +79,7 @@ Stmt *SemanticAnalyzer::AnalyzeVarStmt(VarStmt *stmt)
     stmt->value = AnalyzeExpr(stmt->value);
     return stmt;
 }
-Stmt *SemanticAnalyzer::AnalyzeFunctionStmt(FunctionStmt *stmt)
-{
-    for (auto &e : stmt->parameters)
-        e = (IdentifierExpr *)AnalyzeIdentifierExpr(e);
 
-    stmt->body = (ScopeStmt *)AnalyzeScopeStmt(stmt->body);
-    return stmt;
-}
 Stmt *SemanticAnalyzer::AnalyzeStructStmt(StructStmt *stmt)
 {
     for (auto &s : stmt->members)
@@ -125,7 +116,7 @@ Expr *SemanticAnalyzer::AnalyzeExpr(Expr *expr)
         return AnalyzeStructCallExpr((StructCallExpr *)expr);
     case AstType::REF:
         return AnalyzeRefExpr((RefExpr *)expr);
-    case AstType::LAMBDA:
+    case AstType::FUNCTION:
         return AnalyzeFunctionExpr((FunctionExpr *)expr);
     case AstType::ANONY_STRUCT:
         return AnalyzeAnonyStructExpr((AnonyStructExpr*)expr);
