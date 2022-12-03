@@ -1,6 +1,6 @@
-var a=10;
-var b=a;
-var c;
+a=10;
+b=a;
+c=nil;
 b=20;
 println(a);#10
 println(b);#20

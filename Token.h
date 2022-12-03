@@ -30,7 +30,6 @@ enum class TokenType
 	LESS_EQUAL,	   // <=
 	GREATER_EQUAL, // >=
 	BANG_EQUAL,	   // !=
-	VAR,		   // var
 	IF,			   // if
 	ELSE,		   // else
 	TRUE,		   // true

@@ -42,12 +42,12 @@ cmake -build .
 ```sh
 window(C++):
     .\computeduck.exe  
-    > var a=10;println(a);
+    > a=10;println(a);
 
 linux(C++):
     chmod 777 computeduck
     ./computeduck 
-    > var a=10;println(a); 
+    > a=10;println(a); 
 ```
 3. Run in source code file
 ```sh
@@ -62,9 +62,9 @@ linux(C++):
 ## 2. Examples
 1. Variable declarations
 ```sh
-var a=10;
-var b=a;
-var c;
+a=10;
+b=a;
+c;
 b=20;
 println(a);#10
 println(b);#20
@@ -72,42 +72,42 @@ println(c);#"nil"
 ```
 2. Function
 ```sh
-var add=function(x,y){
+add=function(x,y){
     return x+y;
 };
 
-var c=add(1.000000,2.000000);
+c=add(1.000000,2.000000);
 println(c);#3.000000
 
 #native function
 println("hello world!");#The function that outputs to the console
 
-var a=[1,2,3];#array
+a=[1,2,3];#array
 sizeof(a);#get the size of array
 ```
 3. Array
 ```sh
 
-var add=function(vec1,vec2){
+add=function(vec1,vec2){
     return [vec1[0]+vec2[0],vec1[1]+vec2[1]];
 };
 
-var sub=function(vec1,vec2){
+sub=function(vec1,vec2){
     return [vec1[0]-vec2[0],vec1[1]-vec2[1]];
-}
+};
 
-var vec1=[3,3];
-var vec2=[2,2];
+vec1=[3,3];
+vec2=[2,2];
 
-var vec3=add(vec1,vec2);
+vec3=add(vec1,vec2);
 
 println(vec3);#[5.000000,5.000000]
 ```
 
 4. If-Statement
 ```sh
-var a=10;
-var b=a;
+a=10;
+b=a;
 b=20;
 println(a);#10.000000
 println(b);#20.000000
@@ -146,7 +146,7 @@ println(a);#500.000000
 
 5. Loop
 ```sh
-var a=0;
+a=0;
 
 while(a<100)
 {
@@ -165,20 +165,20 @@ while(a<100)
 ```sh
 struct Vec2
 {
-    var x=0;
-    var y=0;
+    x:0,
+    y:0
 }
 struct Vec3
 {
-    var vec2=Vec2;
-    var z=0;
+    vec2:Vec2,
+    z:0
 }
 struct Vec4
 {
-    var vec3=Vec3;
-    var w=0;
+    vec3:Vec3,
+    w:0
 }
-var a=Vec4;
+a=Vec4;
 a.vec3.vec2.x=1000;
 println(a);
 #struct
@@ -201,17 +201,17 @@ println(a.vec3.vec2.x);# 1000.000000
 ```sh
 struct Node
 {
-    var v=0;
-    var next=nil;
+    v:0,
+    next:nil,
 }
 
-var head=Node;
+head=Node;
 
-var e=head;
-var i=1;
+e=head;
+i=1;
 while(i<10)
 {
-    var e2=Node;
+    e2=Node;
     e2.v=i;
 
     e.next=e2;
@@ -267,13 +267,13 @@ println(head);
 
 8. leetcode's two-sum example
 ```sh
-var nums=[2,7,11,15];
-var target=9;
+nums=[2,7,11,15];
+target=9;
 
-var twosum=function(nums,target)
+twosum=function(nums,target)
 {
-    var i=0;
-    var j=i+1;
+    i=0;
+    j=i+1;
     println(j);
 
     while(i<sizeof(nums)-1)
@@ -289,13 +289,13 @@ var twosum=function(nums,target)
         }
         i=i+1;
     }
-}
+};
 
 println(twosum(nums,target));#[0.000000,1.000000]
 ```
 9. Fibonacci numbers
 ```sh
-var fib=function(x)
+fib=function(x)
 {
     if(x==0) 
         return 0;
@@ -303,8 +303,8 @@ var fib=function(x)
         return 1;
     else 
         return fib(x-1)+fib(x-2);
-}
-var a=fib(10);
+};
+a=fib(10);
 println(a);#55
 ```
 
@@ -312,18 +312,18 @@ println(a);#55
 ```sh
 struct ShapeVtbl
 {
-    var area=nil;
+    area:nil,
 }
 
 struct Shape
 {
-    var vptr=ShapeVtbl;
-    var super=nil;
-    var x=0;
-    var y=0;
+    vptr:ShapeVtbl,
+    super,
+    x:0,
+    y:0;
 }
 
-var ShapeCtor=function(self,x,y)
+ShapeCtor=function(self,x,y)
 {
     self.x=x;
     self.y=y;
@@ -331,16 +331,16 @@ var ShapeCtor=function(self,x,y)
     {
         return 0;
     };
-}
+};
 
-var ShapeArea=function(self)
+ShapeArea=function(self)
 {
     if(self.super==nil)
         return self.vptr.area(self);
     return self.super.vptr.area(self);
-}
+};
 
-var s1=Shape;
+s1=Shape;
 ShapeCtor(ref s1,10,10);
 println(s1);#struct instance Shape:
             #   vptr=struct instance ShapeVtbl:
@@ -353,12 +353,12 @@ println(ShapeArea(s1));#0.0
 
 struct Rectangle
 {
-    var super=Shape;
-    var width;
-    var height;
+    super:Shape,
+    width,
+    height
 }
 
-var RectangleCtor=function(self,x,y,w,h)
+RectangleCtor=function(self,x,y,w,h)
 {
     ShapeCtor(self.super,x,y);
     self.width=w;
@@ -367,9 +367,9 @@ var RectangleCtor=function(self,x,y,w,h)
     {
         return self.width*self.height;
     };
-}
+};
 
-var r1=Rectangle;
+r1=Rectangle;
 RectangleCtor(ref r1,10,10,3,5);
 println(r1);#struct instance Rectangle:
             #super=struct instance Shape:
@@ -386,7 +386,7 @@ println(ShapeArea(r1));#15
 
 12. AnonymousStruct(similar to javascript's Object)
 ```sh
-var a={
+a={
     x:10,
     y:20
 };

@@ -16,7 +16,6 @@ private:
     Stmt* AnalyzeScopeStmt(ScopeStmt *stmt);
     Stmt* AnalyzeWhileStmt(WhileStmt *stmt);
     Stmt* AnalyzeReturnStmt(ReturnStmt *stmt);
-    Stmt* AnalyzeVarStmt(VarStmt *stmt);
     Stmt* AnalyzeStructStmt(StructStmt *stmt);
 
     Expr* AnalyzeExpr(Expr *expr);

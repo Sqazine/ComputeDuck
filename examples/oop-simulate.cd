@@ -1,17 +1,17 @@
 struct ShapeVtbl
 {
-    var area=nil;
+    area
 }
 
 struct Shape
 {
-    var vptr=ShapeVtbl;
-    var super=nil;
-    var x=0;
-    var y=0;
+    vptr:ShapeVtbl,
+    super,
+    x:0,
+    y:0,
 }
 
-var ShapeCtor=function(self,x,y)
+ShapeCtor=function(self,x,y)
 {
     self.x=x;
     self.y=y;
@@ -21,14 +21,14 @@ var ShapeCtor=function(self,x,y)
     };
 };
 
-var ShapeArea=function(self)
+ShapeArea=function(self)
 {
     if(self.super==nil)
         return self.vptr.area(self);
     return self.super.vptr.area(self);
 };
 
-var s1=Shape;
+s1=Shape;
 ShapeCtor(ref s1,10,10);
 println(s1);#struct instance:
             #   vptr=struct instance:
@@ -41,12 +41,12 @@ println(ShapeArea(s1));#0.0
 
 struct Rectangle
 {
-    var super=Shape;
-    var width;
-    var height;
+    super:Shape,
+    width,
+    height,
 }
 
-var RectangleCtor=function(self,x,y,w,h)
+RectangleCtor=function(self,x,y,w,h)
 {
     ShapeCtor(self.super,x,y);
     self.width=w;
@@ -57,7 +57,7 @@ var RectangleCtor=function(self,x,y,w,h)
     };
 };
 
-var r1=Rectangle;
+r1=Rectangle;
 RectangleCtor(ref r1,10,10,3,5);
 println(r1);#struct instance:
             #super=struct instance:

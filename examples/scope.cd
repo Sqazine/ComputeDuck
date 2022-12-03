@@ -1,21 +1,20 @@
-var a=10;
+a=10;
 {
-    var a=a;
     a=20;
     println(a);#20
 } 
 
 {
-    var b=a;
+    b=a;
     b=30;
     println(b);#30
 } 
 
-println(a);#10
+println(a);#20
 
 
 {
-    var b=20;
+    b=20;
     {
         b=30;
         println(b);#30

@@ -1,20 +1,20 @@
-var ok=SDL_Init();
+ok=SDL_Init();
 if(ok<0)
     println("Failed to init sdl2!");
-var window=SDL_CreateWindow("First Window",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,800,600);
-var isRunning=true;
+window=SDL_CreateWindow("First Window",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,800,600);
+isRunning=true;
 
-var renderer=SDL_CreateRenderer(window);
+renderer=SDL_CreateRenderer(window);
 
 if(renderer==nil)
     println("Failed to create renderer.");
 
-var surface=SDL_LoadBMP("../examples/hello.bmp");
+surface=SDL_LoadBMP("../examples/hello.bmp");
 
 if(surface==nil)
     println("Failed to load bmp image.");
 
-var texture=SDL_CreateTextureFromSurface(renderer,surface);
+texture=SDL_CreateTextureFromSurface(renderer,surface);
 
 SDL_RenderClear(renderer);
 
@@ -24,7 +24,7 @@ SDL_RenderPresent(renderer);
 
 while(isRunning)
 {
-    var event=SDL_PollEvent();
+     event=SDL_PollEvent();
     if(event!=nil)
     {
         if(SDL_GetEventType(event)==SDL_QUIT)

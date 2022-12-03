@@ -1,4 +1,4 @@
-var fib=function(x,pre,cur)
+fib=function(x,pre,cur)
 {
     if(x==0)
         return pre;
@@ -7,8 +7,8 @@ var fib=function(x,pre,cur)
     else 
         return fib(x-1,cur,pre+cur);
 };
-var start=clock();
-var a=fib(35,0,1);
+start=clock();
+a=fib(35,0,1);
 println(a);# 9227465
-var end=clock();
+end=clock();
 println(end-start);
