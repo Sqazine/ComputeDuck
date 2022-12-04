@@ -453,26 +453,51 @@ void Compiler::CompileStructCallExpr(StructCallExpr *expr, const RWState &state)
 
 void Compiler::CompileRefExpr(RefExpr *expr)
 {
-
     Symbol symbol;
-    bool isFound = m_SymbolTable->Resolve(expr->refExpr->literal, symbol);
-    if (!isFound)
-        Assert("Undefined variable:" + expr->Stringify());
-
-    switch (symbol.scope)
+    if (expr->refExpr->Type() == AstType::INDEX)
     {
-    case SymbolScope::GLOBAL:
-        Emit(OP_REF_GLOBAL);
-        Emit(symbol.index);
-        break;
-    case SymbolScope::LOCAL:
-        Emit(OP_REF_LOCAL);
-        Emit(symbol.isInUpScope);
-        Emit(symbol.scopeDepth);
-        Emit(symbol.index);
-        break;
-    default:
-        break;
+        CompileExpr(((IndexExpr *)expr->refExpr)->index);
+        bool isFound = m_SymbolTable->Resolve(((IndexExpr *)expr->refExpr)->ds->Stringify(), symbol);
+        if (!isFound)
+            Assert("Undefined variable:" + expr->Stringify());
+
+        switch (symbol.scope)
+        {
+        case SymbolScope::GLOBAL:
+            Emit(OP_REF_INDEX_GLOBAL);
+            Emit(symbol.index);
+            break;
+        case SymbolScope::LOCAL:
+            Emit(OP_REF_INDEX_LOCAL);
+            Emit(symbol.isInUpScope);
+            Emit(symbol.scopeDepth);
+            Emit(symbol.index);
+            break;
+        default:
+            break;
+        }
+    }
+    else
+    {
+        bool isFound = m_SymbolTable->Resolve(expr->refExpr->Stringify(), symbol);
+        if (!isFound)
+            Assert("Undefined variable:" + expr->Stringify());
+
+        switch (symbol.scope)
+        {
+        case SymbolScope::GLOBAL:
+            Emit(OP_REF_GLOBAL);
+            Emit(symbol.index);
+            break;
+        case SymbolScope::LOCAL:
+            Emit(OP_REF_LOCAL);
+            Emit(symbol.isInUpScope);
+            Emit(symbol.scopeDepth);
+            Emit(symbol.index);
+            break;
+        default:
+            break;
+        }
     }
 }
 

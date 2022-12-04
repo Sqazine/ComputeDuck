@@ -461,6 +461,50 @@ void VM::Execute()
             Push(CreateObject<RefObject>(slot));
             break;
         }
+        case OP_REF_INDEX_GLOBAL:
+        {
+            auto index = *frame->ip++;
+            auto idxValue = Pop();
+            if (IS_ARRAY_VALUE(m_GlobalVariables[index]))
+            {
+                if (!IS_NUM_VALUE(idxValue))
+                    Assert("Invalid idx for array,only integer is available.");
+                auto intIdx = TO_NUM_VALUE(idxValue);
+                if (intIdx < 0 || intIdx >= TO_ARRAY_VALUE(m_GlobalVariables[index])->elements.size())
+                    Assert("Idx out of range.");
+                Push(CreateObject<RefObject>(&(TO_ARRAY_VALUE(m_GlobalVariables[index])->elements[intIdx])));
+            }
+            else
+                Assert("Invalid indexed reference type:" + m_GlobalVariables[index].Stringify() + " not a table or array value.");
+            break;
+        }
+         case OP_REF_INDEX_LOCAL:
+        {
+            auto isInUpScope = *frame->ip++;
+            auto scopeDepth = *frame->ip++;
+            auto index = *frame->ip++;
+
+            auto idxValue = Pop();
+
+            Value *slot = nullptr;
+            if (isInUpScope == 0)
+                slot = frame->slot + index;
+            else
+                slot = PeekCallFrame(scopeDepth)->slot + index;
+
+            if (IS_ARRAY_VALUE((*slot)))
+            {
+                if (!IS_NUM_VALUE(idxValue))
+                    Assert("Invalid idx for array,only integer is available.");
+                auto intIdx = TO_NUM_VALUE(idxValue);
+                if (intIdx < 0 || intIdx >= TO_ARRAY_VALUE((*slot))->elements.size())
+                    Assert("Idx out of range.");
+                Push(CreateObject<RefObject>(&(TO_ARRAY_VALUE((*slot))->elements[intIdx])));
+            }
+            else
+                Assert("Invalid indexed reference type:" + slot->Stringify() + " not a table or array value.");
+            break;
+        }
         default:
             break;
         }

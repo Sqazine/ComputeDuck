@@ -313,9 +313,6 @@ Expr *Parser::ParseRefExpr()
 
 	auto refExpr = ParseExpr(Precedence::LOWEST);
 
-	if (refExpr->Type() != AstType::IDENTIFIER)
-		Assert("Invalid reference type, only variable can be referenced.");
-
 	return new RefExpr((IdentifierExpr *)refExpr);
 }
 
