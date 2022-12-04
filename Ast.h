@@ -209,7 +209,7 @@ struct IndexExpr : public Expr
 struct RefExpr : public Expr
 {
 	RefExpr() : refExpr(nullptr) {}
-	RefExpr(IdentifierExpr *refExpr) : refExpr(refExpr) {}
+	RefExpr(Expr *refExpr) : refExpr(refExpr) {}
 	~RefExpr()
 	{
 		delete refExpr;
@@ -219,7 +219,7 @@ struct RefExpr : public Expr
 
 	AstType Type() override { return AstType::REF; }
 
-	IdentifierExpr *refExpr;
+	Expr *refExpr;
 };
 
 struct FunctionCallExpr : public Expr

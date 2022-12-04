@@ -209,6 +209,24 @@ void Chunk::OpCodeStringify(const OpCodes &opcodes)
             i += 3;
             break;
         }
+        case OP_REF_INDEX_GLOBAL:
+        {
+            auto pos = opcodes[i + 1];
+            std::cout << std::setfill('0') << std::setw(8) << i << "    "
+                      << "OP_REF_INDEX_GLOBAL    " << pos << "    " << std::endl;
+            ++i;
+            break;
+        }
+         case OP_REF_INDEX_LOCAL:
+        {
+            auto isInUpScope = opcodes[i + 1];
+            auto scopeDepth = opcodes[i + 2];
+            auto index = opcodes[i + 3];
+            std::cout << std::setfill('0') << std::setw(8) << i << "    "
+                      << "OP_REF_INDEX_LOCAL    " << isInUpScope << "    " << scopeDepth << "    " << index << std::endl;
+            i += 3;
+            break;
+        }
         case OP_SP_OFFSET:
         {
             auto offset = opcodes[i + 1];

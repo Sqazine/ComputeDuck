@@ -34,6 +34,8 @@ enum OpCode
     OP_SET_STRUCT,
     OP_REF_GLOBAL,
     OP_REF_LOCAL,
+    OP_REF_INDEX_GLOBAL,
+    OP_REF_INDEX_LOCAL,
     OP_SP_OFFSET,
 };
 
