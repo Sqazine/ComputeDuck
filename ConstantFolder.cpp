@@ -42,7 +42,7 @@ Stmt *ConstantFolder::FoldIfStmt(IfStmt *stmt)
 {
     stmt->condition = FoldExpr(stmt->condition);
     stmt->thenBranch = FoldStmt(stmt->thenBranch);
-    if(stmt->elseBranch)
+    if (stmt->elseBranch)
         stmt->elseBranch = FoldStmt(stmt->elseBranch);
 
     if (stmt->condition->Type() == AstType::BOOL)
@@ -75,7 +75,7 @@ Stmt *ConstantFolder::FoldReturnStmt(ReturnStmt *stmt)
 
 Stmt *ConstantFolder::FoldStructStmt(StructStmt *stmt)
 {
-    for (auto &[k,v] : stmt->members)
+    for (auto &[k, v] : stmt->members)
         v = FoldExpr(v);
     return stmt;
 }
@@ -112,7 +112,7 @@ Expr *ConstantFolder::FoldExpr(Expr *expr)
     case AstType::FUNCTION:
         return FoldFunctionExpr((FunctionExpr *)expr);
     case AstType::ANONY_STRUCT:
-        return FoldAnonyStructExpr((AnonyStructExpr*)expr);
+        return FoldAnonyStructExpr((AnonyStructExpr *)expr);
     default:
         return nullptr;
     }
@@ -134,7 +134,7 @@ Expr *ConstantFolder::FoldBoolExpr(BoolExpr *expr)
 }
 Expr *ConstantFolder::FoldPrefixExpr(PrefixExpr *expr)
 {
-    expr->right=FoldExpr(expr->right);
+    expr->right = FoldExpr(expr->right);
     return ConstantFold(expr);
 }
 Expr *ConstantFolder::FoldStrExpr(StrExpr *expr)
@@ -191,12 +191,12 @@ Expr *ConstantFolder::FoldRefExpr(RefExpr *expr)
     return expr;
 }
 
-    Expr* ConstantFolder::FoldAnonyStructExpr(AnonyStructExpr *expr)
-    {
-        for(auto& [k,v]:expr->memberPairs)
-            v=FoldExpr(v);
-        return expr;
-    }
+Expr *ConstantFolder::FoldAnonyStructExpr(AnonyStructExpr *expr)
+{
+    for (auto &[k, v] : expr->memberPairs)
+        v = FoldExpr(v);
+    return expr;
+}
 
 Expr *ConstantFolder::ConstantFold(Expr *expr)
 {
@@ -249,7 +249,7 @@ Expr *ConstantFolder::ConstantFold(Expr *expr)
             prefix = nullptr;
             return numExpr;
         }
-        else if (prefix->right->Type() == AstType::BOOL && prefix->op == "!")
+        else if (prefix->right->Type() == AstType::BOOL && prefix->op == "not")
         {
             auto boolExpr = new BoolExpr(!((BoolExpr *)prefix->right)->value);
             delete prefix;

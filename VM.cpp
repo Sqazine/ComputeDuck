@@ -310,16 +310,13 @@ void VM::Execute()
             {
                 auto builtin = TO_BUILTIN_FUNCTION_VALUE(value);
 
-                std::vector<Value> args(argCount);
-
                 int32_t j = 0;
-                for (Value *slot = m_StackTop - argCount; slot < m_StackTop && j < argCount; ++slot, ++j)
-                    args[j] = *slot;
+                Value *slot = m_StackTop - argCount;
 
                 m_StackTop -= (argCount + 1);
 
                 Value returnValue;
-                bool hasReturnValue = builtin->fn(args, returnValue);
+                bool hasReturnValue = builtin->fn(slot,argCount, returnValue);
                 if (hasReturnValue)
                 {
                     RegisterToGCRecordChain(returnValue);
