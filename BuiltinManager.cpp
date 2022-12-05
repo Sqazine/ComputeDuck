@@ -9,27 +9,27 @@ std::vector<std::string> BuiltinManager::m_BuiltinVariableNames;
 
 void BuiltinManager::Init()
 {
-    RegisterFunction("print", [&](const std::vector<Value> &args, Value &result) -> bool
+    RegisterFunction("print", [&](Value *args, uint8_t argCount, Value &result) -> bool
                      {
-                         if (args.empty())
+                         if (argCount == 0)
                              return false;
 
                          std::cout << args[0].Stringify();
                          return false;
                      });
 
-    RegisterFunction("println", [&](const std::vector<Value> &args, Value &result) -> bool
+    RegisterFunction("println", [&](Value *args, uint8_t argCount, Value &result) -> bool
                      {
-                         if (args.empty())
+                         if (argCount == 0)
                              return false;
 
                          std::cout << args[0].Stringify() << std::endl;
                          return false;
                      });
 
-    RegisterFunction("sizeof", [&](const std::vector<Value> &args, Value &result) -> bool
+    RegisterFunction("sizeof", [&](Value *args, uint8_t argCount, Value &result) -> bool
                      {
-                         if (args.empty() || args.size() > 1)
+                         if (argCount == 0 || argCount > 1)
                              Assert("[Native function 'sizeof']:Expect a argument.");
 
                          if (IS_ARRAY_VALUE(args[0]))
@@ -41,9 +41,9 @@ void BuiltinManager::Init()
                          return true;
                      });
 
-    RegisterFunction("insert", [&](const std::vector<Value> &args, Value &result) -> bool
+    RegisterFunction("insert", [&](Value *args, uint8_t argCount, Value &result) -> bool
                      {
-                         if (args.empty() || args.size() != 3)
+                         if (argCount == 0 || argCount != 3)
                              Assert("[Native function 'insert']:Expect 3 arguments,the arg0 must be array,table or string object.The arg1 is the index object.The arg2 is the value object.");
 
                          if (IS_ARRAY_VALUE(args[0]))
@@ -77,9 +77,9 @@ void BuiltinManager::Init()
                          return false;
                      });
 
-    RegisterFunction("erase", [&](const std::vector<Value> &args, Value &result) -> bool
+    RegisterFunction("erase", [&](Value *args, uint8_t argCount, Value &result) -> bool
                      {
-                         if (args.empty() || args.size() != 2)
+                         if (argCount == 0 || argCount != 2)
                              Assert("[Native function 'erase']:Expect 2 arguments,the arg0 must be array,table or string object.The arg1 is the corresponding index object.");
 
                          if (IS_ARRAY_VALUE(args[0]))
@@ -113,7 +113,7 @@ void BuiltinManager::Init()
                          return false;
                      });
 
-    RegisterFunction("clock", [&](const std::vector<Value> &args, Value &result) -> bool
+    RegisterFunction("clock", [&](Value *args, uint8_t argCount, Value &result) -> bool
                      {
                          result = Value((double)clock() / CLOCKS_PER_SEC);
                          return true;
@@ -122,52 +122,47 @@ void BuiltinManager::Init()
     BuiltinManager::RegisterVariable("SDL_WINDOWPOS_CENTERED", Value((double)SDL_WINDOWPOS_CENTERED));
     BuiltinManager::RegisterVariable("SDL_QUIT", Value((double)SDL_QUIT));
 
-    BuiltinManager::RegisterFunction("SDL_Init", [&](const std::vector<Value> &args, Value &result) -> bool
+    BuiltinManager::RegisterFunction("SDL_Init", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                      {
                                          auto ret = SDL_Init(SDL_INIT_EVERYTHING);
                                          result = Value((float)ret);
                                          return true;
                                      });
 
-    BuiltinManager::RegisterFunction("SDL_Quit", [&](const std::vector<Value> &args, Value &result) -> bool
+    BuiltinManager::RegisterFunction("SDL_Quit", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                      {
                                          SDL_Quit();
                                          return false;
                                      });
 
-    BuiltinManager::RegisterFunction("SDL_CreateWindow", [&](const std::vector<Value> &args, Value &result) -> bool
+    BuiltinManager::RegisterFunction("SDL_CreateWindow", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                      {
                                          BuiltinDataObject *builtinData = new BuiltinDataObject();
                                          auto window = SDL_CreateWindow(TO_STR_VALUE(args[0])->value.c_str(), (int)TO_NUM_VALUE(TO_BUILTIN_VARIABLE_VALUE(args[1])->value), (int)TO_NUM_VALUE(TO_BUILTIN_VARIABLE_VALUE(args[2])->value), TO_NUM_VALUE(args[3]), TO_NUM_VALUE(args[4]), SDL_WINDOW_ALLOW_HIGHDPI);
                                          builtinData->nativeData = (void *)window;
+                                         builtinData->destroyFunc = [](void *nativeData)
+                                         {
+                                             SDL_DestroyWindow((SDL_Window *)nativeData);
+                                         };
                                          result = builtinData;
                                          return true;
                                      });
 
-    BuiltinManager::RegisterFunction("SDL_DestroyWindow", [&](const std::vector<Value> &args, Value &result) -> bool
-                                     {
-                                         if (!IS_BUILTIN_DATA_VALUE(args[0]))
-                                             Assert("Not a valid builtin data.");
-                                         auto builtinData = TO_BUILTIN_DATA_VALUE(args[0]);
-                                         if (reinterpret_cast<SDL_Window *>(builtinData->nativeData) == nullptr)
-                                             Assert("Not a valid SDL_Window object.");
-                                         SDL_DestroyWindow((SDL_Window *)builtinData->nativeData);
-                                         return false;
-                                     });
-
-    BuiltinManager::RegisterFunction("SDL_PollEvent", [&](const std::vector<Value> &args, Value &result) -> bool
+    BuiltinManager::RegisterFunction("SDL_PollEvent", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                      {
                                          SDL_Event *event = new SDL_Event();
-                                         auto retV = SDL_PollEvent(event);
-                                         if (retV == 0)
-                                             return true;
+                                         SDL_PollEvent(event);
                                          BuiltinDataObject *builtinData = new BuiltinDataObject();
                                          builtinData->nativeData = event;
+                                         builtinData->destroyFunc = [](void *nativeData)
+                                         {
+                                             delete (SDL_Event *)nativeData;
+                                         };
                                          result = Value(builtinData);
                                          return true;
                                      });
 
-    BuiltinManager::RegisterFunction("SDL_GetEventType", [&](const std::vector<Value> &args, Value &result) -> bool
+    BuiltinManager::RegisterFunction("SDL_GetEventType", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                      {
                                          if (!IS_BUILTIN_DATA_VALUE(args[0]))
                                              Assert("Not a valid builtin data.");
@@ -179,7 +174,7 @@ void BuiltinManager::Init()
                                          return true;
                                      });
 
-    BuiltinManager::RegisterFunction("SDL_CreateRenderer", [&](const std::vector<Value> &args, Value &result) -> bool
+    BuiltinManager::RegisterFunction("SDL_CreateRenderer", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                      {
                                          if (!IS_BUILTIN_DATA_VALUE(args[0]))
                                              Assert("Not a valid builtin data.");
@@ -190,21 +185,15 @@ void BuiltinManager::Init()
                                          SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
                                          BuiltinDataObject *resultBuiltinData = new BuiltinDataObject();
                                          resultBuiltinData->nativeData = renderer;
+                                         resultBuiltinData->destroyFunc = [](void *nativeData)
+                                         {
+                                             SDL_DestroyRenderer((SDL_Renderer *)nativeData);
+                                         };
                                          result = Value(resultBuiltinData);
                                          return true;
                                      });
 
-    BuiltinManager::RegisterFunction("SDL_DestroyRenderer", [&](const std::vector<Value> &args, Value &result) -> bool
-                                     {
-                                         if (!IS_BUILTIN_DATA_VALUE(args[0]))
-                                             Assert("Not a valid builtin value of SDL_DestroyRenderer(args[0]).");
-
-                                         auto renderer = (SDL_Renderer *)(TO_BUILTIN_DATA_VALUE(args[0])->nativeData);
-                                         SDL_DestroyRenderer(renderer);
-                                         return false;
-                                     });
-
-    BuiltinManager::RegisterFunction("SDL_LoadBMP", [&](const std::vector<Value> &args, Value &result) -> bool
+    BuiltinManager::RegisterFunction("SDL_LoadBMP", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                      {
                                          if (!IS_STR_VALUE(args[0]))
                                              Assert("Not a valid str value.");
@@ -213,22 +202,15 @@ void BuiltinManager::Init()
 
                                          BuiltinDataObject *resultBuiltinData = new BuiltinDataObject();
                                          resultBuiltinData->nativeData = surface;
+                                         resultBuiltinData->destroyFunc = [](void *nativeData)
+                                         {
+                                             SDL_FreeSurface((SDL_Surface *)nativeData);
+                                         };
                                          result = Value(resultBuiltinData);
                                          return true;
                                      });
 
-    BuiltinManager::RegisterFunction("SDL_FreeSurface", [&](const std::vector<Value> &args, Value &result) -> bool
-                                     {
-                                         if (!IS_BUILTIN_DATA_VALUE(args[0]))
-                                             Assert("Not a valid builtin value of SDL_FreeSurface(args[0]).");
-
-                                         auto surface = (SDL_Surface *)(TO_BUILTIN_DATA_VALUE(args[0])->nativeData);
-                                         SDL_FreeSurface(surface);
-
-                                         return false;
-                                     });
-
-    BuiltinManager::RegisterFunction("SDL_CreateTextureFromSurface", [&](const std::vector<Value> &args, Value &result) -> bool
+    BuiltinManager::RegisterFunction("SDL_CreateTextureFromSurface", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                      {
                                          if (!IS_BUILTIN_DATA_VALUE(args[0]) || !IS_BUILTIN_DATA_VALUE(args[1]))
                                              Assert("Not a valid builtin value of SDL_CreateTextureFromSurface(args[0] or args[1]).");
@@ -240,21 +222,15 @@ void BuiltinManager::Init()
 
                                          BuiltinDataObject *resultBuiltinData = new BuiltinDataObject();
                                          resultBuiltinData->nativeData = texture;
+                                         resultBuiltinData->destroyFunc = [](void *nativeData)
+                                         {
+                                             SDL_DestroyTexture((SDL_Texture *)nativeData);
+                                         };
                                          result = Value(resultBuiltinData);
                                          return true;
                                      });
 
-    BuiltinManager::RegisterFunction("SDL_DestroyTexture", [&](const std::vector<Value> &args, Value &result) -> bool
-                                     {
-                                         if (!IS_BUILTIN_DATA_VALUE(args[0]))
-                                             Assert("Not a valid builtin value of SDL_CreateTextureFromSurface(args[0]).");
-
-                                         auto texture = (SDL_Texture *)(TO_BUILTIN_DATA_VALUE(args[0])->nativeData);
-                                         SDL_DestroyTexture(texture);
-                                         return false;
-                                     });
-
-    BuiltinManager::RegisterFunction("SDL_RenderClear", [&](const std::vector<Value> &args, Value &result) -> bool
+    BuiltinManager::RegisterFunction("SDL_RenderClear", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                      {
                                          if (!IS_BUILTIN_DATA_VALUE(args[0]))
                                              Assert("Not a valid builtin value of SDL_RenderClear(args[0]).");
@@ -264,7 +240,7 @@ void BuiltinManager::Init()
                                          return false;
                                      });
 
-    BuiltinManager::RegisterFunction("SDL_RenderCopy", [&](const std::vector<Value> &args, Value &result) -> bool
+    BuiltinManager::RegisterFunction("SDL_RenderCopy", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                      {
                                          if (!IS_BUILTIN_DATA_VALUE(args[0]) || !IS_BUILTIN_DATA_VALUE(args[1]))
                                              Assert("Not a valid builtin value of SDL_RenderCopy(args[0] or args[1]).");
@@ -278,7 +254,7 @@ void BuiltinManager::Init()
                                          return true;
                                      });
 
-    BuiltinManager::RegisterFunction("SDL_RenderPresent", [&](const std::vector<Value> &args, Value &result) -> bool
+    BuiltinManager::RegisterFunction("SDL_RenderPresent", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                      {
                                          if (!IS_BUILTIN_DATA_VALUE(args[0]))
                                              Assert("Not a valid builtin value of SDL_RenderPresent(args[0]).");

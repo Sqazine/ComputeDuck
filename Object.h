@@ -231,7 +231,7 @@ struct StructObject : public Object
 	std::unordered_map<std::string, Value> members;
 };
 
-using BuiltinFn = std::function<bool(const std::vector<Value> &, Value &)>;
+using BuiltinFn = std::function<bool(Value *, uint8_t, Value &)>;
 
 struct BuiltinFunctionObject : public Object
 {
@@ -262,6 +262,7 @@ struct BuiltinDataObject : public Object
 
 	~BuiltinDataObject()
 	{
+		destroyFunc(nativeData);
 	}
 
 	std::string Stringify() override { return "Builtin Data:(0x" + PointerAddressToString(nativeData) + ")"; }
@@ -275,6 +276,7 @@ struct BuiltinDataObject : public Object
 		return PointerAddressToString(nativeData) == PointerAddressToString(TO_BUILTIN_DATA_OBJ(other)->nativeData);
 	}
 	void *nativeData;
+	std::function<void(void *nativeData)> destroyFunc;
 };
 
 struct BuiltinVariableObject : public Object

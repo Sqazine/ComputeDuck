@@ -87,7 +87,5 @@ int main(int argc, char **argv)
 	else
 		std::cout << "Usage: ComputeDuck [filepath]" << std::endl;
 
-	// RunFile("C:\\Users\\Sqazi\\OneDrive\\.sc\\ComputeDuck\\examples\\oop-simulate.cd");
-
 	return 0;
 }
