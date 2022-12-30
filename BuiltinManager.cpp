@@ -1,6 +1,8 @@
 #include "BuiltinManager.h"
 #include <ctime>
+#ifdef BUILD_WITH_SDL2
 #include <SDL2/SDL.h>
+#endif
 std::vector<BuiltinFunctionObject *> BuiltinManager::m_BuiltinFunctions;
 std::vector<std::string> BuiltinManager::m_BuiltinFunctionNames;
 
@@ -15,8 +17,7 @@ void BuiltinManager::Init()
                              return false;
 
                          std::cout << args[0].Stringify();
-                         return false;
-                     });
+                         return false; });
 
     RegisterFunction("println", [&](Value *args, uint8_t argCount, Value &result) -> bool
                      {
@@ -24,8 +25,7 @@ void BuiltinManager::Init()
                              return false;
 
                          std::cout << args[0].Stringify() << std::endl;
-                         return false;
-                     });
+                         return false; });
 
     RegisterFunction("sizeof", [&](Value *args, uint8_t argCount, Value &result) -> bool
                      {
@@ -38,8 +38,7 @@ void BuiltinManager::Init()
                              result = Value((double)TO_STR_VALUE(args[0])->value.size());
                          else
                              Assert("[Native function 'sizeof']:Expect a array or string argument.");
-                         return true;
-                     });
+                         return true; });
 
     RegisterFunction("insert", [&](Value *args, uint8_t argCount, Value &result) -> bool
                      {
@@ -74,8 +73,7 @@ void BuiltinManager::Init()
                          }
                          else
                              Assert("[Native function 'insert']:Expect a array,table ot string argument.");
-                         return false;
-                     });
+                         return false; });
 
     RegisterFunction("erase", [&](Value *args, uint8_t argCount, Value &result) -> bool
                      {
@@ -110,14 +108,14 @@ void BuiltinManager::Init()
                          }
                          else
                              Assert("[Native function 'erase']:Expect a array,table ot string argument.");
-                         return false;
-                     });
+                         return false; });
 
     RegisterFunction("clock", [&](Value *args, uint8_t argCount, Value &result) -> bool
                      {
                          result = Value((double)clock() / CLOCKS_PER_SEC);
-                         return true;
-                     });
+                         return true; });
+
+#ifdef BUILD_WITH_SDL2
 
     BuiltinManager::RegisterVariable("SDL_WINDOWPOS_CENTERED", Value((double)SDL_WINDOWPOS_CENTERED));
     BuiltinManager::RegisterVariable("SDL_QUIT", Value((double)SDL_QUIT));
@@ -126,14 +124,12 @@ void BuiltinManager::Init()
                                      {
                                          auto ret = SDL_Init(SDL_INIT_EVERYTHING);
                                          result = Value((float)ret);
-                                         return true;
-                                     });
+                                         return true; });
 
     BuiltinManager::RegisterFunction("SDL_Quit", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                      {
                                          SDL_Quit();
-                                         return false;
-                                     });
+                                         return false; });
 
     BuiltinManager::RegisterFunction("SDL_CreateWindow", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                      {
@@ -145,8 +141,7 @@ void BuiltinManager::Init()
                                              SDL_DestroyWindow((SDL_Window *)nativeData);
                                          };
                                          result = builtinData;
-                                         return true;
-                                     });
+                                         return true; });
 
     BuiltinManager::RegisterFunction("SDL_PollEvent", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                      {
@@ -159,8 +154,7 @@ void BuiltinManager::Init()
                                              delete (SDL_Event *)nativeData;
                                          };
                                          result = Value(builtinData);
-                                         return true;
-                                     });
+                                         return true; });
 
     BuiltinManager::RegisterFunction("SDL_GetEventType", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                      {
@@ -171,8 +165,7 @@ void BuiltinManager::Init()
                                              Assert("Not a valid SDL_Event object.");
                                          SDL_Event *event = ((SDL_Event *)builtinData->nativeData);
                                          result = (double)((SDL_Event *)builtinData->nativeData)->type;
-                                         return true;
-                                     });
+                                         return true; });
 
     BuiltinManager::RegisterFunction("SDL_CreateRenderer", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                      {
@@ -190,8 +183,7 @@ void BuiltinManager::Init()
                                              SDL_DestroyRenderer((SDL_Renderer *)nativeData);
                                          };
                                          result = Value(resultBuiltinData);
-                                         return true;
-                                     });
+                                         return true; });
 
     BuiltinManager::RegisterFunction("SDL_LoadBMP", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                      {
@@ -207,8 +199,7 @@ void BuiltinManager::Init()
                                              SDL_FreeSurface((SDL_Surface *)nativeData);
                                          };
                                          result = Value(resultBuiltinData);
-                                         return true;
-                                     });
+                                         return true; });
 
     BuiltinManager::RegisterFunction("SDL_CreateTextureFromSurface", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                      {
@@ -227,8 +218,7 @@ void BuiltinManager::Init()
                                              SDL_DestroyTexture((SDL_Texture *)nativeData);
                                          };
                                          result = Value(resultBuiltinData);
-                                         return true;
-                                     });
+                                         return true; });
 
     BuiltinManager::RegisterFunction("SDL_RenderClear", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                      {
@@ -237,8 +227,7 @@ void BuiltinManager::Init()
 
                                          auto renderer = (SDL_Renderer *)(TO_BUILTIN_DATA_VALUE(args[0])->nativeData);
                                          SDL_RenderClear(renderer);
-                                         return false;
-                                     });
+                                         return false; });
 
     BuiltinManager::RegisterFunction("SDL_RenderCopy", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                      {
@@ -251,8 +240,7 @@ void BuiltinManager::Init()
                                          auto ret = SDL_RenderCopy(renderer, texture, nullptr, nullptr);
 
                                          result = Value((double)ret);
-                                         return true;
-                                     });
+                                         return true; });
 
     BuiltinManager::RegisterFunction("SDL_RenderPresent", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                      {
@@ -261,8 +249,8 @@ void BuiltinManager::Init()
 
                                          auto renderer = (SDL_Renderer *)(TO_BUILTIN_DATA_VALUE(args[0])->nativeData);
                                          SDL_RenderPresent(renderer);
-                                         return false;
-                                     });
+                                         return false; });
+#endif
 }
 void BuiltinManager::Release()
 {
