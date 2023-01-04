@@ -44,7 +44,7 @@ void Compiler::ResetStatus()
 
 void Compiler::CompileStmt(Stmt *stmt)
 {
-    switch (stmt->Type())
+    switch (stmt->type)
     {
     case AstType::RETURN:
         CompileReturnStmt((ReturnStmt *)stmt);
@@ -185,7 +185,7 @@ void Compiler::CompileStructStmt(StructStmt *stmt)
 
 void Compiler::CompileExpr(Expr *expr, const RWState &state)
 {
-    switch (expr->Type())
+    switch (expr->type)
     {
     case AstType::NUM:
         CompileNumExpr((NumExpr *)expr);
@@ -242,7 +242,7 @@ void Compiler::CompileInfixExpr(InfixExpr *expr)
 
     if (expr->op == "=")
     {
-        if (expr->left->Type() == AstType::IDENTIFIER && expr->right->Type() == AstType::FUNCTION)
+        if (expr->left->type == AstType::IDENTIFIER && expr->right->type == AstType::FUNCTION)
             m_SymbolTable->Define(((IdentifierExpr *)expr->left)->literal);
         CompileExpr(expr->right);
         CompileExpr(expr->left, RWState::WRITE);
@@ -423,21 +423,21 @@ void Compiler::CompileFunctionCallExpr(FunctionCallExpr *expr)
 
 void Compiler::CompileStructCallExpr(StructCallExpr *expr, const RWState &state)
 {
-    if (expr->callMember->Type() == AstType::FUNCTION_CALL && state == RWState::WRITE)
+    if (expr->callMember->type == AstType::FUNCTION_CALL && state == RWState::WRITE)
         Assert("Cannot assign to a struct's function call expr");
 
     CompileExpr(expr->callee);
 
-    if (expr->callMember->Type() == AstType::IDENTIFIER)
+    if (expr->callMember->type == AstType::IDENTIFIER)
         EmitConstant(AddConstant(new StrObject(((IdentifierExpr *)expr->callMember)->literal)));
-    else if (expr->callMember->Type() == AstType::FUNCTION_CALL)
+    else if (expr->callMember->type == AstType::FUNCTION_CALL)
         EmitConstant(AddConstant(new StrObject(((IdentifierExpr *)((FunctionCallExpr *)expr->callMember)->name)->literal)));
 
     if (state == RWState::READ)
     {
         Emit(OP_GET_STRUCT);
 
-        if (expr->callMember->Type() == AstType::FUNCTION_CALL)
+        if (expr->callMember->type == AstType::FUNCTION_CALL)
         {
             auto funcCall = (FunctionCallExpr *)expr->callMember;
             for (const auto &argu : funcCall->arguments)
@@ -454,7 +454,7 @@ void Compiler::CompileStructCallExpr(StructCallExpr *expr, const RWState &state)
 void Compiler::CompileRefExpr(RefExpr *expr)
 {
     Symbol symbol;
-    if (expr->refExpr->Type() == AstType::INDEX)
+    if (expr->refExpr->type == AstType::INDEX)
     {
         CompileExpr(((IndexExpr *)expr->refExpr)->index);
         bool isFound = m_SymbolTable->Resolve(((IndexExpr *)expr->refExpr)->ds->Stringify(), symbol);

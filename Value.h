@@ -2,10 +2,10 @@
 #include <string>
 #include "Utils.h"
 
-#define IS_NIL_VALUE(v) (v.Type() == ValueType::NIL)
-#define IS_NUM_VALUE(v) (v.Type() == ValueType::NUM)
-#define IS_BOOL_VALUE(v) (v.Type() == ValueType::BOOL)
-#define IS_OBJECT_VALUE(v) (v.Type() == ValueType::OBJECT)
+#define IS_NIL_VALUE(v) (v.type == ValueType::NIL)
+#define IS_NUM_VALUE(v) (v.type == ValueType::NUM)
+#define IS_BOOL_VALUE(v) (v.type == ValueType::BOOL)
+#define IS_OBJECT_VALUE(v) (v.type == ValueType::OBJECT)
 #define IS_STR_VALUE(v) (IS_OBJECT_VALUE(v) && IS_STR_OBJ(v.object))
 #define IS_ARRAY_VALUE(v) (IS_OBJECT_VALUE(v) && IS_ARRAY_OBJ(v.object))
 #define IS_STRUCT(v) (IS_OBJECT_VALUE(v) && IS_STRUCT_OBJ(v.object))
@@ -46,7 +46,6 @@ struct Value
 	Value(ValueType type);
 	~Value();
 
-	ValueType Type() const;
 	std::string Stringify() const;
 	void Mark() const;
 	void UnMark() const;

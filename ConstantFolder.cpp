@@ -15,7 +15,7 @@ void ConstantFolder::Fold(std::vector<Stmt *> &stmts)
 
 Stmt *ConstantFolder::FoldStmt(Stmt *stmt)
 {
-    switch (stmt->Type())
+    switch (stmt->type)
     {
     case AstType::RETURN:
         return FoldReturnStmt((ReturnStmt *)stmt);
@@ -45,7 +45,7 @@ Stmt *ConstantFolder::FoldIfStmt(IfStmt *stmt)
     if (stmt->elseBranch)
         stmt->elseBranch = FoldStmt(stmt->elseBranch);
 
-    if (stmt->condition->Type() == AstType::BOOL)
+    if (stmt->condition->type == AstType::BOOL)
     {
         if (((BoolExpr *)stmt->condition)->value == true)
             return stmt->thenBranch;
@@ -81,7 +81,7 @@ Stmt *ConstantFolder::FoldStructStmt(StructStmt *stmt)
 }
 Expr *ConstantFolder::FoldExpr(Expr *expr)
 {
-    switch (expr->Type())
+    switch (expr->type)
     {
     case AstType::NUM:
         return FoldNumExpr((NumExpr *)expr);
@@ -200,10 +200,10 @@ Expr *ConstantFolder::FoldAnonyStructExpr(AnonyStructExpr *expr)
 
 Expr *ConstantFolder::ConstantFold(Expr *expr)
 {
-    if (expr->Type() == AstType::INFIX)
+    if (expr->type == AstType::INFIX)
     {
         auto infix = (InfixExpr *)expr;
-        if (infix->left->Type() == AstType::NUM && infix->right->Type() == AstType::NUM)
+        if (infix->left->type == AstType::NUM && infix->right->type == AstType::NUM)
         {
             Expr *newExpr = nullptr;
             if (infix->op == "+")
@@ -231,7 +231,7 @@ Expr *ConstantFolder::ConstantFold(Expr *expr)
             infix = nullptr;
             return newExpr;
         }
-        else if (infix->left->Type() == AstType::STR && infix->right->Type() == AstType::STR)
+        else if (infix->left->type == AstType::STR && infix->right->type == AstType::STR)
         {
             auto strExpr = new StrExpr(((StrExpr *)infix->left)->value + ((StrExpr *)infix->right)->value);
             delete infix;
@@ -239,17 +239,17 @@ Expr *ConstantFolder::ConstantFold(Expr *expr)
             return strExpr;
         }
     }
-    else if (expr->Type() == AstType::PREFIX)
+    else if (expr->type == AstType::PREFIX)
     {
         auto prefix = (PrefixExpr *)expr;
-        if (prefix->right->Type() == AstType::NUM && prefix->op == "-")
+        if (prefix->right->type == AstType::NUM && prefix->op == "-")
         {
             auto numExpr = new NumExpr(-((NumExpr *)prefix->right)->value);
             delete prefix;
             prefix = nullptr;
             return numExpr;
         }
-        else if (prefix->right->Type() == AstType::BOOL && prefix->op == "not")
+        else if (prefix->right->type == AstType::BOOL && prefix->op == "not")
         {
             auto boolExpr = new BoolExpr(!((BoolExpr *)prefix->right)->value);
             delete prefix;
