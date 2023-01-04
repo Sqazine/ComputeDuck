@@ -34,81 +34,75 @@ enum class AstType
 
 struct AstNode
 {
-	AstNode() {}
+	AstNode(AstType type) : type(type) {}
 	virtual ~AstNode() {}
 
 	virtual std::string Stringify() = 0;
-	virtual AstType Type() = 0;
+
+	AstType type;
 };
 
 struct Expr : public AstNode
 {
-	Expr() {}
+	Expr(AstType type) : AstNode(type) {}
 	virtual ~Expr() {}
 
 	virtual std::string Stringify() = 0;
-	virtual AstType Type() = 0;
 };
 
 struct NumExpr : public Expr
 {
-	NumExpr() : value(0.0) {}
-	NumExpr(double value) : value(value) {}
-	~NumExpr() {}
+	NumExpr() : Expr(AstType::NUM), value(0.0) {}
+	NumExpr(double value) : Expr(AstType::NUM), value(value) {}
 
 	std::string Stringify() override { return std::to_string(value); }
-	AstType Type() override { return AstType::NUM; }
 
 	double value;
 };
 
 struct StrExpr : public Expr
 {
-	StrExpr() {}
-	StrExpr(std::string_view str) : value(str) {}
+	StrExpr() : Expr(AstType::STR) {}
+	StrExpr(std::string_view str) : Expr(AstType::STR), value(str) {}
 
 	std::string Stringify() override { return "\"" + value + "\""; }
-	AstType Type() override { return AstType::STR; }
 
 	std::string value;
 };
 
 struct NilExpr : public Expr
 {
-	NilExpr() {}
+	NilExpr() : Expr(AstType::NIL) {}
 	~NilExpr() {}
 
 	std::string Stringify() override { return "nil"; }
-	AstType Type() override { return AstType::NIL; }
 };
 
 struct BoolExpr : public Expr
 {
-	BoolExpr() : value(false) {}
-	BoolExpr(bool value) : value(value) {}
+	BoolExpr() : Expr(AstType::BOOL), value(false) {}
+	BoolExpr(bool value) : Expr(AstType::BOOL), value(value) {}
 	~BoolExpr() {}
 
 	std::string Stringify() override { return value ? "true" : "false"; }
-	AstType Type() override { return AstType::BOOL; }
 	bool value;
 };
 
 struct IdentifierExpr : public Expr
 {
-	IdentifierExpr() {}
-	IdentifierExpr(std::string_view literal) : literal(literal) {}
+	IdentifierExpr() : Expr(AstType::IDENTIFIER) {}
+	IdentifierExpr(std::string_view literal) : Expr(AstType::IDENTIFIER), literal(literal) {}
 	~IdentifierExpr() {}
 
 	std::string Stringify() override { return literal; }
-	AstType Type() override { return AstType::IDENTIFIER; }
 
 	std::string literal;
 };
 
 struct ArrayExpr : public Expr
 {
-	ArrayExpr() {}
-	ArrayExpr(std::vector<Expr *> elements) : elements(elements) {}
+	ArrayExpr() : Expr(AstType::ARRAY) {}
+	ArrayExpr(std::vector<Expr *> elements) : Expr(AstType::ARRAY), elements(elements) {}
 	~ArrayExpr()
 	{
 		std::vector<Expr *>().swap(elements);
@@ -127,15 +121,14 @@ struct ArrayExpr : public Expr
 		result += "]";
 		return result;
 	}
-	AstType Type() override { return AstType::ARRAY; }
 
 	std::vector<Expr *> elements;
 };
 
 struct GroupExpr : public Expr
 {
-	GroupExpr() : expr(nullptr) {}
-	GroupExpr(Expr *expr) : expr(expr) {}
+	GroupExpr() : Expr(AstType::GROUP), expr(nullptr) {}
+	GroupExpr(Expr *expr) : Expr(AstType::GROUP), expr(expr) {}
 	~GroupExpr()
 	{
 		delete expr;
@@ -143,15 +136,14 @@ struct GroupExpr : public Expr
 	}
 
 	std::string Stringify() override { return "(" + expr->Stringify() + ")"; }
-	AstType Type() override { return AstType::GROUP; }
 
 	Expr *expr;
 };
 
 struct PrefixExpr : public Expr
 {
-	PrefixExpr() : right(nullptr) {}
-	PrefixExpr(std::string_view op, Expr *right) : op(op), right(right) {}
+	PrefixExpr() : Expr(AstType::PREFIX), right(nullptr) {}
+	PrefixExpr(std::string_view op, Expr *right) : Expr(AstType::PREFIX), op(op), right(right) {}
 	~PrefixExpr()
 	{
 		delete right;
@@ -159,7 +151,6 @@ struct PrefixExpr : public Expr
 	}
 
 	std::string Stringify() override { return op + right->Stringify(); }
-	AstType Type() override { return AstType::PREFIX; }
 
 	std::string op;
 	Expr *right;
@@ -167,8 +158,8 @@ struct PrefixExpr : public Expr
 
 struct InfixExpr : public Expr
 {
-	InfixExpr() : left(nullptr), right(nullptr) {}
-	InfixExpr(std::string_view op, Expr *left, Expr *right) : op(op), left(left), right(right) {}
+	InfixExpr() : Expr(AstType::INFIX), left(nullptr), right(nullptr) {}
+	InfixExpr(std::string_view op, Expr *left, Expr *right) : Expr(AstType::INFIX), op(op), left(left), right(right) {}
 	~InfixExpr()
 	{
 		delete left;
@@ -180,8 +171,6 @@ struct InfixExpr : public Expr
 
 	std::string Stringify() override { return left->Stringify() + " " + op + " " + right->Stringify(); }
 
-	AstType Type() override { return AstType::INFIX; }
-
 	std::string op;
 	Expr *left;
 	Expr *right;
@@ -189,8 +178,8 @@ struct InfixExpr : public Expr
 
 struct IndexExpr : public Expr
 {
-	IndexExpr() : ds(nullptr), index(nullptr) {}
-	IndexExpr(Expr *ds, Expr *index) : ds(ds), index(index) {}
+	IndexExpr() : Expr(AstType::INDEX), ds(nullptr), index(nullptr) {}
+	IndexExpr(Expr *ds, Expr *index) : Expr(AstType::INDEX), ds(ds), index(index) {}
 	~IndexExpr()
 	{
 		delete ds;
@@ -200,16 +189,14 @@ struct IndexExpr : public Expr
 	}
 	std::string Stringify() override { return ds->Stringify() + "[" + index->Stringify() + "]"; }
 
-	AstType Type() override { return AstType::INDEX; }
-
 	Expr *ds;
 	Expr *index;
 };
 
 struct RefExpr : public Expr
 {
-	RefExpr() : refExpr(nullptr) {}
-	RefExpr(Expr *refExpr) : refExpr(refExpr) {}
+	RefExpr() : Expr(AstType::REF), refExpr(nullptr) {}
+	RefExpr(Expr *refExpr) : Expr(AstType::REF), refExpr(refExpr) {}
 	~RefExpr()
 	{
 		delete refExpr;
@@ -217,15 +204,13 @@ struct RefExpr : public Expr
 	}
 	std::string Stringify() override { return "ref " + refExpr->Stringify(); }
 
-	AstType Type() override { return AstType::REF; }
-
 	Expr *refExpr;
 };
 
 struct FunctionCallExpr : public Expr
 {
-	FunctionCallExpr() : name(nullptr) {}
-	FunctionCallExpr(Expr *name, std::vector<Expr *> arguments) : name(name), arguments(arguments) {}
+	FunctionCallExpr() : Expr(AstType::FUNCTION_CALL), name(nullptr) {}
+	FunctionCallExpr(Expr *name, std::vector<Expr *> arguments) : Expr(AstType::FUNCTION_CALL), name(name), arguments(arguments) {}
 	~FunctionCallExpr()
 	{
 		delete name;
@@ -247,7 +232,6 @@ struct FunctionCallExpr : public Expr
 		result += ")";
 		return result;
 	}
-	AstType Type() override { return AstType::FUNCTION_CALL; }
 
 	Expr *name;
 	std::vector<Expr *> arguments;
@@ -255,8 +239,8 @@ struct FunctionCallExpr : public Expr
 
 struct StructCallExpr : public Expr
 {
-	StructCallExpr() : callee(nullptr), callMember(nullptr) {}
-	StructCallExpr(Expr *callee, Expr *callMember) : callee(callee), callMember(callMember) {}
+	StructCallExpr() : Expr(AstType::STRUCT_CALL), callee(nullptr), callMember(nullptr) {}
+	StructCallExpr(Expr *callee, Expr *callMember) : Expr(AstType::STRUCT_CALL), callee(callee), callMember(callMember) {}
 	~StructCallExpr()
 	{
 		delete callee;
@@ -266,7 +250,6 @@ struct StructCallExpr : public Expr
 	}
 
 	std::string Stringify() override { return callee->Stringify() + "." + callMember->Stringify(); }
-	AstType Type() override { return AstType::STRUCT_CALL; }
 
 	Expr *callee;
 	Expr *callMember;
@@ -274,17 +257,16 @@ struct StructCallExpr : public Expr
 
 struct Stmt : public AstNode
 {
-	Stmt() {}
+	Stmt(AstType type) : AstNode(type) {}
 	virtual ~Stmt() {}
 
 	virtual std::string Stringify() = 0;
-	virtual AstType Type() = 0;
 };
 
 struct ExprStmt : public Stmt
 {
-	ExprStmt() : expr(nullptr) {}
-	ExprStmt(Expr *expr) : expr(expr) {}
+	ExprStmt() : Stmt(AstType::EXPR), expr(nullptr) {}
+	ExprStmt(Expr *expr) : Stmt(AstType::EXPR), expr(expr) {}
 	~ExprStmt()
 	{
 		delete expr;
@@ -292,15 +274,14 @@ struct ExprStmt : public Stmt
 	}
 
 	std::string Stringify() override { return expr->Stringify() + ";"; }
-	AstType Type() override { return AstType::EXPR; }
 
 	Expr *expr;
 };
 
 struct ReturnStmt : public Stmt
 {
-	ReturnStmt() : expr(nullptr) {}
-	ReturnStmt(Expr *expr) : expr(expr) {}
+	ReturnStmt() : Stmt(AstType::RETURN), expr(nullptr) {}
+	ReturnStmt(Expr *expr) : Stmt(AstType::RETURN), expr(expr) {}
 	~ReturnStmt()
 	{
 		delete expr;
@@ -308,16 +289,16 @@ struct ReturnStmt : public Stmt
 	}
 
 	std::string Stringify() override { return "return " + expr->Stringify() + ";"; }
-	AstType Type() override { return AstType::RETURN; }
 
 	Expr *expr;
 };
 
 struct IfStmt : public Stmt
 {
-	IfStmt() : condition(nullptr), thenBranch(nullptr), elseBranch(nullptr) {}
+	IfStmt() : Stmt(AstType::IF), condition(nullptr), thenBranch(nullptr), elseBranch(nullptr) {}
 	IfStmt(Expr *condition, Stmt *thenBranch, Stmt *elseBranch)
-		: condition(condition),
+		: Stmt(AstType::IF),
+		  condition(condition),
 		  thenBranch(thenBranch),
 		  elseBranch(elseBranch)
 	{
@@ -340,7 +321,6 @@ struct IfStmt : public Stmt
 			result += "else " + elseBranch->Stringify();
 		return result;
 	}
-	AstType Type() override { return AstType::IF; }
 
 	Expr *condition;
 	Stmt *thenBranch;
@@ -349,8 +329,8 @@ struct IfStmt : public Stmt
 
 struct ScopeStmt : public Stmt
 {
-	ScopeStmt() {}
-	ScopeStmt(std::vector<Stmt *> stmts) : stmts(stmts) {}
+	ScopeStmt() : Stmt(AstType::SCOPE) {}
+	ScopeStmt(std::vector<Stmt *> stmts) : Stmt(AstType::SCOPE), stmts(stmts) {}
 	~ScopeStmt() { std::vector<Stmt *>().swap(stmts); }
 
 	std::string Stringify() override
@@ -362,14 +342,13 @@ struct ScopeStmt : public Stmt
 		return result;
 	}
 
-	AstType Type() override { return AstType::SCOPE; }
 	std::vector<Stmt *> stmts;
 };
 
 struct FunctionExpr : public Expr
 {
-	FunctionExpr() : body(nullptr) {}
-	FunctionExpr(std::vector<IdentifierExpr *> parameters, ScopeStmt *body) : parameters(parameters), body(body) {}
+	FunctionExpr() : Expr(AstType::FUNCTION), body(nullptr) {}
+	FunctionExpr(std::vector<IdentifierExpr *> parameters, ScopeStmt *body) : Expr(AstType::FUNCTION), parameters(parameters), body(body) {}
 	~FunctionExpr()
 	{
 		std::vector<IdentifierExpr *>().swap(parameters);
@@ -391,7 +370,6 @@ struct FunctionExpr : public Expr
 		result += body->Stringify();
 		return result;
 	}
-	AstType Type() override { return AstType::FUNCTION; }
 
 	std::vector<IdentifierExpr *> parameters;
 	ScopeStmt *body;
@@ -399,7 +377,7 @@ struct FunctionExpr : public Expr
 
 struct AnonyStructExpr : public Expr
 {
-	AnonyStructExpr(const std::unordered_map<IdentifierExpr *, Expr *> &memberPairs) : memberPairs(memberPairs) {}
+	AnonyStructExpr(const std::unordered_map<IdentifierExpr *, Expr *> &memberPairs) : Expr(AstType::ANONY_STRUCT), memberPairs(memberPairs) {}
 	~AnonyStructExpr() {}
 
 	std::string Stringify() override
@@ -410,15 +388,14 @@ struct AnonyStructExpr : public Expr
 		result += "}";
 		return result;
 	}
-	AstType Type() override { return AstType::ANONY_STRUCT; }
 
 	std::unordered_map<IdentifierExpr *, Expr *> memberPairs;
 };
 
 struct WhileStmt : public Stmt
 {
-	WhileStmt() : condition(nullptr), body(nullptr) {}
-	WhileStmt(Expr *condition, Stmt *body) : condition(condition), body(body) {}
+	WhileStmt() : Stmt(AstType::WHILE), condition(nullptr), body(nullptr) {}
+	WhileStmt(Expr *condition, Stmt *body) : Stmt(AstType::WHILE), condition(condition), body(body) {}
 	~WhileStmt()
 	{
 		delete condition;
@@ -431,7 +408,6 @@ struct WhileStmt : public Stmt
 	{
 		return "while(" + condition->Stringify() + ")" + body->Stringify();
 	}
-	AstType Type() override { return AstType::WHILE; }
 
 	Expr *condition;
 	Stmt *body;
@@ -439,11 +415,11 @@ struct WhileStmt : public Stmt
 
 struct StructStmt : public Stmt
 {
-	StructStmt() {}
-	StructStmt(std::string_view name, std::vector<std::pair<IdentifierExpr*, Expr *>> members) : name(name), members(members) {}
+	StructStmt() : Stmt(AstType::STRUCT) {}
+	StructStmt(std::string_view name, std::vector<std::pair<IdentifierExpr *, Expr *>> members) : Stmt(AstType::STRUCT), name(name), members(members) {}
 	~StructStmt()
 	{
-		std::vector<std::pair<IdentifierExpr*, Expr *>>().swap(members);
+		std::vector<std::pair<IdentifierExpr *, Expr *>>().swap(members);
 	}
 
 	std::string Stringify() override
@@ -455,10 +431,9 @@ struct StructStmt : public Stmt
 
 		return result + "}";
 	}
-	AstType Type() override { return AstType::STRUCT; }
 
 	std::string name;
-	std::vector<std::pair<IdentifierExpr*, Expr *>> members;
+	std::vector<std::pair<IdentifierExpr *, Expr *>> members;
 };
 
 static NilExpr *nilExpr = new NilExpr();

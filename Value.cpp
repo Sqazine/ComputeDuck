@@ -27,11 +27,6 @@ Value ::~Value()
 {
 }
 
-ValueType Value::Type() const
-{
-	return type;
-}
-
 std::string Value::Stringify() const
 {
 	switch (type)
@@ -63,7 +58,7 @@ void Value::UnMark() const
 
 bool operator==(const Value &left, const Value &right)
 {
-	if (left.Type() != right.Type())
+	if (left.type != right.type)
 		return false;
 
 	switch (left.type)
