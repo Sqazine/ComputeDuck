@@ -16,14 +16,14 @@
 #define TO_BUILTIN_DATA_OBJ(obj) ((BuiltinDataObject *)obj)
 #define TO_BUILTIN_VARIABLE_OBJ(obj) ((BuiltinVariableObject *)obj)
 
-#define IS_STR_OBJ(obj) (obj->Type() == ObjectType::STR)
-#define IS_ARRAY_OBJ(obj) (obj->Type() == ObjectType::ARRAY)
-#define IS_STRUCT_OBJ(obj) (obj->Type() == ObjectType::STRUCT)
-#define IS_REF_OBJ(obj) (obj->Type() == ObjectType::REF)
-#define IS_FUNCTION_OBJ(obj) (obj->Type() == ObjectType::FUNCTION)
-#define IS_BUILTIN_FUNCTION_OBJ(obj) (obj->Type() == ObjectType::BUILTIN_FUNCTION)
-#define IS_BUILTIN_DATA_OBJ(obj) (obj->Type() == ObjectType::BUILTIN_DATA)
-#define IS_BUILTIN_VARIABLE_OBJ(obj) (obj->Type() == ObjectType::BUILTIN_VARIABLE)
+#define IS_STR_OBJ(obj) (obj->type == ObjectType::STR)
+#define IS_ARRAY_OBJ(obj) (obj->type == ObjectType::ARRAY)
+#define IS_STRUCT_OBJ(obj) (obj->type == ObjectType::STRUCT)
+#define IS_REF_OBJ(obj) (obj->type == ObjectType::REF)
+#define IS_FUNCTION_OBJ(obj) (obj->type == ObjectType::FUNCTION)
+#define IS_BUILTIN_FUNCTION_OBJ(obj) (obj->type == ObjectType::BUILTIN_FUNCTION)
+#define IS_BUILTIN_DATA_OBJ(obj) (obj->type == ObjectType::BUILTIN_DATA)
+#define IS_BUILTIN_VARIABLE_OBJ(obj) (obj->type == ObjectType::BUILTIN_VARIABLE)
 
 enum class ObjectType
 {
@@ -39,8 +39,8 @@ enum class ObjectType
 
 struct Object
 {
-	Object()
-		: marked(false), next(nullptr)
+	Object(ObjectType type)
+		: marked(false), next(nullptr),type(type)
 	{
 	}
 	virtual ~Object()
@@ -48,24 +48,23 @@ struct Object
 	}
 
 	virtual std::string Stringify() = 0;
-	virtual ObjectType Type() = 0;
 	virtual void Mark() = 0;
 	virtual void UnMark() = 0;
 	virtual bool IsEqualTo(Object *other) = 0;
 
 	bool marked;
 	Object *next;
+	ObjectType type;
 };
 
 struct StrObject : public Object
 {
 	StrObject(std::string_view value)
-		: value(value)
+		:Object(ObjectType::STR),  value(value)
 	{
 	}
 
 	std::string Stringify() override { return value; }
-	ObjectType Type() override { return ObjectType::STR; }
 	void Mark() override { marked = true; }
 	void UnMark() override { marked = false; }
 	bool IsEqualTo(Object *other) override
@@ -81,7 +80,7 @@ struct StrObject : public Object
 struct ArrayObject : public Object
 {
 	ArrayObject(const std::vector<Value> &elements)
-		: elements(elements)
+		: Object(ObjectType::ARRAY), elements(elements)
 	{
 	}
 
@@ -97,7 +96,6 @@ struct ArrayObject : public Object
 		result += "]";
 		return result;
 	}
-	ObjectType Type() override { return ObjectType::ARRAY; }
 	void Mark() override
 	{
 		marked = true;
@@ -133,10 +131,9 @@ struct ArrayObject : public Object
 
 struct RefObject : public Object
 {
-	RefObject(Value *pointer) : pointer(pointer) {}
+	RefObject(Value *pointer) :Object(ObjectType::REF),  pointer(pointer) {}
 
 	std::string Stringify() override { return pointer->Stringify(); }
-	ObjectType Type() override { return ObjectType::REF; }
 	void Mark() override
 	{
 		marked = true;
@@ -160,12 +157,11 @@ struct RefObject : public Object
 struct FunctionObject : public Object
 {
 	FunctionObject(const OpCodes &opCodes, int32_t localVarCount = 0, int32_t parameterCount = 0)
-		: opCodes(opCodes), localVarCount(localVarCount), parameterCount(parameterCount)
+		: Object(ObjectType::FUNCTION), opCodes(opCodes), localVarCount(localVarCount), parameterCount(parameterCount)
 	{
 	}
 
 	std::string Stringify() override { return "function:(0x" + PointerAddressToString(this) + ")"; }
-	ObjectType Type() override { return ObjectType::FUNCTION; }
 	void Mark() override { marked = true; }
 	void UnMark() override { marked = false; }
 	bool IsEqualTo(Object *other) override
@@ -191,7 +187,7 @@ struct FunctionObject : public Object
 
 struct StructObject : public Object
 {
-	StructObject(const std::unordered_map<std::string, Value> &members) : members(members) {}
+	StructObject(const std::unordered_map<std::string, Value> &members) :Object(ObjectType::STRUCT),  members(members) {}
 
 	std::string Stringify() override
 	{
@@ -202,7 +198,7 @@ struct StructObject : public Object
 		result += "\n}\n";
 		return result;
 	}
-	ObjectType Type() override { return ObjectType::STRUCT; }
+
 	void Mark() override
 	{
 		marked = true;
@@ -236,12 +232,11 @@ using BuiltinFn = std::function<bool(Value *, uint8_t, Value &)>;
 struct BuiltinFunctionObject : public Object
 {
 	BuiltinFunctionObject(std::string_view name, const BuiltinFn &fn)
-		: name(name), fn(fn)
+		: Object(ObjectType::BUILTIN_FUNCTION), name(name), fn(fn)
 	{
 	}
 
 	std::string Stringify() override { return "Builtin Function:(0x" + PointerAddressToString(this) + ")"; }
-	ObjectType Type() override { return ObjectType::BUILTIN_FUNCTION; }
 	void Mark() override { marked = true; }
 	void UnMark() override { marked = false; }
 	bool IsEqualTo(Object *other) override
@@ -257,6 +252,7 @@ struct BuiltinFunctionObject : public Object
 struct BuiltinDataObject : public Object
 {
 	BuiltinDataObject()
+	:Object(ObjectType::BUILTIN_DATA)
 	{
 	}
 
@@ -266,7 +262,6 @@ struct BuiltinDataObject : public Object
 	}
 
 	std::string Stringify() override { return "Builtin Data:(0x" + PointerAddressToString(nativeData) + ")"; }
-	ObjectType Type() override { return ObjectType::BUILTIN_DATA; }
 	void Mark() override { marked = true; }
 	void UnMark() override { marked = false; }
 	bool IsEqualTo(Object *other) override
@@ -282,12 +277,11 @@ struct BuiltinDataObject : public Object
 struct BuiltinVariableObject : public Object
 {
 	BuiltinVariableObject(std::string_view name, const Value &v)
-		: name(name), value(v)
+		: Object(ObjectType::BUILTIN_VARIABLE), name(name), value(v)
 	{
 	}
 
 	std::string Stringify() override { return "Builtin Variable:(" + name + ":" + value.Stringify() + ")"; }
-	ObjectType Type() override { return ObjectType::BUILTIN_VARIABLE; }
 	void Mark() override { marked = true; }
 	void UnMark() override { marked = false; }
 	bool IsEqualTo(Object *other) override
