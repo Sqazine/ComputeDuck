@@ -37,9 +37,9 @@ void VM::Execute()
     {                                                                                    \
         Value left = Pop();                                                              \
         Value right = Pop();                                                             \
-        if (IS_REF_VALUE(left))                                                          \
+        while (IS_REF_VALUE(left))                                                       \
             left = *TO_REF_VALUE(left)->pointer;                                         \
-        if (IS_REF_VALUE(right))                                                         \
+        while (IS_REF_VALUE(right))                                                      \
             right = *TO_REF_VALUE(right)->pointer;                                       \
         if (IS_BUILTIN_VARIABLE_VALUE(left))                                             \
             left = TO_BUILTIN_VARIABLE_VALUE(left)->value;                               \
@@ -57,9 +57,9 @@ void VM::Execute()
     {                                                                                     \
         Value left = Pop();                                                               \
         Value right = Pop();                                                              \
-        if (IS_REF_VALUE(left))                                                           \
+        while (IS_REF_VALUE(left))                                                        \
             left = *TO_REF_VALUE(left)->pointer;                                          \
-        if (IS_REF_VALUE(right))                                                          \
+        while (IS_REF_VALUE(right))                                                       \
             right = *TO_REF_VALUE(right)->pointer;                                        \
         if (IS_BUILTIN_VARIABLE_VALUE(left))                                              \
             left = TO_BUILTIN_VARIABLE_VALUE(left)->value;                                \
@@ -77,9 +77,9 @@ void VM::Execute()
     {                                                                                       \
         Value left = Pop();                                                                 \
         Value right = Pop();                                                                \
-        if (IS_REF_VALUE(left))                                                             \
+        while (IS_REF_VALUE(left))                                                          \
             left = *TO_REF_VALUE(left)->pointer;                                            \
-        if (IS_REF_VALUE(right))                                                            \
+        while (IS_REF_VALUE(right))                                                         \
             right = *TO_REF_VALUE(right)->pointer;                                          \
         if (IS_BUILTIN_VARIABLE_VALUE(left))                                                \
             left = TO_BUILTIN_VARIABLE_VALUE(left)->value;                                  \
@@ -131,9 +131,9 @@ void VM::Execute()
         {
             Value left = Pop();
             Value right = Pop();
-            if (IS_REF_VALUE(left))
+            while (IS_REF_VALUE(left))
                 left = *TO_REF_VALUE(left)->pointer;
-            if (IS_REF_VALUE(right))
+            while (IS_REF_VALUE(right))
                 right = *TO_REF_VALUE(right)->pointer;
             if (IS_BUILTIN_VARIABLE_VALUE(left))
                 left = TO_BUILTIN_VARIABLE_VALUE(left)->value;
@@ -176,9 +176,9 @@ void VM::Execute()
         {
             Value left = Pop();
             Value right = Pop();
-            if (IS_REF_VALUE(left))
+            while (IS_REF_VALUE(left))
                 left = *TO_REF_VALUE(left)->pointer;
-            if (IS_REF_VALUE(right))
+            while (IS_REF_VALUE(right))
                 right = *TO_REF_VALUE(right)->pointer;
             if (IS_BUILTIN_VARIABLE_VALUE(left))
                 left = TO_BUILTIN_VARIABLE_VALUE(left)->value;
@@ -190,7 +190,7 @@ void VM::Execute()
         case OP_NOT:
         {
             auto value = Pop();
-            if (IS_REF_VALUE(value))
+            while (IS_REF_VALUE(value))
                 value = *TO_REF_VALUE(value)->pointer;
             if (IS_BUILTIN_VARIABLE_VALUE(value))
                 value = TO_BUILTIN_VARIABLE_VALUE(value)->value;
@@ -202,7 +202,7 @@ void VM::Execute()
         case OP_MINUS:
         {
             auto value = Pop();
-            if (IS_REF_VALUE(value))
+            while (IS_REF_VALUE(value))
                 value = *TO_REF_VALUE(value)->pointer;
             if (IS_BUILTIN_VARIABLE_VALUE(value))
                 value = TO_BUILTIN_VARIABLE_VALUE(value)->value;
@@ -276,8 +276,15 @@ void VM::Execute()
         {
             auto index = *frame->ip++;
             auto value = Pop();
-            if (IS_REF_VALUE(m_GlobalVariables[index])) //if is a reference object,then set the actual value which the reference object points
-                *TO_REF_VALUE(m_GlobalVariables[index])->pointer = value;
+
+            auto ptr = &m_GlobalVariables[index];
+
+            if (IS_REF_VALUE((*ptr))) //if is a reference object,then set the actual value which the reference object points
+            {
+                while (IS_REF_VALUE((*ptr)))
+                    ptr = TO_REF_VALUE((*ptr))->pointer;
+                *ptr = value;
+            }
             else
                 m_GlobalVariables[index] = value;
             break;
@@ -316,7 +323,7 @@ void VM::Execute()
                 m_StackTop -= (argCount + 1);
 
                 Value returnValue;
-                bool hasReturnValue = builtin->fn(slot,argCount, returnValue);
+                bool hasReturnValue = builtin->fn(slot, argCount, returnValue);
                 if (hasReturnValue)
                 {
                     RegisterToGCRecordChain(returnValue);
@@ -343,7 +350,13 @@ void VM::Execute()
                 slot = PeekCallFrame(scopeDepth)->slot + index;
 
             if (IS_REF_VALUE((*slot)))
-                *TO_REF_VALUE((*slot))->pointer = value;
+            {
+                while (IS_REF_VALUE((*slot)))
+                {
+                    slot = TO_REF_VALUE((*slot))->pointer;
+                }
+                *slot = value;
+            }
             else
                 *slot = value;
             break;
@@ -407,7 +420,7 @@ void VM::Execute()
         {
             auto memberName = Pop();
             auto instance = Pop();
-            if (IS_REF_VALUE(instance))
+            while (IS_REF_VALUE(instance))
                 instance = *TO_REF_VALUE(instance)->pointer;
             auto structInstance = TO_STRUCT_VALUE(instance);
             if (IS_STR_VALUE(memberName))
@@ -423,7 +436,7 @@ void VM::Execute()
         {
             auto memberName = Pop();
             auto instance = Pop();
-            if (IS_REF_VALUE(instance))
+            while (IS_REF_VALUE(instance))
                 instance = *TO_REF_VALUE(instance)->pointer;
             auto structInstance = TO_STRUCT_VALUE(instance);
             auto value = Pop();
@@ -462,20 +475,26 @@ void VM::Execute()
         {
             auto index = *frame->ip++;
             auto idxValue = Pop();
-            if (IS_ARRAY_VALUE(m_GlobalVariables[index]))
+
+            auto ptr = &m_GlobalVariables[index];
+
+            while (IS_REF_VALUE((*ptr)))
+                ptr = TO_REF_VALUE((*ptr))->pointer;
+
+            if (IS_ARRAY_VALUE((*ptr)))
             {
                 if (!IS_NUM_VALUE(idxValue))
                     Assert("Invalid idx for array,only integer is available.");
                 auto intIdx = TO_NUM_VALUE(idxValue);
-                if (intIdx < 0 || intIdx >= TO_ARRAY_VALUE(m_GlobalVariables[index])->elements.size())
+                if (intIdx < 0 || intIdx >= TO_ARRAY_VALUE((*ptr))->elements.size())
                     Assert("Idx out of range.");
-                Push(CreateObject<RefObject>(&(TO_ARRAY_VALUE(m_GlobalVariables[index])->elements[intIdx])));
+                Push(CreateObject<RefObject>(&(TO_ARRAY_VALUE((*ptr))->elements[intIdx])));
             }
             else
-                Assert("Invalid indexed reference type:" + m_GlobalVariables[index].Stringify() + " not a table or array value.");
+                Assert("Invalid indexed reference type:" + ptr->Stringify() + " not a table or array value.");
             break;
         }
-         case OP_REF_INDEX_LOCAL:
+        case OP_REF_INDEX_LOCAL:
         {
             auto isInUpScope = *frame->ip++;
             auto scopeDepth = *frame->ip++;
@@ -488,6 +507,9 @@ void VM::Execute()
                 slot = frame->slot + index;
             else
                 slot = PeekCallFrame(scopeDepth)->slot + index;
+
+            while (IS_REF_VALUE((*slot)))
+                slot = TO_REF_VALUE((*slot))->pointer;
 
             if (IS_ARRAY_VALUE((*slot)))
             {
