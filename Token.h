@@ -43,6 +43,7 @@ enum class TokenType
 	NOT,		   // not
 	STRUCT,		   // struct
 	REF,		   // ref
+	DLLIMPORT,	   // dllimport
 	UNKNOWN,
 	END
 };

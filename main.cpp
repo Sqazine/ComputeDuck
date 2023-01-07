@@ -5,12 +5,11 @@
 #include "Compiler.h"
 #include "VM.h"
 #include "BuiltinManager.h"
-
 void Repl()
 {
 	std::string line;
 
-	BuiltinManager::Init();
+	BuiltinManager::GetInstance()->Init();
 
 	Lexer lexer;
 	Parser parser;
@@ -43,14 +42,14 @@ void Repl()
 		std::cout << "> ";
 	}
 
-	BuiltinManager::Release();
+	BuiltinManager::GetInstance()->Release();
 }
 
 void RunFile(std::string path)
 {
 	std::string content = ReadFile(path);
 
-	BuiltinManager::Init();
+	BuiltinManager::GetInstance()->Init();
 
 	Lexer lexer;
 	Parser parser;
@@ -75,9 +74,10 @@ void RunFile(std::string path)
 
 	vm.Run(chunk);
 
-	BuiltinManager::Release();
+	BuiltinManager::GetInstance()->Release();
 }
 
+#undef main
 int main(int argc, char **argv)
 {
 	if (argc == 2)

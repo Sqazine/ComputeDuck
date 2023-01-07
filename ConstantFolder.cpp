@@ -30,7 +30,7 @@ Stmt *ConstantFolder::FoldStmt(Stmt *stmt)
     case AstType::STRUCT:
         return FoldStructStmt((StructStmt *)stmt);
     default:
-        return nullptr;
+        return stmt;
     }
 }
 Stmt *ConstantFolder::FoldExprStmt(ExprStmt *stmt)
@@ -114,7 +114,7 @@ Expr *ConstantFolder::FoldExpr(Expr *expr)
     case AstType::ANONY_STRUCT:
         return FoldAnonyStructExpr((AnonyStructExpr *)expr);
     default:
-        return nullptr;
+        return expr;
     }
 }
 Expr *ConstantFolder::FoldInfixExpr(InfixExpr *expr)
