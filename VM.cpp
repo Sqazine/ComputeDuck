@@ -386,14 +386,14 @@ void VM::Execute()
         case OP_GET_BUILTIN_FUNCTION:
         {
             auto idx = *frame->ip++;
-            auto builtinObj = BuiltinManager::m_BuiltinFunctions[idx];
+            auto builtinObj = BuiltinManager::GetInstance()->m_BuiltinFunctions[idx];
             Push(builtinObj);
             break;
         }
         case OP_GET_BUILTIN_VARIABLE:
         {
             auto idx = *frame->ip++;
-            auto builtinObj = BuiltinManager::m_BuiltinVariables[idx];
+            auto builtinObj = BuiltinManager::GetInstance()->m_BuiltinVariables[idx];
             Push(builtinObj);
             break;
         }

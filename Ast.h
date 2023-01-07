@@ -23,6 +23,7 @@ enum class AstType
 	ANONY_STRUCT,
 	FUNCTION_CALL,
 	STRUCT_CALL,
+	DLL_IMPORT,
 	//stmt
 	EXPR,
 	RETURN,
@@ -253,6 +254,19 @@ struct StructCallExpr : public Expr
 
 	Expr *callee;
 	Expr *callMember;
+};
+
+struct DllImportExpr : public Expr
+{
+	DllImportExpr() : Expr(AstType::DLL_IMPORT) {}
+	DllImportExpr(std::string_view path) : Expr(AstType::DLL_IMPORT), dllPath(path) {}
+	~DllImportExpr()
+	{
+	}
+
+	std::string Stringify() override { return "dllimport(\"" + dllPath + "\")"; }
+
+	std::string dllPath;
 };
 
 struct Stmt : public AstNode

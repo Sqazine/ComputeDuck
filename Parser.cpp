@@ -15,6 +15,7 @@ std::unordered_map<TokenType, PrefixFn> Parser::m_PrefixFunctions =
 		{TokenType::REF, &Parser::ParseRefExpr},
 		{TokenType::FUNCTION, &Parser::ParseFunctionExpr},
 		{TokenType::LBRACE, &Parser::ParseAnonyStructExpr},
+		{TokenType::DLLIMPORT, &Parser::ParseDllImpportExpr},
 };
 
 std::unordered_map<TokenType, InfixFn> Parser::m_InfixFunctions =
@@ -390,6 +391,29 @@ Expr *Parser::ParseStructCallExpr(Expr *prefixExpr)
 	structCallExpr->callee = prefixExpr;
 	structCallExpr->callMember = ParseExpr(Precedence::INFIX);
 	return structCallExpr;
+}
+
+Expr *Parser::ParseDllImpportExpr()
+{
+	Consume(TokenType::DLLIMPORT, "Expect 'dllimport' keyword");
+	Consume(TokenType::LPAREN, "Expect '(' after 'dllimport' keyword");
+
+	auto path = Consume(TokenType::STRING, "Expect dll path.").literal;
+
+	Consume(TokenType::RPAREN, "Expect ')' after dllimport expr");
+
+	if (path.find(".") == std::string::npos) //no file suffix
+	{
+#ifdef _WIN32
+		path += ".dll";
+#elif __linux__
+		path += ".so";
+#elif __APPLE__
+		path += ".dylib";
+#endif
+	}
+
+	return new DllImportExpr(path);
 }
 
 Token Parser::GetCurToken()

@@ -1,6 +1,11 @@
 #include "Compiler.h"
 #include "Object.h"
 #include "BuiltinManager.h"
+
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 Compiler::Compiler()
     : m_SymbolTable(nullptr)
 {
@@ -35,11 +40,17 @@ void Compiler::ResetStatus()
         delete m_SymbolTable;
     m_SymbolTable = new SymbolTable();
 
-    for (int32_t i = 0; i < BuiltinManager::m_BuiltinFunctionNames.size(); ++i)
-        m_SymbolTable->DefineBuiltinFunction(BuiltinManager::m_BuiltinFunctionNames[i], i);
+    for (int32_t i = 0; i < BuiltinManager::GetInstance()->m_BuiltinFunctionNames.size(); ++i)
+    {
+        m_BuiltinFunctionNames.emplace_back(BuiltinManager::GetInstance()->m_BuiltinFunctionNames[i]);
+        m_SymbolTable->DefineBuiltinFunction(BuiltinManager::GetInstance()->m_BuiltinFunctionNames[i]);
+    }
 
-    for (int32_t i = 0; i < BuiltinManager::m_BuiltinVariableNames.size(); ++i)
-        m_SymbolTable->DefineBuiltinVariable(BuiltinManager::m_BuiltinVariableNames[i], i);
+    for (int32_t i = 0; i < BuiltinManager::GetInstance()->m_BuiltinVariableNames.size(); ++i)
+    {
+        m_BuiltinVariableNames.emplace_back(BuiltinManager::GetInstance()->m_BuiltinVariableNames[i]);
+        m_SymbolTable->DefineBuiltinVariable(BuiltinManager::GetInstance()->m_BuiltinVariableNames[i]);
+    }
 }
 
 void Compiler::CompileStmt(Stmt *stmt)
@@ -231,6 +242,9 @@ void Compiler::CompileExpr(Expr *expr, const RWState &state)
         break;
     case AstType::ANONY_STRUCT:
         CompileAnonyStructExpr((AnonyStructExpr *)expr);
+        break;
+    case AstType::DLL_IMPORT:
+        CompileDllImportExpr((DllImportExpr *)expr);
         break;
     default:
         break;
@@ -515,6 +529,69 @@ void Compiler::CompileAnonyStructExpr(AnonyStructExpr *expr)
     Emit((int32_t)expr->memberPairs.size());
 
     ExitScope();
+}
+
+void Compiler::CompileDllImportExpr(DllImportExpr *expr)
+{
+#ifdef _WIN32
+    auto dllpath = expr->dllPath;
+
+    typedef void (*RegFn)();
+
+    HINSTANCE hInstance;
+    hInstance = LoadLibrary(dllpath.c_str());
+    if (!hInstance)
+        Assert("Failed to load dll library:" + dllpath);
+
+    RegFn RegisterBuiltins = (RegFn)(GetProcAddress(hInstance, "RegisterBuiltins"));
+
+    RegisterBuiltins();
+
+    std::vector<std::string> newAddedBuiltinFunctionNames;
+    std::vector<std::string> newAddedBuiltinVariableNames;
+
+    for (const auto &name : BuiltinManager::GetInstance()->m_BuiltinFunctionNames)
+    {
+        bool found = false;
+        for (const auto &recName : m_BuiltinFunctionNames)
+        {
+            if (name == recName)
+            {
+                found = true;
+                break;
+            }
+        }
+        if (found == false)
+            newAddedBuiltinFunctionNames.emplace_back(name);
+    }
+
+    for (const auto &name : BuiltinManager::GetInstance()->m_BuiltinVariableNames)
+    {
+        bool found = false;
+        for (const auto &recName : m_BuiltinVariableNames)
+        {
+            if (name == recName)
+            {
+                found = true;
+                break;
+            }
+        }
+        if (found == false)
+            newAddedBuiltinVariableNames.emplace_back(name);
+    }
+
+    for (int32_t i = 0; i < newAddedBuiltinFunctionNames.size(); ++i)
+    {
+        m_BuiltinFunctionNames.emplace_back(newAddedBuiltinFunctionNames[i]);
+        m_SymbolTable->DefineBuiltinFunction(newAddedBuiltinFunctionNames[i]);
+    }
+
+    for (int32_t i = 0; i < newAddedBuiltinVariableNames.size(); ++i)
+    {
+        m_BuiltinVariableNames.emplace_back(newAddedBuiltinVariableNames[i]);
+        m_SymbolTable->DefineBuiltinVariable(newAddedBuiltinVariableNames[i]);
+    }
+#endif
 }
 
 void Compiler::EnterScope()

@@ -217,7 +217,7 @@ void Chunk::OpCodeStringify(const OpCodes &opcodes)
             ++i;
             break;
         }
-         case OP_REF_INDEX_LOCAL:
+        case OP_REF_INDEX_LOCAL:
         {
             auto isInUpScope = opcodes[i + 1];
             auto scopeDepth = opcodes[i + 2];

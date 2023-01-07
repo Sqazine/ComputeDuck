@@ -70,17 +70,19 @@ struct SymbolTable
         return symbol;
     }
 
-    Symbol DefineBuiltinFunction(std::string_view name, int32_t index)
+    Symbol DefineBuiltinFunction(std::string_view name)
     {
-        auto symbol = Symbol(name, SymbolScope::BUILTIN_FUNCTION, index, scopeDepth);
+        auto symbol = Symbol(name, SymbolScope::BUILTIN_FUNCTION, definitionCount, scopeDepth);
         symbolMaps[name] = symbol;
+        definitionCount++;
         return symbol;
     }
 
-    Symbol DefineBuiltinVariable(std::string_view name, int32_t index)
+    Symbol DefineBuiltinVariable(std::string_view name)
     {
-        auto symbol = Symbol(name, SymbolScope::BUILTIN_VARIABLE, index, scopeDepth);
+        auto symbol = Symbol(name, SymbolScope::BUILTIN_VARIABLE, definitionCount, scopeDepth);
         symbolMaps[name] = symbol;
+        definitionCount++;
         return symbol;
     }
 

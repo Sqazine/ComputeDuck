@@ -62,6 +62,7 @@ private:
 	Expr *ParseIndexExpr(Expr *prefixExpr);
 	Expr *ParseFunctionCallExpr(Expr *prefixExpr);
 	Expr *ParseStructCallExpr(Expr *prefixExpr);
+	Expr *ParseDllImpportExpr();
 
 	Token GetCurToken();
 	Token GetCurTokenAndStepOnce();
