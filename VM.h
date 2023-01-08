@@ -10,6 +10,7 @@
 #include "Object.h"
 #include "Utils.h"
 #include "Chunk.h"
+#include "Config.h"
 
 #define STACK_MAX 512
 #define INITIAL_GC_THRESHOLD 256
@@ -33,7 +34,7 @@ struct CallFrame
 	Value *slot;
 };
 
-class VM
+class COMPUTE_DUCK_API VM
 {
 public:
 	VM();

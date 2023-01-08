@@ -28,7 +28,7 @@
 enum class ObjectType
 {
 	STR,
-	ARRAY,
+	ARRAY,	
 	STRUCT,
 	REF,
 	FUNCTION,

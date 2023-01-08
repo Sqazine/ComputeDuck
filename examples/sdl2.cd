@@ -1,3 +1,5 @@
+dllimport("sdl2");
+
 ok=SDL_Init();
 if(ok<0)
     println("Failed to init sdl2!");

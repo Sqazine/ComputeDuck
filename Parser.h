@@ -7,6 +7,7 @@
 #include "Ast.h"
 #include "Utils.h"
 #include "ConstantFolder.h"
+#include "Config.h"
 
 enum class Precedence
 {
@@ -27,7 +28,7 @@ class Parser;
 typedef Expr *(Parser::*PrefixFn)();
 typedef Expr *(Parser::*InfixFn)(Expr *);
 
-class Parser
+class COMPUTE_DUCK_API Parser
 {
 public:
 	Parser();

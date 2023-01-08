@@ -1,9 +1,8 @@
 #include "sdl2.h"
 #include <vector>
-#undef main
 #include <SDL2/SDL.h>
-#include "../BuiltinManager.h"
-#include "../Value.h"
+#include "../../BuiltinManager.h"
+#include "../../Value.h"
 void RegisterBuiltins()
 {
 

@@ -1,5 +1,5 @@
 #pragma once
-#include <string_view>
+#include <string>
 #include <unordered_map>
 enum class SymbolScope
 {
@@ -16,12 +16,12 @@ struct Symbol
     {
     }
 
-    Symbol(std::string_view name, const SymbolScope &scope, int32_t index, int32_t scopeDepth = 0, bool isStructSymbol = false)
+    Symbol(const std::string& name, const SymbolScope &scope, int32_t index, int32_t scopeDepth = 0, bool isStructSymbol = false)
         : name(name), scope(scope), index(index), isStructSymbol(isStructSymbol), scopeDepth(scopeDepth), isInUpScope(0)
     {
     }
 
-    std::string_view name;
+    std::string name;
     bool isStructSymbol;
     SymbolScope scope;
     int32_t index;
@@ -53,7 +53,7 @@ struct SymbolTable
         }
     }
 
-    Symbol Define(std::string_view name, bool isStructSymbol = false)
+    Symbol Define(const std::string& name, bool isStructSymbol = false)
     {
         auto symbol = Symbol(name, SymbolScope::GLOBAL, definitionCount, scopeDepth, isStructSymbol);
 
@@ -70,23 +70,21 @@ struct SymbolTable
         return symbol;
     }
 
-    Symbol DefineBuiltinFunction(std::string_view name)
+    Symbol DefineBuiltinFunction(const std::string& name, int32_t index)
     {
-        auto symbol = Symbol(name, SymbolScope::BUILTIN_FUNCTION, definitionCount, scopeDepth);
+        auto symbol = Symbol(name, SymbolScope::BUILTIN_FUNCTION, index, scopeDepth);
         symbolMaps[name] = symbol;
-        definitionCount++;
         return symbol;
     }
 
-    Symbol DefineBuiltinVariable(std::string_view name)
+    Symbol DefineBuiltinVariable(const std::string& name, int32_t index)
     {
-        auto symbol = Symbol(name, SymbolScope::BUILTIN_VARIABLE, definitionCount, scopeDepth);
+        auto symbol = Symbol(name, SymbolScope::BUILTIN_VARIABLE, index, scopeDepth);
         symbolMaps[name] = symbol;
-        definitionCount++;
         return symbol;
     }
 
-    bool Resolve(std::string_view name, Symbol &symbol)
+    bool Resolve(const std::string& name, Symbol &symbol)
     {
         auto iter = symbolMaps.find(name);
         if (iter != symbolMaps.end())
@@ -113,7 +111,7 @@ struct SymbolTable
 
     SymbolTable *enclosing;
 
-    std::unordered_map<std::string_view, Symbol> symbolMaps;
+    std::unordered_map<std::string, Symbol> symbolMaps;
     int32_t definitionCount;
 
     int32_t scopeDepth;

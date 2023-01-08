@@ -43,13 +43,13 @@ void Compiler::ResetStatus()
     for (int32_t i = 0; i < BuiltinManager::GetInstance()->m_BuiltinFunctionNames.size(); ++i)
     {
         m_BuiltinFunctionNames.emplace_back(BuiltinManager::GetInstance()->m_BuiltinFunctionNames[i]);
-        m_SymbolTable->DefineBuiltinFunction(BuiltinManager::GetInstance()->m_BuiltinFunctionNames[i]);
+        m_SymbolTable->DefineBuiltinFunction(BuiltinManager::GetInstance()->m_BuiltinFunctionNames[i], i);
     }
 
     for (int32_t i = 0; i < BuiltinManager::GetInstance()->m_BuiltinVariableNames.size(); ++i)
     {
         m_BuiltinVariableNames.emplace_back(BuiltinManager::GetInstance()->m_BuiltinVariableNames[i]);
-        m_SymbolTable->DefineBuiltinVariable(BuiltinManager::GetInstance()->m_BuiltinVariableNames[i]);
+        m_SymbolTable->DefineBuiltinVariable(BuiltinManager::GetInstance()->m_BuiltinVariableNames[i], i);
     }
 }
 
@@ -580,16 +580,18 @@ void Compiler::CompileDllImportExpr(DllImportExpr *expr)
             newAddedBuiltinVariableNames.emplace_back(name);
     }
 
+    auto legacyBuiltinFuncCount = m_BuiltinFunctionNames.size();
     for (int32_t i = 0; i < newAddedBuiltinFunctionNames.size(); ++i)
     {
         m_BuiltinFunctionNames.emplace_back(newAddedBuiltinFunctionNames[i]);
-        m_SymbolTable->DefineBuiltinFunction(newAddedBuiltinFunctionNames[i]);
+        m_SymbolTable->DefineBuiltinFunction(newAddedBuiltinFunctionNames[i], legacyBuiltinFuncCount + i);
     }
 
+    auto legacyBuiltinVarCount = m_BuiltinVariableNames.size();
     for (int32_t i = 0; i < newAddedBuiltinVariableNames.size(); ++i)
     {
         m_BuiltinVariableNames.emplace_back(newAddedBuiltinVariableNames[i]);
-        m_SymbolTable->DefineBuiltinVariable(newAddedBuiltinVariableNames[i]);
+        m_SymbolTable->DefineBuiltinVariable(newAddedBuiltinVariableNames[i], legacyBuiltinVarCount + i);
     }
 #endif
 }

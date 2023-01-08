@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include "Utils.h"
+#include "Config.h"
 
 #define IS_NIL_VALUE(v) (v.type == ValueType::NIL)
 #define IS_NUM_VALUE(v) (v.type == ValueType::NUM)
@@ -37,7 +38,7 @@ enum class ValueType
 	OBJECT,
 };
 
-struct Value
+struct COMPUTE_DUCK_API Value
 {
 	Value();
 	Value(double number);
