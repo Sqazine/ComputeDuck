@@ -6,8 +6,9 @@
 #include <unordered_map>
 #include "Token.h"
 #include "Utils.h"
+#include "Config.h"
 
-class Lexer
+class COMPUTE_DUCK_API Lexer
 {
 public:
 	Lexer();

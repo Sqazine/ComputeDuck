@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <array>
 #include "Value.h"
+#include "Config.h"
 enum OpCode
 {
     OP_CONSTANT,
@@ -43,7 +44,7 @@ typedef std::vector<int32_t> OpCodes;
 
 #define CONSTANT_MAX 8192
 
-class Chunk
+class COMPUTE_DUCK_API Chunk
 {
 public:
     Chunk(OpCodes opCodes,  Value* constants,int32_t constantCount);

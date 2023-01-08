@@ -4,6 +4,7 @@
 #include "Ast.h"
 #include "Value.h"
 #include "SymbolTable.h"
+#include "Config.h"
 
 enum class RWState //read write state
 {
@@ -11,7 +12,7 @@ enum class RWState //read write state
     WRITE,
 };
 
-class Compiler
+class COMPUTE_DUCK_API Compiler
 {
 public:
     Compiler();

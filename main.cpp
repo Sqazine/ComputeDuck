@@ -80,12 +80,14 @@ void RunFile(std::string path)
 #undef main
 int main(int argc, char **argv)
 {
-	if (argc == 2)
-		RunFile(argv[1]);
-	else if (argc == 1)
-		Repl();
-	else
-		std::cout << "Usage: ComputeDuck [filepath]" << std::endl;
+	// if (argc == 2)
+	// 	RunFile(argv[1]);
+	// else if (argc == 1)
+	// 	Repl();
+	// else
+	// 	std::cout << "Usage: ComputeDuck [filepath]" << std::endl;
+
+	RunFile("C:\\Users\\Sqazi\\OneDrive\\.sc\\ComputeDuck\\examples\\sdl2.cd");
 
 	return 0;
 }

@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 #include "Object.h"
-class BuiltinManager
+class __declspec(dllexport) BuiltinManager
 {
 public:
     static BuiltinManager *GetInstance();
