@@ -14,7 +14,7 @@ public:
 	Lexer();
 	~Lexer();
 
-	const std::vector<Token> &GenerateTokens(std::string_view src);
+	const std::vector<Token> &GenerateTokens(std::string_view src,std::string_view filePath="RootFile");
 
 private:
 	void ResetStatus();
@@ -49,4 +49,5 @@ private:
 	uint64_t m_Line;
 	std::string m_Source;
 	std::vector<Token> m_Tokens;
+	std::string m_FilePath;
 };
