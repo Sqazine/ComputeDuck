@@ -21,13 +21,18 @@ public:
     PreProcessor() {}
     ~PreProcessor() {}
 
-    std::vector<Token> PreProcess(std::vector<Token> tokens)
+    std::vector<Token> PreProcess(std::string_view src)
     {
+        auto tokens=m_Lexer.GenerateTokens(src);
+
         std::vector<TokenBlockTable> tables;
 
         auto loc = SearchImportToken(tokens);
         if (loc == -1)
+        {
+            tokens.emplace_back(TokenType::END, "END", 0,"RootFile");
             return tokens;
+        }
 
         //root token block,refCount=0,filePath=""
         tables.emplace_back(FindBlockTable(tokens));
@@ -36,7 +41,7 @@ public:
         {
             for (const auto &path : tables[i].importedFilePaths)
             {
-                auto toks = m_Lexer.GenerateTokens(ReadFile(path));
+                auto toks = m_Lexer.GenerateTokens(ReadFile(path), path);
 
                 bool alreadyExists = false;
                 for (int32_t j = 0; j < tables.size(); ++j)
@@ -66,7 +71,7 @@ public:
         for (const auto &t : tables)
             result.insert(result.end(), t.tokens.begin(), t.tokens.end());
 
-        result.emplace_back(TokenType::END, "END", 0);
+        result.emplace_back(TokenType::END, "END", 0,"RootFile");
         return result;
     }
 

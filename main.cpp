@@ -1,7 +1,6 @@
 #include <string>
 #include <string_view>
 #include "PreProcessor.h"
-#include "Lexer.h"
 #include "Parser.h"
 #include "Compiler.h"
 #include "VM.h"
@@ -12,7 +11,6 @@ void Repl()
 
 	BuiltinManager::GetInstance()->Init();
 
-	Lexer lexer;
 	PreProcessor preProcessor;
 	Parser parser;
 	Compiler compiler;
@@ -25,8 +23,7 @@ void Repl()
 			compiler.ResetStatus();
 		else
 		{
-			auto tokens = lexer.GenerateTokens(line);
-			tokens = preProcessor.PreProcess(tokens);
+			auto tokens = preProcessor.PreProcess(line);
 
 			for (const auto &token : tokens)
 				std::cout << token << std::endl;
@@ -54,14 +51,12 @@ void RunFile(std::string path)
 
 	BuiltinManager::GetInstance()->Init();
 
-	Lexer lexer;
 	PreProcessor preProcessor;
 	Parser parser;
 	Compiler compiler;
 	VM vm;
 
-	auto tokens = lexer.GenerateTokens(content);
-	tokens = preProcessor.PreProcess(tokens);
+	auto tokens = preProcessor.PreProcess(content);
 
 	for (const auto &token : tokens)
 		std::cout << token << std::endl;

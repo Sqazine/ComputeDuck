@@ -51,8 +51,9 @@ enum class TokenType
 
 struct Token
 {
-	Token(TokenType type, std::string_view literal, uint64_t line) : type(type), literal(literal), line(line) {}
+	Token(TokenType type, std::string_view literal, uint64_t line, std::string_view filePath) : type(type), literal(literal), line(line), filePath(filePath) {}
 
+	std::string filePath;
 	TokenType type;
 	std::string literal;
 	uint64_t line;

@@ -490,9 +490,9 @@ Token Parser::Consume(TokenType type, std::string_view errMsg)
 {
 	if (IsMatchCurToken(type))
 		return GetCurTokenAndStepOnce();
-	Assert("[line " + std::to_string(GetCurToken().line) + "]:" + std::string(errMsg));
+	Assert("[file "+ GetCurToken().filePath+" line " + std::to_string(GetCurToken().line) + "]:" + std::string(errMsg));
 	//avoid warning
-	return Token(TokenType::END, "", 0);
+	return Token(TokenType::END, "", 0,"RootFile");
 }
 
 bool Parser::IsAtEnd()

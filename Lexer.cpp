@@ -27,10 +27,11 @@ Lexer::~Lexer()
 {
 }
 
-const std::vector<Token> &Lexer::GenerateTokens(std::string_view src)
+const std::vector<Token> &Lexer::GenerateTokens(std::string_view src, std::string_view filePath)
 {
     ResetStatus();
     m_Source = src;
+    m_FilePath = filePath;
     while (!IsAtEnd())
     {
         m_StartPos = m_CurPos;
@@ -197,11 +198,11 @@ char Lexer::GetCurChar()
 void Lexer::AddToken(TokenType type)
 {
     auto literal = m_Source.substr(m_StartPos, m_CurPos - m_StartPos);
-    m_Tokens.emplace_back(type, literal, m_Line);
+    m_Tokens.emplace_back(type, literal, m_Line, m_FilePath);
 }
 void Lexer::AddToken(TokenType type, std::string_view literal)
 {
-    m_Tokens.emplace_back(type, literal, m_Line);
+    m_Tokens.emplace_back(type, literal, m_Line, m_FilePath);
 }
 
 bool Lexer::IsAtEnd()
