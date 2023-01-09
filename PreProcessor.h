@@ -5,6 +5,7 @@
 #include "Token.h"
 #include "Lexer.h"
 #include "Config.h"
+#include "Utils.h"
 
 struct TokenBlockTable
 {
@@ -22,7 +23,7 @@ public:
 
     std::vector<Token> PreProcess(std::vector<Token> tokens)
     {
-          std::vector<TokenBlockTable> tables;
+        std::vector<TokenBlockTable> tables;
 
         auto loc = SearchImportToken(tokens);
         if (loc == -1)
@@ -65,7 +66,7 @@ public:
         for (const auto &t : tables)
             result.insert(result.end(), t.tokens.begin(), t.tokens.end());
 
-        result.emplace_back(TokenType::END,"END",0);
+        result.emplace_back(TokenType::END, "END", 0);
         return result;
     }
 
@@ -86,6 +87,18 @@ private:
         std::vector<std::string> importFilePaths;
         while (loc != -1)
         {
+            if (tokens[loc + 1].type != TokenType::LPAREN)
+                Assert("[line " + std::to_string(tokens[loc + 1].line) + "]:" + "Expect '(' after import keyword.");
+
+            if (tokens[loc + 2].type != TokenType::STRING)
+                Assert("[line " + std::to_string(tokens[loc + 2].line) + "]:" + "Expect file path after import stmt's '('.");
+
+            if (tokens[loc + 3].type != TokenType::RPAREN)
+                Assert("[line " + std::to_string(tokens[loc + 3].line) + "]:" + "Expect ')' after import stmt's file path.");
+
+            if (tokens[loc + 4].type != TokenType::SEMICOLON)
+                Assert("[line " + std::to_string(tokens[loc + 4].line) + "]:" + "Expect ';' at the end of import stmt.");
+
             importFilePaths.emplace_back(tokens[loc + 2].literal);
             tokens.erase(tokens.begin() + loc, tokens.begin() + loc + 5);
             loc = SearchImportToken(tokens);
