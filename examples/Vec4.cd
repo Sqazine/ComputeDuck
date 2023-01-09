@@ -1,0 +1,8 @@
+import("../examples/Vec2.cd");
+
+struct Vec4
+{
+    vec2:Vec2,
+    z:0
+    w:0
+}

@@ -44,6 +44,7 @@ enum class TokenType
 	STRUCT,		   // struct
 	REF,		   // ref
 	DLLIMPORT,	   // dllimport
+	IMPORT,		   // import
 	UNKNOWN,
 	END
 };

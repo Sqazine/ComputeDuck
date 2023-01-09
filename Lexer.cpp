@@ -16,6 +16,7 @@ const std::unordered_map<std::string, TokenType> keywords =
         {"struct", TokenType::STRUCT},
         {"ref", TokenType::REF},
         {"dllimport", TokenType::DLLIMPORT},
+        {"import", TokenType::IMPORT},
 };
 
 Lexer::Lexer()
@@ -35,8 +36,6 @@ const std::vector<Token> &Lexer::GenerateTokens(std::string_view src)
         m_StartPos = m_CurPos;
         GenerateToken();
     }
-
-    AddToken(TokenType::END, "EOF");
 
     return m_Tokens;
 }

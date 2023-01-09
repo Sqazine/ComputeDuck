@@ -14,7 +14,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(libcomputeduck SHARED Ast.h
-Chunk.cpp Chunk.h 
+Chunk.cpp Chunk.h
 Compiler.cpp Compiler.h 
 ConstantFolder.h ConstantFolder.cpp 
 Lexer.cpp Lexer.h
@@ -25,7 +25,8 @@ Token.h
 Utils.h
 Value.cpp Value.h
 BuiltinManager.cpp BuiltinManager.h
-VM.cpp VM.h)
+VM.cpp VM.h
+PreProcessor.h)
 target_compile_definitions(libcomputeduck PUBLIC COMPUTE_DUCK_BUILD_DLL)
 
 add_subdirectory(library/sdl2)
