@@ -13,7 +13,6 @@ project(ComputeDuck LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-
 add_library(libcomputeduck SHARED Ast.h
 Chunk.cpp Chunk.h 
 Compiler.cpp Compiler.h 
@@ -29,12 +28,7 @@ BuiltinManager.cpp BuiltinManager.h
 VM.cpp VM.h)
 target_compile_definitions(libcomputeduck PUBLIC COMPUTE_DUCK_BUILD_DLL)
 
-if (BUILD_SDL2)
-find_package(SDL2 CONFIG REQUIRED)
-add_library(sdl2 SHARED  library/sdl2/sdl2.h  library/sdl2/sdl2.cpp)
-target_link_libraries(sdl2 PRIVATE SDL2::SDL2 libcomputeduck)
-target_compile_definitions(sdl2 PUBLIC COMPUTE_DUCK_BUILD_DLL)
-endif()
+add_subdirectory(library/sdl2)
 
 file(GLOB SRC main.cpp)
 add_executable(computeduck ${SRC})

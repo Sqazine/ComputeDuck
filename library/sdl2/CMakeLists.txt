@@ -1,0 +1,6 @@
+if (BUILD_SDL2)
+find_package(SDL2 CONFIG REQUIRED)
+add_library(sdl2 SHARED  sdl2.h  sdl2.cpp)
+target_link_libraries(sdl2 PRIVATE SDL2::SDL2 libcomputeduck)
+target_compile_definitions(sdl2 PUBLIC COMPUTE_DUCK_BUILD_DLL)
+endif()
