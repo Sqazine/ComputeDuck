@@ -10,7 +10,7 @@ struct TokenBlockTable
 {
     int32_t refCount = 0;
     std::string filePath;
-    std::vector<std::string> importRequiredFilePaths;
+    std::vector<std::string> importedFilePaths;
     std::vector<Token> tokens;
 };
 
@@ -22,25 +22,27 @@ public:
 
     std::vector<Token> PreProcess(std::vector<Token> tokens)
     {
+          std::vector<TokenBlockTable> tables;
+
         auto loc = SearchImportToken(tokens);
         if (loc == -1)
             return tokens;
 
         //root token block,refCount=0,filePath=""
-        mTables.emplace_back(FindBlockTable(tokens));
+        tables.emplace_back(FindBlockTable(tokens));
 
-        for (int32_t i = 0; i < mTables.size(); ++i)
+        for (int32_t i = 0; i < tables.size(); ++i)
         {
-            for (const auto &path : mTables[i].importRequiredFilePaths)
+            for (const auto &path : tables[i].importedFilePaths)
             {
                 auto toks = m_Lexer.GenerateTokens(ReadFile(path));
 
                 bool alreadyExists = false;
-                for (int32_t j = 0; j < mTables.size(); ++j)
+                for (int32_t j = 0; j < tables.size(); ++j)
                 {
-                    if (mTables[j].filePath == path)
+                    if (tables[j].filePath == path)
                     {
-                        mTables[j].refCount++;
+                        tables[j].refCount++;
                         alreadyExists = true;
                         break;
                     }
@@ -51,16 +53,16 @@ public:
                     auto blockTable = FindBlockTable(toks);
                     blockTable.filePath = path;
                     blockTable.refCount++;
-                    mTables.emplace_back(blockTable);
+                    tables.emplace_back(blockTable);
                 }
             }
         }
 
-        std::sort(mTables.begin(), mTables.end(), [](const TokenBlockTable &left, const TokenBlockTable &right)
+        std::sort(tables.begin(), tables.end(), [](const TokenBlockTable &left, const TokenBlockTable &right)
                   { return left.refCount > right.refCount; });
 
         std::vector<Token> result;
-        for (const auto &t : mTables)
+        for (const auto &t : tables)
             result.insert(result.end(), t.tokens.begin(), t.tokens.end());
 
         result.emplace_back(TokenType::END,"END",0);
@@ -69,8 +71,6 @@ public:
 
 private:
     Lexer m_Lexer;
-
-    std::vector<TokenBlockTable> mTables;
 
     TokenBlockTable FindBlockTable(std::vector<Token> tokens)
     {
@@ -92,7 +92,7 @@ private:
         }
 
         TokenBlockTable result;
-        result.importRequiredFilePaths = importFilePaths;
+        result.importedFilePaths = importFilePaths;
         result.tokens = tokens;
         return result;
     }
