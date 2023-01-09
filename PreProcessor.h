@@ -1,0 +1,107 @@
+#pragma once
+#include <vector>
+#include <map>
+#include <algorithm>
+#include "Token.h"
+#include "Lexer.h"
+#include "Config.h"
+
+struct TokenBlockTable
+{
+    int32_t refCount = 0;
+    std::string filePath;
+    std::vector<std::string> importRequiredFilePaths;
+    std::vector<Token> tokens;
+};
+
+class COMPUTE_DUCK_API PreProcessor
+{
+public:
+    PreProcessor() {}
+    ~PreProcessor() {}
+
+    std::vector<Token> PreProcess(std::vector<Token> tokens)
+    {
+        auto loc = SearchImportToken(tokens);
+        if (loc == -1)
+            return tokens;
+
+        //root token block,refCount=0,filePath=""
+        mTables.emplace_back(FindBlockTable(tokens));
+
+        for (int32_t i = 0; i < mTables.size(); ++i)
+        {
+            for (const auto &path : mTables[i].importRequiredFilePaths)
+            {
+                auto toks = m_Lexer.GenerateTokens(ReadFile(path));
+
+                bool alreadyExists = false;
+                for (int32_t j = 0; j < mTables.size(); ++j)
+                {
+                    if (mTables[j].filePath == path)
+                    {
+                        mTables[j].refCount++;
+                        alreadyExists = true;
+                        break;
+                    }
+                }
+
+                if (!alreadyExists)
+                {
+                    auto blockTable = FindBlockTable(toks);
+                    blockTable.filePath = path;
+                    blockTable.refCount++;
+                    mTables.emplace_back(blockTable);
+                }
+            }
+        }
+
+        std::sort(mTables.begin(), mTables.end(), [](const TokenBlockTable &left, const TokenBlockTable &right)
+                  { return left.refCount > right.refCount; });
+
+        std::vector<Token> result;
+        for (const auto &t : mTables)
+            result.insert(result.end(), t.tokens.begin(), t.tokens.end());
+
+        result.emplace_back(TokenType::END,"END",0);
+        return result;
+    }
+
+private:
+    Lexer m_Lexer;
+
+    std::vector<TokenBlockTable> mTables;
+
+    TokenBlockTable FindBlockTable(std::vector<Token> tokens)
+    {
+        auto loc = SearchImportToken(tokens);
+        if (loc == -1)
+        {
+            TokenBlockTable result;
+            result.tokens = tokens;
+            return result;
+        }
+
+        //import("path");
+        std::vector<std::string> importFilePaths;
+        while (loc != -1)
+        {
+            importFilePaths.emplace_back(tokens[loc + 2].literal);
+            tokens.erase(tokens.begin() + loc, tokens.begin() + loc + 5);
+            loc = SearchImportToken(tokens);
+        }
+
+        TokenBlockTable result;
+        result.importRequiredFilePaths = importFilePaths;
+        result.tokens = tokens;
+        return result;
+    }
+
+    int32_t SearchImportToken(const std::vector<Token> &tokens)
+    {
+        for (int32_t i = 0; i < tokens.size(); ++i)
+            if (tokens[i].type == TokenType::IMPORT)
+                return i;
+        return -1;
+    }
+};

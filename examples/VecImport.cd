@@ -1,0 +1,17 @@
+import("../examples/Vec3.cd");
+import("../examples/Vec4.cd");
+import("../examples/Vec2.cd");
+import("../examples/Vec5.cd");
+
+a=Vec4;
+
+b=Vec3;
+
+c=Vec2;
+
+d=Vec5;
+
+println(a);
+println(b);
+println(c);
+println(d);

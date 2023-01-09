@@ -1,5 +1,6 @@
 #include <string>
 #include <string_view>
+#include "PreProcessor.h"
 #include "Lexer.h"
 #include "Parser.h"
 #include "Compiler.h"
@@ -12,6 +13,7 @@ void Repl()
 	BuiltinManager::GetInstance()->Init();
 
 	Lexer lexer;
+	PreProcessor preProcessor;
 	Parser parser;
 	Compiler compiler;
 	VM vm;
@@ -24,6 +26,7 @@ void Repl()
 		else
 		{
 			auto tokens = lexer.GenerateTokens(line);
+			tokens = preProcessor.PreProcess(tokens);
 
 			for (const auto &token : tokens)
 				std::cout << token << std::endl;
@@ -52,11 +55,13 @@ void RunFile(std::string path)
 	BuiltinManager::GetInstance()->Init();
 
 	Lexer lexer;
+	PreProcessor preProcessor;
 	Parser parser;
 	Compiler compiler;
 	VM vm;
 
 	auto tokens = lexer.GenerateTokens(content);
+	tokens = preProcessor.PreProcess(tokens);
 
 	for (const auto &token : tokens)
 		std::cout << token << std::endl;
@@ -80,14 +85,12 @@ void RunFile(std::string path)
 #undef main
 int main(int argc, char **argv)
 {
-	// if (argc == 2)
-	// 	RunFile(argv[1]);
-	// else if (argc == 1)
-	// 	Repl();
-	// else
-	// 	std::cout << "Usage: ComputeDuck [filepath]" << std::endl;
-
-	RunFile("C:\\Users\\Sqazi\\OneDrive\\.sc\\ComputeDuck\\examples\\sdl2.cd");
+	if (argc == 2)
+		RunFile(argv[1]);
+	else if (argc == 1)
+		Repl();
+	else
+		std::cout << "Usage: ComputeDuck [filepath]" << std::endl;
 
 	return 0;
 }
