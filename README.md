@@ -497,7 +497,7 @@ while(isRunning)
 SDL_Quit();
 ```
 #### 控制台调用时需要cd到项目根目录 
-![](screenshots/image.png)
+![](screenshots/Image.png)
 
 ## 4. 版权说明
 
