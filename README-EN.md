@@ -401,6 +401,104 @@ println(a);
 
 ```
 
+13. External file import
+```sh
+# Vec2.cd
+struct Vec2
+{
+    x:0,
+    y:0
+}
+
+#Vec3.cd 
+import("../examples/Vec2.cd");
+
+struct Vec3
+{
+    vec2:Vec2,
+    z:0
+}
+
+#Vec4.cd
+import("../examples/Vec2.cd");
+struct Vec4
+{
+    vec2:Vec2,
+    z:0
+    w:0
+}
+
+#Vec5.cd
+import("../examples/Vec4.cd");
+struct Vec5
+{
+    vec4:Vec4,
+    j:0
+}
+
+#VecImport.cd 
+import("../examples/Vec3.cd");
+import("../examples/Vec4.cd");
+import("../examples/Vec2.cd");
+import("../examples/Vec5.cd");
+
+a=Vec4;
+b=Vec3;
+c=Vec2;
+d=Vec5;
+
+println(a);
+println(b);
+println(c);
+println(d);
+```
+
+14. Import 3th-party dll library
+```sh
+dllimport("sdl2");
+
+ok=SDL_Init();
+if(ok<0)
+    println("Failed to init sdl2!");
+window=SDL_CreateWindow("First Window",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,800,600);
+isRunning=true;
+
+renderer=SDL_CreateRenderer(window);
+
+if(renderer==nil)
+    println("Failed to create renderer.");
+
+surface=SDL_LoadBMP("examples/hello.bmp");
+
+if(surface==nil)
+    println("Failed to load bmp image.");
+
+texture=SDL_CreateTextureFromSurface(renderer,surface);
+
+SDL_RenderClear(renderer);
+
+SDL_RenderCopy(renderer,texture);
+
+SDL_RenderPresent(renderer);
+
+while(isRunning)
+{
+  event=SDL_PollEvent();
+  if(event!=nil)
+  {
+      if(SDL_GetEventType(event)==SDL_QUIT)
+      {
+          isRunning=false;
+      }
+  }
+}
+
+SDL_Quit();
+```
+#### cd to the project root directory is necessary while calling from console
+![](screenshots/image.png)
+
+
 ## 4. License
 
 This project is licensed under the Apache-2.0 License, see the details[LICENSE](https://github.com/Sqazine/ComputeDuck/blob/main/LICENSE)
