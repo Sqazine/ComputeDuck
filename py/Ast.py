@@ -3,7 +3,7 @@ import abc
 
 
 class AstType(IntEnum):
-    #expr
+    # expr
     NUM = 0,
     STR = 1,
     NIL = 2,
@@ -14,13 +14,13 @@ class AstType(IntEnum):
     PREFIX = 7,
     INFIX = 8,
     INDEX = 9,
-    REF=10,
-    FUNCTION=11,
-    ANONY_STRUCT=12,
+    REF = 10,
+    FUNCTION = 11,
+    ANONY_STRUCT = 12,
     FUNCTION_CALL = 13,
     STRUCT_CALL = 14,
-    DLL_IMPORT=15
-    #stmt
+    DLL_IMPORT = 15
+    # stmt
     EXPR = 16,
     RETURN = 17,
     IF = 18,
@@ -30,10 +30,10 @@ class AstType(IntEnum):
 
 
 class AstNode:
-    type:AstType
+    type: AstType
 
-    def __init__(self,type) -> None:
-        self.type=type
+    def __init__(self, type) -> None:
+        self.type = type
 
     @abc.abstractmethod
     def __str__(self) -> str:
@@ -41,7 +41,7 @@ class AstNode:
 
 
 class Expr(AstNode):
-    def __init__(self,type) -> None:
+    def __init__(self, type) -> None:
         super().__init__(type)
 
     @abc.abstractmethod
@@ -127,6 +127,7 @@ class GroupExpr(Expr):
     def __str__(self) -> str:
         return "("+self.expr.__str__()+")"
 
+
 class PrefixExpr(Expr):
     op: str = ""
     right: Expr = None
@@ -166,13 +167,14 @@ class IndexExpr(Expr):
 
     def __str__(self) -> str:
         return self.ds.__str__()+"["+self.index.__str__()+"]"
-    
-class RefExpr(Expr):
-    refExpr:Expr
 
-    def __init__(self,refExpr:Expr) -> None:
+
+class RefExpr(Expr):
+    refExpr: Expr
+
+    def __init__(self, refExpr: Expr) -> None:
         super().__init__(AstType.REF)
-        self.refExpr=refExpr
+        self.refExpr = refExpr
 
     def __str__(self) -> str:
         return "ref "+self.refExpr.__str__()
@@ -207,21 +209,24 @@ class StructCallExpr(Expr):
 
     def __str__(self) -> str:
         return self.callee.__str__()+"."+self.callMember.__str__()
-    
+
+
 class DllImportExpr(Expr):
-    dllPath:str=None
+    dllPath: str = None
 
     def __init__(self, dllPath) -> None:
         super().__init__(AstType.DLL_IMPORT)
-        self.dllPath=dllPath
+        self.dllPath = dllPath
 
     def __str__(self) -> str:
         return "dllimport(\""+self.dllPath+"\")"
+
 
 class Stmt(AstNode):
     @abc.abstractmethod
     def __str__(self) -> str:
         pass
+
 
 class ExprStmt(Stmt):
     expr: Expr = None
@@ -298,19 +303,21 @@ class FunctionExpr(Expr):
         result += self.body.__str__()
         return result
 
+
 class AnonyStructExpr(Expr):
-    memberPairs: dict[IdentifierExpr,Expr] = {}
-    
-    def __init__(self,memberPairs=[]) -> None:
+    memberPairs: dict[IdentifierExpr, Expr] = {}
+
+    def __init__(self, memberPairs=[]) -> None:
         super().__init__(AstType.ANONY_STRUCT)
         self.memberPairs = memberPairs
 
     def __str__(self) -> str:
         result = "{"
-        for k,v in self.memberPairs.items():
+        for k, v in self.memberPairs.items():
             result += k.__str__()+":"+v.__str__()+",\n"
         result += "}"
         return result
+
 
 class WhileStmt(Stmt):
     condition: Expr = None
@@ -327,7 +334,7 @@ class WhileStmt(Stmt):
 
 class StructStmt(Stmt):
     name: str = ""
-    members: dict[IdentifierExpr,Expr] = {}
+    members: dict[IdentifierExpr, Expr] = {}
 
     def __init__(self, name, members) -> None:
         super().__init__(AstType.STRUCT)
@@ -335,7 +342,7 @@ class StructStmt(Stmt):
         self.members = members
 
     def __str__(self) -> str:
-        result = "struct "+self.name+"{"
+        result = "struct "+self.name+"\n{\n"
         for value in self.members:
             result += value.__str__()+"\n"
-        return result+"}"
+        return result+"}\n"

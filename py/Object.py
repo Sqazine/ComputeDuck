@@ -18,10 +18,10 @@ class ObjectType(IntEnum):
 
 
 class Object:
-    type:ObjectType
+    type: ObjectType
 
-    def __init__(self,type) -> None:
-        self.type=type
+    def __init__(self, type) -> None:
+        self.type = type
 
     @abc.abstractmethod
     def IsEqualTo(self, other) -> bool:
@@ -37,7 +37,7 @@ class NumObject(Object):
 
     def __str__(self) -> str:
         return str(self.value)
-    
+
     def IsEqualTo(self, other) -> bool:
         if other.type != ObjectType.NUM:
             return False
@@ -124,25 +124,25 @@ class ArrayObject(Object):
 
 
 class RefObject(Object):
-    #TODO
+    # TODO
     # this a bit different from C++ part,C++ allow pointer to pointing to the actual object
     # but in python the RefObject only record the actual object's address,and search the object in runtime
     # this is not a good way to implemente reference feature,because it waste much time to search the global object and local object in vm's __globalVariable and __objectStack
     # but now i don't have better propose
     # welcome for better idea!
-    pointer:int 
+    pointer: int
 
-    def __init__(self,pointer: int) -> None:
+    def __init__(self, pointer: int) -> None:
         super().__init__(ObjectType.REF)
-        self.pointer=pointer
+        self.pointer = pointer
 
     def __str__(self) -> str:
-        return str(ctypes.cast(self.pointer,ctypes.py_object).value)
+        return str(ctypes.cast(self.pointer, ctypes.py_object).value)
 
     def IsEqualTo(self, other) -> bool:
         if other.type != ObjectType.REF:
             return False
-        return self.pointer==other.pointer
+        return self.pointer == other.pointer
 
 
 class FunctionObject(Object):
@@ -189,45 +189,47 @@ class BuiltinFunctionObject(Object):
         if other.type != ObjectType.BUILTIN_FUNCTION:
             return False
         return self.name == other.name
-    
+
+
 class BuiltinDataObject(Object):
 
-    nativeData:any
-    destroyFunc:any
+    nativeData: any
+    destroyFunc: any
 
-    def __init__(self,nativeData,destroyFunc) -> None:
+    def __init__(self, nativeData, destroyFunc) -> None:
         super().__init__(ObjectType.BUILTIN_DATA)
-        self.nativeData=nativeData
-        self.destroyFunc=destroyFunc
+        self.nativeData = nativeData
+        self.destroyFunc = destroyFunc
 
-    def __del__(self)->None:
+    def __del__(self) -> None:
         self.destroyFunc()
 
-    def __str__(self)->str:
+    def __str__(self) -> str:
         return "Builtin Data:(0x"+id(self.nativeData)+")"
-    
-    def IsEqualTo(self,other:Object)->bool:
-        if other.type!=self.type:
+
+    def IsEqualTo(self, other: Object) -> bool:
+        if other.type != self.type:
             return False
-        return self.nativeData==other.nativeData
-    
+        return self.nativeData == other.nativeData
+
+
 class BuiltinVariableObject(Object):
 
-    name:str
-    obj:Object
+    name: str
+    obj: Object
 
-    def __init__(self,name,obj) -> None:
+    def __init__(self, name, obj) -> None:
         super().__init__(ObjectType.BUILTIN_VARIABLE)
-        self.name=name
-        self.obj=obj
+        self.name = name
+        self.obj = obj
 
-    def __str__(self)->None:
+    def __str__(self) -> None:
         return "Builtin Variable:("+self.name+":"+self.obj.__str__()+")"
-    
-    def IsEqualTo(self,other:Object)->bool:
-        if other.type!=self.type:
+
+    def IsEqualTo(self, other: Object) -> bool:
+        if other.type != self.type:
             return False
-        return self.name==other.name and self.obj==other.obj
+        return self.name == other.name and self.obj == other.obj
 
 
 class StructObject(Object):
@@ -254,7 +256,7 @@ class StructObject(Object):
 
         for key1, value1 in self.members.items():
             v2 = other.members.get(key1)
-            if(v2 == None or (not v2.IsEqualTo(value1))):
+            if (v2 == None or (not v2.IsEqualTo(value1))):
                 return False
 
         return True

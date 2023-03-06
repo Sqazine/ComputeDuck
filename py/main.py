@@ -1,16 +1,14 @@
 import sys
-from Lexer import Lexer
-from Token import Token
 from Parser import Parser
-from Ast import AstNode
 from Compiler import Compiler
 from VM import VM
+from PreProcessor import PreProcessor
 from Utils import ReadFile
 
 
 def Repl():
     print("> ", end="")
-    lexer = Lexer()
+    preProcessor = PreProcessor()
     parser = Parser()
     compiler = Compiler()
     vm = VM()
@@ -19,7 +17,7 @@ def Repl():
         if line == "clear":
             compiler.ResetStatus()
         else:
-            tokens = lexer.GenerateTokens(line)
+            tokens = preProcessor.PreProcess(line)
             for token in tokens:
                 print(token)
 
@@ -40,11 +38,11 @@ def Repl():
 
 def RunFile(filePath):
     content = ReadFile(filePath)
-    lexer = Lexer()
+    preProcessor = PreProcessor()
     parser = Parser()
     compiler = Compiler()
     vm = VM()
-    tokens = lexer.GenerateTokens(content)
+    tokens = preProcessor.PreProcess(content)
     for token in tokens:
         print(token)
 

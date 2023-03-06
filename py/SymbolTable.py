@@ -56,12 +56,14 @@ class SymbolTable:
         return symbol
 
     def DefineBuiltinFunction(self, name: str, index: int) -> Symbol:
-        symbol = Symbol(name, SymbolScope.BUILTIN_FUNCTION, index, self.scopeDepth)
+        symbol = Symbol(name, SymbolScope.BUILTIN_FUNCTION,
+                        index, self.scopeDepth)
         self.symbolMaps[name] = symbol
         return symbol
-    
-    def DefineBuiltinVariable(self,name:str,index:int)->Symbol:
-        symbol = Symbol(name, SymbolScope.BUILTIN_VARIABLE, index, self.scopeDepth)
+
+    def DefineBuiltinVariable(self, name: str, index: int) -> Symbol:
+        symbol = Symbol(name, SymbolScope.BUILTIN_VARIABLE,
+                        index, self.scopeDepth)
         self.symbolMaps[name] = symbol
         return symbol
 

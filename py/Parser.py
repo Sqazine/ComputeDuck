@@ -27,8 +27,8 @@ class Parser:
     __prefixFunctions: dict[TokenType, Any] = {}
     __infixFunctions: dict[TokenType, Any] = {}
     __precedence: dict[TokenType, Any] = {}
-    __functionOrFunctionScopeDepth=0
-    __constantFolder=ConstantFolder()
+    __functionOrFunctionScopeDepth = 0
+    __constantFolder = ConstantFolder()
 
     def __init__(self) -> None:
         self.__curPos: int = 0
@@ -36,7 +36,7 @@ class Parser:
         self.__prefixFunctions: dict[TokenType, Any] = {}
         self.__infixFunctions: dict[TokenType, Any] = {}
         self.__precedence: dict[TokenType, Any] = {}
-        
+
         self.__prefixFunctions = {
             TokenType.IDENTIFIER: self.ParseIdentifierExpr,
             TokenType.NUMBER: self.ParseNumExpr,
@@ -48,10 +48,10 @@ class Parser:
             TokenType.NOT: self.ParsePrefixExpr,
             TokenType.LPAREN: self.ParseGroupExpr,
             TokenType.LBRACKET: self.ParseArrayExpr,
-            TokenType.REF:self.ParseRefExpr,
-            TokenType.LBRACE:self.ParseAnonyStructExpr,
-            TokenType.FUNCTION:self.ParseFunctionExpr,
-            TokenType.DLLIMPORT:self.ParseDllImportExpr
+            TokenType.REF: self.ParseRefExpr,
+            TokenType.LBRACE: self.ParseAnonyStructExpr,
+            TokenType.FUNCTION: self.ParseFunctionExpr,
+            TokenType.DLLIMPORT: self.ParseDllImportExpr
         }
 
         self.__infixFunctions = {
@@ -95,7 +95,7 @@ class Parser:
     def Parse(self, tokens: list[Token]) -> list[Stmt]:
         self.__curPos = 0
         self.__tokens = tokens
-        self.__functionOrFunctionScopeDepth=0
+        self.__functionOrFunctionScopeDepth = 0
 
         stmts: list[Stmt] = []
         while (not self.IsMatchCurToken(TokenType.END)):
@@ -126,7 +126,7 @@ class Parser:
         return self.__tokens[-1]
 
     def GetCurTokenPrecedence(self) -> Token:
-        if self.__precedence.get(self.GetCurToken().type)==None:
+        if self.__precedence.get(self.GetCurToken().type) == None:
             return Precedence.LOWEST
         return self.__precedence.get(self.GetCurToken().type)
 
@@ -183,7 +183,7 @@ class Parser:
 
     def ParseReturnStmt(self) -> Stmt:
 
-        if self.__functionOrFunctionScopeDepth==0:
+        if self.__functionOrFunctionScopeDepth == 0:
             Assert("Return statement only available in function or lambda")
 
         self.Consume(TokenType.RETURN, "Expecr 'return' keyword")
@@ -235,15 +235,15 @@ class Parser:
         structStmt.name = self.ParseIdentifierExpr().__str__()
         self.Consume(TokenType.LBRACE, "Expect '{' after struct name")
         while not self.IsMatchCurToken(TokenType.RBRACE):
-            k=self.ParseIdentifierExpr()
-            v=NilExpr()
+            k = self.ParseIdentifierExpr()
+            v = NilExpr()
 
             if self.IsMatchCurToken(TokenType.COLON):
-                self.Consume(TokenType.COLON,"Expect ':'")
-                v=self.ParseExpr()
+                self.Consume(TokenType.COLON, "Expect ':'")
+                v = self.ParseExpr()
 
             self.IsMatchCurTokenAndStepOnce(TokenType.COMMA)
-            structStmt.members[k]=v
+            structStmt.members[k] = v
 
         self.Consume(TokenType.RBRACE, "Expect '}' after struct's '{'")
 
@@ -264,7 +264,8 @@ class Parser:
         return leftExpr
 
     def ParseIdentifierExpr(self) -> Expr:
-        literal=self.Consume(TokenType.IDENTIFIER, "Unexpect Identifier '"+self.GetCurToken().literal+".").literal
+        literal = self.Consume(
+            TokenType.IDENTIFIER, "Unexpect Identifier '"+self.GetCurToken().literal+".").literal
         return IdentifierExpr(literal)
 
     def ParseNumExpr(self) -> Expr:
@@ -325,20 +326,19 @@ class Parser:
         self.Consume(TokenType.RBRACKET, "Expect ']'.")
         return indexExpr
 
-    def ParseRefExpr(self)->Expr:
-        self.Consume(TokenType.REF,"Expect 'ref' keyword.")
-        refExpr=self.ParseExpr(Precedence.LOWEST)
+    def ParseRefExpr(self) -> Expr:
+        self.Consume(TokenType.REF, "Expect 'ref' keyword.")
+        refExpr = self.ParseExpr(Precedence.LOWEST)
         return RefExpr(refExpr)
-    
-    
+
     def ParseFunctionExpr(self) -> Stmt:
 
-        self.__functionOrFunctionScopeDepth+=1
+        self.__functionOrFunctionScopeDepth += 1
 
         self.Consume(TokenType.FUNCTION, "Expect 'function' keyword")
         funcExpr = FunctionExpr([], None)
         self.Consume(TokenType.LPAREN, "Expect '(' after function name")
- 
+
         if (not self.IsMatchCurToken(TokenType.RPAREN)):
             idenExpr = self.ParseIdentifierExpr()
             funcExpr.parameters.append(idenExpr)
@@ -348,21 +348,21 @@ class Parser:
         self.Consume(TokenType.RPAREN, "Expect ')' after function expr's '('")
         funcExpr.body = self.ParseScopeStmt()
 
-        self.__functionOrFunctionScopeDepth-=1
+        self.__functionOrFunctionScopeDepth -= 1
 
         return funcExpr
-    
-    def ParseAnonyStructExpr(self)->Expr:
-        memPairs:dict[IdentifierExpr,Expr]={}
-        self.Consume(TokenType.LBRACE,"Expect '{'.")
-        while not self.IsMatchCurToken(TokenType.RBRACE):
-            k=self.ParseIdentifierExpr()
-            self.Consume(TokenType.COLON,"Expect ':'")
-            v=self.ParseExpr()
-            self.IsMatchCurTokenAndStepOnce(TokenType.COMMA)
-            memPairs[k]=v
 
-        self.Consume(TokenType.RBRACE,"Expect '}'.")
+    def ParseAnonyStructExpr(self) -> Expr:
+        memPairs: dict[IdentifierExpr, Expr] = {}
+        self.Consume(TokenType.LBRACE, "Expect '{'.")
+        while not self.IsMatchCurToken(TokenType.RBRACE):
+            k = self.ParseIdentifierExpr()
+            self.Consume(TokenType.COLON, "Expect ':'")
+            v = self.ParseExpr()
+            self.IsMatchCurTokenAndStepOnce(TokenType.COMMA)
+            memPairs[k] = v
+
+        self.Consume(TokenType.RBRACE, "Expect '}'.")
         return AnonyStructExpr(memPairs)
 
     def ParseFunctionCallExpr(self, prefixExpr: Expr) -> Expr:
@@ -383,20 +383,20 @@ class Parser:
         structCallExpr.callMember = self.ParseExpr(Precedence.INFIX)
         return structCallExpr
 
-    def ParseDllImportExpr(self)->Expr:
-        self.Consume(TokenType.DLLIMPORT,"Expect 'dllimport' keyword")
-        self.Consume(TokenType.LPAREN,"Expect '(' after 'dllimport' keyword")
+    def ParseDllImportExpr(self) -> Expr:
+        self.Consume(TokenType.DLLIMPORT, "Expect 'dllimport' keyword")
+        self.Consume(TokenType.LPAREN, "Expect '(' after 'dllimport' keyword")
 
-        path=self.Consume(TokenType.STRING,"Expect dll path").literal
+        path = self.Consume(TokenType.STRING, "Expect dll path").literal
 
-        self.Consume(TokenType.RPAREN,"Expect ')' after dllimoport expr")
+        self.Consume(TokenType.RPAREN, "Expect ')' after dllimoport expr")
 
-        sysstr=platform.system()
+        sysstr = platform.system()
 
-        if path.find(".")==-1:
-            if sysstr=="Windows":
-                path+=".dll"
-            elif sysstr=="Linux":
-                path+=".so"
-        
+        if path.find(".") == -1:
+            if sysstr == "Windows":
+                path += ".dll"
+            elif sysstr == "Linux":
+                path += ".so"
+
         return DllImportExpr(path)
