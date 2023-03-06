@@ -1,10 +1,11 @@
 from Ast import *
 
+
 class ConstantFolder:
 
     def Fold(self, stmts: list[Stmt]) -> None:
         for s in stmts:
-            s=self.__FoldStmt(s)
+            s = self.__FoldStmt(s)
 
     def __FoldStmt(self, stmt: Stmt) -> Stmt:
         if stmt.type == AstType.RETURN:
@@ -39,7 +40,7 @@ class ConstantFolder:
         return stmt
 
     def __FoldScopeStmt(self, stmt: ScopeStmt) -> Stmt:
-        for i in range(0,len(stmt.stmts)):
+        for i in range(0, len(stmt.stmts)):
             stmt.stmts[i] = self.__FoldStmt(stmt.stmts[i])
         return stmt
 
@@ -84,9 +85,9 @@ class ConstantFolder:
             return self.__FoldStructCallExpr(expr)
         elif expr.type == AstType.REF:
             return self.__FoldRefExpr(expr)
-        elif expr.type==AstType.FUNCTION:
+        elif expr.type == AstType.FUNCTION:
             return self.__FoldFunctionExpr(expr)
-        elif expr.type==AstType.ANONY_STRUCT:
+        elif expr.type == AstType.ANONY_STRUCT:
             return self.__FoldAnonyStructExpr(expr)
         else:
             return expr
@@ -128,18 +129,17 @@ class ConstantFolder:
     def __FoldIdentifierExpr(self, expr: IdentifierExpr) -> Expr:
         return expr
 
-    def __FoldFunctionExpr(self,expr:FunctionExpr)->Expr:
+    def __FoldFunctionExpr(self, expr: FunctionExpr) -> Expr:
         for i in range(0, len(expr.parameters)):
-            expr.parameters[i]=self.__FoldIdentifierExpr(expr.parameters[i])
-        expr.body=self.__FoldScopeStmt(expr.body)
+            expr.parameters[i] = self.__FoldIdentifierExpr(expr.parameters[i])
+        expr.body = self.__FoldScopeStmt(expr.body)
         return expr
 
     def __FoldFunctionCallExpr(self, expr: FunctionCallExpr) -> Expr:
         expr.name = self.__FoldExpr(expr.name)
-        for i in range(0,len(expr.arguments)):
-            expr.arguments[i] = self.__FoldExpr(expr.arguments[i] )
+        for i in range(0, len(expr.arguments)):
+            expr.arguments[i] = self.__FoldExpr(expr.arguments[i])
         return expr
-    
 
     def __FoldStructCallExpr(self, expr: StructCallExpr) -> Expr:
         expr.callee = self.__FoldExpr(expr.callee)
@@ -150,11 +150,11 @@ class ConstantFolder:
         expr.refExpr = self.__FoldExpr(expr.refExpr)
         return expr
 
-    def __FoldAnonyStructExpr(self,expr:AnonyStructExpr)->Expr:
-        for k,v in expr.memberPairs.items():
-            v=self.__FoldExpr(v)
+    def __FoldAnonyStructExpr(self, expr: AnonyStructExpr) -> Expr:
+        for k, v in expr.memberPairs.items():
+            v = self.__FoldExpr(v)
         return expr
-    
+
     def __ConstantFold(self, expr: Expr) -> Expr:
         if expr.type == AstType.INFIX:
             if expr.left.type == AstType.NUM and expr.right.type == AstType.NUM:

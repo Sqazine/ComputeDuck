@@ -6,17 +6,18 @@ from Object import *
 from Chunk import *
 from BuiltinManager import *
 
+
 class RWState(IntEnum):
     READ = 0,
     WRITE = 1,
 
 
 class Compiler:
-    __constants: list[Object]=[]
-    __scopes: list[list[int]]=[]
+    __constants: list[Object] = []
+    __scopes: list[list[int]] = []
     __symbolTable: SymbolTable
-    __builtinFunctionNames:list[str]=[]
-    __builtinVariableNames:list[str]=[]
+    __builtinFunctionNames: list[str] = []
+    __builtinVariableNames: list[str] = []
 
     def __init__(self) -> None:
         self.__symbolTable = None
@@ -38,12 +39,16 @@ class Compiler:
         self.__symbolTable = SymbolTable()
 
         for i in range(0, len(gBuiltinManager.builtinFunctionNames)):
-            self.__builtinFunctionNames.append(gBuiltinManager.builtinFunctionNames[i])
-            self.__symbolTable.DefineBuiltinFunction(gBuiltinManager.builtinFunctionNames[i], i)
+            self.__builtinFunctionNames.append(
+                gBuiltinManager.builtinFunctionNames[i])
+            self.__symbolTable.DefineBuiltinFunction(
+                gBuiltinManager.builtinFunctionNames[i], i)
 
-        for i in range(0,len(gBuiltinManager.builtinVariableNames)):
-            self.__builtinVariableNames.append(gBuiltinManager.builtinVariableNames[i])
-            self.__symbolTable.DefineBuiltinVariable(gBuiltinManager.builtinVariableNames[i], i)
+        for i in range(0, len(gBuiltinManager.builtinVariableNames)):
+            self.__builtinVariableNames.append(
+                gBuiltinManager.builtinVariableNames[i])
+            self.__symbolTable.DefineBuiltinVariable(
+                gBuiltinManager.builtinVariableNames[i], i)
 
     def __CompileStmt(self, stmt: Stmt) -> None:
         if stmt.type == AstType.RETURN:
@@ -117,14 +122,13 @@ class Compiler:
             self.__Emit(OpCode.OP_RETURN)
             self.__Emit(0)
 
-
     def __CompileStructStmt(self, stmt: StructStmt) -> None:
         symbol = self.__symbolTable.Define(stmt.name, True)
 
         self.__EnterScope()
         self.__scopes.append([])
 
-        for k,v in stmt.members.items():
+        for k, v in stmt.members.items():
             self.__CompileExpr(v)
             self.__EmitConstant(self.__AddConstant(StrObject(k.literal)))
 
@@ -135,7 +139,7 @@ class Compiler:
 
         self.__ExitScope()
 
-        opCodes=self.__scopes.pop()
+        opCodes = self.__scopes.pop()
 
         opCodes.append(OpCode.OP_RETURN)
         opCodes.append(1)
@@ -163,7 +167,7 @@ class Compiler:
         elif expr.type == AstType.NIL:
             self.__CompileNilExpr(expr)
         elif expr.type == AstType.IDENTIFIER:
-            self.__CompileIdentifierExpr(expr,state)
+            self.__CompileIdentifierExpr(expr, state)
         elif expr.type == AstType.GROUP:
             self.__CompileGroupExpr(expr)
         elif expr.type == AstType.ARRAY:
@@ -180,19 +184,19 @@ class Compiler:
             self.__CompileStructCallExpr(expr, state)
         elif expr.type == AstType.REF:
             self.__CompileRefExpr(expr)
-        elif expr.type==AstType.FUNCTION:
+        elif expr.type == AstType.FUNCTION:
             self.__CompileFunctionExpr(expr)
-        elif expr.type==AstType.ANONY_STRUCT:
+        elif expr.type == AstType.ANONY_STRUCT:
             self.__CompileAnonyStructExpr(expr)
-        elif expr.type==AstType.DLL_IMPORT:
+        elif expr.type == AstType.DLL_IMPORT:
             self.CompileDllImportExpr(expr)
 
     def __CompileInfixExpr(self, expr: InfixExpr) -> None:
         if expr.op == "=":
-            if expr.left.type==AstType.IDENTIFIER and expr.right.type==AstType.FUNCTION:
+            if expr.left.type == AstType.IDENTIFIER and expr.right.type == AstType.FUNCTION:
                 self.__symbolTable.Define(expr.left.literal)
             self.__CompileExpr(expr.right)
-            self.__CompileExpr(expr.left,RWState.WRITE)
+            self.__CompileExpr(expr.left, RWState.WRITE)
         else:
             self.__CompileExpr(expr.right)
             self.__CompileExpr(expr.left)
@@ -259,7 +263,7 @@ class Compiler:
     def __CompileArrayExpr(self, expr: ArrayExpr) -> None:
         for e in expr.elements:
             self.__CompileExpr(e)
-        
+
         self.__Emit(OpCode.OP_ARRAY)
         self.__Emit(len(expr.elements))
 
@@ -269,15 +273,15 @@ class Compiler:
         self.__Emit(OpCode.OP_INDEX)
 
     def __CompileIdentifierExpr(self, expr: IdentifierExpr, state: RWState) -> None:
-        isFound,symbol= self.__symbolTable.Resolve(expr.literal)
+        isFound, symbol = self.__symbolTable.Resolve(expr.literal)
 
         if state == RWState.READ:
             if isFound == False:
                 Assert("Undefined variable:"+expr.__str__())
             self.__LoadSymbol(symbol)
         else:
-            if isFound==False:
-                symbol=self.__symbolTable.Define(expr.literal)
+            if isFound == False:
+                symbol = self.__symbolTable.Define(expr.literal)
 
             if symbol.scope == SymbolScope.GLOBAL:
                 self.__Emit(OpCode.OP_SET_GLOBAL)
@@ -300,12 +304,12 @@ class Compiler:
             self.__CompileStmt(s)
 
         localVarCount = self.__symbolTable.definitionCount
-        
+
         self.__ExitScope()
 
-        opCodes=self.__scopes.pop()
+        opCodes = self.__scopes.pop()
 
-        #for non return  or empty stmt in function scope:add a return to return nothing
+        # for non return  or empty stmt in function scope:add a return to return nothing
         opCodesLen = len(opCodes)
         if opCodesLen == 0 or opCodes[opCodesLen-2] != OpCode.OP_RETURN:
             opCodes.append(OpCode.OP_RETURN)
@@ -314,7 +318,6 @@ class Compiler:
         fn = FunctionObject(opCodes, localVarCount, len(stmt.parameters))
 
         self.__EmitConstant(self.__AddConstant(fn))
-
 
     def __CompileFunctionCallExpr(self, expr: FunctionCallExpr) -> None:
         self.__CompileExpr(expr.name)
@@ -353,9 +356,10 @@ class Compiler:
 
     def __CompileRefExpr(self, expr: RefExpr) -> None:
 
-        if expr.refExpr.type==AstType.INDEX:
+        if expr.refExpr.type == AstType.INDEX:
             self.__CompileExpr(expr.refExpr.index)
-            isFound,symbol = self.__symbolTable.Resolve(expr.refExpr.ds.__str__())
+            isFound, symbol = self.__symbolTable.Resolve(
+                expr.refExpr.ds.__str__())
             if isFound == False:
                 Assert("Undefined variable:"+expr.__str__())
 
@@ -368,8 +372,9 @@ class Compiler:
                 self.__Emit(symbol.scopeDepth)
                 self.__Emit(symbol.index)
         else:
-            isFound,symbol = self.__symbolTable.Resolve(expr.refExpr.__str__())
-            if isFound==False:
+            isFound, symbol = self.__symbolTable.Resolve(
+                expr.refExpr.__str__())
+            if isFound == False:
                 Assert("Undefined variable:"+expr.__str__())
 
             if symbol.scope == SymbolScope.GLOBAL:
@@ -381,10 +386,10 @@ class Compiler:
                 self.__Emit(symbol.scopeDepth)
                 self.__Emit(symbol.index)
 
-    def __CompileAnonyStructExpr(self,expr:AnonyStructExpr)->None:
+    def __CompileAnonyStructExpr(self, expr: AnonyStructExpr) -> None:
         self.__EnterScope()
 
-        for k,v in expr.memberPairs.items():
+        for k, v in expr.memberPairs.items():
             self.__CompileExpr(v)
             self.__EmitConstant(self.__AddConstant(StrObject(k.literal)))
 
@@ -393,7 +398,7 @@ class Compiler:
 
         self.__ExitScope()
 
-    def __CompileDllImportExpr(self,expr:DllImportExpr)->None:
+    def __CompileDllImportExpr(self, expr: DllImportExpr) -> None:
         pass
 
     def __EnterScope(self) -> None:

@@ -15,8 +15,8 @@ keywords: dict = {
     "not": TokenType.NOT,
     "struct": TokenType.STRUCT,
     "ref": TokenType.REF,
-    "dllimport":TokenType.DLLIMPORT,
-    "import":TokenType.IMPORT,
+    "dllimport": TokenType.DLLIMPORT,
+    "import": TokenType.IMPORT,
 }
 
 
@@ -38,17 +38,18 @@ class Lexer:
     __line: int = 1
     __source: str = ""
     __tokens: list = []
+    __filePath: str = ""
 
     def __init__(self) -> None:
         self.ResetStatus()
 
-    def GenerateTokens(self, src: str) -> list:
+    def GenerateTokens(self, src: str, filePath="RootFile") -> list:
         self.ResetStatus()
         self.__source = src
-        while(not self.IsAtEnd()):
+        self.__filePath = filePath
+        while (not self.IsAtEnd()):
             self.__startPos = self.__curPos
             self.GenerateToken()
-        self.AddToken(TokenType.END, "EOF")
 
         return self.__tokens
 
@@ -101,9 +102,10 @@ class Lexer:
         return res
 
     def AddToken(self, type: TokenType, literal: str = None):
-        if(literal == None):
+        if (literal == None):
             literal = self.__source[self.__startPos:self.__curPos]
-        self.__tokens.append(Token(type, literal, self.__line))
+        self.__tokens.append(
+            Token(type, literal, self.__line, self.__filePath))
 
     def IsAtEnd(self) -> bool:
         return self.__curPos >= len(self.__source)
@@ -143,7 +145,8 @@ class Lexer:
             Assert("[line " + self.__line + "]:Uniterminated string.")
         self.GetCurCharAndStepOnce()  # eat the second '\"'
 
-        self.AddToken(TokenType.STRING,self.__source[self.__startPos+1:self.__curPos-1])
+        self.AddToken(TokenType.STRING,
+                      self.__source[self.__startPos+1:self.__curPos-1])
 
     def GenerateToken(self):
         c = self.GetCurCharAndStepOnce()

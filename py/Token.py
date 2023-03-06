@@ -49,11 +49,13 @@ class Token:
     type: TokenType
     literal: str
     line: int
+    filePath:str
 
-    def __init__(self, type: TokenType, literal: str, line: int) -> None:
+    def __init__(self, type: TokenType, literal: str, line: int,filePath="") -> None:
         self.type = type
         self.literal = literal
         self.line = line
+        self.filePath=filePath
 
     def __str__(self):
         return "\""+self.literal+"," + str(self.line)+"\""

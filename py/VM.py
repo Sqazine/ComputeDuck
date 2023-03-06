@@ -340,9 +340,9 @@ class VM:
                         gRefObj = self.SearchObjectByAddress(gRefObj.pointer)
                     self.AssignObjectByAddress(gRefAddress, obj)
 
-                    refObjs=self.SearchRefObjectByAddress(gRefAddress)
-                    for i in range(0,len(refObjs)):
-                        refObjs[i].pointer=id(obj)
+                    refObjs = self.SearchRefObjectByAddress(gRefAddress)
+                    for i in range(0, len(refObjs)):
+                        refObjs[i].pointer = id(obj)
 
                     self.__globalVariables[index].pointer = id(obj)
                 else:
@@ -411,9 +411,9 @@ class VM:
                         lRefObj = self.SearchObjectByAddress(lRefObj.pointer)
                     self.AssignObjectByAddress(lRefAddress, obj)
 
-                    refObjs=self.SearchRefObjectByAddress(lRefAddress)
-                    for i in range(0,len(refObjs)):
-                        refObjs[i].pointer=id(obj)
+                    refObjs = self.SearchRefObjectByAddress(lRefAddress)
+                    for i in range(0, len(refObjs)):
+                        refObjs[i].pointer = id(obj)
 
                     self.__objectStack[slot].pointer = id(obj)
                 else:
@@ -604,15 +604,16 @@ class VM:
                         self.__objectStack[p].elements[j] = obj
             elif id(self.__objectStack[p]) == address:
                 self.__objectStack[p] = obj
-        
-    def SearchRefObjectByAddress(self,address:int)->list:
-        result:list=[]
+
+    def SearchRefObjectByAddress(self, address: int) -> list:
+        result: list = []
         for i in range(0, len(self.__globalVariables)):
             if self.__globalVariables[i].type == ObjectType.ARRAY:
                 for j in range(0, len(self.__globalVariables[i].elements)):
                     if self.__globalVariables[i].elements[j].type == ObjectType.REF:
                         if self.__globalVariables[i].elements[j].pointer == address:
-                            result.append(self.__globalVariables[i].elements[j])
+                            result.append(
+                                self.__globalVariables[i].elements[j])
             elif self.__globalVariables[i].type == ObjectType.REF:
                 if self.__globalVariables[i].pointer == address:
                     result.append(self.__globalVariables[i])
@@ -627,9 +628,8 @@ class VM:
             elif self.__objectStack[p].type == ObjectType.REF:
                 if self.__objectStack[p].pointer == address:
                     result.append(self.__objectStack[p])
-        
-        return result
 
+        return result
 
     def UpdateRefAddress(self, originAddress, newAddress):
         for i in range(0, len(self.__globalVariables)):
