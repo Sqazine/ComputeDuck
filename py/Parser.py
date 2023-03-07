@@ -387,16 +387,9 @@ class Parser:
         self.Consume(TokenType.DLLIMPORT, "Expect 'dllimport' keyword")
         self.Consume(TokenType.LPAREN, "Expect '(' after 'dllimport' keyword")
 
-        path = self.Consume(TokenType.STRING, "Expect dll path").literal
+        path = "library-"
+        path += self.Consume(TokenType.STRING, "Expect dll path").literal
 
         self.Consume(TokenType.RPAREN, "Expect ')' after dllimoport expr")
-
-        sysstr = platform.system()
-
-        if path.find(".") == -1:
-            if sysstr == "Windows":
-                path += ".dll"
-            elif sysstr == "Linux":
-                path += ".so"
 
         return DllImportExpr(path)

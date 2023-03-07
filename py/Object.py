@@ -202,7 +202,8 @@ class BuiltinDataObject(Object):
         self.destroyFunc = destroyFunc
 
     def __del__(self) -> None:
-        self.destroyFunc()
+        if self.destroyFunc!=None:
+            self.destroyFunc(self.nativeData)
 
     def __str__(self) -> str:
         return "Builtin Data:(0x"+id(self.nativeData)+")"

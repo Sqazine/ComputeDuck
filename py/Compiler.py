@@ -5,7 +5,7 @@ from SymbolTable import *
 from Object import *
 from Chunk import *
 from BuiltinManager import *
-
+import importlib
 
 class RWState(IntEnum):
     READ = 0,
@@ -189,7 +189,7 @@ class Compiler:
         elif expr.type == AstType.ANONY_STRUCT:
             self.__CompileAnonyStructExpr(expr)
         elif expr.type == AstType.DLL_IMPORT:
-            self.CompileDllImportExpr(expr)
+            self.__CompileDllImportExpr(expr)
 
     def __CompileInfixExpr(self, expr: InfixExpr) -> None:
         if expr.op == "=":
@@ -399,7 +399,40 @@ class Compiler:
         self.__ExitScope()
 
     def __CompileDllImportExpr(self, expr: DllImportExpr) -> None:
-        pass
+        dllPath=expr.dllPath
+        mod = importlib.import_module(dllPath)
+        mod.RegisterBuiltins()
+
+        newAddedBuiltinFunctionNames:list[str]=[]
+        newAddedBuiltinVariableNames:list[str]=[]
+        for name in gBuiltinManager.builtinFunctionNames:
+            found=False
+            for recName in self.__builtinFunctionNames:
+                if name==recName:
+                    found=True
+                    break
+            if found==False:
+                newAddedBuiltinFunctionNames.append(name)
+
+        for name in gBuiltinManager.builtinVariableNames:
+            found=False
+            for recName in self.__builtinVariableNames:
+                if name==recName:
+                    found=True
+                    break
+            if found==False:
+                newAddedBuiltinVariableNames.append(name)
+        
+        legacyBuiltinFuncCount=len(self.__builtinFunctionNames)
+        for i in range(0,len(newAddedBuiltinFunctionNames)):
+            self.__builtinFunctionNames.append(newAddedBuiltinFunctionNames[i])
+            self.__symbolTable.DefineBuiltinFunction(newAddedBuiltinFunctionNames[i],legacyBuiltinFuncCount+i)
+
+        legacyBuiltinVarCount=len(self.__builtinVariableNames)
+        for i in range(0,len(newAddedBuiltinVariableNames)):
+            self.__builtinVariableNames.append(newAddedBuiltinVariableNames[i])
+            self.__symbolTable.DefineBuiltinVariable(newAddedBuiltinVariableNames[i],legacyBuiltinVarCount+i)
+        
 
     def __EnterScope(self) -> None:
         self.__symbolTable = SymbolTable(self.__symbolTable)
@@ -440,6 +473,7 @@ class Compiler:
             self.__Emit(symbol.index)
         elif symbol.scope == SymbolScope.BUILTIN_VARIABLE:
             self.__Emit(OpCode.OP_GET_BUILTIN_VARIABLE)
+            self.__Emit(symbol.index)
 
         if symbol.isStructSymbol:
             self.__Emit(OpCode.OP_FUNCTION_CALL)

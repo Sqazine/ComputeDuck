@@ -6,7 +6,7 @@ class SymbolScope(IntEnum):
     GLOBAL = 0,
     LOCAL = 1,
     BUILTIN_FUNCTION = 2,
-    BUILTIN_VARIABLE = 2,
+    BUILTIN_VARIABLE = 3,
 
 
 class Symbol:

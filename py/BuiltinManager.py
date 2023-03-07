@@ -33,7 +33,7 @@ class BuiltinManager(object):
         self.builtinFunctionNames.append(name)
 
     def RegisterVariable(self,name:str,obj:Object)->None:
-        self.builtinVariables(BuiltinVariableObject(name,obj))
+        self.builtinVariables.append(BuiltinVariableObject(name,obj))
         self.builtinVariableNames.append(name)
 
     
