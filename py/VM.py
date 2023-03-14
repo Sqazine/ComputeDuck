@@ -93,7 +93,7 @@ class VM:
                 right = self.__Pop()
                 while left.type == ObjectType.REF:
                     left = self.SearchObjectByAddress(left.pointer)
-                while left.type == ObjectType.REF:
+                while right.type == ObjectType.REF:
                     right = self.SearchObjectByAddress(right.pointer)
 
                 if left.type == ObjectType.BUILTIN_VARIABLE:
@@ -234,8 +234,8 @@ class VM:
                 while obj.type == ObjectType.REF:
                     obj = self.SearchObjectByAddress(obj.pointer)
 
-                if left.type == ObjectType.BUILTIN_VARIABLE:
-                    left = left.obj
+                if obj.type == ObjectType.BUILTIN_VARIABLE:
+                    obj = obj.obj
 
                 if obj.type != ObjectType.BOOL:
                     Assert("Not a boolean obj of the obj:" + obj.__str__())
@@ -243,7 +243,7 @@ class VM:
 
             elif instruction == OpCode.OP_MINUS:
                 obj = self.__Pop()
-                if obj.type == ObjectType.REF:
+                while obj.type == ObjectType.REF:
                     obj = self.SearchObjectByAddress(obj.pointer)
                 if obj.type != ObjectType.NUM:
                     Assert("Not a valid op:'-'"+obj.__str__())
@@ -313,6 +313,8 @@ class VM:
                         self.__Push(NilObject())
                     else:
                         self.__Push(ds.elements[i])
+                else:
+                    Assert("Invalid index op:" + ds.__str__() + "[" + index.__str__() + "]")
 
             elif instruction == OpCode.OP_JUMP_IF_FALSE:
                 address = frame.fn.opCodes[frame.ip]
@@ -406,7 +408,7 @@ class VM:
                 if self.__objectStack[slot].type == ObjectType.REF:
                     lRefObj = self.__objectStack[slot]
                     lRefAddress = -1
-                    while gRefObj.type == ObjectType.REF:
+                    while lRefObj.type == ObjectType.REF:
                         lRefAddress = lRefObj.pointer
                         lRefObj = self.SearchObjectByAddress(lRefObj.pointer)
                     self.AssignObjectByAddress(lRefAddress, obj)
@@ -567,7 +569,7 @@ class VM:
                         RefObject(id(self.__objectStack[slot].elements[idxValue])))
                 else:
                     Assert("Invalid indexed reference type:" +
-                           self.__objectStack[slot].__str__()+" not a table or array value.")
+                           self.__objectStack[slot].__str__()+" not a array value.")
 
     def __Push(self, obj: Object) -> None:
         self.__objectStack[self.__stackTop] = obj
@@ -593,6 +595,7 @@ class VM:
                 for j in range(0, len(self.__globalVariables[i].elements)):
                     if id(self.__globalVariables[i].elements[j]) == address:
                         self.__globalVariables[i].elements[j] = obj
+                        return
             elif id(self.__globalVariables[i]) == address:
                 self.__globalVariables[i] = obj
                 return
@@ -602,8 +605,10 @@ class VM:
                 for j in range(0, len(self.__objectStack[p].elements)):
                     if id(self.__objectStack[p].elements[j]) == address:
                         self.__objectStack[p].elements[j] = obj
+                        return
             elif id(self.__objectStack[p]) == address:
                 self.__objectStack[p] = obj
+                return
 
     def SearchRefObjectByAddress(self, address: int) -> list:
         result: list = []
@@ -638,11 +643,9 @@ class VM:
                     if self.__globalVariables[i].elements[j].type == ObjectType.REF:
                         if self.__globalVariables[i].elements[j].pointer == originAddress:
                             self.__globalVariables[i].elements[j].pointer = newAddress
-                            pass
             elif self.__globalVariables[i].type == ObjectType.REF:
                 if self.__globalVariables[i].pointer == originAddress:
                     self.__globalVariables[i].pointer = newAddress
-                    pass
 
         for p in range(0, self.__stackTop):
             if self.__objectStack[p].type == ObjectType.ARRAY:
@@ -650,9 +653,7 @@ class VM:
                     if self.__objectStack[p].elements[j].type == ObjectType.REF:
                         if self.__objectStack[p].elements[j].pointer == originAddress:
                             self.__objectStack[p].elements[j].pointer = newAddress
-                            pass
 
             elif self.__objectStack[p].type == ObjectType.REF:
                 if self.__objectStack[p].pointer == originAddress:
                     self.__objectStack[p].pointer = newAddress
-                    pass

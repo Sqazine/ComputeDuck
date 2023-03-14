@@ -15,7 +15,7 @@ std::unordered_map<TokenType, PrefixFn> Parser::m_PrefixFunctions =
 		{TokenType::REF, &Parser::ParseRefExpr},
 		{TokenType::FUNCTION, &Parser::ParseFunctionExpr},
 		{TokenType::LBRACE, &Parser::ParseAnonyStructExpr},
-		{TokenType::DLLIMPORT, &Parser::ParseDllImpportExpr},
+		{TokenType::DLLIMPORT, &Parser::ParseDllImportExpr},
 };
 
 std::unordered_map<TokenType, InfixFn> Parser::m_InfixFunctions =
@@ -393,7 +393,7 @@ Expr *Parser::ParseStructCallExpr(Expr *prefixExpr)
 	return structCallExpr;
 }
 
-Expr *Parser::ParseDllImpportExpr()
+Expr *Parser::ParseDllImportExpr()
 {
 	Consume(TokenType::DLLIMPORT, "Expect 'dllimport' keyword");
 	Consume(TokenType::LPAREN, "Expect '(' after 'dllimport' keyword");

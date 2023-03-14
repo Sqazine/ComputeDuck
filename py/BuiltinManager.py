@@ -64,7 +64,7 @@ class BuiltinManager(object):
 
     def __Insert(self,args: list[Object]):
         if len(args) == 0 or len(args) != 3:
-            Assert("[Native function 'insert']:Expect 3 arguments,the arg0 must be array,table or string obj.The arg1 is the index obj.The arg2 is the value obj.")
+            Assert("[Native function 'insert']:Expect 3 arguments,the arg0 must be array or string obj.The arg1 is the index obj.The arg2 is the value obj.")
 
         if args[0].type == ObjectType.ARRAY:
             if args[1].type != ObjectType.NUM:
@@ -87,7 +87,7 @@ class BuiltinManager(object):
 
     def __Erase(self,args: list[Object] ) -> bool:
         if len(args) or len(args) != 2:
-            Assert("[Native function 'erase']:Expect 2 arguments,the arg0 must be array,table or string obj.The arg1 is the corresponding index obj.")
+            Assert("[Native function 'erase']:Expect 2 arguments,the arg0 must be array or string obj.The arg1 is the corresponding index obj.")
 
         if args[0].type == ObjectType.ARRAY:
             if args[1].type != ObjectType.NUM:
@@ -106,7 +106,7 @@ class BuiltinManager(object):
                 Assert("[Native function 'insert']:Index out of array's range")
             args[0].values.pop(iIndex)
         else:
-            Assert("[Native function 'erase']:Expect a array,table ot string argument.")
+            Assert("[Native function 'erase']:Expect a array or string argument.")
         return False,None
 
 

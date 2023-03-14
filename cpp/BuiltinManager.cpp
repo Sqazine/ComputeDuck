@@ -44,7 +44,7 @@ void BuiltinManager::Init()
     RegisterFunction("insert", [&](Value *args, uint8_t argCount, Value &result) -> bool
                      {
                          if (argCount == 0 || argCount != 3)
-                             Assert("[Native function 'insert']:Expect 3 arguments,the arg0 must be array,table or string object.The arg1 is the index object.The arg2 is the value object.");
+                             Assert("[Native function 'insert']:Expect 3 arguments,the arg0 must be array or string object.The arg1 is the index object.The arg2 is the value object.");
 
                          if (IS_ARRAY_VALUE(args[0]))
                          {
@@ -63,7 +63,7 @@ void BuiltinManager::Init()
                          {
                              StrObject *string = TO_STR_VALUE(args[0]);
                              if (!IS_NUM_VALUE(args[1]))
-                                 Assert("[Native function 'insert']:Arg1 must be integer type while insert to a array");
+                                 Assert("[Native function 'insert']:Arg1 must be integer type while insert to a string");
 
                              size_t iIndex = (size_t)TO_NUM_VALUE(args[1]);
 
@@ -73,20 +73,20 @@ void BuiltinManager::Init()
                              string->value.insert(iIndex, args[2].Stringify());
                          }
                          else
-                             Assert("[Native function 'insert']:Expect a array,table ot string argument.");
+                             Assert("[Native function 'insert']:Expect a array or string argument.");
                          return false;
                      });
 
     RegisterFunction("erase", [&](Value *args, uint8_t argCount, Value &result) -> bool
                      {
                          if (argCount == 0 || argCount != 2)
-                             Assert("[Native function 'erase']:Expect 2 arguments,the arg0 must be array,table or string object.The arg1 is the corresponding index object.");
+                             Assert("[Native function 'erase']:Expect 2 arguments,the arg0 must be array or string object.The arg1 is the corresponding index object.");
 
                          if (IS_ARRAY_VALUE(args[0]))
                          {
                              ArrayObject *array = TO_ARRAY_VALUE(args[0]);
                              if (!IS_NUM_VALUE(args[1]))
-                                 Assert("[Native function 'erase']:Arg1 must be integer type while insert to a array");
+                                 Assert("[Native function 'erase']:Arg1 must be integer type while deleting array element");
 
                              size_t iIndex = (size_t)TO_NUM_VALUE(args[1]);
 
@@ -99,7 +99,7 @@ void BuiltinManager::Init()
                          {
                              StrObject *string = TO_STR_VALUE(args[0]);
                              if (!IS_NUM_VALUE(args[1]))
-                                 Assert("[Native function 'erase']:Arg1 must be integer type while insert to a array");
+                                 Assert("[Native function 'erase']:Arg1 must be integer type while deleting string element");
 
                              size_t iIndex = (size_t)TO_NUM_VALUE(args[1]);
 
@@ -109,7 +109,7 @@ void BuiltinManager::Init()
                              string->value.erase(string->value.begin() + iIndex);
                          }
                          else
-                             Assert("[Native function 'erase']:Expect a array,table ot string argument.");
+                             Assert("[Native function 'erase']:Expect a array or string argument.");
                          return false;
                      });
 
