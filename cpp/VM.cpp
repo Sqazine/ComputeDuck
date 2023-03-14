@@ -491,7 +491,7 @@ void VM::Execute()
                 Push(CreateObject<RefObject>(&(TO_ARRAY_VALUE((*ptr))->elements[intIdx])));
             }
             else
-                Assert("Invalid indexed reference type:" + ptr->Stringify() + " not a table or array value.");
+                Assert("Invalid indexed reference type:" + ptr->Stringify() + " not a array value.");
             break;
         }
         case OP_REF_INDEX_LOCAL:
@@ -521,7 +521,7 @@ void VM::Execute()
                 Push(CreateObject<RefObject>(&(TO_ARRAY_VALUE((*slot))->elements[intIdx])));
             }
             else
-                Assert("Invalid indexed reference type:" + slot->Stringify() + " not a table or array value.");
+                Assert("Invalid indexed reference type:" + slot->Stringify() + " not a array value.");
             break;
         }
         default:
