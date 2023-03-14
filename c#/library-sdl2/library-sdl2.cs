@@ -3,6 +3,11 @@ using SDL2;
 using Object = ComputeDuck.Object;
 public class sdl2
 {
+    //set as exe to get the "Sayers.SDL2.Core.dll" library
+    static void Main(string[] args)
+    {
+        return;
+    }
     public static void RegisterBuiltins()
     {
         BuiltinManager.GetInstance().RegisterVariable("SDL_WINDOWPOS_CENTERED", new NumObject(SDL.SDL_WINDOWPOS_CENTERED));
@@ -33,6 +38,12 @@ public class sdl2
                  (int)((NumObject)args[4]).value,
                  0
                  );
+
+            builtinData.nativeData=window;
+            builtinData.destroyFunc=(object nativeData)=>
+            {
+                SDL.SDL_DestroyWindow((nint)nativeData);
+            };
 
             result = builtinData;
             return true;
@@ -90,7 +101,7 @@ public class sdl2
         {
             if (args[0].type != ObjectType.STR)
                 Utils.Assert("Not a valid str data.");
-
+                
             var surface = SDL.SDL_LoadBMP(((StrObject)args[0]).value);
 
             var r = new BuiltinDataObject();
@@ -132,7 +143,7 @@ public class sdl2
                   SDL.SDL_RenderClear(renderer);
 
                   result = new NilObject();
-                  return true;
+                  return false;
               });
 
         BuiltinManager.GetInstance().RegisterFunction("SDL_RenderCopy", (List<Object> args, out Object result) =>
@@ -140,23 +151,12 @@ public class sdl2
             if (args[0].type != ObjectType.BUILTIN_DATA || args[1].type != ObjectType.BUILTIN_DATA)
                 Utils.Assert("Not a valid builtin value of SDL_RenderCopy(args[0] or args[1]).");
             var renderer = (nint)((BuiltinDataObject)args[0]).nativeData;
-            var texture = (nint)((BuiltinDataObject)args[0]).nativeData;
+            var texture = (nint)((BuiltinDataObject)args[1]).nativeData;
 
-            uint format = 0;
-            int access = 0;
-            int width = 0;
-            int height = 0;
+            nint src=IntPtr.Zero;
+            nint dst=src;
 
-            SDL.SDL_QueryTexture(texture, out format, out access, out width, out height);
-
-            SDL.SDL_Rect dstrect;
-            dstrect.x = 0;
-            dstrect.y = 0;
-            dstrect.w = width;
-            dstrect.h = height;
-            SDL.SDL_Rect srcrect = dstrect;
-
-            var ret = SDL.SDL_RenderCopy(renderer, texture,ref srcrect,ref dstrect);
+            var ret = SDL.SDL_RenderCopy(renderer, texture,src,dst);
             result = new NumObject(ret);
             return true;
         });
@@ -169,7 +169,7 @@ public class sdl2
                   SDL.SDL_RenderPresent(renderer);
 
                   result = new NilObject();
-                  return true;
+                  return false;
               });
 
     }
