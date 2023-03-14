@@ -521,78 +521,76 @@ namespace ComputeDuck
         {
             var dllPath = expr.dllPath;
 
-            try
-            {
-                var loc = this.GetType().Assembly.Location;
-                if (loc.Contains('\\'))//windows
-                    loc = loc.Substring(0, loc.LastIndexOf('\\')+1);
-                else
-                    loc = loc.Substring(0, loc.LastIndexOf('/')+1);
 
-                var fullPath = loc + dllPath;
+            var loc = this.GetType().Assembly.Location;
+            if (loc.Contains('\\'))//windows
+                loc = loc.Substring(0, loc.LastIndexOf('\\') + 1);
+            else
+                loc = loc.Substring(0, loc.LastIndexOf('/') + 1);
 
-                Assembly asm = Assembly.LoadFrom(fullPath);
-                string str = asm.GetName().ToString();
-                var className = str.Split(",")[0];
-                className = className.Remove(0, 8);//remove prefix "library-";
-               
-                AssemblyName[] names=asm.GetReferencedAssemblies();
-                Utils.LoadAssembly(names,loc);
-               
-                Type type = asm.GetType(className);
-                MethodInfo meth = type.GetMethod("RegisterBuiltins");
-                meth.Invoke(null, null);
+            var fullPath = loc + dllPath;
 
-                List<string> newAddedBuiltinFunctionNames = new List<string>();
-                List<string> newAddedBuiltinVariableNames = new List<string>();
+            Assembly asm = Assembly.LoadFrom(fullPath);
+            string str = asm.GetName().ToString();
+            var className = str.Split(",")[0];
+            className = className.Remove(0, 8);//remove prefix "library-";
 
-                foreach (var name in BuiltinManager.GetInstance().m_BuiltinFunctionNames)
-                {
-                    bool found = false;
-                    foreach (var recName in m_BuiltinFunctionNames)
-                    {
-                        if (name == recName)
-                        {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (found == false)
-                        newAddedBuiltinFunctionNames.Add(name);
-                }
+            AssemblyName[] names = asm.GetReferencedAssemblies();
+            Utils.LoadAssembly(names, loc);
 
-                foreach (var name in BuiltinManager.GetInstance().m_BuiltinVariableNames)
-                {
-                    bool found = false;
-                    foreach (var recName in m_BuiltinVariableNames)
-                    {
-                        if (name == recName)
-                        {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (found == false)
-                        newAddedBuiltinVariableNames.Add(name);
-                }
+            Type type = asm.GetType(className);
 
-                var legacyBuiltinFuncCount = m_BuiltinFunctionNames.Count;
-                for (int i = 0; i < newAddedBuiltinFunctionNames.Count; ++i)
-                {
-                    m_BuiltinFunctionNames.Add(newAddedBuiltinFunctionNames[i]);
-                    m_SymbolTable.DefineBuiltinFunction(newAddedBuiltinFunctionNames[i], legacyBuiltinFuncCount + i);
-                }
-
-                var legacyVariableCount = m_BuiltinVariableNames.Count;
-                for (int i = 0; i < newAddedBuiltinVariableNames.Count; ++i)
-                {
-                    m_BuiltinFunctionNames.Add(newAddedBuiltinVariableNames[i]);
-                    m_SymbolTable.DefineBuiltinFunction(newAddedBuiltinVariableNames[i], legacyVariableCount + i);
-                }
-            }
-            catch (FileNotFoundException e)
-            {
+            if (type == null)
                 Utils.Assert("Failed to load dll library:" + dllPath);
+
+            MethodInfo meth = type.GetMethod("RegisterBuiltins");
+            meth.Invoke(null, null);
+
+            List<string> newAddedBuiltinFunctionNames = new List<string>();
+            List<string> newAddedBuiltinVariableNames = new List<string>();
+
+            foreach (var name in BuiltinManager.GetInstance().m_BuiltinFunctionNames)
+            {
+                bool found = false;
+                foreach (var recName in m_BuiltinFunctionNames)
+                {
+                    if (name == recName)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (found == false)
+                    newAddedBuiltinFunctionNames.Add(name);
+            }
+
+            foreach (var name in BuiltinManager.GetInstance().m_BuiltinVariableNames)
+            {
+                bool found = false;
+                foreach (var recName in m_BuiltinVariableNames)
+                {
+                    if (name == recName)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (found == false)
+                    newAddedBuiltinVariableNames.Add(name);
+            }
+
+            var legacyBuiltinFuncCount = m_BuiltinFunctionNames.Count;
+            for (int i = 0; i < newAddedBuiltinFunctionNames.Count; ++i)
+            {
+                m_BuiltinFunctionNames.Add(newAddedBuiltinFunctionNames[i]);
+                m_SymbolTable.DefineBuiltinFunction(newAddedBuiltinFunctionNames[i], legacyBuiltinFuncCount + i);
+            }
+
+            var legacyVariableCount = m_BuiltinVariableNames.Count;
+            for (int i = 0; i < newAddedBuiltinVariableNames.Count; ++i)
+            {
+                m_BuiltinFunctionNames.Add(newAddedBuiltinVariableNames[i]);
+                m_SymbolTable.DefineBuiltinVariable(newAddedBuiltinVariableNames[i], legacyVariableCount + i);
             }
         }
 
