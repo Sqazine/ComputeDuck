@@ -167,8 +167,6 @@ Expr *ConstantFolder::FoldIdentifierExpr(IdentifierExpr *expr)
 }
 Expr *ConstantFolder::FoldFunctionExpr(FunctionExpr *expr)
 {
-    for (auto &e : expr->parameters)
-        e = (IdentifierExpr *)FoldIdentifierExpr(e);
     expr->body = (ScopeStmt *)FoldScopeStmt(expr->body);
     return expr;
 }
@@ -187,7 +185,7 @@ Expr *ConstantFolder::FoldStructCallExpr(StructCallExpr *expr)
 }
 Expr *ConstantFolder::FoldRefExpr(RefExpr *expr)
 {
-    expr->refExpr = (IdentifierExpr *)FoldExpr(expr->refExpr);
+    expr->refExpr = FoldExpr(expr->refExpr);
     return expr;
 }
 

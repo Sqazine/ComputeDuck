@@ -28,6 +28,7 @@ namespace ComputeDuck
         {
             m_CurPos = 0;
             m_Tokens = tokens;
+            m_FunctionOrFunctionScopeDepth = 0;
 
             List<Stmt> stmts = new List<Stmt>();
             while (!IsMatchCurToken(TokenType.END))
@@ -60,6 +61,9 @@ namespace ComputeDuck
         }
         private static Stmt ParseReturnStmt()
         {
+            if (m_FunctionOrFunctionScopeDepth == 0)
+                Utils.Assert("Return statement only available in function");
+
             Consume(TokenType.RETURN, "Expect 'return' key word.");
 
             var returnStmt = new ReturnStmt();
@@ -114,6 +118,8 @@ namespace ComputeDuck
         }
         private static Expr ParseFunctionExpr()
         {
+            m_FunctionOrFunctionScopeDepth++;
+
             Consume(TokenType.FUNCTION, "Expect 'function' keyword");
 
             var funcExpr = new FunctionExpr();
@@ -133,6 +139,8 @@ namespace ComputeDuck
             Consume(TokenType.RPAREN, "Expect ')' after function expr's '('");
 
             funcExpr.body = (ScopeStmt)ParseScopeStmt();
+
+            m_FunctionOrFunctionScopeDepth--;
 
             return funcExpr;
         }
@@ -193,7 +201,7 @@ namespace ComputeDuck
         }
         private static Expr ParseNumExpr()
         {
-            string numLiteral = Consume(TokenType.NUMBER, "Expexct a number literal.").literal;
+            string numLiteral = Consume(TokenType.NUMBER, "Expect a number literal.").literal;
             return new NumExpr(Double.Parse(numLiteral));
         }
         private static Expr ParseStrExpr()
@@ -419,6 +427,8 @@ namespace ComputeDuck
 
         private static List<Token> m_Tokens = new List<Token>();
         private static ConstantFolder m_ConstantFolder = new ConstantFolder();
+
+        private static int m_FunctionOrFunctionScopeDepth = 0;
 
         private static Dictionary<TokenType, PrefixFn> m_PrefixFunctions = new Dictionary<TokenType, PrefixFn>()
         {
