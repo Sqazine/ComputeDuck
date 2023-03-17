@@ -26,41 +26,44 @@ A toy-level C-like syntax Scripting language
 5. create environment variables:VCPKG_DEFAULT_TRIPLET=(current target machine's platform and instruction set architecture) (See also:https://vcpkg.io/en/docs/users/triplets.html)
 6. install sdl2 via vcpkg(vcpkg install sdl2)
 
-## 1. Run
-
-1. Compile
-
+#### Run
 ```sh
+#comile
 git clone https://github.com/Sqazine/ComputeDuck.git
 cd computeduck
 mkdir build
 cd build 
 cmake ..
 cmake -build .
-```
-
-2. Run in command-line
-```sh
-window(C++):
+# run in command line
+windows:
     .\computeduck.exe  
     > a=10;println(a);
-
-linux(C++):
+linux:
     chmod 777 computeduck
     ./computeduck 
     > a=10;println(a); 
-```
-3. Run in source code file
-```sh
-window(C++):
+# read file
+windows:
     .\computeduck.exe examples/leetcode-twosum.cd
-
-linux(C++):
+linux:
     chmod 777 computeduck
     ./computeduck examples/leetcode-twosum.cd
 ```
 
-## 2. Examples
+### Python
+1. python environment(>=3.9)
+2. pip install pysdl2(for importing third-party SDL2 libraries)
+#### Run
+```sh
+# run in command line
+    ./python py/main.py
+    > a=10;println(a);
+# read file
+    ./python py/main.py examples/leetcode-twosum.cd
+```
+
+## Examples
 1. Variable declarations
 ```sh
 a=10;
