@@ -200,7 +200,7 @@ Expr *Parser::ParseExpr(Precedence precedence)
 {
 	if (m_PrefixFunctions.find(GetCurToken().type) == m_PrefixFunctions.end())
 	{
-		std::cout << "no prefix definition for:" << GetCurTokenAndStepOnce().literal << std::endl;
+		Assert("no prefix definition for:" + GetCurTokenAndStepOnce().literal);
 		return nilExpr;
 	}
 	auto prefixFn = m_PrefixFunctions[GetCurToken().type];
@@ -227,7 +227,7 @@ Expr *Parser::ParseIdentifierExpr()
 
 Expr *Parser::ParseNumExpr()
 {
-	std::string numLiteral = Consume(TokenType::NUMBER, "Expexct a number literal.").literal;
+	std::string numLiteral = Consume(TokenType::NUMBER, "Expect a number literal.").literal;
 	return new NumExpr(std::stod(numLiteral));
 }
 
@@ -314,7 +314,7 @@ Expr *Parser::ParseRefExpr()
 
 	auto refExpr = ParseExpr(Precedence::LOWEST);
 
-	return new RefExpr((IdentifierExpr *)refExpr);
+	return new RefExpr(refExpr);
 }
 
 Expr *Parser::ParseFunctionExpr()

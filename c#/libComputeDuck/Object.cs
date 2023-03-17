@@ -263,7 +263,7 @@ namespace ComputeDuck
         {
             GCHandle h = GCHandle.Alloc(this, GCHandleType.WeakTrackResurrection);
             IntPtr addr = GCHandle.ToIntPtr(h);
-            string result = "struct instance(0x)" + addr.ToString() + "):\n{\n";
+            string result = "struct instance(0x:" + addr.ToString() + "):\n{\n";
             foreach (var member in members)
                 result += member.Key + ":" + member.Value.Stringify() + "\n";
             result = result.Substring(0, result.Length - 1);
