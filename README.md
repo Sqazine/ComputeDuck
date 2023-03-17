@@ -19,6 +19,7 @@
 [中文](https://github.com/Sqazine/ComputeDuck/blob/master/README.md)
 
 ## 环境
+### C++
 1. C++ 编译器(>=17)
 2. CMake(>=3.10)
 #### 若不想编译SDL2依赖库可忽略以下步骤(注意examples/sdl2.cd 需要SDL2库)
@@ -27,42 +28,44 @@
 5. 创建环境变量:VCPKG_DEFAULT_TRIPLET=(当前机器平台与指令集架构) (详见:https://vcpkg.io/en/docs/users/triplets.html)
 6. 通过vcpkg安装sdl2(vcpkg install sdl2)
 
-## 1. 运行
-
-1. 编译
-
+#### 运行
 ```sh
+#编译
 git clone https://github.com/Sqazine/ComputeDuck.git
 cd computeduck
 mkdir build
 cd build 
 cmake ..
 cmake -build .
-```
-
-2. 命令行运行
-```sh
-window(C++):
+# 命令行运行
+windows:
     .\computeduck.exe  
     > a=10;println(a);
-
-linux(C++):
+linux:
     chmod 777 computeduck
     ./computeduck 
     > a=10;println(a); 
-```
-3. 源码文件运行
-```sh
-window(C++):
+# 源码运行
+windows:
     .\computeduck.exe examples/leetcode-twosum.cd
-
-
-linux(C++):
+linux:
     chmod 777 computeduck
     ./computeduck examples/leetcode-twosum.cd
 ```
 
-## 2. 例子
+### Python
+1. python环境(>=3.9)
+2. pip install pysdl2(引入第三方SDL2库需要)
+#### 运行
+```sh
+# 命令行运行
+    ./python py/main.py
+    > a=10;println(a);
+# 源码运行
+    ./python py/main.py examples/leetcode-twosum.cd
+```
+
+## 例子
 1. 变量声明
 ```sh
 a=10;
