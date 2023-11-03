@@ -1,0 +1,3 @@
+[submodule "cpp/library/cdsdl2/SDL"]
+	path = cpp/library/cdsdl2/SDL
+	url = https://github.com/libsdl-org/SDL.git

@@ -20,16 +20,12 @@ A toy-level C-like syntax Scripting language
 ## Environment
 1. C++ compiler(>=17)
 2. CMake(>=3.10)
-#### If you do not want to compile the SDL2 library, skip the following steps (examples/sdl2.cd requires the SDL2 library).
-3. clone Microsoft's vcpkg C++ package manager(https://github.com/Microsoft/vcpkg)
-4. create environment variables:VCPKG_ROOT=(vcpkg repo's root directory)
-5. create environment variables:VCPKG_DEFAULT_TRIPLET=(current target machine's platform and instruction set architecture) (See also:https://vcpkg.io/en/docs/users/triplets.html)
-6. install sdl2 via vcpkg(vcpkg install sdl2)
 
 #### Run
 ```sh
 #comile
 git clone https://github.com/Sqazine/ComputeDuck.git
+git submodule update --init --recursive
 cd computeduck
 mkdir build
 cd build 

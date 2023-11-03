@@ -22,16 +22,12 @@
 ### C++
 1. C++ 编译器(>=17)
 2. CMake(>=3.10)
-#### 若不想编译SDL2依赖库可忽略以下步骤(注意examples/sdl2.cd 需要SDL2库)
-3. 克隆微软 vcpkg C++ 包管理器到本地(https://github.com/Microsoft/vcpkg)
-4. 创建环境变量:VCPKG_ROOT=(vcpkg repo's root directory)
-5. 创建环境变量:VCPKG_DEFAULT_TRIPLET=(当前机器平台与指令集架构) (详见:https://vcpkg.io/en/docs/users/triplets.html)
-6. 通过vcpkg安装sdl2(vcpkg install sdl2)
 
 #### 运行
 ```sh
 #编译
 git clone https://github.com/Sqazine/ComputeDuck.git
+git submodule update --init --recursive
 cd computeduck
 mkdir build
 cd build 

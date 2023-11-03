@@ -12,8 +12,14 @@ public:
     void RegisterFunction(std::string_view name, const BuiltinFn &fn);
     void RegisterVariable(std::string_view name, const Value &value);
 
+    void SetExecuteFilePath(std::string_view path);
+    const std::string& GetExecuteFilePath() const;
+
+    std::string ToFullPath(std::string_view filePath);
 private:
     static std::unique_ptr<BuiltinManager> instance;
+
+    static std::string m_CurExecuteFilePath;
 
     BuiltinManager() = default;
     ~BuiltinManager() = default;

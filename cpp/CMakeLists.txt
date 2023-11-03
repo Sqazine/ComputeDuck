@@ -2,16 +2,13 @@ cmake_minimum_required(VERSION 3.10)
 
 option(BUILD_SDL2 "required sdl2 third party" ON)
 
-if (BUILD_SDL2)
-set(VCPKG_ROOT "$ENV{VCPKG_ROOT}")
-set(VCPKG_TARGET_TRIPLET "$ENV{VCPKG_DEFAULT_TRIPLET}")
-set(CMAKE_TOOLCHAIN_FILE "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
-endif()
-
 project(ComputeDuck LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/Bin/Debug)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Bin/Debug)
 
 add_library(libcomputeduck SHARED Ast.h
 Chunk.cpp Chunk.h
@@ -29,7 +26,7 @@ VM.cpp VM.h
 PreProcessor.h)
 target_compile_definitions(libcomputeduck PUBLIC COMPUTE_DUCK_BUILD_DLL)
 
-add_subdirectory(library/sdl2)
+add_subdirectory(library/cdsdl2)
 
 file(GLOB SRC main.cpp)
 add_executable(computeduck ${SRC})
