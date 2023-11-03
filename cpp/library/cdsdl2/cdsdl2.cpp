@@ -1,6 +1,7 @@
-#include "sdl2.h"
+#include "cdsdl2.h"
 #include <vector>
-#include <SDL2/SDL.h>
+#include <SDL.h>
+
 #include "../../BuiltinManager.h"
 #include "../../Value.h"
 void RegisterBuiltins()
@@ -85,7 +86,9 @@ void RegisterBuiltins()
                                                         if (!IS_STR_VALUE(args[0]))
                                                             Assert("Not a valid str value.");
 
-                                                        SDL_Surface *surface = SDL_LoadBMP(TO_STR_VALUE(args[0])->value.c_str());
+                                                        auto fullPath = BuiltinManager::GetInstance()->ToFullPath(TO_STR_VALUE(args[0])->value);
+
+                                                        SDL_Surface *surface = SDL_LoadBMP(fullPath.c_str());
 
                                                         BuiltinDataObject *resultBuiltinData = new BuiltinDataObject();
                                                         resultBuiltinData->nativeData = surface;
