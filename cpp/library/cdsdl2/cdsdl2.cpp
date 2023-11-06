@@ -61,6 +61,8 @@ void RegisterBuiltins()
     REGISTER_SDL_VALUE(SDL_GL_CONTEXT_PROFILE_CORE)
     REGISTER_SDL_VALUE(SDL_GL_CONTEXT_PROFILE_COMPATIBILITY)
     REGISTER_SDL_VALUE(SDL_GL_CONTEXT_PROFILE_ES)
+
+#undef REGISTER_SDL_VALUE
     
     BuiltinManager::GetInstance()->RegisterFunction("SDL_Init", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {

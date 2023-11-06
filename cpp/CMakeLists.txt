@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 option(BUILD_SDL2 "required sdl2 third party" ON)
+option(BUILD_OPENGL "required opengl third party" ON)
 
 project(ComputeDuck LANGUAGES CXX)
 
@@ -27,6 +28,7 @@ PreProcessor.h)
 target_compile_definitions(libcomputeduck PUBLIC COMPUTE_DUCK_BUILD_DLL)
 
 add_subdirectory(library/cdsdl2)
+add_subdirectory(library/cdopengl)
 
 file(GLOB SRC main.cpp)
 add_executable(computeduck ${SRC})
