@@ -16,6 +16,7 @@ std::unordered_map<TokenType, PrefixFn> Parser::m_PrefixFunctions =
 		{TokenType::FUNCTION, &Parser::ParseFunctionExpr},
 		{TokenType::LBRACE, &Parser::ParseAnonyStructExpr},
 		{TokenType::DLLIMPORT, &Parser::ParseDllImportExpr},
+		{TokenType::TILDE,&Parser::ParsePrefixExpr},
 };
 
 std::unordered_map<TokenType, InfixFn> Parser::m_InfixFunctions =
@@ -36,6 +37,9 @@ std::unordered_map<TokenType, InfixFn> Parser::m_InfixFunctions =
 		{TokenType::AND, &Parser::ParseInfixExpr},
 		{TokenType::OR, &Parser::ParseInfixExpr},
 		{TokenType::DOT, &Parser::ParseStructCallExpr},
+		{TokenType::AMPERSAND,&Parser::ParseInfixExpr},
+		{TokenType::VBAR,&Parser::ParseInfixExpr},
+		{TokenType::CARET,&Parser::ParseInfixExpr},
 };
 
 std::unordered_map<TokenType, Precedence> Parser::m_Precedence =
@@ -55,7 +59,11 @@ std::unordered_map<TokenType, Precedence> Parser::m_Precedence =
 		{TokenType::LPAREN, Precedence::INFIX},
 		{TokenType::AND, Precedence::AND},
 		{TokenType::OR, Precedence::OR},
-		{TokenType::DOT, Precedence::INFIX}};
+		{TokenType::DOT, Precedence::INFIX},
+		{TokenType::AMPERSAND,Precedence::BIT_AND},
+		{TokenType::VBAR,Precedence::BIT_OR},
+		{TokenType::CARET,Precedence::BIT_XOR},
+		};
 
 Parser::Parser()
 {

@@ -98,6 +98,18 @@ void Lexer::GenerateToken()
     case '/':
         AddToken(TokenType::SLASH);
         break;
+    case '&':
+        AddToken(TokenType::AMPERSAND);
+        break;
+    case '|':
+        AddToken(TokenType::VBAR);
+        break;
+    case '~':
+        AddToken(TokenType::TILDE);
+        break;
+    case '^':
+        AddToken(TokenType::CARET);
+        break;
     case '#':
     {
         while (!IsMatchCurChar('\n') && !IsAtEnd())
@@ -272,7 +284,7 @@ void Lexer::String()
     if (IsAtEnd())
         Assert("[line " + std::to_string(m_Line) + "]:Uniterminated string.");
 
-    GetCurCharAndStepOnce(); //eat the second '\"'
+    GetCurCharAndStepOnce(); // eat the second '\"'
 
     AddToken(TokenType::STRING, m_Source.substr(m_StartPos + 1, m_CurPos - m_StartPos - 2));
 }

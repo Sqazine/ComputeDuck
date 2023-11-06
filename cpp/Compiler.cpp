@@ -15,14 +15,16 @@ Compiler::~Compiler()
 {
 }
 
-Chunk Compiler::Compile(const std::vector<Stmt *> &stmts)
+Chunk Compiler::Compile(const std::vector<Stmt *> &stmts, bool isLineInterpret)
 {
     for (const auto &stmt : stmts)
         CompileStmt(stmt);
 
-    //tag as program exit
-    Emit(OP_RETURN);
-    Emit(0);
+    if (!isLineInterpret) {
+        // tag as program exit
+        Emit(OP_RETURN);
+        Emit(0);
+    }
 
     return Chunk(CurOpCodes(), m_Constants, m_ConstantCount);
 }
@@ -34,7 +36,7 @@ void Compiler::ResetStatus()
     m_ConstantCount = 0;
 
     std::vector<OpCodes>().swap(m_Scopes);
-    m_Scopes.emplace_back(OpCodes()); //set a default opcodes
+    m_Scopes.emplace_back(OpCodes()); // set a default opcodes
 
     if (m_SymbolTable)
         delete m_SymbolTable;
@@ -89,7 +91,7 @@ void Compiler::CompileIfStmt(IfStmt *stmt)
 {
     CompileExpr(stmt->condition);
     Emit(OP_JUMP_IF_FALSE);
-    auto jumpIfFalseAddress = Emit(65536); //65536 just a temp address
+    auto jumpIfFalseAddress = Emit(65536); // 65536 just a temp address
 
     CompileStmt(stmt->thenBranch);
 
@@ -128,7 +130,7 @@ void Compiler::CompileWhileStmt(WhileStmt *stmt)
     CompileExpr(stmt->condition);
 
     Emit(OP_JUMP_IF_FALSE);
-    auto jumpIfFalseAddress = Emit(65536); //65536 just a temp address
+    auto jumpIfFalseAddress = Emit(65536); // 65536 just a temp address
 
     CompileStmt(stmt->body);
 
@@ -278,6 +280,12 @@ void Compiler::CompileInfixExpr(InfixExpr *expr)
             Emit(OP_GREATER);
         else if (expr->op == "<")
             Emit(OP_LESS);
+        else if (expr->op == "&")
+            Emit(OP_BIT_AND);
+        else if (expr->op == "|")
+            Emit(OP_BIT_OR);
+         else if (expr->op == "^")
+            Emit(OP_BIT_XOR);
         else if (expr->op == ">=")
         {
             Emit(OP_LESS);
@@ -324,6 +332,8 @@ void Compiler::CompilePrefixExpr(PrefixExpr *expr)
         Emit(OP_MINUS);
     else if (expr->op == "not")
         Emit(OP_NOT);
+    else if (expr->op == "~")
+        Emit(OP_BIT_NOT);
     else
         Assert("Unrecognized prefix op");
 }
@@ -412,7 +422,7 @@ void Compiler::CompileFunctionExpr(FunctionExpr *expr)
     auto opCodes = m_Scopes.back();
     m_Scopes.pop_back();
 
-    //for non return  or empty stmt in function scope:add a return to return nothing
+    // for non return  or empty stmt in function scope:add a return to return nothing
     if (opCodes.empty() || opCodes[opCodes.size() - 2] != OP_RETURN)
     {
         opCodes.emplace_back(OP_RETURN);

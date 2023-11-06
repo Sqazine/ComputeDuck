@@ -3,7 +3,7 @@ dllimport("cdsdl2");
 ok=SDL_Init();
 if(ok<0)
     println("Failed to init sdl2!");
-window=SDL_CreateWindow("First Window",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,800,600);
+window=SDL_CreateWindow("First Window",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,800,600,SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE|SDL_WINDOW_ALLOW_HIGHDPI);
 isRunning=true;
 
 renderer=SDL_CreateRenderer(window);
@@ -11,7 +11,7 @@ renderer=SDL_CreateRenderer(window);
 if(renderer==nil)
     println("Failed to create renderer.");
 
-surface=SDL_LoadBMP("../hello.bmp");
+surface=SDL_LoadBMP("hello.bmp");
 
 if(surface==nil)
     println("Failed to load bmp image.");

@@ -83,6 +83,42 @@ void Chunk::OpCodeStringify(const OpCodes &opcodes)
             ++i;
             break;
         }
+        case OP_AND:
+        {
+            std::cout << std::setfill('0') << std::setw(8) << i << "    "
+                      << "OP_AND" << std::endl;
+            break;
+        }
+        case OP_OR:
+        {
+            std::cout << std::setfill('0') << std::setw(8) << i << "    "
+                      << "OP_OR" << std::endl;
+            break;
+        }
+        case OP_BIT_AND:
+        {
+            std::cout << std::setfill('0') << std::setw(8) << i << "    "
+                      << "OP_BIT_AND" << std::endl;
+            break;
+        }
+        case OP_BIT_OR:
+        {
+            std::cout << std::setfill('0') << std::setw(8) << i << "    "
+                      << "OP_BIT_OR" << std::endl;
+            break;
+        }
+        case OP_BIT_NOT:
+        {
+            std::cout << std::setfill('0') << std::setw(8) << i << "    "
+                      << "OP_BIT_NOT" << std::endl;
+            break;
+        }
+        case OP_BIT_XOR:
+        {
+            std::cout << std::setfill('0') << std::setw(8) << i << "    "
+                      << "OP_BIT_XOR" << std::endl;
+            break;
+        }
         case OP_INDEX:
             std::cout << std::setfill('0') << std::setw(8) << i << "    "
                       << "OP_INDEX" << std::endl;

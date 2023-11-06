@@ -42,6 +42,7 @@ struct COMPUTE_DUCK_API Value
 {
 	Value();
 	Value(double number);
+	Value(uint64_t number);
 	Value(bool boolean);
 	Value(struct Object *object);
 	Value(ValueType type);

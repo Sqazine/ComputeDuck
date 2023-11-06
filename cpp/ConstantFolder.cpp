@@ -212,6 +212,12 @@ Expr *ConstantFolder::ConstantFold(Expr *expr)
                 newExpr = new NumExpr(((NumExpr *)infix->left)->value * ((NumExpr *)infix->right)->value);
             else if (infix->op == "/")
                 newExpr = new NumExpr(((NumExpr *)infix->left)->value / ((NumExpr *)infix->right)->value);
+            else if (infix->op == "&")
+                newExpr = new NumExpr((uint64_t)((NumExpr *)infix->left)->value & (uint64_t)((NumExpr *)infix->right)->value);
+            else if (infix->op == "|")
+                newExpr = new NumExpr((uint64_t)((NumExpr *)infix->left)->value | (uint64_t)((NumExpr *)infix->right)->value);
+            else if (infix->op == "^")
+                newExpr = new NumExpr((uint64_t)((NumExpr *)infix->left)->value ^ (uint64_t)((NumExpr *)infix->right)->value);
             else if (infix->op == "==")
                 newExpr = new BoolExpr(((NumExpr *)infix->left)->value == ((NumExpr *)infix->right)->value);
             else if (infix->op == "!=")
@@ -253,6 +259,13 @@ Expr *ConstantFolder::ConstantFold(Expr *expr)
             delete prefix;
             prefix = nullptr;
             return boolExpr;
+        }
+        else if (prefix->right->type == AstType::NUM && prefix->op == "~")
+        {
+            auto numExpr = new NumExpr(~(uint64_t)((NumExpr *)prefix->right)->value);
+            delete prefix;
+            prefix = nullptr;
+            return numExpr;
         }
     }
 

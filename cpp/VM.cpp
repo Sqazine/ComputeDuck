@@ -71,7 +71,7 @@ void VM::Execute()
             Push(false);                                                                  \
     } while (0);
 
-//and or
+// and or
 #define LOGIC_BINARY(op)                                                                    \
     do                                                                                      \
     {                                                                                       \
@@ -89,6 +89,25 @@ void VM::Execute()
             Push(TO_BOOL_VALUE(left) op TO_BOOL_VALUE(right) ? Value(true) : Value(false)); \
         else                                                                                \
             Assert("Invalid op:" + left.Stringify() + (#op) + right.Stringify());           \
+    } while (0);
+
+#define BIT_BINARY(op)                                                            \
+    do                                                                            \
+    {                                                                             \
+        Value left = Pop();                                                       \
+        Value right = Pop();                                                      \
+        while (IS_REF_VALUE(left))                                                \
+            left = *TO_REF_VALUE(left)->pointer;                                  \
+        while (IS_REF_VALUE(right))                                               \
+            right = *TO_REF_VALUE(right)->pointer;                                \
+         if (IS_BUILTIN_VARIABLE_VALUE(left))                                                \
+            left = TO_BUILTIN_VARIABLE_VALUE(left)->value;                                  \
+        if (IS_BUILTIN_VARIABLE_VALUE(right))                                               \
+            right = TO_BUILTIN_VARIABLE_VALUE(right)->value;                                \
+        if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                            \
+            Push((uint64_t)TO_NUM_VALUE(left) op(uint64_t) TO_NUM_VALUE(right));  \
+        else                                                                      \
+            Assert("Invalid op:" + left.Stringify() + (#op) + right.Stringify()); \
     } while (0);
 
     while (1)
@@ -122,7 +141,7 @@ void VM::Execute()
             auto idx = *frame->ip++;
             auto value = m_Constants[idx];
 
-            RegisterToGCRecordChain(value); //the value in constant list maybe not regisiter to the gc chain
+            RegisterToGCRecordChain(value); // the value in constant list maybe not regisiter to the gc chain
 
             Push(value);
             break;
@@ -221,6 +240,34 @@ void VM::Execute()
             LOGIC_BINARY(||);
             break;
         }
+        case OP_BIT_AND:
+        {
+            BIT_BINARY(&);
+            break;
+        }
+        case OP_BIT_OR:
+        {
+            BIT_BINARY(|);
+            break;
+        }
+        case OP_BIT_XOR:
+        {
+            BIT_BINARY(^);
+            break;
+        }
+        case OP_BIT_NOT:
+        {
+            Value value = Pop();
+
+            while (IS_REF_VALUE(value))
+                value = *TO_REF_VALUE(value)->pointer;
+			if (IS_BUILTIN_VARIABLE_VALUE(value))                                                
+                value = TO_BUILTIN_VARIABLE_VALUE(value)->value;
+            if (IS_NUM_VALUE(value))
+                Push(~(uint64_t)TO_NUM_VALUE(value));
+            else
+                Assert("Invalid op:~" + value.Stringify());
+        }
         case OP_ARRAY:
         {
             auto numElements = *frame->ip++;
@@ -279,7 +326,7 @@ void VM::Execute()
 
             auto ptr = &m_GlobalVariables[index];
 
-            if (IS_REF_VALUE((*ptr))) //if is a reference object,then set the actual value which the reference object points
+            if (IS_REF_VALUE((*ptr))) // if is a reference object,then set the actual value which the reference object points
             {
                 while (IS_REF_VALUE((*ptr)))
                     ptr = TO_REF_VALUE((*ptr))->pointer;
@@ -402,7 +449,7 @@ void VM::Execute()
             std::unordered_map<std::string, Value> members;
             auto memberCount = *frame->ip++;
 
-            auto tmpPtr = m_StackTop; //save the locale,to avoid gc system delete the tmp object before finish the struct instance creation
+            auto tmpPtr = m_StackTop; // save the locale,to avoid gc system delete the tmp object before finish the struct instance creation
 
             for (int i = 0; i < memberCount; ++i)
             {
@@ -412,7 +459,7 @@ void VM::Execute()
             }
 
             auto structInstance = CreateObject<StructObject>(members);
-            m_StackTop = tmpPtr; //recover the locale
+            m_StackTop = tmpPtr; // recover the locale
             Push(structInstance);
             break;
         }
@@ -525,14 +572,14 @@ void VM::Execute()
             break;
         }
         default:
-            break;
+            return;
         }
     }
 }
 
 void VM::RegisterToGCRecordChain(const Value &value)
 {
-    if (IS_OBJECT_VALUE(value) && TO_OBJECT_VALUE(value)->next == nullptr) //check is null to avoid cross-reference in vm's object record chain
+    if (IS_OBJECT_VALUE(value) && TO_OBJECT_VALUE(value)->next == nullptr) // check is null to avoid cross-reference in vm's object record chain
     {
         auto object = TO_OBJECT_VALUE(value);
         if (m_CurObjCount >= m_MaxObjCount)
@@ -589,7 +636,7 @@ void VM::Gc(bool isExitingVM)
     int objNum = m_CurObjCount;
     if (!isExitingVM)
     {
-        //mark all object which in stack and in context
+        // mark all object which in stack and in context
         for (Value *slot = m_ValueStack; slot < m_StackTop; ++slot)
             slot->Mark();
         for (const auto &c : m_Constants)
@@ -601,7 +648,7 @@ void VM::Gc(bool isExitingVM)
     }
     else
     {
-        //unMark all objects while exiting vm
+        // unMark all objects while exiting vm
         for (Value *slot = m_ValueStack; slot < m_StackTop; ++slot)
             slot->UnMark();
         for (const auto &c : m_Constants)
@@ -612,7 +659,7 @@ void VM::Gc(bool isExitingVM)
             slot->fn->UnMark();
     }
 
-    //sweep objects which is not reachable
+    // sweep objects which is not reachable
     Object **object = &m_FirstObject;
     while (*object)
     {

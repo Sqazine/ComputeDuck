@@ -15,6 +15,9 @@ enum class Precedence
 	ASSIGN,		// =
 	OR,			// or
 	AND,		// and
+	BIT_OR,		// |
+	BIT_XOR,	// ^
+	BIT_AND,	// &
 	EQUAL,		// == !=
 	COMPARE,	// < <= > >=
 	ADD_PLUS,	// + -
@@ -37,7 +40,6 @@ public:
 	std::vector<Stmt *> Parse(const std::vector<Token> &tokens);
 
 private:
-
 	Stmt *ParseStmt();
 	Stmt *ParseExprStmt();
 	Stmt *ParseReturnStmt();

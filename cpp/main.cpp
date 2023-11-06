@@ -34,7 +34,7 @@ void Repl()
 			for (const auto& stmt : stmts)
 				std::cout << stmt->Stringify() << std::endl;
 
-			auto chunk = compiler.Compile(stmts);
+			auto chunk = compiler.Compile(stmts, true);
 
 			chunk.Stringify();
 
