@@ -1,0 +1,35 @@
+dllimport("cdsdl2");
+
+ok=SDL_Init();
+if(ok<0)
+    println("Failed to init sdl2!");
+window=SDL_CreateWindow("First Window",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,800,600,SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE|SDL_WINDOW_ALLOW_HIGHDPI|SDL_WINDOW_OPENGL);
+isRunning=true;
+
+SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 1);
+
+sdlGLCTX = SDL_GL_CreateContext(window);
+success = SDL_GL_SetSwapInterval(1);
+
+while(isRunning)
+{
+  event=SDL_PollEvent();
+  if(event!=nil)
+  {
+      if(SDL_GetEventType(event)==SDL_QUIT)
+      {
+          isRunning=false;
+      }
+  }
+
+  SDL_GL_SwapWindow(window);
+}
+
+SDL_Quit();

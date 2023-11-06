@@ -10,6 +10,12 @@ Value::Value(double number)
 	: number(number), type(ValueType::NUM)
 {
 }
+
+Value::Value(uint64_t number)
+	: number(number), type(ValueType::NUM)
+{
+}
+
 Value::Value(bool boolean)
 	: boolean(boolean), type(ValueType::BOOL)
 {

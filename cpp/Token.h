@@ -26,6 +26,10 @@ enum class TokenType
 	EQUAL,		   // =
 	LESS,		   // <
 	GREATER,	   // >
+	VBAR,		   // |
+	CARET,// ^
+	AMPERSAND,	   // &
+	TILDE,		   // ~
 	EQUAL_EQUAL,   // ==
 	LESS_EQUAL,	   // <=
 	GREATER_EQUAL, // >=
