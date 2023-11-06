@@ -100,10 +100,10 @@ void VM::Execute()
             left = *TO_REF_VALUE(left)->pointer;                                  \
         while (IS_REF_VALUE(right))                                               \
             right = *TO_REF_VALUE(right)->pointer;                                \
-         if (IS_BUILTIN_VARIABLE_VALUE(left))                                                \
-            left = TO_BUILTIN_VARIABLE_VALUE(left)->value;                                  \
-        if (IS_BUILTIN_VARIABLE_VALUE(right))                                               \
-            right = TO_BUILTIN_VARIABLE_VALUE(right)->value;                                \
+        if (IS_BUILTIN_VARIABLE_VALUE(left))                                      \
+            left = TO_BUILTIN_VARIABLE_VALUE(left)->value;                        \
+        if (IS_BUILTIN_VARIABLE_VALUE(right))                                     \
+            right = TO_BUILTIN_VARIABLE_VALUE(right)->value;                      \
         if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                            \
             Push((uint64_t)TO_NUM_VALUE(left) op(uint64_t) TO_NUM_VALUE(right));  \
         else                                                                      \
@@ -261,7 +261,7 @@ void VM::Execute()
 
             while (IS_REF_VALUE(value))
                 value = *TO_REF_VALUE(value)->pointer;
-			if (IS_BUILTIN_VARIABLE_VALUE(value))                                                
+            if (IS_BUILTIN_VARIABLE_VALUE(value))
                 value = TO_BUILTIN_VARIABLE_VALUE(value)->value;
             if (IS_NUM_VALUE(value))
                 Push(~(uint64_t)TO_NUM_VALUE(value));
