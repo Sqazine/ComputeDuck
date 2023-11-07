@@ -3,7 +3,7 @@ dllimport("cdsdl2");
 ok=SDL_Init();
 if(ok<0)
     println("Failed to init sdl2!");
-window=SDL_CreateWindow("First Window",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,800,600,SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE|SDL_WINDOW_ALLOW_HIGHDPI);
+window=SDL_CreateWindow("sdl2",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,800,600,SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE|SDL_WINDOW_ALLOW_HIGHDPI);
 isRunning=true;
 
 renderer=SDL_CreateRenderer(window);
