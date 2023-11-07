@@ -4,7 +4,7 @@ dllimport("cdopengl");
 ok=SDL_Init();
 if(ok<0)
     println("Failed to init sdl2!");
-window=SDL_CreateWindow("First Window",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,800,600,SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE|SDL_WINDOW_ALLOW_HIGHDPI|SDL_WINDOW_OPENGL);
+window=SDL_CreateWindow("sdl2-opengl",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,800,600,SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE|SDL_WINDOW_ALLOW_HIGHDPI|SDL_WINDOW_OPENGL);
 isRunning=true;
 
 positions=[-0.5,-0.5,0.0,
@@ -108,13 +108,11 @@ while(isRunning)
       }
   }
 
-    glClearColor(0.2, 0.3, 0.5, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glUseProgram(shaderProgram);
-    glBindVertexArray(vao);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo); 
-    glDrawElements(GL_TRIANGLES, sizeof(indices), GL_UNSIGNED_INT, nil);
+  glClearColor(0.2, 0.3, 0.5, 1.0);
+  glClear(GL_COLOR_BUFFER_BIT);
+  glUseProgram(shaderProgram);
+  glBindVertexArray(vao);
+  glDrawElements(GL_TRIANGLES, sizeof(indices), GL_UNSIGNED_INT, ref indices);
 
   SDL_GL_SwapWindow(window);
 }

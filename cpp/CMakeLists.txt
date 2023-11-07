@@ -11,6 +11,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/Bin/Debug)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Bin/Release)
 
+file(GLOB EXAMPLES "../examples/*.cd")
+
+source_group("examples" FILES ${EXAMPLES})
+
 add_library(libcomputeduck SHARED Ast.h
 Chunk.cpp Chunk.h
 Compiler.cpp Compiler.h 
@@ -31,5 +35,5 @@ add_subdirectory(library/cdsdl2)
 add_subdirectory(library/cdopengl)
 
 file(GLOB SRC main.cpp)
-add_executable(computeduck ${SRC})
+add_executable(computeduck ${SRC} ${EXAMPLES})
 target_link_libraries(computeduck PRIVATE libcomputeduck)

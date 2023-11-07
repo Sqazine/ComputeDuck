@@ -67,9 +67,40 @@ void RegisterBuiltins()
 				glVertexAttribPointer(arg0, arg1, (GLenum)arg2.number, (GLboolean)arg3.number, arg4, (void*)0);
 			}
 			else {
-				auto arg5 = *TO_REF_VALUE(args[5])->pointer;
-				auto arrArg5 = TO_ARRAY_VALUE(arg5);
-				glVertexAttribPointer(arg0, arg1, (GLenum)arg2.number, (GLboolean)arg3.number, arg4, (void*)arrArg5->elements.data());
+				if (arg2.number == GL_FLOAT)
+				{
+					auto arg5 = TO_REF_VALUE(args[5])->pointer;
+					auto arrArg5 = TO_ARRAY_VALUE((*arg5));
+
+
+					std::vector<float> rawArg5(arrArg5->elements.size());
+					for (int32_t i = 0; i < rawArg5.size(); ++i)
+						rawArg5[i] = arrArg5->elements[i].number;
+
+					glVertexAttribPointer(arg0, arg1, (GLenum)arg2.number, (GLboolean)arg3.number, arg4, (void*)rawArg5.data());
+				}
+				else if (arg2.number == GL_UNSIGNED_INT)
+				{
+					auto arg5 = TO_REF_VALUE(args[5])->pointer;
+					auto arrArg5 = TO_ARRAY_VALUE((*arg5));
+
+					std::vector<uint32_t> rawArg5(arrArg5->elements.size());
+					for (int32_t i = 0; i < rawArg5.size(); ++i)
+						rawArg5[i] = arrArg5->elements[i].number;
+
+					glVertexAttribPointer(arg0, arg1, (GLenum)arg2.number, (GLboolean)arg3.number, arg4, (void*)rawArg5.data());
+				}
+				else if (arg2.number == GL_INT)
+				{
+					auto arg5 = TO_REF_VALUE(args[5])->pointer;
+					auto arrArg5 = TO_ARRAY_VALUE((*arg5));
+
+					std::vector<int32_t> rawArg5(arrArg5->elements.size());
+					for (int32_t i = 0; i < rawArg5.size(); ++i)
+						rawArg5[i] = arrArg5->elements[i].number;
+
+					glVertexAttribPointer(arg0, arg1, (GLenum)arg2.number, (GLboolean)arg3.number, arg4, (void*)rawArg5.data());
+				}
 			}
 			assert(glGetError() == 0);
 			return false; });
@@ -273,8 +304,8 @@ void RegisterBuiltins()
 			}
 			else
 			{
-				auto arg3 = *TO_REF_VALUE(args[3])->pointer;
-				auto arrArg3 = TO_ARRAY_VALUE(arg3);
+				auto arg3 = TO_REF_VALUE(args[3])->pointer;
+				auto arrArg3 = TO_ARRAY_VALUE((*arg3));
 
 				std::vector<uint32_t> rawArg3(arrArg3->elements.size());
 				for (int32_t i = 0; i < rawArg3.size(); ++i)
@@ -282,6 +313,7 @@ void RegisterBuiltins()
 
 				glDrawElements(arg0, arg1, arg2, rawArg3.data());
 			}
+
 			assert(glGetError() == 0);
 			return false; });
 }
