@@ -109,7 +109,7 @@ while(isRunning)
   }
 
   glClearColor(0.2, 0.3, 0.5, 1.0);
-  glClear(GL_COLOR_BUFFER_BIT);
+  glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
   glUseProgram(shaderProgram);
   glBindVertexArray(vao);
   glDrawElements(GL_TRIANGLES, sizeof(indices), GL_UNSIGNED_INT, ref indices);
