@@ -27,7 +27,7 @@ enum class TokenType
 	LESS,		   // <
 	GREATER,	   // >
 	VBAR,		   // |
-	CARET,// ^
+	CARET,		   // ^
 	AMPERSAND,	   // &
 	TILDE,		   // ~
 	EQUAL_EQUAL,   // ==
