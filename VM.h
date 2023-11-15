@@ -60,7 +60,7 @@ private:
 	CallFrame* PopCallFrame();
 	CallFrame* PeekCallFrame(int32_t distance);
 
-	Value m_Constants[CONSTANT_MAX];
+	const Chunk* m_Chunk{nullptr};
 
 	Value m_GlobalVariables[GLOBAL_VARIABLE_MAX];
 

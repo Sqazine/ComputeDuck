@@ -449,7 +449,3 @@ struct StructStmt : public Stmt
 	std::string name;
 	std::vector<std::pair<IdentifierExpr *, Expr *>> members;
 };
-
-static NilExpr *nilExpr = new NilExpr();
-static BoolExpr *trueExpr = new BoolExpr(true);
-static BoolExpr *falseExpr = new BoolExpr(false);

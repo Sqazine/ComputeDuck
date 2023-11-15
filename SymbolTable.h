@@ -13,7 +13,7 @@ enum class SymbolScope
 struct Symbol
 {
     Symbol()
-        : scope(SymbolScope::GLOBAL), index(0), scopeDepth(0), isInUpScope(0)
+        : scope(SymbolScope::GLOBAL), index(0), scopeDepth(0), isInUpScope(0), isStructSymbol(false)
     {
     }
 

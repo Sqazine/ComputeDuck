@@ -13,6 +13,7 @@ file(GLOB EXAMPLES "../examples/*.cd")
 source_group("examples" FILES ${EXAMPLES})
 
 add_library(libcomputeduck SHARED Ast.h
+Config.h
 Chunk.cpp Chunk.h
 Compiler.cpp Compiler.h 
 ConstantFolder.h ConstantFolder.cpp 

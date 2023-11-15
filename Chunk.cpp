@@ -1,16 +1,14 @@
 #include "Chunk.h"
 #include "Object.h"
 
-Chunk::Chunk(OpCodes opCodes, Value *constants, int32_t constantCount)
-    : opCodes(opCodes), constantCount(constantCount)
+Chunk::Chunk(OpCodes opCodes, const std::vector<Value>& constants)
+    : opCodes(opCodes), constants(constants)
 {
-    for (int32_t i = 0; i < constantCount; ++i)
-        this->constants[i] = constants[i];
 }
 
 void Chunk::Stringify()
 {
-    for (int32_t i = 0; i < constantCount; ++i)
+    for (int32_t i = 0; i < constants.size(); ++i)
     {
         auto constant = constants[i];
         if (IS_FUNCTION_VALUE(constant))

@@ -8,14 +8,12 @@
 #include "BuiltinManager.h"
 void Repl()
 {
-	std::string line;
-
-	BuiltinManager::GetInstance()->Init();
-
 	PreProcessor preProcessor;
 	Parser parser;
 	Compiler compiler;
 	VM vm;
+
+	std::string line;
 
 	std::cout << "> ";
 	while (getline(std::cin, line))
@@ -38,19 +36,18 @@ void Repl()
 
 			chunk.Stringify();
 
+			for (auto stmt : stmts)
+				SAFE_DELETE(stmt);
+
 			vm.Run(chunk);
 		}
 		std::cout << "> ";
 	}
-
-	BuiltinManager::GetInstance()->Release();
 }
 
 void RunFile(std::string path)
 {
 	std::string content = ReadFile(path);
-
-	BuiltinManager::GetInstance()->Init();
 
 	PreProcessor preProcessor;
 	Parser parser;
@@ -62,8 +59,6 @@ void RunFile(std::string path)
 	for (const auto& token : tokens)
 		std::cout << token << std::endl;
 
-	auto stmt = parser.Parse(tokens);
-
 	auto stmts = parser.Parse(tokens);
 
 	for (const auto& stmt : stmts)
@@ -71,16 +66,19 @@ void RunFile(std::string path)
 
 	auto chunk = compiler.Compile(stmts);
 
+	for (auto stmt : stmts)
+		SAFE_DELETE(stmt);
+
 	chunk.Stringify();
 
 	vm.Run(chunk);
-
-	BuiltinManager::GetInstance()->Release();
 }
 
 #undef main
 int main(int argc, char** argv)
 {
+	BuiltinManager::GetInstance()->Init();
+
 	if (argc == 2)
 	{
 		std::string curPath = std::filesystem::absolute(std::filesystem::path(argv[1])).string();
@@ -106,6 +104,8 @@ int main(int argc, char** argv)
 	}
 	else
 		std::cout << "Usage: ComputeDuck [filepath]" << std::endl;
+
+	BuiltinManager::GetInstance()->Release();
 
 	return 0;
 }

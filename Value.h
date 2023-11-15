@@ -44,7 +44,7 @@ struct COMPUTE_DUCK_API Value
 	Value(double number);
 	Value(uint64_t number);
 	Value(bool boolean);
-	Value(struct Object *object);
+	Value(struct Object* object);
 	Value(ValueType type);
 	~Value();
 
@@ -57,9 +57,9 @@ struct COMPUTE_DUCK_API Value
 	{
 		double number;
 		bool boolean;
-		struct Object *object;
+		struct Object* object{ nullptr };
 	};
 };
 
-bool operator==(const Value &left, const Value &right);
-bool operator!=(const Value &left, const Value &right);
+bool operator==(const Value& left, const Value& right);
+bool operator!=(const Value& left, const Value& right);

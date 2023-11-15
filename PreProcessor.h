@@ -6,6 +6,7 @@
 #include "Lexer.h"
 #include "Config.h"
 #include "Utils.h"
+#include "BuiltinManager.h"
 
 struct TokenBlockTable
 {
@@ -41,7 +42,8 @@ public:
         {
             for (const auto &path : tables[i].importedFilePaths)
             {
-                auto toks = m_Lexer.GenerateTokens(ReadFile(path), path);
+                auto absPath = BuiltinManager::GetInstance()->ToFullPath(path);
+                auto toks = m_Lexer.GenerateTokens(ReadFile(absPath), absPath);
 
                 bool alreadyExists = false;
                 for (int32_t j = 0; j < tables.size(); ++j)

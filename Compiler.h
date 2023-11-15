@@ -63,8 +63,7 @@ private:
 
     void LoadSymbol(const Symbol &symbol);
 
-    Value m_Constants[CONSTANT_MAX];
-    int32_t m_ConstantCount;
+    std::vector<Value> m_Constants;
 
     std::vector<OpCodes> m_Scopes;
 

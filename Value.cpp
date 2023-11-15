@@ -2,7 +2,7 @@
 #include "Object.h"
 
 Value::Value()
-	: type(ValueType::NIL)
+	: type(ValueType::NIL),object(nullptr)
 {
 }
 
@@ -20,13 +20,13 @@ Value::Value(bool boolean)
 	: boolean(boolean), type(ValueType::BOOL)
 {
 }
-Value::Value(Object *object)
+Value::Value(Object* object)
 	: object(object), type(ValueType::OBJECT)
 {
 }
 
 Value::Value(ValueType type)
-	: type(type)
+	: type(type), object(nullptr)
 {
 }
 Value ::~Value()
@@ -62,7 +62,7 @@ void Value::UnMark() const
 		object->UnMark();
 }
 
-bool operator==(const Value &left, const Value &right)
+bool operator==(const Value& left, const Value& right)
 {
 	if (left.type != right.type)
 		return false;
@@ -96,7 +96,7 @@ bool operator==(const Value &left, const Value &right)
 	return false;
 }
 
-bool operator!=(const Value &left, const Value &right)
+bool operator!=(const Value& left, const Value& right)
 {
 	return !(left == right);
 }
