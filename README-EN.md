@@ -47,18 +47,6 @@ linux:
     ./computeduck examples/leetcode-twosum.cd
 ```
 
-### Python
-1. python environment(>=3.9)
-2. pip install pysdl2(for importing third-party SDL2 libraries)
-#### Run
-```sh
-# run in command line
-    ./python py/main.py
-    > a=10;println(a);
-# read file
-    ./python py/main.py examples/leetcode-twosum.cd
-```
-
 ## Examples
 1. Variable declarations
 ```sh

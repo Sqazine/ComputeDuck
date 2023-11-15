@@ -1,7 +1,7 @@
-import("../examples/Vec3.cd");
-import("../examples/Vec4.cd");
-import("../examples/Vec2.cd");
-import("../examples/Vec5.cd");
+import("Vec3.cd");
+import("Vec4.cd");
+import("Vec2.cd");
+import("Vec5.cd");
 
 a=Vec4;
 
