@@ -46,8 +46,6 @@ enum OpCode
 
 typedef std::vector<int32_t> OpCodes;
 
-#define CONSTANT_MAX 8192
-
 class COMPUTE_DUCK_API Chunk
 {
 public:
