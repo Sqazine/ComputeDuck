@@ -19,7 +19,6 @@
 [中文](https://github.com/Sqazine/ComputeDuck/blob/master/README.md)
 
 ## 环境
-### C++
 1. C++ 编译器(>=17)
 2. CMake(>=3.10)
 
@@ -47,18 +46,6 @@ windows:
 linux:
     chmod 777 computeduck
     ./computeduck examples/leetcode-twosum.cd
-```
-
-### Python
-1. python环境(>=3.9)
-2. pip install pysdl2(引入第三方SDL2库需要)
-#### 运行
-```sh
-# 命令行运行
-    ./python py/main.py
-    > a=10;println(a);
-# 源码运行
-    ./python py/main.py examples/leetcode-twosum.cd
 ```
 
 ## 例子

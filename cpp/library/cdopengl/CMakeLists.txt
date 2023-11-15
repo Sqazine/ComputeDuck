@@ -1,8 +1,0 @@
-
-if (BUILD_OPENGL)
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/glad")
-file(GLOB glad "${CMAKE_CURRENT_SOURCE_DIR}/glad/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/glad/*.c")
-add_library(cdopengl SHARED  cdopengl.h  cdopengl.cpp ${glad})
-target_link_libraries(cdopengl PRIVATE libcomputeduck)
-target_compile_definitions(cdopengl PUBLIC COMPUTE_DUCK_BUILD_DLL)
-endif()
