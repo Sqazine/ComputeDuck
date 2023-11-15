@@ -66,6 +66,7 @@ std::unordered_map<TokenType, Precedence> Parser::m_Precedence =
 };
 
 Parser::Parser()
+	:m_CurPos(0), m_FunctionOrFunctionScopeDepth(0)
 {
 }
 Parser::~Parser()
@@ -189,7 +190,7 @@ Stmt *Parser::ParseStructStmt()
 	while (!IsMatchCurToken(TokenType::RBRACE))
 	{
 		auto k = (IdentifierExpr *)ParseIdentifierExpr();
-		Expr *v = nilExpr;
+		Expr *v = new NilExpr();
 		if (IsMatchCurToken(TokenType::COLON))
 		{
 			Consume(TokenType::COLON, "Expect ':'");
@@ -209,7 +210,7 @@ Expr *Parser::ParseExpr(Precedence precedence)
 	if (m_PrefixFunctions.find(GetCurToken().type) == m_PrefixFunctions.end())
 	{
 		ASSERT("no prefix definition for:%s", GetCurTokenAndStepOnce().literal.c_str());
-		return nilExpr;
+		return new NilExpr();
 	}
 	auto prefixFn = m_PrefixFunctions[GetCurToken().type];
 
@@ -247,17 +248,17 @@ Expr *Parser::ParseStrExpr()
 Expr *Parser::ParseNilExpr()
 {
 	Consume(TokenType::NIL, "Expect 'nil' keyword");
-	return nilExpr;
+	return new NilExpr();
 }
 Expr *Parser::ParseTrueExpr()
 {
 	Consume(TokenType::TRUE, "Expect 'true' keyword");
-	return trueExpr;
+	return new BoolExpr(true);
 }
 Expr *Parser::ParseFalseExpr()
 {
 	Consume(TokenType::FALSE, "Expect 'false' keyword");
-	return falseExpr;
+	return new BoolExpr(false);
 }
 
 Expr *Parser::ParseGroupExpr()
@@ -361,7 +362,7 @@ Expr *Parser::ParseAnonyStructExpr()
 	while (!IsMatchCurToken(TokenType::RBRACE))
 	{
 		auto k = (IdentifierExpr *)ParseIdentifierExpr();
-		Expr *v = nilExpr;
+		Expr *v = new NilExpr();
 		if (IsMatchCurToken(TokenType::COLON))
 		{
 			Consume(TokenType::COLON, "Expect ':'");
@@ -498,7 +499,7 @@ Token Parser::Consume(TokenType type, std::string_view errMsg)
 {
 	if (IsMatchCurToken(type))
 		return GetCurTokenAndStepOnce();
-	ASSERT("[file %s line %d]:%s", GetCurToken().filePath.c_str(), GetCurToken().line, errMsg.data());
+	ASSERT("[file %s line %lld]:%s", GetCurToken().filePath.c_str(), GetCurToken().line, errMsg.data());
 }
 
 bool Parser::IsAtEnd()

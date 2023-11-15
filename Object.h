@@ -132,6 +132,10 @@ struct ArrayObject : public Object
 struct RefObject : public Object
 {
 	RefObject(Value *pointer) :Object(ObjectType::REF),  pointer(pointer) {}
+	~RefObject()
+	{
+		SAFE_DELETE(pointer);
+	}
 
 	std::string Stringify() override { return pointer->Stringify(); }
 	void Mark() override
@@ -252,7 +256,7 @@ struct BuiltinFunctionObject : public Object
 struct BuiltinDataObject : public Object
 {
 	BuiltinDataObject()
-	:Object(ObjectType::BUILTIN_DATA)
+	:Object(ObjectType::BUILTIN_DATA),nativeData(nullptr)
 	{
 	}
 

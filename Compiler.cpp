@@ -27,15 +27,12 @@ Chunk Compiler::Compile(const std::vector<Stmt *> &stmts, bool isLineInterpret)
         Emit(0);
     }
 
-    return Chunk(CurOpCodes(), m_Constants, m_ConstantCount);
+    return Chunk(CurOpCodes(), m_Constants);
 }
 
 void Compiler::ResetStatus()
 {
-    for (int32_t i = 0; i < CONSTANT_MAX; ++i)
-        m_Constants[i] = Value();
-    m_ConstantCount = 0;
-
+    std::vector<Value>().swap(m_Constants);
     std::vector<OpCodes>().swap(m_Scopes);
     m_Scopes.emplace_back(OpCodes()); // set a default opcodes
 
@@ -379,7 +376,7 @@ void Compiler::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state)
     if (state == RWState::READ)
     {
         if (!isFound)
-            ASSERT("Undefined variable:%s",expr->Stringify());
+            ASSERT("Undefined variable:%s",expr->Stringify().c_str());
         LoadSymbol(symbol);
     }
     else
@@ -484,7 +481,7 @@ void Compiler::CompileRefExpr(RefExpr *expr)
         CompileExpr(((IndexExpr *)expr->refExpr)->index);
         bool isFound = m_SymbolTable->Resolve(((IndexExpr *)expr->refExpr)->ds->Stringify(), symbol);
         if (!isFound)
-            ASSERT("Undefined variable:%s", expr->Stringify());
+            ASSERT("Undefined variable:%s", expr->Stringify().c_str());
 
         switch (symbol.scope)
         {
@@ -506,7 +503,7 @@ void Compiler::CompileRefExpr(RefExpr *expr)
     {
         bool isFound = m_SymbolTable->Resolve(expr->refExpr->Stringify(), symbol);
         if (!isFound)
-            ASSERT("Undefined variable:%s", expr->Stringify());
+            ASSERT("Undefined variable:%s", expr->Stringify().c_str());
 
         switch (symbol.scope)
         {
@@ -552,7 +549,7 @@ void Compiler::CompileDllImportExpr(DllImportExpr *expr)
     HINSTANCE hInstance;
     hInstance = LoadLibrary(dllpath.c_str());
     if (!hInstance)
-        ASSERT("Failed to load dll library:%s",dllpath);
+        ASSERT("Failed to load dll library:%s",dllpath.c_str());
 
     RegFn RegisterBuiltins = (RegFn)(GetProcAddress(hInstance, "RegisterBuiltins"));
 
@@ -641,8 +638,8 @@ void Compiler::ModifyOpCode(uint32_t pos, int32_t opcode)
 
 uint32_t Compiler::AddConstant(const Value &value)
 {
-    m_Constants[m_ConstantCount++] = value;
-    return m_ConstantCount - 1;
+    m_Constants.emplace_back(value);
+    return m_Constants.size()-1;
 }
 
 void Compiler::LoadSymbol(const Symbol &symbol)

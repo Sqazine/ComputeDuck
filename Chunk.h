@@ -51,14 +51,13 @@ typedef std::vector<int32_t> OpCodes;
 class COMPUTE_DUCK_API Chunk
 {
 public:
-    Chunk(OpCodes opCodes,  Value* constants,int32_t constantCount);
+    Chunk(OpCodes opCodes, const std::vector<Value>& constants);
 
     void Stringify();
 
     OpCodes opCodes;
 
-    Value constants[CONSTANT_MAX];
-    int32_t constantCount;
+    std::vector<Value> constants;
 
 private:
     void OpCodeStringify(const OpCodes &opcodes);

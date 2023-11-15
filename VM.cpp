@@ -23,8 +23,7 @@ void VM::Run(const Chunk &chunk)
     m_CallFrameTop = m_CallFrames;
     m_CallFrameTop++;
 
-    for (int32_t i = 0; i < chunk.constantCount; ++i)
-        m_Constants[i] = chunk.constants[i];
+    m_Chunk = &chunk;
 
     Execute();
 }
@@ -139,7 +138,7 @@ void VM::Execute()
         case OP_CONSTANT:
         {
             auto idx = *frame->ip++;
-            auto value = m_Constants[idx];
+            auto value = m_Chunk->constants[idx];
 
             RegisterToGCRecordChain(value); // the value in constant list maybe not regisiter to the gc chain
 
@@ -639,7 +638,7 @@ void VM::Gc(bool isExitingVM)
         // mark all object which in stack and in context
         for (Value *slot = m_ValueStack; slot < m_StackTop; ++slot)
             slot->Mark();
-        for (const auto &c : m_Constants)
+        for (const auto &c : m_Chunk->constants)
             c.Mark();
         for (auto &g : m_GlobalVariables)
             g.Mark();
@@ -651,7 +650,7 @@ void VM::Gc(bool isExitingVM)
         // unMark all objects while exiting vm
         for (Value *slot = m_ValueStack; slot < m_StackTop; ++slot)
             slot->UnMark();
-        for (const auto &c : m_Constants)
+        for (const auto &c : m_Chunk->constants)
             c.UnMark();
         for (auto &g : m_GlobalVariables)
             g.UnMark();
