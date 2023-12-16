@@ -50,6 +50,10 @@ class COMPUTE_DUCK_API Chunk
 {
 public:
     Chunk(OpCodes opCodes, const std::vector<Value>& constants);
+    ~Chunk() 
+    {
+        OpCodes().swap(opCodes);
+    }
 
     void Stringify();
 

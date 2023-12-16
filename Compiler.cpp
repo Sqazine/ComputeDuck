@@ -15,7 +15,7 @@ Compiler::~Compiler()
 {
 }
 
-Chunk Compiler::Compile(const std::vector<Stmt *> &stmts, bool isLineInterpret)
+Chunk* Compiler::Compile(const std::vector<Stmt *> &stmts, bool isLineInterpret)
 {
     for (const auto &stmt : stmts)
         CompileStmt(stmt);
@@ -27,7 +27,7 @@ Chunk Compiler::Compile(const std::vector<Stmt *> &stmts, bool isLineInterpret)
         Emit(0);
     }
 
-    return Chunk(CurOpCodes(), m_Constants);
+    return new Chunk(CurOpCodes(), m_Constants);
 }
 
 void Compiler::ResetStatus()
@@ -39,6 +39,9 @@ void Compiler::ResetStatus()
     if (m_SymbolTable)
         delete m_SymbolTable;
     m_SymbolTable = new SymbolTable();
+
+    m_BuiltinFunctionNames.clear();
+    m_BuiltinVariableNames.clear();
 
     for (int32_t i = 0; i < BuiltinManager::GetInstance()->m_BuiltinFunctionNames.size(); ++i)
     {
@@ -160,7 +163,7 @@ void Compiler::CompileStructStmt(StructStmt *stmt)
     EnterScope();
     m_Scopes.emplace_back(OpCodes());
 
-    for (int32_t i = stmt->members.size() - 1; i >= 0; --i)
+    for (int32_t i = (int32_t)stmt->members.size() - 1; i >= 0; --i)
     {
         CompileExpr(stmt->members[i].second);
         EmitConstant(AddConstant(new StrObject(stmt->members[i].first->literal)));
@@ -554,6 +557,7 @@ void Compiler::CompileDllImportExpr(DllImportExpr *expr)
     RegFn RegisterBuiltins = (RegFn)(GetProcAddress(hInstance, "RegisterBuiltins"));
 
     RegisterBuiltins();
+#endif
 
     std::vector<std::string> newAddedBuiltinFunctionNames;
     std::vector<std::string> newAddedBuiltinVariableNames;
@@ -588,20 +592,19 @@ void Compiler::CompileDllImportExpr(DllImportExpr *expr)
             newAddedBuiltinVariableNames.emplace_back(name);
     }
 
-    auto legacyBuiltinFuncCount = m_BuiltinFunctionNames.size();
+    int32_t legacyBuiltinFuncCount = (int32_t)m_BuiltinFunctionNames.size();
     for (int32_t i = 0; i < newAddedBuiltinFunctionNames.size(); ++i)
     {
         m_BuiltinFunctionNames.emplace_back(newAddedBuiltinFunctionNames[i]);
         m_SymbolTable->DefineBuiltinFunction(newAddedBuiltinFunctionNames[i], legacyBuiltinFuncCount + i);
     }
 
-    auto legacyBuiltinVarCount = m_BuiltinVariableNames.size();
+    int32_t legacyBuiltinVarCount = (int32_t)m_BuiltinVariableNames.size();
     for (int32_t i = 0; i < newAddedBuiltinVariableNames.size(); ++i)
     {
         m_BuiltinVariableNames.emplace_back(newAddedBuiltinVariableNames[i]);
         m_SymbolTable->DefineBuiltinVariable(newAddedBuiltinVariableNames[i], legacyBuiltinVarCount + i);
     }
-#endif
 }
 
 void Compiler::EnterScope()
@@ -639,7 +642,7 @@ void Compiler::ModifyOpCode(uint32_t pos, int32_t opcode)
 uint32_t Compiler::AddConstant(const Value &value)
 {
     m_Constants.emplace_back(value);
-    return m_Constants.size()-1;
+    return (uint32_t)(m_Constants.size()-1);
 }
 
 void Compiler::LoadSymbol(const Symbol &symbol)
