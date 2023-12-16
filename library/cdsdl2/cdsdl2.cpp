@@ -67,74 +67,71 @@ void RegisterBuiltins()
                                                     {
                                                         auto ret = SDL_Init(SDL_INIT_EVERYTHING);
                                                         result = Value((float)ret);
-                                                        return true; });
+                                                        return true;
+                                                    });
 
     BuiltinManager::GetInstance()->RegisterFunction("SDL_Quit", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
                                                         SDL_Quit();
-                                                        return false; });
+                                                        return false;
+                                                    });
 
     BuiltinManager::GetInstance()->RegisterFunction("SDL_CreateWindow", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
-                                                        auto name=TO_STR_VALUE(args[0])->value.c_str();
-                                                        auto posX=(int)TO_NUM_VALUE(TO_BUILTIN_VARIABLE_VALUE(args[1])->value);
-                                                        auto posY=(int)TO_NUM_VALUE(TO_BUILTIN_VARIABLE_VALUE(args[2])->value);
-                                                        int32_t width=(int32_t)TO_NUM_VALUE(args[3]);
-                                                        int32_t height=(int32_t)TO_NUM_VALUE(args[4]);
-                                                        uint32_t flags= (uint32_t)TO_NUM_VALUE(args[5]);
+                                                        auto name = TO_STR_VALUE(args[0])->value.c_str();
+                                                        auto posX = (int)TO_NUM_VALUE(TO_BUILTIN_VALUE(args[1])->value);
+                                                        auto posY = (int)TO_NUM_VALUE(TO_BUILTIN_VALUE(args[2])->value);
+                                                        int32_t width = (int32_t)TO_NUM_VALUE(args[3]);
+                                                        int32_t height = (int32_t)TO_NUM_VALUE(args[4]);
+                                                        uint32_t flags = (uint32_t)TO_NUM_VALUE(args[5]);
 
-                                                        auto window = SDL_CreateWindow(name,posX,posY,width,height,flags);
-                                                        
-                                                        BuiltinDataObject *builtinData = new BuiltinDataObject();
-                                                        builtinData->nativeData = (void *)window;
-                                                        builtinData->destroyFunc = [](void *nativeData)
-                                                        {
-                                                            SDL_DestroyWindow((SDL_Window *)nativeData);
-                                                        };
+                                                        auto window = SDL_CreateWindow(name, posX, posY, width, height, flags);
+
+                                                        BuiltinObject *builtinData = new BuiltinObject(window, [](void *nativeData)
+                                                                                                       { SDL_DestroyWindow((SDL_Window *)nativeData); });
+
                                                         result = builtinData;
-                                                        return true; });
+                                                        return true;
+                                                    });
 
     BuiltinManager::GetInstance()->RegisterFunction("SDL_PollEvent", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
                                                         SDL_Event *event = new SDL_Event();
                                                         SDL_PollEvent(event);
-                                                        BuiltinDataObject *builtinData = new BuiltinDataObject();
-                                                        builtinData->nativeData = event;
-                                                        builtinData->destroyFunc = [](void *nativeData)
-                                                        {
-                                                            delete (SDL_Event *)nativeData;
-                                                        };
+                                                        BuiltinObject *builtinData = new BuiltinObject(event, [](void *nativeData)
+                                                                                                       { delete (SDL_Event *)nativeData; });
+
                                                         result = Value(builtinData);
-                                                        return true; });
+                                                        return true;
+                                                    });
 
     BuiltinManager::GetInstance()->RegisterFunction("SDL_GetEventType", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
-                                                        if (!IS_BUILTIN_DATA_VALUE(args[0]))
+                                                        if (!IS_BUILTIN_VALUE(args[0]))
                                                             ASSERT("Not a valid builtin data.");
-                                                        auto builtinData = TO_BUILTIN_DATA_VALUE(args[0]);
+                                                        auto builtinData = TO_BUILTIN_VALUE(args[0]);
                                                         if (reinterpret_cast<SDL_Event *>(builtinData->nativeData) == nullptr)
                                                             ASSERT("Not a valid SDL_Event object.");
                                                         SDL_Event *event = ((SDL_Event *)builtinData->nativeData);
                                                         result = (double)((SDL_Event *)builtinData->nativeData)->type;
-                                                        return true; });
+                                                        return true;
+                                                    });
 
     BuiltinManager::GetInstance()->RegisterFunction("SDL_CreateRenderer", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
-                                                        if (!IS_BUILTIN_DATA_VALUE(args[0]))
+                                                        if (!IS_BUILTIN_VALUE(args[0]))
                                                             ASSERT("Not a valid builtin data.");
-                                                        auto builtinData = TO_BUILTIN_DATA_VALUE(args[0]);
+                                                        auto builtinData = TO_BUILTIN_VALUE(args[0]);
                                                         if (reinterpret_cast<SDL_Window *>(builtinData->nativeData) == nullptr)
                                                             ASSERT("Not a valid SDL_Window object.");
                                                         SDL_Window *window = ((SDL_Window *)builtinData->nativeData);
                                                         SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-                                                        BuiltinDataObject *resultBuiltinData = new BuiltinDataObject();
-                                                        resultBuiltinData->nativeData = renderer;
-                                                        resultBuiltinData->destroyFunc = [](void *nativeData)
-                                                        {
-                                                            SDL_DestroyRenderer((SDL_Renderer *)nativeData);
-                                                        };
-                                                        result = Value(resultBuiltinData);
-                                                        return true; });
+                                                        BuiltinObject *resultBuiltin = new BuiltinObject(renderer, [](void *nativeData)
+                                                                                                         { SDL_DestroyRenderer((SDL_Renderer *)nativeData); });
+
+                                                        result = Value(resultBuiltin);
+                                                        return true;
+                                                    });
 
     BuiltinManager::GetInstance()->RegisterFunction("SDL_LoadBMP", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
@@ -145,117 +142,119 @@ void RegisterBuiltins()
 
                                                         SDL_Surface *surface = SDL_LoadBMP(fullPath.c_str());
 
-                                                        BuiltinDataObject *resultBuiltinData = new BuiltinDataObject();
-                                                        resultBuiltinData->nativeData = surface;
-                                                        resultBuiltinData->destroyFunc = [](void *nativeData)
-                                                        {
-                                                            SDL_FreeSurface((SDL_Surface *)nativeData);
-                                                        };
+														BuiltinObject* resultBuiltinData = new BuiltinObject(surface, [](void* nativeData)
+															{
+																SDL_FreeSurface((SDL_Surface*)nativeData);
+															});
                                                         result = Value(resultBuiltinData);
-                                                        return true; });
+                                                        return true;
+                                                    });
 
     BuiltinManager::GetInstance()->RegisterFunction("SDL_CreateTextureFromSurface", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
-                                                        if (!IS_BUILTIN_DATA_VALUE(args[0]) || !IS_BUILTIN_DATA_VALUE(args[1]))
+                                                        if (!IS_BUILTIN_VALUE(args[0]) || !IS_BUILTIN_VALUE(args[1]))
                                                             ASSERT("Not a valid builtin value of SDL_CreateTextureFromSurface(args[0] or args[1]).");
 
-                                                        auto renderer = (SDL_Renderer *)(TO_BUILTIN_DATA_VALUE(args[0])->nativeData);
-                                                        auto surface = (SDL_Surface *)(TO_BUILTIN_DATA_VALUE(args[1])->nativeData);
+                                                        auto renderer = (SDL_Renderer *)(TO_BUILTIN_VALUE(args[0])->nativeData);
+                                                        auto surface = (SDL_Surface *)(TO_BUILTIN_VALUE(args[1])->nativeData);
 
                                                         SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
 
-                                                        BuiltinDataObject *resultBuiltinData = new BuiltinDataObject();
-                                                        resultBuiltinData->nativeData = texture;
-                                                        resultBuiltinData->destroyFunc = [](void *nativeData)
-                                                        {
-                                                            SDL_DestroyTexture((SDL_Texture *)nativeData);
-                                                        };
-                                                        result = Value(resultBuiltinData);
-                                                        return true; });
+                                                        BuiltinObject *resultBuiltin = new BuiltinObject(texture, [](void *nativeData)
+                                                                                                         { SDL_DestroyTexture((SDL_Texture *)nativeData); });
+
+                                                        result = Value(resultBuiltin);
+                                                        return true;
+                                                    });
 
     BuiltinManager::GetInstance()->RegisterFunction("SDL_RenderClear", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
-                                                        if (!IS_BUILTIN_DATA_VALUE(args[0]))
+                                                        if (!IS_BUILTIN_VALUE(args[0]))
                                                             ASSERT("Not a valid builtin value of SDL_RenderClear(args[0]).");
-                                                
-                                                        auto renderer = (SDL_Renderer *)(TO_BUILTIN_DATA_VALUE(args[0])->nativeData);
+
+                                                        auto renderer = (SDL_Renderer *)(TO_BUILTIN_VALUE(args[0])->nativeData);
                                                         SDL_RenderClear(renderer);
-                                                        return false; });
+                                                        return false;
+                                                    });
 
     BuiltinManager::GetInstance()->RegisterFunction("SDL_RenderCopy", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
-                                                        if (!IS_BUILTIN_DATA_VALUE(args[0]) || !IS_BUILTIN_DATA_VALUE(args[1]))
+                                                        if (!IS_BUILTIN_VALUE(args[0]) || !IS_BUILTIN_VALUE(args[1]))
                                                             ASSERT("Not a valid builtin value of SDL_RenderCopy(args[0] or args[1]).");
 
-                                                        auto renderer = (SDL_Renderer *)(TO_BUILTIN_DATA_VALUE(args[0])->nativeData);
-                                                        auto texture = (SDL_Texture *)(TO_BUILTIN_DATA_VALUE(args[1])->nativeData);
+                                                        auto renderer = (SDL_Renderer *)(TO_BUILTIN_VALUE(args[0])->nativeData);
+                                                        auto texture = (SDL_Texture *)(TO_BUILTIN_VALUE(args[1])->nativeData);
 
                                                         auto ret = SDL_RenderCopy(renderer, texture, nullptr, nullptr);
 
                                                         result = Value((double)ret);
-                                                        return true; });
+                                                        return true;
+                                                    });
 
     BuiltinManager::GetInstance()->RegisterFunction("SDL_RenderPresent", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
-                                                        if (!IS_BUILTIN_DATA_VALUE(args[0]))
+                                                        if (!IS_BUILTIN_VALUE(args[0]))
                                                             ASSERT("Not a valid builtin value of SDL_RenderPresent(args[0]).");
 
-                                                        auto renderer = (SDL_Renderer *)(TO_BUILTIN_DATA_VALUE(args[0])->nativeData);
+                                                        auto renderer = (SDL_Renderer *)(TO_BUILTIN_VALUE(args[0])->nativeData);
                                                         SDL_RenderPresent(renderer);
-                                                        return false; });
+                                                        return false;
+                                                    });
 
     BuiltinManager::GetInstance()->RegisterFunction("SDL_GL_SetAttribute", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
-		                                            	if (!IS_BUILTIN_VARIABLE_VALUE(args[0]))
-		                                            		ASSERT("Not a valid builtin value of SDL_GL_SetAttribute(args[0]).");
-                                                        
-                                                        if(!IS_BUILTIN_VARIABLE_VALUE(args[1]) && !IS_NUM_VALUE(args[1]))
-		                                            		ASSERT("Not a valid builtin value or num value of SDL_GL_SetAttribute(args[1]).");
+                                                        if (!IS_BUILTIN_VALUE(args[0]))
+                                                            ASSERT("Not a valid builtin value of SDL_GL_SetAttribute(args[0]).");
 
-                                                        auto flags0= (int)TO_NUM_VALUE(TO_BUILTIN_VARIABLE_VALUE(args[0])->value);
+                                                        if (!IS_BUILTIN_VALUE(args[1]) && !IS_NUM_VALUE(args[1]))
+                                                            ASSERT("Not a valid builtin value or num value of SDL_GL_SetAttribute(args[1]).");
+
+                                                        auto flags0 = (int)TO_NUM_VALUE(TO_BUILTIN_VALUE(args[0])->value);
 
                                                         int flags1 = 0;
-                                                        if(IS_BUILTIN_VARIABLE_VALUE(args[1]))
-                                                               flags1 = (int)TO_NUM_VALUE(TO_BUILTIN_VARIABLE_VALUE(args[1])->value);
-                                                        else if(IS_NUM_VALUE(args[1]))
-                                                               flags1 = (int)TO_NUM_VALUE(args[1]);
+                                                        if (IS_BUILTIN_VALUE(args[1]))
+                                                            flags1 = (int)TO_NUM_VALUE(TO_BUILTIN_VALUE(args[1])->value);
+                                                        else if (IS_NUM_VALUE(args[1]))
+                                                            flags1 = (int)TO_NUM_VALUE(args[1]);
 
                                                         result = (double)SDL_GL_SetAttribute((SDL_GLattr)flags0, flags1);
 
-                                                        return true; });
+                                                        return true;
+                                                    });
 
     BuiltinManager::GetInstance()->RegisterFunction("SDL_GL_SwapWindow", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
-		                                            	if (!IS_BUILTIN_DATA_VALUE(args[0]))
-		                                            		ASSERT("Not a valid builtin value of SDL_GL_SwapWindow(args[0]).");
+                                                        if (!IS_BUILTIN_VALUE(args[0]))
+                                                            ASSERT("Not a valid builtin value of SDL_GL_SwapWindow(args[0]).");
 
-		                                            	auto windowHandle = (SDL_Window*)(TO_BUILTIN_DATA_VALUE(args[0])->nativeData);
-		                                            	SDL_GL_SwapWindow(windowHandle);
-		                                            	return false; });
+                                                        auto windowHandle = (SDL_Window *)(TO_BUILTIN_VALUE(args[0])->nativeData);
+                                                        SDL_GL_SwapWindow(windowHandle);
+                                                        return false;
+                                                    });
 
     BuiltinManager::GetInstance()->RegisterFunction("SDL_GL_CreateContext", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
-		                                            	if (!IS_BUILTIN_DATA_VALUE(args[0]))
-		                                            		ASSERT("Not a valid builtin value of SDL_GL_CreateContext(args[0]).");
+                                                        if (!IS_BUILTIN_VALUE(args[0]))
+                                                            ASSERT("Not a valid builtin value of SDL_GL_CreateContext(args[0]).");
 
-                                                        auto windowHandle = (SDL_Window*)TO_BUILTIN_DATA_VALUE(args[0])->nativeData;
+                                                        auto windowHandle = (SDL_Window *)TO_BUILTIN_VALUE(args[0])->nativeData;
 
                                                         SDL_GLContext ctx = SDL_GL_CreateContext(windowHandle);
 
-		                                            	BuiltinDataObject* builtinData = new BuiltinDataObject();
-		                                            	builtinData->nativeData = (void*)ctx;
-		                                            	builtinData->destroyFunc = [](void* nativeData)
-		                                            		{
-		                                            			SDL_GL_DeleteContext((SDL_GLContext)nativeData);
-		                                            		};
-		                                            	result = builtinData;
-		                                            	return true; });
+														BuiltinObject* builtinData = new BuiltinObject(ctx, [](void* nativeData)
+															{
+																SDL_GL_DeleteContext((SDL_GLContext)nativeData);
+															});
+                                                        result = builtinData;
+                                                        return true;
+                                                    });
 
     BuiltinManager::GetInstance()->RegisterFunction("SDL_GL_SetSwapInterval", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
-		                                            	if (!IS_NUM_VALUE(args[0]))
-		                                            		ASSERT("Not a valid builtin value of SDL_GL_SetSwapInterval(args[0]).");
+                                                        if (!IS_NUM_VALUE(args[0]))
+                                                            ASSERT("Not a valid builtin value of SDL_GL_SetSwapInterval(args[0]).");
 
                                                         SDL_GL_SetSwapInterval((int32_t)TO_NUM_VALUE(args[0]));
-		                                            	return false; });
+                                                        return false;
+                                                    });
 }

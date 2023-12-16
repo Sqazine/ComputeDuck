@@ -40,19 +40,13 @@ void Compiler::ResetStatus()
         delete m_SymbolTable;
     m_SymbolTable = new SymbolTable();
 
-    m_BuiltinFunctionNames.clear();
-    m_BuiltinVariableNames.clear();
+    m_BuiltinNames.clear();
+  
 
-    for (int32_t i = 0; i < BuiltinManager::GetInstance()->m_BuiltinFunctionNames.size(); ++i)
+    for (int32_t i = 0; i < BuiltinManager::GetInstance()->m_BuiltinNames.size(); ++i)
     {
-        m_BuiltinFunctionNames.emplace_back(BuiltinManager::GetInstance()->m_BuiltinFunctionNames[i]);
-        m_SymbolTable->DefineBuiltinFunction(BuiltinManager::GetInstance()->m_BuiltinFunctionNames[i], i);
-    }
-
-    for (int32_t i = 0; i < BuiltinManager::GetInstance()->m_BuiltinVariableNames.size(); ++i)
-    {
-        m_BuiltinVariableNames.emplace_back(BuiltinManager::GetInstance()->m_BuiltinVariableNames[i]);
-        m_SymbolTable->DefineBuiltinVariable(BuiltinManager::GetInstance()->m_BuiltinVariableNames[i], i);
+        m_BuiltinNames.emplace_back(BuiltinManager::GetInstance()->m_BuiltinNames[i]);
+        m_SymbolTable->DefineBuiltin(BuiltinManager::GetInstance()->m_BuiltinNames[i], i);
     }
 }
 
@@ -559,13 +553,12 @@ void Compiler::CompileDllImportExpr(DllImportExpr *expr)
     RegisterBuiltins();
 #endif
 
-    std::vector<std::string> newAddedBuiltinFunctionNames;
-    std::vector<std::string> newAddedBuiltinVariableNames;
+    std::vector<std::string> newAddedBuiltinNames;
 
-    for (const auto &name : BuiltinManager::GetInstance()->m_BuiltinFunctionNames)
+    for (const auto &name : BuiltinManager::GetInstance()->m_BuiltinNames)
     {
         bool found = false;
-        for (const auto &recName : m_BuiltinFunctionNames)
+        for (const auto &recName : m_BuiltinNames)
         {
             if (name == recName)
             {
@@ -574,36 +567,14 @@ void Compiler::CompileDllImportExpr(DllImportExpr *expr)
             }
         }
         if (found == false)
-            newAddedBuiltinFunctionNames.emplace_back(name);
+            newAddedBuiltinNames.emplace_back(name);
     }
 
-    for (const auto &name : BuiltinManager::GetInstance()->m_BuiltinVariableNames)
+    int32_t legacyBuiltinCount = (int32_t)m_BuiltinNames.size();
+    for (int32_t i = 0; i < newAddedBuiltinNames.size(); ++i)
     {
-        bool found = false;
-        for (const auto &recName : m_BuiltinVariableNames)
-        {
-            if (name == recName)
-            {
-                found = true;
-                break;
-            }
-        }
-        if (found == false)
-            newAddedBuiltinVariableNames.emplace_back(name);
-    }
-
-    int32_t legacyBuiltinFuncCount = (int32_t)m_BuiltinFunctionNames.size();
-    for (int32_t i = 0; i < newAddedBuiltinFunctionNames.size(); ++i)
-    {
-        m_BuiltinFunctionNames.emplace_back(newAddedBuiltinFunctionNames[i]);
-        m_SymbolTable->DefineBuiltinFunction(newAddedBuiltinFunctionNames[i], legacyBuiltinFuncCount + i);
-    }
-
-    int32_t legacyBuiltinVarCount = (int32_t)m_BuiltinVariableNames.size();
-    for (int32_t i = 0; i < newAddedBuiltinVariableNames.size(); ++i)
-    {
-        m_BuiltinVariableNames.emplace_back(newAddedBuiltinVariableNames[i]);
-        m_SymbolTable->DefineBuiltinVariable(newAddedBuiltinVariableNames[i], legacyBuiltinVarCount + i);
+        m_BuiltinNames.emplace_back(newAddedBuiltinNames[i]);
+        m_SymbolTable->DefineBuiltin(newAddedBuiltinNames[i], legacyBuiltinCount + i);
     }
 }
 
@@ -659,12 +630,8 @@ void Compiler::LoadSymbol(const Symbol &symbol)
         Emit(symbol.scopeDepth);
         Emit(symbol.index);
         break;
-    case SymbolScope::BUILTIN_FUNCTION:
-        Emit(OP_GET_BUILTIN_FUNCTION);
-        Emit(symbol.index);
-        break;
-    case SymbolScope::BUILTIN_VARIABLE:
-        Emit(OP_GET_BUILTIN_VARIABLE);
+    case SymbolScope::BUILTIN:
+        Emit(OP_GET_BUILTIN);
         Emit(symbol.index);
         break;
     default:
