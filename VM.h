@@ -42,7 +42,7 @@ public:
 
 	void ResetStatus();
 
-	void Run(const Chunk &chunk);
+	void Run(Chunk *chunk);
 
 private:
 	void Execute();

@@ -28,7 +28,7 @@
 enum class ObjectType
 {
 	STR,
-	ARRAY,	
+	ARRAY,
 	STRUCT,
 	REF,
 	FUNCTION,
@@ -40,7 +40,7 @@ enum class ObjectType
 struct Object
 {
 	Object(ObjectType type)
-		: marked(false), next(nullptr),type(type)
+		: marked(false), next(nullptr), type(type)
 	{
 	}
 	virtual ~Object()
@@ -60,7 +60,11 @@ struct Object
 struct StrObject : public Object
 {
 	StrObject(std::string_view value)
-		:Object(ObjectType::STR),  value(value)
+		: Object(ObjectType::STR), value(value)
+	{
+	}
+
+	~StrObject() override
 	{
 	}
 
@@ -82,6 +86,11 @@ struct ArrayObject : public Object
 	ArrayObject(const std::vector<Value> &elements)
 		: Object(ObjectType::ARRAY), elements(elements)
 	{
+	}
+
+	~ArrayObject() override
+	{
+		std::vector<Value>().swap(elements);
 	}
 
 	std::string Stringify() override
@@ -131,10 +140,12 @@ struct ArrayObject : public Object
 
 struct RefObject : public Object
 {
-	RefObject(Value *pointer) :Object(ObjectType::REF),  pointer(pointer) {}
-	~RefObject()
+	RefObject(Value *pointer)
+		: Object(ObjectType::REF), pointer(pointer)
 	{
-		SAFE_DELETE(pointer);
+	}
+	~RefObject() override
+	{
 	}
 
 	std::string Stringify() override { return pointer->Stringify(); }
@@ -165,6 +176,11 @@ struct FunctionObject : public Object
 	{
 	}
 
+	~FunctionObject()
+	{
+		OpCodes().swap(opCodes);
+	}
+
 	std::string Stringify() override { return "function:(0x" + PointerAddressToString(this) + ")"; }
 	void Mark() override { marked = true; }
 	void UnMark() override { marked = false; }
@@ -191,7 +207,14 @@ struct FunctionObject : public Object
 
 struct StructObject : public Object
 {
-	StructObject(const std::unordered_map<std::string, Value> &members) :Object(ObjectType::STRUCT),  members(members) {}
+	StructObject(const std::unordered_map<std::string, Value> &members)
+		: Object(ObjectType::STRUCT), members(members)
+	{
+	}
+
+	~StructObject() override
+	{
+	}
 
 	std::string Stringify() override
 	{
@@ -240,6 +263,10 @@ struct BuiltinFunctionObject : public Object
 	{
 	}
 
+	~BuiltinFunctionObject()
+	{
+	}
+
 	std::string Stringify() override { return "Builtin Function:(0x" + PointerAddressToString(this) + ")"; }
 	void Mark() override { marked = true; }
 	void UnMark() override { marked = false; }
@@ -256,11 +283,11 @@ struct BuiltinFunctionObject : public Object
 struct BuiltinDataObject : public Object
 {
 	BuiltinDataObject()
-	:Object(ObjectType::BUILTIN_DATA),nativeData(nullptr)
+		: Object(ObjectType::BUILTIN_DATA), nativeData(nullptr)
 	{
 	}
 
-	~BuiltinDataObject()
+	~BuiltinDataObject() override
 	{
 		destroyFunc(nativeData);
 	}
@@ -282,6 +309,10 @@ struct BuiltinVariableObject : public Object
 {
 	BuiltinVariableObject(std::string_view name, const Value &v)
 		: Object(ObjectType::BUILTIN_VARIABLE), name(name), value(v)
+	{
+	}
+
+	~BuiltinVariableObject() override
 	{
 	}
 

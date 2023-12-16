@@ -7,15 +7,14 @@ VM::VM()
 }
 VM::~VM()
 {
-    m_StackTop = m_ValueStack;
     Gc(true);
 }
 
-void VM::Run(const Chunk &chunk)
+void VM::Run(Chunk *chunk)
 {
     ResetStatus();
 
-    auto mainFn = CreateObject<FunctionObject>(chunk.opCodes);
+    auto mainFn = CreateObject<FunctionObject>(chunk->opCodes);
     auto mainCallFrame = CallFrame(mainFn, 0);
     mainCallFrame.slot = m_StackTop;
 
@@ -23,7 +22,7 @@ void VM::Run(const Chunk &chunk)
     m_CallFrameTop = m_CallFrames;
     m_CallFrameTop++;
 
-    m_Chunk = &chunk;
+    m_Chunk = chunk;
 
     Execute();
 }
@@ -667,8 +666,8 @@ void VM::Gc(bool isExitingVM)
             Object *unreached = *object;
             *object = unreached->next;
 
-            delete unreached;
-            unreached = nullptr;
+            SAFE_DELETE(unreached);
+
             m_CurObjCount--;
         }
         else

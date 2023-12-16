@@ -1,5 +1,5 @@
 #include "ConstantFolder.h"
-
+#include "Config.h"
 ConstantFolder::ConstantFolder()
 {
 }
@@ -213,11 +213,20 @@ Expr *ConstantFolder::ConstantFold(Expr *expr)
             else if (infix->op == "/")
                 newExpr = new NumExpr(((NumExpr *)infix->left)->value / ((NumExpr *)infix->right)->value);
             else if (infix->op == "&")
-                newExpr = new NumExpr((uint64_t)((NumExpr *)infix->left)->value & (uint64_t)((NumExpr *)infix->right)->value);
+            {
+                auto v = (uint64_t)((NumExpr*)infix->left)->value & (uint64_t)((NumExpr*)infix->right)->value;
+                newExpr = new NumExpr((double)v);
+            }
             else if (infix->op == "|")
-                newExpr = new NumExpr((uint64_t)((NumExpr *)infix->left)->value | (uint64_t)((NumExpr *)infix->right)->value);
+            {
+                auto v = (uint64_t)((NumExpr*)infix->left)->value | (uint64_t)((NumExpr*)infix->right)->value;
+                newExpr = new NumExpr((double)v );
+            }
             else if (infix->op == "^")
-                newExpr = new NumExpr((uint64_t)((NumExpr *)infix->left)->value ^ (uint64_t)((NumExpr *)infix->right)->value);
+            {
+                auto v = (uint64_t)((NumExpr*)infix->left)->value ^ (uint64_t)((NumExpr*)infix->right)->value;
+                newExpr = new NumExpr((double)v);
+            }
             else if (infix->op == "==")
                 newExpr = new BoolExpr(((NumExpr *)infix->left)->value == ((NumExpr *)infix->right)->value);
             else if (infix->op == "!=")
@@ -231,15 +240,13 @@ Expr *ConstantFolder::ConstantFold(Expr *expr)
             else if (infix->op == "<=")
                 newExpr = new BoolExpr(((NumExpr *)infix->left)->value <= ((NumExpr *)infix->right)->value);
 
-            delete infix;
-            infix = nullptr;
+            SAFE_DELETE(infix);
             return newExpr;
         }
         else if (infix->left->type == AstType::STR && infix->right->type == AstType::STR)
         {
             auto strExpr = new StrExpr(((StrExpr *)infix->left)->value + ((StrExpr *)infix->right)->value);
-            delete infix;
-            infix = nullptr;
+            SAFE_DELETE(infix);
             return strExpr;
         }
     }
@@ -249,22 +256,20 @@ Expr *ConstantFolder::ConstantFold(Expr *expr)
         if (prefix->right->type == AstType::NUM && prefix->op == "-")
         {
             auto numExpr = new NumExpr(-((NumExpr *)prefix->right)->value);
-            delete prefix;
-            prefix = nullptr;
+            SAFE_DELETE(prefix);
             return numExpr;
         }
         else if (prefix->right->type == AstType::BOOL && prefix->op == "not")
         {
             auto boolExpr = new BoolExpr(!((BoolExpr *)prefix->right)->value);
-            delete prefix;
-            prefix = nullptr;
+            SAFE_DELETE(prefix);
             return boolExpr;
         }
         else if (prefix->right->type == AstType::NUM && prefix->op == "~")
         {
-            auto numExpr = new NumExpr(~(uint64_t)((NumExpr *)prefix->right)->value);
-            delete prefix;
-            prefix = nullptr;
+            auto v = ~(uint64_t)((NumExpr*)prefix->right)->value;
+            auto numExpr = new NumExpr((double)v);
+            SAFE_DELETE(prefix);
             return numExpr;
         }
     }

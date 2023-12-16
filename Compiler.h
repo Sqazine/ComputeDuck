@@ -18,7 +18,7 @@ public:
     Compiler();
     ~Compiler();
 
-    Chunk Compile(const std::vector<Stmt *> &stmts,bool isLineInterpret=false);
+    Chunk* Compile(const std::vector<Stmt *> &stmts,bool isLineInterpret=false);
 
     void ResetStatus();
 
