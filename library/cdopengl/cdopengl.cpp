@@ -68,13 +68,13 @@ void RegisterBuiltins()
 
 	BuiltinManager::GetInstance()->RegisterFunction("glVertexAttribPointer", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
-			if (!IS_NUM_VALUE(args[0]) && !IS_NUM_VALUE(args[1]) && !IS_BUILTIN_VARIABLE_VALUE(args[2]) && !IS_BUILTIN_VARIABLE_VALUE(args[3]) && !IS_NUM_VALUE(args[4]) && !(IS_REF_VALUE(args[5]) || IS_NIL_VALUE(args[5])))
+			if (!IS_NUM_VALUE(args[0]) && !IS_NUM_VALUE(args[1]) && !IS_BUILTIN_VALUE(args[2]) && !IS_BUILTIN_VALUE(args[3]) && !IS_NUM_VALUE(args[4]) && !(IS_REF_VALUE(args[5]) || IS_NIL_VALUE(args[5])))
 				ASSERT("Not a valid value of glVertexAttribPointer(args[0],args[1],args[2],args[3],args[4],args[5]).");
 
 			auto arg0 = (GLuint)TO_NUM_VALUE(args[0]);
 			auto arg1 = (GLuint)TO_NUM_VALUE(args[1]);
-			auto arg2 = TO_BUILTIN_VARIABLE_VALUE(args[2])->value;
-			auto arg3 = TO_BUILTIN_VARIABLE_VALUE(args[3])->value;
+			auto arg2 = TO_BUILTIN_VALUE(args[2])->value;
+			auto arg3 = TO_BUILTIN_VALUE(args[3])->value;
 			auto arg4 = (GLuint)TO_NUM_VALUE(args[4]);
 
 			if (IS_NIL_VALUE(args[5])) {
@@ -161,10 +161,10 @@ void RegisterBuiltins()
 
 	BuiltinManager::GetInstance()->RegisterFunction("glBindBuffer", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
-			if (!IS_BUILTIN_VARIABLE_VALUE(args[0]) && !IS_NUM_VALUE(args[1]))
+			if (!IS_BUILTIN_VALUE(args[0]) && !IS_NUM_VALUE(args[1]))
 				ASSERT("Not a valid value of glBindBuffer(args[0],args[1]).");
 
-			auto flag = (GLuint)(TO_BUILTIN_VARIABLE_VALUE(args[0])->value).number;
+			auto flag = (GLuint)(TO_BUILTIN_VALUE(args[0])->value).number;
 			auto obj = (GLuint)TO_NUM_VALUE(args[1]);
 			glBindBuffer(flag, obj);
 			assert(glGetError() == 0);
@@ -172,13 +172,13 @@ void RegisterBuiltins()
 
 	BuiltinManager::GetInstance()->RegisterFunction("glBufferData", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
-			if (!IS_BUILTIN_VARIABLE_VALUE(args[0]) && !IS_NUM_VALUE(args[1]) && !IS_ARRAY_VALUE(args[2]) && !IS_BUILTIN_VARIABLE_VALUE(args[3]))
+			if (!IS_BUILTIN_VALUE(args[0]) && !IS_NUM_VALUE(args[1]) && !IS_ARRAY_VALUE(args[2]) && !IS_BUILTIN_VALUE(args[3]))
 				ASSERT("Not a valid value of glBufferData(args[0],args[1],args[2],args[3]).");
 
-			auto arg0 = (GLuint)(TO_BUILTIN_VARIABLE_VALUE(args[0])->value).number;
+			auto arg0 = (GLuint)(TO_BUILTIN_VALUE(args[0])->value).number;
 			auto arg1 = (GLuint)TO_NUM_VALUE(args[1]);
 			auto arg2 = TO_ARRAY_VALUE(args[2]);
-			auto arg3 = (GLuint)(TO_BUILTIN_VARIABLE_VALUE(args[3])->value).number;
+			auto arg3 = (GLuint)(TO_BUILTIN_VALUE(args[3])->value).number;
 
 			if (arg0 == GL_ELEMENT_ARRAY_BUFFER)
 			{
@@ -201,10 +201,10 @@ void RegisterBuiltins()
 
 	BuiltinManager::GetInstance()->RegisterFunction("glCreateShader", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
-			if (!IS_BUILTIN_VARIABLE_VALUE(args[0]))
+			if (!IS_BUILTIN_VALUE(args[0]))
 				ASSERT("Not a valid value of glCreateShader(args[0]).");
 
-			auto arg0 = (GLuint)(TO_BUILTIN_VARIABLE_VALUE(args[0])->value).number;
+			auto arg0 = (GLuint)(TO_BUILTIN_VALUE(args[0])->value).number;
 			result = (double)glCreateShader(arg0);
 			assert(glGetError() == 0);
 			return true; });
@@ -300,9 +300,9 @@ void RegisterBuiltins()
 
 	BuiltinManager::GetInstance()->RegisterFunction("glClear", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
-			if (IS_BUILTIN_VARIABLE_VALUE(args[0]))
+			if (IS_BUILTIN_VALUE(args[0]))
 			{
-				auto arg0 = (GLuint)(TO_BUILTIN_VARIABLE_VALUE(args[0])->value.number);
+				auto arg0 = (GLuint)(TO_BUILTIN_VALUE(args[0])->value.number);
 				glClear(arg0);
 			}
 			else if (IS_NUM_VALUE(args[0]))
@@ -327,12 +327,12 @@ void RegisterBuiltins()
 
 	BuiltinManager::GetInstance()->RegisterFunction("glDrawElements", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
-			if (!IS_BUILTIN_VARIABLE_VALUE(args[0]) && !IS_NUM_VALUE(args[1]) && !IS_BUILTIN_VARIABLE_VALUE(args[2]) && !(IS_REF_VALUE(args[3]) || IS_NIL_VALUE(args[3])))
+			if (!IS_BUILTIN_VALUE(args[0]) && !IS_NUM_VALUE(args[1]) && !IS_BUILTIN_VALUE(args[2]) && !(IS_REF_VALUE(args[3]) || IS_NIL_VALUE(args[3])))
 				ASSERT("Not a valid value of glDrawElements(args[0],arg[1],arg[2],arg[3]).");
 
-			auto arg0 = (GLenum)TO_BUILTIN_VARIABLE_VALUE(args[0])->value.number;
+			auto arg0 = (GLenum)TO_BUILTIN_VALUE(args[0])->value.number;
 			auto arg1 = (GLuint)TO_NUM_VALUE(args[1]);
-			auto arg2 = (GLenum)TO_BUILTIN_VARIABLE_VALUE(args[2])->value.number;
+			auto arg2 = (GLenum)TO_BUILTIN_VALUE(args[2])->value.number;
 
 			if (IS_NIL_VALUE(args[3]))
 			{

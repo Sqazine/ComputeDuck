@@ -28,9 +28,6 @@ private:
     friend class VM;
     friend class Compiler;
 
-    std::vector<BuiltinFunctionObject *> m_BuiltinFunctions;
-    std::vector<std::string> m_BuiltinFunctionNames;
-
-    std::vector<BuiltinVariableObject *> m_BuiltinVariables;
-    std::vector<std::string> m_BuiltinVariableNames;
+    std::vector<BuiltinObject *> m_Builtins;
+    std::vector<std::string> m_BuiltinNames;
 };

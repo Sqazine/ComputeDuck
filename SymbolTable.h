@@ -6,8 +6,7 @@ enum class SymbolScope
 {
     GLOBAL,
     LOCAL,
-    BUILTIN_FUNCTION,
-    BUILTIN_VARIABLE,
+    BUILTIN,
 };
 
 struct Symbol
@@ -71,16 +70,9 @@ struct SymbolTable
         return symbol;
     }
 
-    Symbol DefineBuiltinFunction(const std::string &name, int32_t index)
+    Symbol DefineBuiltin(const std::string &name, int32_t index)
     {
-        auto symbol = Symbol(name, SymbolScope::BUILTIN_FUNCTION, index, scopeDepth);
-        symbolMaps[name] = symbol;
-        return symbol;
-    }
-
-    Symbol DefineBuiltinVariable(const std::string &name, int32_t index)
-    {
-        auto symbol = Symbol(name, SymbolScope::BUILTIN_VARIABLE, index, scopeDepth);
+        auto symbol = Symbol(name, SymbolScope::BUILTIN, index, scopeDepth);
         symbolMaps[name] = symbol;
         return symbol;
     }
@@ -98,7 +90,7 @@ struct SymbolTable
             bool isFound = enclosing->Resolve(name, symbol);
             if (!isFound)
                 return false;
-            if (symbol.scope == SymbolScope::GLOBAL || symbol.scope == SymbolScope::BUILTIN_FUNCTION || symbol.scope == SymbolScope::BUILTIN_VARIABLE)
+            if (symbol.scope == SymbolScope::GLOBAL || symbol.scope == SymbolScope::BUILTIN)
                 return true;
 
             symbol.isInUpScope = 1;

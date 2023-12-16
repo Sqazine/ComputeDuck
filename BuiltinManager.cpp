@@ -124,23 +124,20 @@ void BuiltinManager::Init()
 }
 void BuiltinManager::Release()
 {
-	std::vector<BuiltinFunctionObject*>().swap(m_BuiltinFunctions);
-	std::vector<std::string>().swap(m_BuiltinFunctionNames);
-
-	std::vector<BuiltinVariableObject*>().swap(m_BuiltinVariables);
-	std::vector<std::string>().swap(m_BuiltinVariableNames);
+	std::vector<BuiltinObject*>().swap(m_Builtins);
+	std::vector<std::string>().swap(m_BuiltinNames);
 }
 
 void BuiltinManager::RegisterFunction(std::string_view name, const BuiltinFn& fn)
 {
-	m_BuiltinFunctions.emplace_back(new BuiltinFunctionObject(name, fn));
-	m_BuiltinFunctionNames.emplace_back(name);
+	m_Builtins.emplace_back(new BuiltinObject(name, fn));
+	m_BuiltinNames.emplace_back(name);
 }
 
 void BuiltinManager::RegisterVariable(std::string_view name, const Value& value)
 {
-	m_BuiltinVariables.emplace_back(new BuiltinVariableObject(name, value));
-	m_BuiltinVariableNames.emplace_back(name);
+	m_Builtins.emplace_back(new BuiltinObject(name, value));
+	m_BuiltinNames.emplace_back(name);
 }
 
 void BuiltinManager::SetExecuteFilePath(std::string_view path)

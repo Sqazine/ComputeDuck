@@ -189,19 +189,11 @@ void Chunk::OpCodeStringify(const OpCodes &opcodes)
             ++i;
             break;
         }
-        case OP_GET_BUILTIN_FUNCTION:
+        case OP_GET_BUILTIN:
         {
             auto builtinIdx = opcodes[i + 1];
             std::cout << std::setfill('0') << std::setw(8) << i << "    "
-                      << "OP_GET_BUILTIN_FUNCTION    " << builtinIdx << std::endl;
-            ++i;
-            break;
-        }
-        case OP_GET_BUILTIN_VARIABLE:
-        {
-            auto builtinIdx = opcodes[i + 1];
-            std::cout << std::setfill('0') << std::setw(8) << i << "    "
-                      << "OP_GET_BUILTIN_VARIABLE    " << builtinIdx << std::endl;
+                      << "OP_GET_BUILTIN   " << builtinIdx << std::endl;
             ++i;
             break;
         }
