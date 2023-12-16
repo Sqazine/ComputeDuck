@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.10)
 
 project(ComputeDuck LANGUAGES CXX)
 
+option(BuildSDL2 "build SDL2 third party for cdsdl2" ON) 
+option(BuildOpengl "build glad third party for cdsdl2" ON) 
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
