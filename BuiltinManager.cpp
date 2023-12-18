@@ -10,9 +10,9 @@ BuiltinManager* BuiltinManager::GetInstance()
 	return &instance;
 }
 
-void BuiltinManager::Init()
+BuiltinManager::BuiltinManager()
 {
-	RegisterFunction("print", [&](Value* args, uint8_t argCount, Value& result) -> bool
+	Register("print", [&](Value* args, uint8_t argCount, Value& result) -> bool
 		{
 			if (argCount == 0)
 				return false;
@@ -21,7 +21,7 @@ void BuiltinManager::Init()
 			return false;
 		});
 
-	RegisterFunction("println", [&](Value* args, uint8_t argCount, Value& result) -> bool
+	Register("println", [&](Value* args, uint8_t argCount, Value& result) -> bool
 		{
 			if (argCount == 0)
 				return false;
@@ -30,7 +30,7 @@ void BuiltinManager::Init()
 			return false;
 		});
 
-	RegisterFunction("sizeof", [&](Value* args, uint8_t argCount, Value& result) -> bool
+	Register("sizeof", [&](Value* args, uint8_t argCount, Value& result) -> bool
 		{
 			if (argCount == 0 || argCount > 1)
 				ASSERT("[Native function 'sizeof']:Expect a argument.");
@@ -44,7 +44,7 @@ void BuiltinManager::Init()
 			return true;
 		});
 
-	RegisterFunction("insert", [&](Value* args, uint8_t argCount, Value& result) -> bool
+	Register("insert", [&](Value* args, uint8_t argCount, Value& result) -> bool
 		{
 			if (argCount == 0 || argCount != 3)
 				ASSERT("[Native function 'insert']:Expect 3 arguments,the arg0 must be array or string object.The arg1 is the index object.The arg2 is the value object.");
@@ -80,7 +80,7 @@ void BuiltinManager::Init()
 			return false;
 		});
 
-	RegisterFunction("erase", [&](Value* args, uint8_t argCount, Value& result) -> bool
+	Register("erase", [&](Value* args, uint8_t argCount, Value& result) -> bool
 		{
 			if (argCount == 0 || argCount != 2)
 				ASSERT("[Native function 'erase']:Expect 2 arguments,the arg0 must be array or string object.The arg1 is the corresponding index object.");
@@ -116,25 +116,25 @@ void BuiltinManager::Init()
 			return false;
 		});
 
-	RegisterFunction("clock", [&](Value* args, uint8_t argCount, Value& result) -> bool
+	Register("clock", [&](Value* args, uint8_t argCount, Value& result) -> bool
 		{
 			result = Value((double)clock() / CLOCKS_PER_SEC);
 			return true;
 		});
 }
-void BuiltinManager::Release()
+BuiltinManager::~BuiltinManager()
 {
 	std::vector<BuiltinObject*>().swap(m_Builtins);
 	std::vector<std::string>().swap(m_BuiltinNames);
 }
 
-void BuiltinManager::RegisterFunction(std::string_view name, const BuiltinFn& fn)
+void BuiltinManager::Register(std::string_view name, const BuiltinFn& fn)
 {
 	m_Builtins.emplace_back(new BuiltinObject(name, fn));
 	m_BuiltinNames.emplace_back(name);
 }
 
-void BuiltinManager::RegisterVariable(std::string_view name, const Value& value)
+void BuiltinManager::Register(std::string_view name, const Value& value)
 {
 	m_Builtins.emplace_back(new BuiltinObject(name, value));
 	m_BuiltinNames.emplace_back(name);

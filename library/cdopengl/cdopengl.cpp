@@ -1,33 +1,33 @@
 #include "cdopengl.h"
 #include "glad/khrplatform.h"
 #include "glad/glad.h"
-#include "../../BuiltinManager.h"
-#include "../../Value.h"
+#include "BuiltinManager.h"
+#include "Value.h"
 #include <cassert>
 void RegisterBuiltins()
 {
-#define REGISTER_GL_VALUE(x) BuiltinManager::GetInstance()->RegisterVariable(#x, Value((double)(x)));
+#define REGISTER_VALUE(x) BuiltinManager::GetInstance()->Register(#x, Value((double)(x)));
 
-	REGISTER_GL_VALUE(GL_ARRAY_BUFFER)
-	REGISTER_GL_VALUE(GL_STATIC_DRAW)
-	REGISTER_GL_VALUE(GL_VERTEX_SHADER)
-	REGISTER_GL_VALUE(GL_FRAGMENT_SHADER)
-	REGISTER_GL_VALUE(GL_COLOR_BUFFER_BIT)
-	REGISTER_GL_VALUE(GL_DEPTH_BUFFER_BIT)
-	REGISTER_GL_VALUE(GL_ELEMENT_ARRAY_BUFFER)
-	REGISTER_GL_VALUE(GL_FLOAT)
-	REGISTER_GL_VALUE(GL_FALSE)
-	REGISTER_GL_VALUE(GL_TRUE)
-	REGISTER_GL_VALUE(GL_TRIANGLES)
-	REGISTER_GL_VALUE(GL_UNSIGNED_INT)
+	REGISTER_VALUE(GL_ARRAY_BUFFER)
+	REGISTER_VALUE(GL_STATIC_DRAW)
+	REGISTER_VALUE(GL_VERTEX_SHADER)
+	REGISTER_VALUE(GL_FRAGMENT_SHADER)
+	REGISTER_VALUE(GL_COLOR_BUFFER_BIT)
+	REGISTER_VALUE(GL_DEPTH_BUFFER_BIT)
+	REGISTER_VALUE(GL_ELEMENT_ARRAY_BUFFER)
+	REGISTER_VALUE(GL_FLOAT)
+	REGISTER_VALUE(GL_FALSE)
+	REGISTER_VALUE(GL_TRUE)
+	REGISTER_VALUE(GL_TRIANGLES)
+	REGISTER_VALUE(GL_UNSIGNED_INT)
 
-	BuiltinManager::GetInstance()->RegisterFunction("gladLoadGL", [&](Value *args, uint8_t argCount, Value &result) -> bool
+	BuiltinManager::GetInstance()->Register("gladLoadGL", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
 				auto ret = gladLoadGL();
 				result = Value((float)ret);
 				return true; });
 
-	BuiltinManager::GetInstance()->RegisterFunction("glGenVertexArrays", [&](Value *args, uint8_t argCount, Value &result) -> bool
+	BuiltinManager::GetInstance()->Register("glGenVertexArrays", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
 			if (!IS_NUM_VALUE(args[0]) && !IS_REF_VALUE(args[1]))
 				ASSERT("Not a valid value of glGenVertexArrays(args[0],args[1]).");
@@ -56,7 +56,7 @@ void RegisterBuiltins()
 					ASSERT("Not a valid value of glGenVertexArrays:args[1].only number array or number is available");
 			return false; });
 
-	BuiltinManager::GetInstance()->RegisterFunction("glBindVertexArray", [&](Value *args, uint8_t argCount, Value &result) -> bool
+	BuiltinManager::GetInstance()->Register("glBindVertexArray", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
 			if (!IS_NUM_VALUE(args[0]))
 				ASSERT("Not a valid value of glGenVertexArrays(args[0],args[1]).");
@@ -66,7 +66,7 @@ void RegisterBuiltins()
 			assert(glGetError() == 0);
 			return false; });
 
-	BuiltinManager::GetInstance()->RegisterFunction("glVertexAttribPointer", [&](Value *args, uint8_t argCount, Value &result) -> bool
+	BuiltinManager::GetInstance()->Register("glVertexAttribPointer", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
 			if (!IS_NUM_VALUE(args[0]) && !IS_NUM_VALUE(args[1]) && !IS_BUILTIN_VALUE(args[2]) && !IS_BUILTIN_VALUE(args[3]) && !IS_NUM_VALUE(args[4]) && !(IS_REF_VALUE(args[5]) || IS_NIL_VALUE(args[5])))
 				ASSERT("Not a valid value of glVertexAttribPointer(args[0],args[1],args[2],args[3],args[4],args[5]).");
@@ -119,7 +119,7 @@ void RegisterBuiltins()
 			assert(glGetError() == 0);
 			return false; });
 
-	BuiltinManager::GetInstance()->RegisterFunction("glEnableVertexAttribArray", [&](Value *args, uint8_t argCount, Value &result) -> bool
+	BuiltinManager::GetInstance()->Register("glEnableVertexAttribArray", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
 			if (!IS_NUM_VALUE(args[0]))
 				ASSERT("Not a valid value of glEnableVertexAttribArray(args[0]).");
@@ -129,7 +129,7 @@ void RegisterBuiltins()
 			assert(glGetError() == 0);
 			return false; });
 
-	BuiltinManager::GetInstance()->RegisterFunction("glGenBuffers", [&](Value *args, uint8_t argCount, Value &result) -> bool
+	BuiltinManager::GetInstance()->Register("glGenBuffers", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
 			if (!IS_NUM_VALUE(args[0]) && !IS_REF_VALUE(args[1]))
 				ASSERT("Not a valid value of glGenBuffers(args[0],args[1]).");
@@ -159,7 +159,7 @@ void RegisterBuiltins()
 
 			return false; });
 
-	BuiltinManager::GetInstance()->RegisterFunction("glBindBuffer", [&](Value *args, uint8_t argCount, Value &result) -> bool
+	BuiltinManager::GetInstance()->Register("glBindBuffer", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
 			if (!IS_BUILTIN_VALUE(args[0]) && !IS_NUM_VALUE(args[1]))
 				ASSERT("Not a valid value of glBindBuffer(args[0],args[1]).");
@@ -170,7 +170,7 @@ void RegisterBuiltins()
 			assert(glGetError() == 0);
 			return false; });
 
-	BuiltinManager::GetInstance()->RegisterFunction("glBufferData", [&](Value *args, uint8_t argCount, Value &result) -> bool
+	BuiltinManager::GetInstance()->Register("glBufferData", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
 			if (!IS_BUILTIN_VALUE(args[0]) && !IS_NUM_VALUE(args[1]) && !IS_ARRAY_VALUE(args[2]) && !IS_BUILTIN_VALUE(args[3]))
 				ASSERT("Not a valid value of glBufferData(args[0],args[1],args[2],args[3]).");
@@ -199,7 +199,7 @@ void RegisterBuiltins()
 			assert(glGetError() == 0);
 			return false; });
 
-	BuiltinManager::GetInstance()->RegisterFunction("glCreateShader", [&](Value *args, uint8_t argCount, Value &result) -> bool
+	BuiltinManager::GetInstance()->Register("glCreateShader", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
 			if (!IS_BUILTIN_VALUE(args[0]))
 				ASSERT("Not a valid value of glCreateShader(args[0]).");
@@ -209,7 +209,7 @@ void RegisterBuiltins()
 			assert(glGetError() == 0);
 			return true; });
 
-	BuiltinManager::GetInstance()->RegisterFunction("glShaderSource", [&](Value *args, uint8_t argCount, Value &result) -> bool
+	BuiltinManager::GetInstance()->Register("glShaderSource", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
 			if (!IS_NUM_VALUE(args[0]) && IS_NUM_VALUE(args[1]) && !IS_REF_VALUE(args[2]) && !(IS_REF_VALUE(args[3]) || IS_NIL_VALUE(args[3])))
 				ASSERT("Not a valid value of glShaderSource(args[0],args[1],args[2],args[3]).");
@@ -226,7 +226,7 @@ void RegisterBuiltins()
 			assert(glGetError() == 0);
 			return false; });
 
-	BuiltinManager::GetInstance()->RegisterFunction("glCompileShader", [&](Value *args, uint8_t argCount, Value &result) -> bool
+	BuiltinManager::GetInstance()->Register("glCompileShader", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
 			if (!IS_NUM_VALUE(args[0]))
 				ASSERT("Not a valid value of glCompileShader(args[0]).");
@@ -246,13 +246,13 @@ void RegisterBuiltins()
 			assert(glGetError() == 0);
 			return false; });
 
-	BuiltinManager::GetInstance()->RegisterFunction("glCreateProgram", [&](Value *args, uint8_t argCount, Value &result) -> bool
+	BuiltinManager::GetInstance()->Register("glCreateProgram", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
 			result = (double)glCreateProgram();
 			assert(glGetError() == 0);
 			return true; });
 
-	BuiltinManager::GetInstance()->RegisterFunction("glAttachShader", [&](Value *args, uint8_t argCount, Value &result) -> bool
+	BuiltinManager::GetInstance()->Register("glAttachShader", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
 			if (!IS_NUM_VALUE(args[0]) && !IS_NUM_VALUE(args[1]))
 				ASSERT("Not a valid value of glAttachShader(args[0],args[1]).");
@@ -264,7 +264,7 @@ void RegisterBuiltins()
 			assert(glGetError() == 0);
 			return false; });
 
-	BuiltinManager::GetInstance()->RegisterFunction("glLinkProgram", [&](Value *args, uint8_t argCount, Value &result) -> bool
+	BuiltinManager::GetInstance()->Register("glLinkProgram", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
 			if (!IS_NUM_VALUE(args[0]))
 				ASSERT("Not a valid value of glLinkProgram(args[0]).");
@@ -284,7 +284,7 @@ void RegisterBuiltins()
 			assert(glGetError() == 0);
 			return false; });
 
-	BuiltinManager::GetInstance()->RegisterFunction("glClearColor", [&](Value *args, uint8_t argCount, Value &result) -> bool
+	BuiltinManager::GetInstance()->Register("glClearColor", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
 			if (!IS_NUM_VALUE(args[0]) && !IS_NUM_VALUE(args[1]) && !IS_NUM_VALUE(args[2]) && !IS_NUM_VALUE(args[3]))
 				ASSERT("Not a valid value of glCreateShader(args[0],arg[1],arg[2],arg[3]).");
@@ -298,7 +298,7 @@ void RegisterBuiltins()
 			assert(glGetError() == 0);
 			return false; });
 
-	BuiltinManager::GetInstance()->RegisterFunction("glClear", [&](Value *args, uint8_t argCount, Value &result) -> bool
+	BuiltinManager::GetInstance()->Register("glClear", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
 			if (IS_BUILTIN_VALUE(args[0]))
 			{
@@ -315,7 +315,7 @@ void RegisterBuiltins()
 			assert(glGetError() == 0);
 			return false; });
 
-	BuiltinManager::GetInstance()->RegisterFunction("glUseProgram", [&](Value *args, uint8_t argCount, Value &result) -> bool
+	BuiltinManager::GetInstance()->Register("glUseProgram", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
 			if (!IS_NUM_VALUE(args[0]))
 				ASSERT("Not a valid value of glUseProgram(args[0]).");
@@ -325,7 +325,7 @@ void RegisterBuiltins()
 			assert(glGetError() == 0);
 			return false; });
 
-	BuiltinManager::GetInstance()->RegisterFunction("glDrawElements", [&](Value *args, uint8_t argCount, Value &result) -> bool
+	BuiltinManager::GetInstance()->Register("glDrawElements", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													{
 			if (!IS_BUILTIN_VALUE(args[0]) && !IS_NUM_VALUE(args[1]) && !IS_BUILTIN_VALUE(args[2]) && !(IS_REF_VALUE(args[3]) || IS_NIL_VALUE(args[3])))
 				ASSERT("Not a valid value of glDrawElements(args[0],arg[1],arg[2],arg[3]).");
