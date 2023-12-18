@@ -16,27 +16,32 @@ void Run(std::string_view content)
 {
 	auto tokens = gPreProcessor->PreProcess(content);
 
+#ifdef DEBUG
 	for (const auto& token : tokens)
 		std::cout << token << std::endl;
+#endif
 
 	auto stmts = gParser->Parse(tokens);
 
+#ifdef DEBUG
 	for (const auto& stmt : stmts)
 		std::cout << stmt->Stringify() << std::endl;
+#endif
 
 	auto chunk = gCompiler->Compile(stmts);
 
 	for (auto stmt : stmts)
 		SAFE_DELETE(stmt);
-
+		
+#ifdef DEBUG
 	chunk->Stringify();
+#endif
 
 	gVm->Run(chunk);
 }
 
 void Repl()
 {
-
 	std::string line;
 
 	std::cout << "> ";
@@ -53,15 +58,12 @@ void Repl()
 void RunFile(std::string_view path)
 {
 	std::string content = ReadFile(path);
-
 	Run(content);
 }
 
 #undef main
 int main(int argc, char** argv)
 {
-	BuiltinManager::GetInstance()->Init();
-
 	if (argc == 2)
 	{
 		std::string curPath = std::filesystem::absolute(std::filesystem::path(argv[1])).string();
@@ -87,13 +89,11 @@ int main(int argc, char** argv)
 	}
 	else
 		std::cout << "Usage: ComputeDuck [filepath]" << std::endl;
-
+		
 	SAFE_DELETE(gVm);
 	SAFE_DELETE(gCompiler);
 	SAFE_DELETE(gParser);
 	SAFE_DELETE(gPreProcessor);
-
-	BuiltinManager::GetInstance()->Release();
 
 	return 0;
 }

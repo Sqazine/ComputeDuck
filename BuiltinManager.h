@@ -7,11 +7,8 @@ class COMPUTE_DUCK_API BuiltinManager
 public:
     static BuiltinManager *GetInstance();
 
-    void Init();
-    void Release();
-
-    void RegisterFunction(std::string_view name, const BuiltinFn &fn);
-    void RegisterVariable(std::string_view name, const Value &value);
+    void Register(std::string_view name, const BuiltinFn &fn);
+    void Register(std::string_view name, const Value &value);
 
     void SetExecuteFilePath(std::string_view path);
     const std::string& GetExecuteFilePath() const;
@@ -22,8 +19,8 @@ private:
 
     static std::string m_CurExecuteFilePath;
 
-    BuiltinManager() = default;
-    ~BuiltinManager() = default;
+    BuiltinManager();
+    ~BuiltinManager();
 
     friend class VM;
     friend class Compiler;

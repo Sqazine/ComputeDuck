@@ -42,7 +42,6 @@ void Compiler::ResetStatus()
 
     m_BuiltinNames.clear();
   
-
     for (int32_t i = 0; i < BuiltinManager::GetInstance()->m_BuiltinNames.size(); ++i)
     {
         m_BuiltinNames.emplace_back(BuiltinManager::GetInstance()->m_BuiltinNames[i]);

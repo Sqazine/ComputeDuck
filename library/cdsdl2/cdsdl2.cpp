@@ -1,82 +1,82 @@
 #include "cdsdl2.h"
 #include <vector>
 #include <SDL.h>
-#include "../../BuiltinManager.h"
-#include "../../Value.h"
+#include "BuiltinManager.h"
+#include "Value.h"
 void RegisterBuiltins()
 {
-#define REGISTER_SDL_VALUE(x) BuiltinManager::GetInstance()->RegisterVariable(#x, Value((double)(x)));
+#define REGISTER_VALUE(x) BuiltinManager::GetInstance()->Register(#x, Value((double)(x)));
 
-    REGISTER_SDL_VALUE(SDL_QUIT)
+    REGISTER_VALUE(SDL_QUIT)
 
-    REGISTER_SDL_VALUE(SDL_WINDOWPOS_CENTERED)
-    REGISTER_SDL_VALUE(SDL_WINDOW_FULLSCREEN)
-    REGISTER_SDL_VALUE(SDL_WINDOW_OPENGL)
-    REGISTER_SDL_VALUE(SDL_WINDOW_SHOWN)
-    REGISTER_SDL_VALUE(SDL_WINDOW_HIDDEN)
-    REGISTER_SDL_VALUE(SDL_WINDOW_BORDERLESS)
-    REGISTER_SDL_VALUE(SDL_WINDOW_RESIZABLE)
-    REGISTER_SDL_VALUE(SDL_WINDOW_MINIMIZED)
-    REGISTER_SDL_VALUE(SDL_WINDOW_MAXIMIZED)
-    REGISTER_SDL_VALUE(SDL_WINDOW_MOUSE_GRABBED)
-    REGISTER_SDL_VALUE(SDL_WINDOW_INPUT_FOCUS)
-    REGISTER_SDL_VALUE(SDL_WINDOW_FULLSCREEN_DESKTOP)
-    REGISTER_SDL_VALUE(SDL_WINDOW_ALLOW_HIGHDPI)
-    REGISTER_SDL_VALUE(SDL_WINDOW_MOUSE_CAPTURE)
-    REGISTER_SDL_VALUE(SDL_WINDOW_ALWAYS_ON_TOP)
-    REGISTER_SDL_VALUE(SDL_WINDOW_SKIP_TASKBAR)
-    REGISTER_SDL_VALUE(SDL_WINDOW_UTILITY)
-    REGISTER_SDL_VALUE(SDL_WINDOW_TOOLTIP)
-    REGISTER_SDL_VALUE(SDL_WINDOW_POPUP_MENU)
-    REGISTER_SDL_VALUE(SDL_WINDOW_KEYBOARD_GRABBED)
+    REGISTER_VALUE(SDL_WINDOWPOS_CENTERED)
+    REGISTER_VALUE(SDL_WINDOW_FULLSCREEN)
+    REGISTER_VALUE(SDL_WINDOW_OPENGL)
+    REGISTER_VALUE(SDL_WINDOW_SHOWN)
+    REGISTER_VALUE(SDL_WINDOW_HIDDEN)
+    REGISTER_VALUE(SDL_WINDOW_BORDERLESS)
+    REGISTER_VALUE(SDL_WINDOW_RESIZABLE)
+    REGISTER_VALUE(SDL_WINDOW_MINIMIZED)
+    REGISTER_VALUE(SDL_WINDOW_MAXIMIZED)
+    REGISTER_VALUE(SDL_WINDOW_MOUSE_GRABBED)
+    REGISTER_VALUE(SDL_WINDOW_INPUT_FOCUS)
+    REGISTER_VALUE(SDL_WINDOW_FULLSCREEN_DESKTOP)
+    REGISTER_VALUE(SDL_WINDOW_ALLOW_HIGHDPI)
+    REGISTER_VALUE(SDL_WINDOW_MOUSE_CAPTURE)
+    REGISTER_VALUE(SDL_WINDOW_ALWAYS_ON_TOP)
+    REGISTER_VALUE(SDL_WINDOW_SKIP_TASKBAR)
+    REGISTER_VALUE(SDL_WINDOW_UTILITY)
+    REGISTER_VALUE(SDL_WINDOW_TOOLTIP)
+    REGISTER_VALUE(SDL_WINDOW_POPUP_MENU)
+    REGISTER_VALUE(SDL_WINDOW_KEYBOARD_GRABBED)
 
-    REGISTER_SDL_VALUE(SDL_GL_RED_SIZE)
-    REGISTER_SDL_VALUE(SDL_GL_GREEN_SIZE)
-    REGISTER_SDL_VALUE(SDL_GL_BLUE_SIZE)
-    REGISTER_SDL_VALUE(SDL_GL_ALPHA_SIZE)
-    REGISTER_SDL_VALUE(SDL_GL_BUFFER_SIZE)
-    REGISTER_SDL_VALUE(SDL_GL_DOUBLEBUFFER)
-    REGISTER_SDL_VALUE(SDL_GL_DEPTH_SIZE)
-    REGISTER_SDL_VALUE(SDL_GL_STENCIL_SIZE)
-    REGISTER_SDL_VALUE(SDL_GL_ACCUM_RED_SIZE)
-    REGISTER_SDL_VALUE(SDL_GL_ACCUM_GREEN_SIZE)
-    REGISTER_SDL_VALUE(SDL_GL_ACCUM_BLUE_SIZE)
-    REGISTER_SDL_VALUE(SDL_GL_ACCUM_ALPHA_SIZE)
-    REGISTER_SDL_VALUE(SDL_GL_STEREO)
-    REGISTER_SDL_VALUE(SDL_GL_MULTISAMPLEBUFFERS)
-    REGISTER_SDL_VALUE(SDL_GL_MULTISAMPLESAMPLES)
-    REGISTER_SDL_VALUE(SDL_GL_ACCELERATED_VISUAL)
-    REGISTER_SDL_VALUE(SDL_GL_RETAINED_BACKING)
-    REGISTER_SDL_VALUE(SDL_GL_CONTEXT_MAJOR_VERSION)
-    REGISTER_SDL_VALUE(SDL_GL_CONTEXT_MINOR_VERSION)
-    REGISTER_SDL_VALUE(SDL_GL_CONTEXT_EGL)
-    REGISTER_SDL_VALUE(SDL_GL_CONTEXT_FLAGS)
-    REGISTER_SDL_VALUE(SDL_GL_CONTEXT_PROFILE_MASK)
-    REGISTER_SDL_VALUE(SDL_GL_SHARE_WITH_CURRENT_CONTEXT)
-    REGISTER_SDL_VALUE(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE)
-    REGISTER_SDL_VALUE(SDL_GL_CONTEXT_RELEASE_BEHAVIOR)
-    REGISTER_SDL_VALUE(SDL_GL_CONTEXT_RESET_NOTIFICATION)
+    REGISTER_VALUE(SDL_GL_RED_SIZE)
+    REGISTER_VALUE(SDL_GL_GREEN_SIZE)
+    REGISTER_VALUE(SDL_GL_BLUE_SIZE)
+    REGISTER_VALUE(SDL_GL_ALPHA_SIZE)
+    REGISTER_VALUE(SDL_GL_BUFFER_SIZE)
+    REGISTER_VALUE(SDL_GL_DOUBLEBUFFER)
+    REGISTER_VALUE(SDL_GL_DEPTH_SIZE)
+    REGISTER_VALUE(SDL_GL_STENCIL_SIZE)
+    REGISTER_VALUE(SDL_GL_ACCUM_RED_SIZE)
+    REGISTER_VALUE(SDL_GL_ACCUM_GREEN_SIZE)
+    REGISTER_VALUE(SDL_GL_ACCUM_BLUE_SIZE)
+    REGISTER_VALUE(SDL_GL_ACCUM_ALPHA_SIZE)
+    REGISTER_VALUE(SDL_GL_STEREO)
+    REGISTER_VALUE(SDL_GL_MULTISAMPLEBUFFERS)
+    REGISTER_VALUE(SDL_GL_MULTISAMPLESAMPLES)
+    REGISTER_VALUE(SDL_GL_ACCELERATED_VISUAL)
+    REGISTER_VALUE(SDL_GL_RETAINED_BACKING)
+    REGISTER_VALUE(SDL_GL_CONTEXT_MAJOR_VERSION)
+    REGISTER_VALUE(SDL_GL_CONTEXT_MINOR_VERSION)
+    REGISTER_VALUE(SDL_GL_CONTEXT_EGL)
+    REGISTER_VALUE(SDL_GL_CONTEXT_FLAGS)
+    REGISTER_VALUE(SDL_GL_CONTEXT_PROFILE_MASK)
+    REGISTER_VALUE(SDL_GL_SHARE_WITH_CURRENT_CONTEXT)
+    REGISTER_VALUE(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE)
+    REGISTER_VALUE(SDL_GL_CONTEXT_RELEASE_BEHAVIOR)
+    REGISTER_VALUE(SDL_GL_CONTEXT_RESET_NOTIFICATION)
 
-    REGISTER_SDL_VALUE(SDL_GL_CONTEXT_PROFILE_CORE)
-    REGISTER_SDL_VALUE(SDL_GL_CONTEXT_PROFILE_COMPATIBILITY)
-    REGISTER_SDL_VALUE(SDL_GL_CONTEXT_PROFILE_ES)
+    REGISTER_VALUE(SDL_GL_CONTEXT_PROFILE_CORE)
+    REGISTER_VALUE(SDL_GL_CONTEXT_PROFILE_COMPATIBILITY)
+    REGISTER_VALUE(SDL_GL_CONTEXT_PROFILE_ES)
 
-#undef REGISTER_SDL_VALUE
+#undef REGISTER_VALUE
 
-    BuiltinManager::GetInstance()->RegisterFunction("SDL_Init", [&](Value *args, uint8_t argCount, Value &result) -> bool
+    BuiltinManager::GetInstance()->Register("SDL_Init", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
                                                         auto ret = SDL_Init(SDL_INIT_EVERYTHING);
                                                         result = Value((float)ret);
                                                         return true;
                                                     });
 
-    BuiltinManager::GetInstance()->RegisterFunction("SDL_Quit", [&](Value *args, uint8_t argCount, Value &result) -> bool
+    BuiltinManager::GetInstance()->Register("SDL_Quit", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
                                                         SDL_Quit();
                                                         return false;
                                                     });
 
-    BuiltinManager::GetInstance()->RegisterFunction("SDL_CreateWindow", [&](Value *args, uint8_t argCount, Value &result) -> bool
+    BuiltinManager::GetInstance()->Register("SDL_CreateWindow", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
                                                         auto name = TO_STR_VALUE(args[0])->value.c_str();
                                                         auto posX = (int)TO_NUM_VALUE(TO_BUILTIN_VALUE(args[1])->value);
@@ -94,7 +94,7 @@ void RegisterBuiltins()
                                                         return true;
                                                     });
 
-    BuiltinManager::GetInstance()->RegisterFunction("SDL_PollEvent", [&](Value *args, uint8_t argCount, Value &result) -> bool
+    BuiltinManager::GetInstance()->Register("SDL_PollEvent", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
                                                         SDL_Event *event = new SDL_Event();
                                                         SDL_PollEvent(event);
@@ -105,7 +105,7 @@ void RegisterBuiltins()
                                                         return true;
                                                     });
 
-    BuiltinManager::GetInstance()->RegisterFunction("SDL_GetEventType", [&](Value *args, uint8_t argCount, Value &result) -> bool
+    BuiltinManager::GetInstance()->Register("SDL_GetEventType", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
                                                         if (!IS_BUILTIN_VALUE(args[0]))
                                                             ASSERT("Not a valid builtin data.");
@@ -117,7 +117,7 @@ void RegisterBuiltins()
                                                         return true;
                                                     });
 
-    BuiltinManager::GetInstance()->RegisterFunction("SDL_CreateRenderer", [&](Value *args, uint8_t argCount, Value &result) -> bool
+    BuiltinManager::GetInstance()->Register("SDL_CreateRenderer", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
                                                         if (!IS_BUILTIN_VALUE(args[0]))
                                                             ASSERT("Not a valid builtin data.");
@@ -133,7 +133,7 @@ void RegisterBuiltins()
                                                         return true;
                                                     });
 
-    BuiltinManager::GetInstance()->RegisterFunction("SDL_LoadBMP", [&](Value *args, uint8_t argCount, Value &result) -> bool
+    BuiltinManager::GetInstance()->Register("SDL_LoadBMP", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
                                                         if (!IS_STR_VALUE(args[0]))
                                                             ASSERT("Not a valid str value.");
@@ -150,7 +150,7 @@ void RegisterBuiltins()
                                                         return true;
                                                     });
 
-    BuiltinManager::GetInstance()->RegisterFunction("SDL_CreateTextureFromSurface", [&](Value *args, uint8_t argCount, Value &result) -> bool
+    BuiltinManager::GetInstance()->Register("SDL_CreateTextureFromSurface", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
                                                         if (!IS_BUILTIN_VALUE(args[0]) || !IS_BUILTIN_VALUE(args[1]))
                                                             ASSERT("Not a valid builtin value of SDL_CreateTextureFromSurface(args[0] or args[1]).");
@@ -167,7 +167,7 @@ void RegisterBuiltins()
                                                         return true;
                                                     });
 
-    BuiltinManager::GetInstance()->RegisterFunction("SDL_RenderClear", [&](Value *args, uint8_t argCount, Value &result) -> bool
+    BuiltinManager::GetInstance()->Register("SDL_RenderClear", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
                                                         if (!IS_BUILTIN_VALUE(args[0]))
                                                             ASSERT("Not a valid builtin value of SDL_RenderClear(args[0]).");
@@ -177,7 +177,7 @@ void RegisterBuiltins()
                                                         return false;
                                                     });
 
-    BuiltinManager::GetInstance()->RegisterFunction("SDL_RenderCopy", [&](Value *args, uint8_t argCount, Value &result) -> bool
+    BuiltinManager::GetInstance()->Register("SDL_RenderCopy", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
                                                         if (!IS_BUILTIN_VALUE(args[0]) || !IS_BUILTIN_VALUE(args[1]))
                                                             ASSERT("Not a valid builtin value of SDL_RenderCopy(args[0] or args[1]).");
@@ -191,7 +191,7 @@ void RegisterBuiltins()
                                                         return true;
                                                     });
 
-    BuiltinManager::GetInstance()->RegisterFunction("SDL_RenderPresent", [&](Value *args, uint8_t argCount, Value &result) -> bool
+    BuiltinManager::GetInstance()->Register("SDL_RenderPresent", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
                                                         if (!IS_BUILTIN_VALUE(args[0]))
                                                             ASSERT("Not a valid builtin value of SDL_RenderPresent(args[0]).");
@@ -201,7 +201,7 @@ void RegisterBuiltins()
                                                         return false;
                                                     });
 
-    BuiltinManager::GetInstance()->RegisterFunction("SDL_GL_SetAttribute", [&](Value *args, uint8_t argCount, Value &result) -> bool
+    BuiltinManager::GetInstance()->Register("SDL_GL_SetAttribute", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
                                                         if (!IS_BUILTIN_VALUE(args[0]))
                                                             ASSERT("Not a valid builtin value of SDL_GL_SetAttribute(args[0]).");
@@ -222,7 +222,7 @@ void RegisterBuiltins()
                                                         return true;
                                                     });
 
-    BuiltinManager::GetInstance()->RegisterFunction("SDL_GL_SwapWindow", [&](Value *args, uint8_t argCount, Value &result) -> bool
+    BuiltinManager::GetInstance()->Register("SDL_GL_SwapWindow", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
                                                         if (!IS_BUILTIN_VALUE(args[0]))
                                                             ASSERT("Not a valid builtin value of SDL_GL_SwapWindow(args[0]).");
@@ -232,7 +232,7 @@ void RegisterBuiltins()
                                                         return false;
                                                     });
 
-    BuiltinManager::GetInstance()->RegisterFunction("SDL_GL_CreateContext", [&](Value *args, uint8_t argCount, Value &result) -> bool
+    BuiltinManager::GetInstance()->Register("SDL_GL_CreateContext", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
                                                         if (!IS_BUILTIN_VALUE(args[0]))
                                                             ASSERT("Not a valid builtin value of SDL_GL_CreateContext(args[0]).");
@@ -249,7 +249,7 @@ void RegisterBuiltins()
                                                         return true;
                                                     });
 
-    BuiltinManager::GetInstance()->RegisterFunction("SDL_GL_SetSwapInterval", [&](Value *args, uint8_t argCount, Value &result) -> bool
+    BuiltinManager::GetInstance()->Register("SDL_GL_SetSwapInterval", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                                     {
                                                         if (!IS_NUM_VALUE(args[0]))
                                                             ASSERT("Not a valid builtin value of SDL_GL_SetSwapInterval(args[0]).");
