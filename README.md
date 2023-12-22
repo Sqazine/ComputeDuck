@@ -25,6 +25,18 @@
 #### 运行
 ```sh
 #编译
+安装opengl(仅linux)
+sudo apt-get install build-essential
+sudo apt-get install libgl1-mesa-dev
+
+安装x11(仅linux)
+sudo apt-get install xorg
+sudo apt-get install xauth
+sudo apt-get install openbox
+sudo apt-get install xserver-xorg-legacy
+sudo apt install x11-apps -y
+apt install libx11-dev libxext-dev libxtst-dev libxrender-dev libxmu-dev libxmuu-dev
+
 git clone https://github.com/Sqazine/ComputeDuck.git
 git submodule update --init --recursive
 cd computeduck

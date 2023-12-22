@@ -4,12 +4,12 @@
 #include <sstream>
 #include <string_view>
 
-#define ASSERT(...)                                                                  \
-    do                                                                               \
-    {                                                                                \
+#define ASSERT(...)                                                                 \
+    do                                                                              \
+    {                                                                               \
         printf("[file:%s,function:%s,line:%d]:", __FILE__, __FUNCTION__, __LINE__); \
-        printf(__VA_ARGS__);                                                         \
-        exit(1);                                                                     \
+        printf(__VA_ARGS__);                                                        \
+        exit(1);                                                                    \
     } while (false);
 
 inline std::string ReadFile(std::string_view path)
