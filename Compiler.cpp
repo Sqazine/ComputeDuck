@@ -4,6 +4,9 @@
 
 #ifdef _WIN32
 #include <Windows.h>
+#elif __linux__
+#include <dlfcn.h>  
+#elif __APPLE__
 #endif
 
 Compiler::Compiler()
@@ -537,10 +540,10 @@ void Compiler::CompileAnonyStructExpr(AnonyStructExpr *expr)
 
 void Compiler::CompileDllImportExpr(DllImportExpr *expr)
 {
-#ifdef _WIN32
+    typedef void (*RegFn)();
     auto dllpath = expr->dllPath;
 
-    typedef void (*RegFn)();
+#ifdef _WIN32
 
     HINSTANCE hInstance;
     hInstance = LoadLibrary(dllpath.c_str());
@@ -550,6 +553,19 @@ void Compiler::CompileDllImportExpr(DllImportExpr *expr)
     RegFn RegisterBuiltins = (RegFn)(GetProcAddress(hInstance, "RegisterBuiltins"));
 
     RegisterBuiltins();
+#elif __linux__
+    void *handle;  
+	double (*cosine)(double);  
+	char *error;  
+  
+	handle = dlopen (dllpath.c_str(), RTLD_LAZY);  
+	if (!handle)   
+        ASSERT("Failed to load dll library:%s",dllpath.c_str());
+
+    RegFn RegisterBuiltins = (RegFn)(dlsym(handle, "RegisterBuiltins"));
+    RegisterBuiltins();
+#elif __APPLE__
+
 #endif
 
     std::vector<std::string> newAddedBuiltinNames;

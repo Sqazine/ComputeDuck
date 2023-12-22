@@ -6,6 +6,7 @@
 #include "Utils.h"
 #include "Value.h"
 #include "Chunk.h"
+#include <variant>
 
 #define TO_STR_OBJ(obj) ((StrObject *)obj)
 #define TO_ARRAY_OBJ(obj) ((ArrayObject *)obj)
@@ -252,46 +253,74 @@ using BuiltinFn = std::function<bool(Value *, uint8_t, Value &)>;
 
 struct BuiltinObject : public Object
 {
-	enum class BuiltinType
+	struct NativeData
 	{
-		FUNCTION,
-		VALUE,
-		RAWDATA
+		void *nativeData;
+		std::function<void(void *nativeData)> destroyFunc;
+
+		template <typename T>
+		T *As()
+		{
+			return (T *)nativeData;
+		}
+
+		template <typename T>
+		bool IsSameTypeAs()
+		{
+			return std::is_same<T, typename std::remove_reference<decltype(nativeData)>::type>::value == 1;
+		}
+	};
+
+	struct BuiltinData
+	{
+		std::string name;
+		std::variant<BuiltinFn, Value> v;
 	};
 
 	BuiltinObject(void *nativeData, std::function<void(void *nativeData)> destroyFunc)
-		: Object(ObjectType::BUILTIN), nativeData(nativeData), destroyFunc(destroyFunc), builtinType(BuiltinType::RAWDATA)
+		: Object(ObjectType::BUILTIN)
 	{
+		NativeData nd;
+		nd.nativeData = nativeData;
+		nd.destroyFunc = destroyFunc;
+		data = nd;
 	}
 
 	BuiltinObject(std::string_view name, const BuiltinFn &fn)
-		: Object(ObjectType::BUILTIN), name(name), fn(fn), builtinType(BuiltinType::FUNCTION)
+		: Object(ObjectType::BUILTIN)
 	{
+		BuiltinData bd;
+		bd.name = name;
+		bd.v = fn;
+		data = bd;
 	}
 
 	BuiltinObject(std::string_view name, const Value &value)
-		: Object(ObjectType::BUILTIN), name(name), value(value), builtinType(BuiltinType::VALUE)
+		: Object(ObjectType::BUILTIN)
 	{
+		BuiltinData bd;
+		bd.name = name;
+		bd.v = value;
+		data = bd;
 	}
 
 	~BuiltinObject() override
 	{
-		if (builtinType == BuiltinType::RAWDATA)
-			destroyFunc(nativeData);
+		if (IsNativeData())
+			GetNativeData().destroyFunc(GetNativeData().nativeData);
 	}
 
 	std::string Stringify() override
 	{
-
 		std::string vStr;
-		if (builtinType == BuiltinType::FUNCTION)
+		if (IsBuiltinFn())
 			vStr = "(0x" + PointerAddressToString(this) + ")";
-		else if (builtinType == BuiltinType::RAWDATA)
-			vStr = "(0x" + PointerAddressToString(nativeData) + ")";
+		else if (IsNativeData())
+			vStr = "(0x" + PointerAddressToString(GetNativeData().nativeData) + ")";
 		else
-			vStr = value.Stringify();
+			vStr = GetBuiltinValue().Stringify();
 
-		return "Builtin :(" + name + ":" + vStr;
+		return "Builtin :" + std::get<BuiltinData>(data).name + ":" + vStr;
 	}
 	void Mark() override { marked = true; }
 	void UnMark() override { marked = false; }
@@ -300,29 +329,50 @@ struct BuiltinObject : public Object
 		if (!IS_BUILTIN_OBJ(other))
 			return false;
 
-		if (builtinType == BuiltinType::RAWDATA)
-			return PointerAddressToString(nativeData) == PointerAddressToString(TO_BUILTIN_OBJ(other)->nativeData);
+		if (IsNativeData())
+		{
+			auto thisNd = GetNativeData();
+			auto otherNd = TO_BUILTIN_OBJ(other)->GetNativeData();
+			return PointerAddressToString(thisNd.nativeData) == PointerAddressToString(otherNd.nativeData);
+		}
 		else
-			return name == TO_BUILTIN_OBJ(other)->name;
+			return GetBuiltinName() == TO_BUILTIN_OBJ(other)->GetBuiltinName();
 	}
 
-	BuiltinType builtinType;
-
-	union
+	bool IsNativeData()
 	{
-		struct
-		{
-			void *nativeData;
-			std::function<void(void *nativeData)> destroyFunc;
-		};
-		struct
-		{
-			std::string name;
-			union
-			{
-				BuiltinFn fn;
-				Value value;
-			};
-		};
-	};
+		return data.index() == 0;
+	}
+
+	bool IsBuiltinFn()
+	{
+		return data.index() == 1 && std::get<1>(data).v.index() == 0;
+	}
+
+	bool IsBuiltinData()
+	{
+		return data.index() == 1 && std::get<1>(data).v.index() == 1;
+	}
+
+	NativeData GetNativeData()
+	{
+		return std::get<0>(data);
+	}
+
+	std::string GetBuiltinName()
+	{
+		return std::get<1>(data).name;
+	}
+
+	BuiltinFn GetBuiltinFn()
+	{
+		return std::get<0>(std::get<1>(data).v);
+	}
+
+	Value GetBuiltinValue()
+	{
+		return std::get<1>(std::get<1>(data).v);
+	}
+
+	std::variant<NativeData, BuiltinData> data;
 };
