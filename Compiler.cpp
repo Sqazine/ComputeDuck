@@ -40,7 +40,7 @@ void Compiler::ResetStatus()
     m_Scopes.emplace_back(OpCodes()); // set a default opcodes
 
     if (m_SymbolTable)
-        delete m_SymbolTable;
+        SAFE_DELETE(m_SymbolTable);
     m_SymbolTable = new SymbolTable();
 
     m_BuiltinNames.clear();
