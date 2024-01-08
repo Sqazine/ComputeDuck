@@ -48,7 +48,7 @@ struct SymbolTable
         while (p)
         {
             auto q = p->enclosing;
-            delete p;
+            SAFE_DELETE(p);
             p = q;
         }
     }
