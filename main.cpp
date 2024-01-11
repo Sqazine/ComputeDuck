@@ -6,38 +6,51 @@
 #include "Compiler.h"
 #include "VM.h"
 #include "BuiltinManager.h"
+#ifdef BUILD_WITH_LLVM
+#include "LLVMCompiler.h"
+#endif
 
-PreProcessor* gPreProcessor = new PreProcessor();
-Parser* gParser = new Parser();
-Compiler * gCompiler = new Compiler();
-VM* gVm = new VM();
+PreProcessor *gPreProcessor = new PreProcessor();
+Parser *gParser = new Parser();
+
+#ifdef BUILD_WITH_LLVM
+LLVMCompiler *gLLVMCompiler = new LLVMCompiler();
+#else
+Compiler *gCompiler = new Compiler();
+VM *gVm = new VM();
+#endif
 
 void Run(std::string_view content)
 {
 	auto tokens = gPreProcessor->PreProcess(content);
 
 #ifdef DEBUG
-	for (const auto& token : tokens)
+	for (const auto &token : tokens)
 		std::cout << token << std::endl;
 #endif
 
 	auto stmts = gParser->Parse(tokens);
 
 #ifdef DEBUG
-	for (const auto& stmt : stmts)
+	for (const auto &stmt : stmts)
 		std::cout << stmt->Stringify() << std::endl;
 #endif
+
+#ifdef BUILD_WITH_LLVM
+	auto fn = gLLVMCompiler->Compile(stmts);
+#else
 
 	auto chunk = gCompiler->Compile(stmts);
 
 	for (auto stmt : stmts)
 		SAFE_DELETE(stmt);
-		
+
 #ifdef DEBUG
 	chunk->Stringify();
 #endif
 
 	gVm->Run(chunk);
+#endif
 }
 
 void Repl()
@@ -48,7 +61,11 @@ void Repl()
 	while (getline(std::cin, line))
 	{
 		if (line == "clear")
+#ifdef BUILD_WITH_LLVM
+			gLLVMCompiler->ResetStatus();
+#else
 			gCompiler->ResetStatus();
+#endif
 		else
 			Run(line);
 		std::cout << "> ";
@@ -62,7 +79,7 @@ void RunFile(std::string_view path)
 }
 
 #undef main
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
 	if (argc == 2)
 	{
@@ -89,9 +106,13 @@ int main(int argc, char** argv)
 	}
 	else
 		std::cout << "Usage: ComputeDuck [filepath]" << std::endl;
-		
+
+#ifdef BUILD_WITH_LLVM
+	SAFE_DELETE(gLLVMCompiler)
+#else
 	SAFE_DELETE(gVm);
 	SAFE_DELETE(gCompiler);
+#endif
 	SAFE_DELETE(gParser);
 	SAFE_DELETE(gPreProcessor);
 

@@ -11,72 +11,95 @@ set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/Bin/Debug)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Bin/Release)
 
-option(BuildLLVMImpl "build llvm impl" ON) 
+option(BuildLLVMImpl "build llvm impl" ON)
+option(BuildSDL2 "build SDL2 third party for cdsdl2" OFF) 
+option(BuildOpengl "build glad third party for cdopengl" OFF)  
 
 file(GLOB EXAMPLES "${CMAKE_SOURCE_DIR}/examples/*.cd")
 
 source_group("examples" FILES ${EXAMPLES})
 
-file(GLOB SRC main.cpp)
-add_executable(computeduck ${SRC} ${EXAMPLES})
+add_subdirectory(library/cdsdl2)
+add_subdirectory(library/cdopengl)
 
-if(MSVC)
-target_compile_options(computeduck PRIVATE "/wd4251;")
-endif()
+set(ROOT_SRC Ast.h
+             Config.h
+             Chunk.cpp Chunk.h
+             Compiler.cpp Compiler.h 
+             ConstantFolder.h ConstantFolder.cpp 
+             Lexer.cpp Lexer.h
+             Object.h 
+             Parser.cpp Parser.h
+             SymbolTable.h
+             Token.h
+             Utils.h
+             Value.cpp Value.h
+             BuiltinManager.cpp BuiltinManager.h
+             VM.cpp VM.h
+             PreProcessor.h)
 
-if(NOT BuildLLVMImpl)
-    option(BuildSDL2 "build SDL2 third party for cdsdl2" ON) 
-    option(BuildOpengl "build glad third party for cdopengl" ON) 
-    add_library(libcomputeduck SHARED Ast.h
-    Config.h
-    Chunk.cpp Chunk.h
-    Compiler.cpp Compiler.h 
-    ConstantFolder.h ConstantFolder.cpp 
-    Lexer.cpp Lexer.h
-    Object.h 
-    Parser.cpp Parser.h
-    SymbolTable.h
-    Token.h
-    Utils.h
-    Value.cpp Value.h
-    BuiltinManager.cpp BuiltinManager.h
-    VM.cpp VM.h
-    PreProcessor.h)
-    target_compile_definitions(libcomputeduck PUBLIC COMPUTE_DUCK_BUILD_DLL)
+add_executable(computeduck main.cpp ${EXAMPLES})
 
-    add_subdirectory(library/cdsdl2)
-    add_subdirectory(library/cdopengl)
-    
-    if(MSVC)
-        target_compile_options(libcomputeduck PRIVATE "/wd4251;")
-    endif()
-    
-else()
+if(BuildLLVMImpl)
+
+    set(LLVM_BUILD_TOOLS OFF)
+    set(LLVM_INCLUDE_TOOLS OFF)
+    set(LLVM_BUILD_UTILS OFF)
+    set(LLVM_INCLUDE_UTILS OFF)
+    set(LLVM_BUILD_TESTS OFF)
+    set(LLVM_INCLUDE_TESTS OFF)
+    set(LLVM_INCLUDE_GO_TESTS OFF)
+    set(LLVM_BUILD_BENCHMARKS OFF)
+    set(LLVM_INCLUDE_BENCHMARKS OFF)
+    set(LLVM_ENABLE_BACKTRACES OFF)
+    set(LLVM_ENABLE_CRASH_OVERRIDES OFF)
+    set(LLVM_ENABLE_UNWIND_TABLES OFF)
+    set(LLVM_ENABLE_TERMINFO OFF)
+    set(LLVM_ENABLE_LIBEDIT OFF)
+    set(LLVM_ENABLE_LIBPFM OFF)
+    set(LLVM_ENABLE_PEDANTIC OFF)
+    set(LLVM_INCLUDE_DOCS OFF)
+    set(LLVM_ENABLE_OCAMLDOC OFF)
+    set(LLVM_ENABLE_BINDINGS OFF)
+    set(LLVM_VERSION_PRINTER_SHOW_HOST_TARGET_INFO OFF)
 
     set(LLVM_DIR "3rd/llvm14/LLVM/llvm")
 
-    if(NOT EXISTS ${LLVM_DIR})
-        message(NOTICE "llvm14 directory is required while open BuildLLVMImpl option.Please read Readme to operate.")
-    endif()
-
     add_subdirectory(${LLVM_DIR})
 
-    add_library(libcomputeduck-llvm SHARED Ast.h
-        Config.h
-        Chunk.cpp Chunk.h
-        ConstantFolder.h ConstantFolder.cpp 
-        Lexer.cpp Lexer.h
-        Parser.cpp Parser.h
-        Token.h
-        Utils.h
-        PreProcessor.h)
-        target_compile_definitions(libcomputeduck-llvm  PUBLIC COMPUTE_DUCK_BUILD_DLL)
+    set(LLVM_LINK_COMPONENTS
+        Analysis
+        Core
+        ExecutionEngine
+        InstCombine
+        Object
+        OrcJIT
+        RuntimeDyld
+        ScalarOpts
+        Support
+        native
+        )
 
-    if(MSVC)
-        target_compile_options(libcomputeduck-llvm  PRIVATE "/wd4251;")
-    endif()
+    llvm_map_components_to_libnames(llvm_libs ${LLVM_LINK_COMPONENTS})
+
+    set(LLVM_SRC LLVMCompiler.cpp 
+                 LLVMCompiler.h)
+
+    add_library(libcomputeduck SHARED ${ROOT_SRC} ${LLVM_SRC})
+    target_link_libraries(libcomputeduck PRIVATE ${llvm_libs})
+    target_include_directories(libcomputeduck PRIVATE ${LLVM_DIR}/include ${LLVM_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/llvm)
+    target_include_directories(computeduck PRIVATE ${LLVM_DIR}/include ${LLVM_BINARY_DIR}/include)
+    
+    target_compile_definitions(libcomputeduck PUBLIC BUILD_WITH_LLVM)
+    target_compile_definitions(computeduck PUBLIC BUILD_WITH_LLVM)
+else()
+    add_library(libcomputeduck SHARED ${ROOT_SRC})
 endif()
 
-
 target_link_libraries(computeduck PRIVATE libcomputeduck)
+target_compile_definitions(libcomputeduck PUBLIC COMPUTE_DUCK_BUILD_DLL)
 
+if(MSVC)
+    target_compile_options(libcomputeduck PRIVATE "/wd4251;")
+    target_compile_options(computeduck PRIVATE "/wd4251;")
+endif()
