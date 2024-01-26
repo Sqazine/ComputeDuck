@@ -1,4 +1,5 @@
 if(BuildSDL2)
+    set(BUILD_SHARED_LIBS OFF)
     add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/SDL")
     add_library(cdsdl2 SHARED  cdsdl2.h  cdsdl2.cpp)
     target_include_directories(cdsdl2 PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/SDL/include" ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR})

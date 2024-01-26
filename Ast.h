@@ -5,6 +5,7 @@
 #include <vector>
 #include <memory>
 #include "Config.h"
+#include "Utils.h"
 
 enum class AstType
 {

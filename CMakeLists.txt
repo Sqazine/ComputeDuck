@@ -30,7 +30,6 @@ set(ROOT_SRC Ast.h
              Lexer.cpp Lexer.h
              Object.h 
              Parser.cpp Parser.h
-             SymbolTable.h
              Token.h
              Utils.h
              Value.cpp Value.h
@@ -41,52 +40,17 @@ set(ROOT_SRC Ast.h
 add_executable(computeduck main.cpp ${EXAMPLES})
 
 if(BuildLLVMImpl)
-
-    set(LLVM_BUILD_TOOLS OFF)
-    set(LLVM_INCLUDE_TOOLS OFF)
-    set(LLVM_BUILD_UTILS OFF)
-    set(LLVM_INCLUDE_UTILS OFF)
-    set(LLVM_BUILD_TESTS OFF)
-    set(LLVM_INCLUDE_TESTS OFF)
-    set(LLVM_INCLUDE_GO_TESTS OFF)
-    set(LLVM_BUILD_BENCHMARKS OFF)
-    set(LLVM_INCLUDE_BENCHMARKS OFF)
-    set(LLVM_ENABLE_BACKTRACES OFF)
-    set(LLVM_ENABLE_CRASH_OVERRIDES OFF)
-    set(LLVM_ENABLE_UNWIND_TABLES OFF)
-    set(LLVM_ENABLE_TERMINFO OFF)
-    set(LLVM_ENABLE_LIBEDIT OFF)
-    set(LLVM_ENABLE_LIBPFM OFF)
-    set(LLVM_ENABLE_PEDANTIC OFF)
-    set(LLVM_INCLUDE_DOCS OFF)
-    set(LLVM_ENABLE_OCAMLDOC OFF)
-    set(LLVM_ENABLE_BINDINGS OFF)
-    set(LLVM_VERSION_PRINTER_SHOW_HOST_TARGET_INFO OFF)
-
+    include(SetLLVM.cmake)
+    
     set(LLVM_DIR "3rd/llvm14/LLVM/llvm")
 
-    add_subdirectory(${LLVM_DIR})
-
-    set(LLVM_LINK_COMPONENTS
-        Analysis
-        Core
-        ExecutionEngine
-        InstCombine
-        Object
-        OrcJIT
-        RuntimeDyld
-        ScalarOpts
-        Support
-        native
-        )
-
-    llvm_map_components_to_libnames(llvm_libs ${LLVM_LINK_COMPONENTS})
+    SetLLVM(${LLVM_DIR} LLVM_LIBS)
 
     set(LLVM_SRC LLVMCompiler.cpp 
                  LLVMCompiler.h)
 
     add_library(libcomputeduck SHARED ${ROOT_SRC} ${LLVM_SRC})
-    target_link_libraries(libcomputeduck PRIVATE ${llvm_libs})
+    target_link_libraries(libcomputeduck PRIVATE ${LLVM_LIBS})
     target_include_directories(libcomputeduck PRIVATE ${LLVM_DIR}/include ${LLVM_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/llvm)
     target_include_directories(computeduck PRIVATE ${LLVM_DIR}/include ${LLVM_BINARY_DIR}/include)
     
@@ -103,3 +67,5 @@ if(MSVC)
     target_compile_options(libcomputeduck PRIVATE "/wd4251;")
     target_compile_options(computeduck PRIVATE "/wd4251;")
 endif()
+
+set_property ( DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT computeduck )

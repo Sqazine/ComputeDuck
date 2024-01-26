@@ -14,8 +14,11 @@ Compiler::Compiler()
 {
     ResetStatus();
 }
+
 Compiler::~Compiler()
 {
+    if (m_SymbolTable)
+        SAFE_DELETE(m_SymbolTable);
 }
 
 Chunk* Compiler::Compile(const std::vector<Stmt *> &stmts, bool isLineInterpret)

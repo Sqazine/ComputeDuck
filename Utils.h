@@ -4,6 +4,8 @@
 #include <sstream>
 #include <string_view>
 
+#define SAFE_DELETE(x)  do { delete x; x = nullptr; } while (false);
+
 #define ASSERT(...)                                                                 \
     do                                                                              \
     {                                                                               \

@@ -1,5 +1,5 @@
 #include "ConstantFolder.h"
-#include "Config.h"
+#include "Utils.h"
 ConstantFolder::ConstantFolder()
 {
 }
@@ -214,17 +214,17 @@ Expr *ConstantFolder::ConstantFold(Expr *expr)
                 newExpr = new NumExpr(((NumExpr *)infix->left)->value / ((NumExpr *)infix->right)->value);
             else if (infix->op == "&")
             {
-                auto v = (uint64_t)((NumExpr*)infix->left)->value & (uint64_t)((NumExpr*)infix->right)->value;
+                auto v = (uint64_t)((NumExpr *)infix->left)->value & (uint64_t)((NumExpr *)infix->right)->value;
                 newExpr = new NumExpr((double)v);
             }
             else if (infix->op == "|")
             {
-                auto v = (uint64_t)((NumExpr*)infix->left)->value | (uint64_t)((NumExpr*)infix->right)->value;
-                newExpr = new NumExpr((double)v );
+                auto v = (uint64_t)((NumExpr *)infix->left)->value | (uint64_t)((NumExpr *)infix->right)->value;
+                newExpr = new NumExpr((double)v);
             }
             else if (infix->op == "^")
             {
-                auto v = (uint64_t)((NumExpr*)infix->left)->value ^ (uint64_t)((NumExpr*)infix->right)->value;
+                auto v = (uint64_t)((NumExpr *)infix->left)->value ^ (uint64_t)((NumExpr *)infix->right)->value;
                 newExpr = new NumExpr((double)v);
             }
             else if (infix->op == "==")
@@ -267,7 +267,7 @@ Expr *ConstantFolder::ConstantFold(Expr *expr)
         }
         else if (prefix->right->type == AstType::NUM && prefix->op == "~")
         {
-            auto v = ~(uint64_t)((NumExpr*)prefix->right)->value;
+            auto v = ~(uint64_t)((NumExpr *)prefix->right)->value;
             auto numExpr = new NumExpr((double)v);
             SAFE_DELETE(prefix);
             return numExpr;
