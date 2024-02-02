@@ -34,11 +34,17 @@ void LLVMCompiler::ResetStatus()
 		SAFE_DELETE(m_SymbolTable);
 	m_SymbolTable = new LLVMSymbolTable();
 
+	std::vector<llvm::Type*> Doubles(1, llvm::Type::getDoubleTy(*m_Context));
+	llvm::FunctionType* FT = llvm::FunctionType::get(llvm::Type::getVoidTy(*m_Context), Doubles, false);
+	llvm::Function* F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage, "println", m_Module.get());
+	BuiltinManager::GetInstance()->RegisterLlvmFn("println", F);
+
+	m_SymbolTable->DefineBuiltin("println");
+
 	m_FunctionStack.clear();
 
 	llvm::FunctionType* fnType = llvm::FunctionType::get(llvm::Type::getVoidTy(*m_Context), {}, false);
 	llvm::Function* fn = llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, "main", m_Module.get());
-
 	llvm::BasicBlock* codeBlock = llvm::BasicBlock::Create(*m_Context, "", fn);
 	m_Builder->SetInsertPoint(codeBlock);
 
@@ -82,8 +88,16 @@ void LLVMCompiler::CompileIfStmt(IfStmt* stmt)
 }
 void LLVMCompiler::CompileScopeStmt(ScopeStmt* stmt)
 {
-	for (const auto& s : stmt->stmts)
+	EnterScope();
+
+	llvm::BasicBlock* block = llvm::BasicBlock::Create(*m_Context, "scope"+ std::to_string(m_SymbolTable->scopeDepth), m_Builder->GetInsertBlock()->getParent());
+	m_Builder->CreateBr(block);
+	m_Builder->SetInsertPoint(block);
+
+	for (const auto& s : stmt->stmts)	
 		CompileStmt(s);
+
+	ExitScope();
 }
 void LLVMCompiler::CompileWhileStmt(WhileStmt* stmt)
 {
@@ -270,7 +284,22 @@ void LLVMCompiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& st
 			break;
 		}
 		case LLVMSymbolScope::LOCAL:
+		{
+			for (auto& arg : m_Builder->GetInsertBlock()->getParent()->args())
+			{
+				if (arg.getName() == symbol.name)
+				{
+					Push(&arg);	
+					break;
+				}
+			}
 			break;
+		}
+		case LLVMSymbolScope::BUILTIN:
+		{
+			Push(BuiltinManager::GetInstance()->m_LlvmBuiltins[symbol.name]);
+			break;
+		}
 		default:
 			break;
 		}
@@ -304,11 +333,52 @@ void LLVMCompiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& st
 }
 void LLVMCompiler::CompileFunctionExpr(FunctionExpr* expr)
 {
+	auto beforeblock = m_Builder->GetInsertBlock();
 
+	EnterScope();
+
+	for (const auto& param : expr->parameters)
+		m_SymbolTable->Define(param->literal);
+
+	std::vector<llvm::Type*> argTypes(expr->parameters.size(), llvm::Type::getDoubleTy(*m_Context));
+	llvm::FunctionType* fnType = llvm::FunctionType::get(llvm::Type::getDoubleTy(*m_Context), argTypes, false);
+	llvm::Function* fn = llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, "", m_Module.get());
+
+	unsigned idx = 0;
+	for (auto& arg : fn->args())
+		arg.setName(expr->parameters[idx++]->literal);
+
+	llvm::BasicBlock* block = llvm::BasicBlock::Create(*m_Context,"",fn);
+	m_Builder->SetInsertPoint(block);
+
+	CompileStmt(expr->body);
+
+	ExitScope();
+
+	m_Builder->SetInsertPoint(beforeblock);
+
+	Push(fn);
 }
 void LLVMCompiler::CompileFunctionCallExpr(FunctionCallExpr* expr)
 {
+	CompileExpr(expr->name);
+	auto fn = static_cast<llvm::Function*>(Pop());
+	if (!fn)
+		ASSERT("Unknown function:%s", expr->name->Stringify());
 
+	if (fn->arg_size() != expr->arguments.size())
+		ASSERT("InCompatible arg size:%d,%d",fn->arg_size(),expr->arguments.size());
+
+	std::vector<llvm::Value*> argsV;
+	for (unsigned i = 0;i<expr->arguments.size();++i) 
+	{
+		CompileExpr(expr->arguments[i]);
+		argsV.push_back(Pop());
+		if (!argsV.back())
+			return;
+	}
+
+	m_Builder->CreateCall(fn, argsV, "call");
 }
 void LLVMCompiler::CompileStructCallExpr(StructCallExpr* expr, const RWState& state)
 {
@@ -329,8 +399,7 @@ void LLVMCompiler::CompileDllImportExpr(DllImportExpr* expr)
 
 llvm::AllocaInst* LLVMCompiler::CreateEntryBlockAlloca(llvm::Function* fn, llvm::StringRef name, llvm::Type* type)
 {
-	llvm::IRBuilder<> TmpB(&fn->getEntryBlock(), fn->getEntryBlock().begin());
-	return TmpB.CreateAlloca(type, nullptr, name);
+	return m_Builder->CreateAlloca(type, nullptr, name);
 }
 
 void LLVMCompiler::Push(llvm::Value* v)
@@ -368,4 +437,13 @@ llvm::Function* LLVMCompiler::PopFunction()
 	auto f = PeekFunction(0);
 	m_FunctionStack.pop_back();
 	return f;
+}
+
+void LLVMCompiler::EnterScope()
+{
+	m_SymbolTable = new LLVMSymbolTable(m_SymbolTable);
+}
+void LLVMCompiler::ExitScope()
+{
+	m_SymbolTable = m_SymbolTable->enclosing;
 }

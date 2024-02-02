@@ -28,6 +28,7 @@ enum class LLVMSymbolScope
 {
     GLOBAL,
     LOCAL,
+    BUILTIN,
 };
 
 struct LLVMSymbol
@@ -88,6 +89,14 @@ struct LLVMSymbolTable
         symbolMaps[name] = symbol;
         return symbol;
     }
+
+	LLVMSymbol DefineBuiltin(const std::string& name)
+	{
+		auto symbol = LLVMSymbol(name, LLVMSymbolScope::BUILTIN,nullptr, scopeDepth);
+		symbolMaps[name] = symbol;
+		return symbol;
+	}
+
 
     void Set(const std::string& name, llvm::AllocaInst* a)
     {
@@ -176,6 +185,9 @@ private:
     void AddFunction(llvm::Function* fn);
     llvm::Function* PeekFunction(int32_t distance);
     llvm::Function* PopFunction();
+
+    void EnterScope();
+    void ExitScope();
 
     std::vector<llvm::Value *> m_ValueStack;
     std::vector<llvm::Function*> m_FunctionStack;

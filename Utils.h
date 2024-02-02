@@ -11,7 +11,7 @@
     {                                                                               \
         printf("[file:%s,function:%s,line:%d]:", __FILE__, __FUNCTION__, __LINE__); \
         printf(__VA_ARGS__);                                                        \
-        exit(1);                                                                    \
+        abort();                                                                    \
     } while (false);
 
 inline std::string ReadFile(std::string_view path)

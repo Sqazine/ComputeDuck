@@ -2,6 +2,17 @@
 #include <ctime>
 #include <filesystem>
 
+#ifdef _WIN32
+#define DLLEXPORT __declspec(dllexport)
+#else
+#define DLLEXPORT
+#endif
+
+extern "C" DLLEXPORT double printd(double X) {
+	fprintf(stderr, "%f\n", X);
+	return 0;
+}
+
 std::string BuiltinManager::m_CurExecuteFilePath;
 
 BuiltinManager* BuiltinManager::GetInstance()
@@ -138,6 +149,11 @@ void BuiltinManager::Register(std::string_view name, const Value& value)
 {
 	m_Builtins.emplace_back(new BuiltinObject(name, value));
 	m_BuiltinNames.emplace_back(name);
+}
+
+void BuiltinManager::RegisterLlvmFn(std::string_view name, llvm::Function* fn)
+{
+	m_LlvmBuiltins[name.data()] = fn;
 }
 
 void BuiltinManager::SetExecuteFilePath(std::string_view path)
