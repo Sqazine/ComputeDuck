@@ -46,8 +46,7 @@ if(BuildLLVMImpl)
 
     SetLLVM(${LLVM_DIR} LLVM_LIBS)
 
-    set(LLVM_SRC LLVMCompiler.cpp 
-                 LLVMCompiler.h)
+    set(LLVM_SRC LLVMCompiler.cpp LLVMCompiler.h)
 
     add_library(libcomputeduck SHARED ${ROOT_SRC} ${LLVM_SRC})
     target_link_libraries(libcomputeduck PRIVATE ${LLVM_LIBS})
