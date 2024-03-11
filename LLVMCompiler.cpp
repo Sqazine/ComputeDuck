@@ -34,16 +34,25 @@ void LLVMCompiler::ResetStatus()
 		SAFE_DELETE(m_SymbolTable);
 	m_SymbolTable = new LLVMSymbolTable();
 
-	std::vector<llvm::Type*> Doubles(1, llvm::Type::getDoubleTy(*m_Context));
-	llvm::FunctionType* FT = llvm::FunctionType::get(llvm::Type::getVoidTy(*m_Context), Doubles, false);
+	std::vector<llvm::Type*> types(3);
+	types[0] = llvm::Type::getInt64PtrTy(*m_Context);
+	types[1] = llvm::Type::getInt1Ty(*m_Context);
+	types[2] = llvm::Type::getInt64PtrTy(*m_Context);
+
+	llvm::FunctionType* FT = llvm::FunctionType::get(llvm::Type::getVoidTy(*m_Context), types, false);
 	llvm::Function* F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage, "println", m_Module.get());
+
+	unsigned idx = 0;
+	for (auto& arg : F->args())
+		arg.setName("param"+std::to_string(idx));
+
 	BuiltinManager::GetInstance()->RegisterLlvmFn("println", F);
 
 	m_SymbolTable->DefineBuiltin("println");
 
 	m_FunctionStack.clear();
 
-	llvm::FunctionType* fnType = llvm::FunctionType::get(llvm::Type::getVoidTy(*m_Context), {}, false);
+	llvm::FunctionType* fnType = llvm::FunctionType::get(llvm::Type::getVoidTy(*m_Context), false);
 	llvm::Function* fn = llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, "main", m_Module.get());
 	llvm::BasicBlock* codeBlock = llvm::BasicBlock::Create(*m_Context, "", fn);
 	m_Builder->SetInsertPoint(codeBlock);
@@ -313,7 +322,7 @@ void LLVMCompiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& st
 		case LLVMSymbolScope::GLOBAL:
 		{
 			auto init = Pop();
-			auto alloc = CreateEntryBlockAlloca(m_Module->getFunction("main"), symbol.name, init->getType());
+			auto alloc = m_Builder->CreateAlloca(init->getType(), nullptr,  symbol.name);
 			m_SymbolTable->Set(symbol.name, alloc);
 			m_Builder->CreateStore(init, alloc);
 			break;
@@ -321,7 +330,7 @@ void LLVMCompiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& st
 		case LLVMSymbolScope::LOCAL:
 		{
 			auto init = Pop();
-			auto alloc = CreateEntryBlockAlloca(m_Builder->GetInsertBlock()->getParent(), symbol.name, init->getType());
+			auto alloc = m_Builder->CreateAlloca(init->getType(), nullptr,  symbol.name);
 			m_SymbolTable->Set(symbol.name, alloc);
 			m_Builder->CreateStore(init, alloc);
 			break;
@@ -367,10 +376,10 @@ void LLVMCompiler::CompileFunctionCallExpr(FunctionCallExpr* expr)
 		ASSERT("Unknown function:%s", expr->name->Stringify());
 
 	if (fn->arg_size() != expr->arguments.size())
-		ASSERT("InCompatible arg size:%d,%d",fn->arg_size(),expr->arguments.size());
+		ASSERT("InCompatible arg size:%d,%d", fn->arg_size(), expr->arguments.size());
 
 	std::vector<llvm::Value*> argsV;
-	for (unsigned i = 0;i<expr->arguments.size();++i) 
+	for (unsigned i = 0; i < expr->arguments.size(); ++i)
 	{
 		CompileExpr(expr->arguments[i]);
 		argsV.push_back(Pop());
@@ -378,7 +387,9 @@ void LLVMCompiler::CompileFunctionCallExpr(FunctionCallExpr* expr)
 			return;
 	}
 
-	m_Builder->CreateCall(fn, argsV, "call");
+	// auto arg0=llvm::Constant::
+
+	m_Builder->CreateCall(fn, argsV);
 }
 void LLVMCompiler::CompileStructCallExpr(StructCallExpr* expr, const RWState& state)
 {
@@ -395,11 +406,6 @@ void LLVMCompiler::CompileAnonyStructExpr(AnonyStructExpr* expr)
 void LLVMCompiler::CompileDllImportExpr(DllImportExpr* expr)
 {
 
-}
-
-llvm::AllocaInst* LLVMCompiler::CreateEntryBlockAlloca(llvm::Function* fn, llvm::StringRef name, llvm::Type* type)
-{
-	return m_Builder->CreateAlloca(type, nullptr, name);
 }
 
 void LLVMCompiler::Push(llvm::Value* v)
