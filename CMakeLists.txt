@@ -46,9 +46,11 @@ if(BuildLLVMImpl)
 
     SetLLVM(${LLVM_DIR} LLVM_LIBS)
 
-    set(LLVM_SRC LLVMCompiler.cpp LLVMCompiler.h)
+    list(APPEND ROOT_SRC LLVMCompiler.cpp LLVMCompiler.h)
 
-    add_library(libcomputeduck SHARED ${ROOT_SRC} ${LLVM_SRC})
+    source_group("src" FILES ${ROOT_SRC})
+    add_library(libcomputeduck SHARED ${ROOT_SRC})
+    
     target_link_libraries(libcomputeduck PRIVATE ${LLVM_LIBS})
     target_include_directories(libcomputeduck PRIVATE ${LLVM_DIR}/include ${LLVM_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/llvm)
     target_include_directories(computeduck PRIVATE ${LLVM_DIR}/include ${LLVM_BINARY_DIR}/include)
@@ -56,6 +58,7 @@ if(BuildLLVMImpl)
     target_compile_definitions(libcomputeduck PUBLIC BUILD_WITH_LLVM)
     target_compile_definitions(computeduck PUBLIC BUILD_WITH_LLVM)
 else()
+    source_group("src" FILES ${ROOT_SRC})
     add_library(libcomputeduck SHARED ${ROOT_SRC})
 endif()
 
