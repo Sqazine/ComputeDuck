@@ -186,18 +186,21 @@ private:
 
     void EnterScope();
     void ExitScope();
+     
+        llvm::StructType* mValueType;
+        llvm::PointerType* mValuePtrType;
 
-    llvm::StructType* mValueType;
-    llvm::PointerType* mValuePtrType;
+        llvm::PointerType* mVoidPtrType;
 
-    llvm::PointerType* mVoidPtrType;
+        llvm::StructType* mObjectType;
+        llvm::PointerType* mObjectPtrType;
+
+        llvm::FunctionType* mNativeFunctionType;
+
+        llvm::Type* mInt8Type;
+        llvm::Type* mBoolType;
+        llvm::Type* mDoubleType;
     
-    llvm::StructType* mObjectType;
-    llvm::PointerType* mObjectPtrType;
-
-    llvm::Type* mInt8Type;
-    llvm::Type* mBoolType;
-    llvm::Type* mDoubleType;
 
     std::vector<llvm::Value *> m_ValueStack;
     std::vector<llvm::Function*> m_FunctionStack;
