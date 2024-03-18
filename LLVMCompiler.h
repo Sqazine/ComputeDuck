@@ -175,8 +175,6 @@ private:
     void CompileAnonyStructExpr(AnonyStructExpr *expr);
     void CompileDllImportExpr(DllImportExpr *expr);
 
-    llvm::AllocaInst* CreateEntryBlockAlloca(llvm::Function*  fn,llvm::StringRef name,llvm::Type* type);
-
     void Push(llvm::Value *v);
     llvm::Value *Peek(int32_t distance);
     llvm::Value *Pop();
@@ -188,6 +186,18 @@ private:
 
     void EnterScope();
     void ExitScope();
+
+    llvm::StructType* mValueType;
+    llvm::PointerType* mValuePtrType;
+
+    llvm::PointerType* mVoidPtrType;
+    
+    llvm::StructType* mObjectType;
+    llvm::PointerType* mObjectPtrType;
+
+    llvm::Type* mInt8Type;
+    llvm::Type* mBoolType;
+    llvm::Type* mDoubleType;
 
     std::vector<llvm::Value *> m_ValueStack;
     std::vector<llvm::Function*> m_FunctionStack;

@@ -1,5 +1,7 @@
 #include "LLVMCompiler.h"
 #include "BuiltinManager.h"
+
+
 LLVMCompiler::LLVMCompiler()
 	: m_SymbolTable(nullptr)
 {
@@ -30,21 +32,44 @@ void LLVMCompiler::ResetStatus()
 	m_Module = std::make_unique<llvm::Module>(BuiltinManager::GetInstance()->GetExecuteFilePath(), *m_Context);
 	m_Builder = std::make_unique<llvm::IRBuilder<>>(*m_Context);
 
+	{
+		mInt8Type = llvm::Type::getInt8Ty(*m_Context);
+		mDoubleType = llvm::Type::getDoubleTy(*m_Context);
+		llvm::Type* uint64Type = llvm::Type::getInt64Ty(*m_Context);
+		llvm::Type* int32Type = llvm::Type::getInt32Ty(*m_Context);
+		llvm::Type* voidType = llvm::Type::getVoidTy(*m_Context);
+		mBoolType = llvm::Type::getInt1Ty(*m_Context);
+
+		llvm::PointerType* in64PtrType = llvm::Type::getInt64PtrTy(*m_Context);
+		llvm::PointerType* in32PtrType = llvm::Type::getInt32PtrTy(*m_Context);
+		llvm::Type* uint8PtrType = llvm::Type::getInt8PtrTy(*m_Context);
+		llvm::PointerType* boolPtrType = llvm::Type::getInt1PtrTy(*m_Context);
+
+
+		mVoidPtrType = llvm::Type::getInt8PtrTy(*m_Context);
+
+		mObjectType = llvm::StructType::create(*m_Context, { mInt8Type,uint8PtrType,mInt8Type }, "Object");
+		mObjectPtrType = llvm::PointerType::get(mObjectType, 0);
+
+		mValueType = llvm::StructType::create(*m_Context, { mDoubleType,mBoolType ,mObjectPtrType }, "Value");
+		mValuePtrType = llvm::PointerType::get(mValueType, 0);
+	}
+
 	if (m_SymbolTable)
 		SAFE_DELETE(m_SymbolTable);
 	m_SymbolTable = new LLVMSymbolTable();
 
 	std::vector<llvm::Type*> types(3);
-	types[0] = llvm::Type::getInt64PtrTy(*m_Context);
-	types[1] = llvm::Type::getInt1Ty(*m_Context);
-	types[2] = llvm::Type::getInt64PtrTy(*m_Context);
+	types[0] = mValuePtrType;
+	types[1] = mInt8Type;
+	types[2] = mValuePtrType;
 
-	llvm::FunctionType* FT = llvm::FunctionType::get(llvm::Type::getVoidTy(*m_Context), types, false);
+	llvm::FunctionType* FT = llvm::FunctionType::get(mBoolType, types, false);
 	llvm::Function* F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage, "println", m_Module.get());
 
 	unsigned idx = 0;
 	for (auto& arg : F->args())
-		arg.setName("param"+std::to_string(idx));
+		arg.setName("param" + std::to_string(idx));
 
 	BuiltinManager::GetInstance()->RegisterLlvmFn("println", F);
 
@@ -99,11 +124,11 @@ void LLVMCompiler::CompileScopeStmt(ScopeStmt* stmt)
 {
 	EnterScope();
 
-	llvm::BasicBlock* block = llvm::BasicBlock::Create(*m_Context, "scope"+ std::to_string(m_SymbolTable->scopeDepth), m_Builder->GetInsertBlock()->getParent());
+	llvm::BasicBlock* block = llvm::BasicBlock::Create(*m_Context, "scope" + std::to_string(m_SymbolTable->scopeDepth), m_Builder->GetInsertBlock()->getParent());
 	m_Builder->CreateBr(block);
 	m_Builder->SetInsertPoint(block);
 
-	for (const auto& s : stmt->stmts)	
+	for (const auto& s : stmt->stmts)
 		CompileStmt(s);
 
 	ExitScope();
@@ -298,7 +323,7 @@ void LLVMCompiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& st
 			{
 				if (arg.getName() == symbol.name)
 				{
-					Push(&arg);	
+					Push(&arg);
 					break;
 				}
 			}
@@ -322,17 +347,35 @@ void LLVMCompiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& st
 		case LLVMSymbolScope::GLOBAL:
 		{
 			auto init = Pop();
-			auto alloc = m_Builder->CreateAlloca(init->getType(), nullptr,  symbol.name);
+			auto alloc = m_Builder->CreateAlloca(mValueType, nullptr, symbol.name);
 			m_SymbolTable->Set(symbol.name, alloc);
-			m_Builder->CreateStore(init, alloc);
+
+			llvm::Value* memberAddr = nullptr;
+			if (init->getType() == mDoubleType)
+				memberAddr = m_Builder->CreateGEP(mValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) }, symbol.name);
+			else if(init->getType() == mBoolType)
+				memberAddr = m_Builder->CreateGEP(mValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(1) }, symbol.name);
+			else
+				memberAddr = m_Builder->CreateGEP(mValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(2) }, symbol.name);
+
+			m_Builder->CreateStore(init, memberAddr);
 			break;
 		}
 		case LLVMSymbolScope::LOCAL:
 		{
 			auto init = Pop();
-			auto alloc = m_Builder->CreateAlloca(init->getType(), nullptr,  symbol.name);
+			auto alloc = m_Builder->CreateAlloca(mValueType, nullptr, symbol.name);
 			m_SymbolTable->Set(symbol.name, alloc);
-			m_Builder->CreateStore(init, alloc);
+
+			llvm::Value* memberAddr = nullptr;
+			if (init->getType() == mDoubleType)
+				memberAddr = m_Builder->CreateGEP(mValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) }, symbol.name);
+			else if (init->getType() == mBoolType)
+				memberAddr = m_Builder->CreateGEP(mValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(1) }, symbol.name);
+			else
+				memberAddr = m_Builder->CreateGEP(mValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(2) }, symbol.name);
+
+			m_Builder->CreateStore(init, memberAddr);
 			break;
 		}
 		default:
@@ -357,7 +400,7 @@ void LLVMCompiler::CompileFunctionExpr(FunctionExpr* expr)
 	for (auto& arg : fn->args())
 		arg.setName(expr->parameters[idx++]->literal);
 
-	llvm::BasicBlock* block = llvm::BasicBlock::Create(*m_Context,"",fn);
+	llvm::BasicBlock* block = llvm::BasicBlock::Create(*m_Context, "", fn);
 	m_Builder->SetInsertPoint(block);
 
 	CompileStmt(expr->body);
@@ -386,8 +429,6 @@ void LLVMCompiler::CompileFunctionCallExpr(FunctionCallExpr* expr)
 		if (!argsV.back())
 			return;
 	}
-
-	// auto arg0=llvm::Constant::
 
 	m_Builder->CreateCall(fn, argsV);
 }
