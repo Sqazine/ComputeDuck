@@ -53,27 +53,35 @@ void LLVMCompiler::ResetStatus()
 
 		mValueType = llvm::StructType::create(*m_Context, { mDoubleType,mBoolType ,mObjectPtrType }, "Value");
 		mValuePtrType = llvm::PointerType::get(mValueType, 0);
+
+		std::vector<llvm::Type*> types(2);
+		types[0] = mValuePtrType;
+		types[1] = mInt8Type;
+		mNativeFunctionType = llvm::FunctionType::get(mValueType, types, false);
 	}
 
 	if (m_SymbolTable)
 		SAFE_DELETE(m_SymbolTable);
 	m_SymbolTable = new LLVMSymbolTable();
 
-	std::vector<llvm::Type*> types(3);
-	types[0] = mValuePtrType;
-	types[1] = mInt8Type;
-	types[2] = mValuePtrType;
 
-	llvm::FunctionType* FT = llvm::FunctionType::get(mBoolType, types, false);
-	llvm::Function* F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage, "println", m_Module.get());
+	BuiltinManager::GetInstance()->RegisterLlvmFn("print", llvm::Function::Create(mNativeFunctionType, llvm::Function::ExternalLinkage, "print", m_Module.get()));
+	m_SymbolTable->DefineBuiltin("print");
 
-	unsigned idx = 0;
-	for (auto& arg : F->args())
-		arg.setName("param" + std::to_string(idx));
-
-	BuiltinManager::GetInstance()->RegisterLlvmFn("println", F);
-
+	BuiltinManager::GetInstance()->RegisterLlvmFn("println", llvm::Function::Create(mNativeFunctionType, llvm::Function::ExternalLinkage, "println", m_Module.get()));
 	m_SymbolTable->DefineBuiltin("println");
+
+	BuiltinManager::GetInstance()->RegisterLlvmFn("sizeof", llvm::Function::Create(mNativeFunctionType, llvm::Function::ExternalLinkage, "sizeof", m_Module.get()));
+	m_SymbolTable->DefineBuiltin("sizeof");
+
+	BuiltinManager::GetInstance()->RegisterLlvmFn("insert", llvm::Function::Create(mNativeFunctionType, llvm::Function::ExternalLinkage, "insert", m_Module.get()));
+	m_SymbolTable->DefineBuiltin("insert");
+
+	BuiltinManager::GetInstance()->RegisterLlvmFn("erase", llvm::Function::Create(mNativeFunctionType, llvm::Function::ExternalLinkage, "erase", m_Module.get()));
+	m_SymbolTable->DefineBuiltin("erase");
+
+	BuiltinManager::GetInstance()->RegisterLlvmFn("clock", llvm::Function::Create(mNativeFunctionType, llvm::Function::ExternalLinkage, "clock", m_Module.get()));
+	m_SymbolTable->DefineBuiltin("clock");
 
 	m_FunctionStack.clear();
 
@@ -353,10 +361,14 @@ void LLVMCompiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& st
 			llvm::Value* memberAddr = nullptr;
 			if (init->getType() == mDoubleType)
 				memberAddr = m_Builder->CreateGEP(mValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) }, symbol.name);
-			else if(init->getType() == mBoolType)
+			else if (init->getType() == mBoolType)
 				memberAddr = m_Builder->CreateGEP(mValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(1) }, symbol.name);
 			else
-				memberAddr = m_Builder->CreateGEP(mValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(2) }, symbol.name);
+			{
+				//TODO:Object not implemented!
+				//memberAddr = m_Builder->CreateGEP(mValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(2) }, symbol.name);
+				memberAddr = alloc;
+			}
 
 			m_Builder->CreateStore(init, memberAddr);
 			break;
@@ -373,7 +385,11 @@ void LLVMCompiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& st
 			else if (init->getType() == mBoolType)
 				memberAddr = m_Builder->CreateGEP(mValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(1) }, symbol.name);
 			else
-				memberAddr = m_Builder->CreateGEP(mValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(2) }, symbol.name);
+			{
+				//TODO:Object not implemented!
+				//memberAddr = m_Builder->CreateGEP(mValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(2) }, symbol.name);
+				memberAddr = alloc;
+			}
 
 			m_Builder->CreateStore(init, memberAddr);
 			break;
@@ -418,8 +434,8 @@ void LLVMCompiler::CompileFunctionCallExpr(FunctionCallExpr* expr)
 	if (!fn)
 		ASSERT("Unknown function:%s", expr->name->Stringify());
 
-	if (fn->arg_size() != expr->arguments.size())
-		ASSERT("InCompatible arg size:%d,%d", fn->arg_size(), expr->arguments.size());
+	//if (fn->arg_size() != expr->arguments.size())
+	//	ASSERT("InCompatible arg size:%d,%d", fn->arg_size(), expr->arguments.size());
 
 	std::vector<llvm::Value*> argsV;
 	for (unsigned i = 0; i < expr->arguments.size(); ++i)
@@ -430,7 +446,11 @@ void LLVMCompiler::CompileFunctionCallExpr(FunctionCallExpr* expr)
 			return;
 	}
 
-	m_Builder->CreateCall(fn, argsV);
+	llvm::Value* arg1 = m_Builder->getInt32(argsV.size());
+
+	std::vector<llvm::Value*> args = { argsV[0], arg1};
+
+	m_Builder->CreateCall(fn, args);
 }
 void LLVMCompiler::CompileStructCallExpr(StructCallExpr* expr, const RWState& state)
 {

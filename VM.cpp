@@ -370,13 +370,10 @@ void VM::Execute()
 
                 m_StackTop -= (argCount + 1);
 
-                Value returnValue;
-                bool hasReturnValue = builtin->GetBuiltinFn()(slot, argCount, returnValue);
-                if (hasReturnValue)
-                {
-                    RegisterToGCRecordChain(returnValue);
-                    Push(returnValue);
-                }
+                Value returnValue = builtin->GetBuiltinFn()(slot, argCount);
+              
+                RegisterToGCRecordChain(returnValue);
+                Push(returnValue);
             }
             else
                 ASSERT("Calling not a function or a builtinFn");

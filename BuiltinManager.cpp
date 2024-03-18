@@ -5,46 +5,48 @@
 
 namespace
 {
-	extern "C" COMPUTE_DUCK_API bool gPrint(Value *args, uint8_t argCount, Value &result)
+	extern "C" COMPUTE_DUCK_API Value gPrint(Value * args, uint8_t argCount)
 	{
-		if (argCount == 0)
-			return false;
+		if (argCount > 0)
+			for (size_t i; i < argCount; ++i)
+				std::cout << args[i].Stringify();
 
-		std::cout << args[0].Stringify();
-		return false;
+		return Value();
 	}
 
-	extern "C" COMPUTE_DUCK_API bool gPrintln(Value *args, uint8_t argCount, Value &result)
+	extern "C" COMPUTE_DUCK_API Value gPrintln(Value * args, uint8_t argCount)
 	{
-		if (argCount == 0)
-			return false;
-
-		std::cout << args[0].Stringify() << std::endl;
-		return false;
+		if (argCount > 0)
+		{
+			for (size_t i; i < argCount; ++i)
+				std::cout << args[i].Stringify();
+			std::cout << std::endl;;
+		}
+		return Value();
 	}
 
-	extern "C" COMPUTE_DUCK_API bool gSizeofFn(Value *args, uint8_t argCount, Value &result)
+	extern "C" COMPUTE_DUCK_API Value gSizeofFn(Value * args, uint8_t argCount)
 	{
 		if (argCount == 0 || argCount > 1)
 			ASSERT("[Native function 'sizeof']:Expect a argument.");
 
 		if (IS_ARRAY_VALUE(args[0]))
-			result = Value((double)TO_ARRAY_VALUE(args[0])->elements.size());
+			return ((double)TO_ARRAY_VALUE(args[0])->elements.size());
 		else if (IS_STR_VALUE(args[0]))
-			result = Value((double)TO_STR_VALUE(args[0])->value.size());
+			return ((double)TO_STR_VALUE(args[0])->value.size());
 		else
 			ASSERT("[Native function 'sizeof']:Expect a array or string argument.");
-		return true;
+		return Value();
 	}
 
-	extern "C" COMPUTE_DUCK_API bool gInsert(Value *args, uint8_t argCount, Value &result)
+	extern "C" COMPUTE_DUCK_API Value gInsert(Value * args, uint8_t argCount)
 	{
 		if (argCount == 0 || argCount != 3)
 			ASSERT("[Native function 'insert']:Expect 3 arguments,the arg0 must be array or string object.The arg1 is the index object.The arg2 is the value object.");
 
 		if (IS_ARRAY_VALUE(args[0]))
 		{
-			ArrayObject *array = TO_ARRAY_VALUE(args[0]);
+			ArrayObject* array = TO_ARRAY_VALUE(args[0]);
 			if (!IS_NUM_VALUE(args[1]))
 				ASSERT("[Native function 'insert']:Arg1 must be integer type while insert to a array");
 
@@ -57,7 +59,7 @@ namespace
 		}
 		else if (IS_STR_VALUE(args[0]))
 		{
-			StrObject *string = TO_STR_VALUE(args[0]);
+			StrObject* string = TO_STR_VALUE(args[0]);
 			if (!IS_NUM_VALUE(args[1]))
 				ASSERT("[Native function 'insert']:Arg1 must be integer type while insert to a string");
 
@@ -70,17 +72,17 @@ namespace
 		}
 		else
 			ASSERT("[Native function 'insert']:Expect a array or string argument.");
-		return false;
+		return Value();
 	}
 
-	extern "C" COMPUTE_DUCK_API bool gErase(Value *args, uint8_t argCount, Value &result)
+	extern "C" COMPUTE_DUCK_API Value gErase(Value * args, uint8_t argCount)
 	{
 		if (argCount == 0 || argCount != 2)
 			ASSERT("[Native function 'erase']:Expect 2 arguments,the arg0 must be array or string object.The arg1 is the corresponding index object.");
 
 		if (IS_ARRAY_VALUE(args[0]))
 		{
-			ArrayObject *array = TO_ARRAY_VALUE(args[0]);
+			ArrayObject* array = TO_ARRAY_VALUE(args[0]);
 			if (!IS_NUM_VALUE(args[1]))
 				ASSERT("[Native function 'erase']:Arg1 must be integer type while deleting array element");
 
@@ -93,7 +95,7 @@ namespace
 		}
 		else if (IS_STR_VALUE(args[0]))
 		{
-			StrObject *string = TO_STR_VALUE(args[0]);
+			StrObject* string = TO_STR_VALUE(args[0]);
 			if (!IS_NUM_VALUE(args[1]))
 				ASSERT("[Native function 'erase']:Arg1 must be integer type while deleting string element");
 
@@ -106,13 +108,12 @@ namespace
 		}
 		else
 			ASSERT("[Native function 'erase']:Expect a array or string argument.");
-		return false;
+		return Value();
 	}
 
-	extern "C" COMPUTE_DUCK_API bool gClock(Value *args, uint8_t argCount, Value &result)
+	extern "C" COMPUTE_DUCK_API Value gClock(Value * args, uint8_t argCount)
 	{
-		result = Value((double)clock() / CLOCKS_PER_SEC);
-		return true;
+		return ((double)clock() / CLOCKS_PER_SEC);
 	}
 }
 
