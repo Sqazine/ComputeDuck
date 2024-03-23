@@ -23,6 +23,7 @@
 #include "Ast.h"
 #include "Config.h"
 #include "Utils.h"
+#include "Value.h"
 
 enum class LLVMSymbolScope
 {
@@ -175,9 +176,9 @@ private:
     void CompileAnonyStructExpr(AnonyStructExpr *expr);
     void CompileDllImportExpr(DllImportExpr *expr);
 
-    void Push(llvm::Value *v);
-    llvm::Value *Peek(int32_t distance);
-    llvm::Value *Pop();
+	void Push(llvm::Value *v);
+	llvm::Value *Peek(int32_t distance);
+	llvm::Value *Pop();
 
     llvm::Function* GetCurFunction();
     void AddFunction(llvm::Function* fn);
@@ -196,6 +197,7 @@ private:
         llvm::PointerType* mObjectPtrType;
 
         llvm::FunctionType* mNativeFunctionType;
+        llvm::FunctionType* mValueFunctionType;
 
         llvm::Type* mInt8Type;
         llvm::Type* mBoolType;

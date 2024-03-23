@@ -29,26 +29,6 @@ void VM::Run(Chunk *chunk)
 
 void VM::Execute()
 {
-    //  - * /
-#define COMMON_BINARY(op)                                                                                    \
-    do                                                                                                       \
-    {                                                                                                        \
-        Value left = Pop();                                                                                  \
-        Value right = Pop();                                                                                 \
-        while (IS_REF_VALUE(left))                                                                           \
-            left = *TO_REF_VALUE(left)->pointer;                                                             \
-        while (IS_REF_VALUE(right))                                                                          \
-            right = *TO_REF_VALUE(right)->pointer;                                                           \
-        if (IS_BUILTIN_VALUE(left) && TO_BUILTIN_VALUE(left)->IsBuiltinData())                               \
-            left = TO_BUILTIN_VALUE(left)->GetBuiltinValue();                                                \
-        if (IS_BUILTIN_VALUE(right) && TO_BUILTIN_VALUE(right)->IsBuiltinData())                             \
-            right = TO_BUILTIN_VALUE(right)->GetBuiltinValue();                                              \
-        if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                                       \
-            Push(TO_NUM_VALUE(left) op TO_NUM_VALUE(right));                                                 \
-        else                                                                                                 \
-            ASSERT("Invalid binary op:%s%s", (left.Stringify() + (#op)).c_str(), right.Stringify().c_str()); \
-    } while (0);
-
 // > >= < <=
 #define COMPARE_BINARY(op)                                                                \
     do                                                                                    \
@@ -148,36 +128,47 @@ void VM::Execute()
         {
             Value left = Pop();
             Value right = Pop();
-            while (IS_REF_VALUE(left))
-                left = *TO_REF_VALUE(left)->pointer;
-            while (IS_REF_VALUE(right))
-                right = *TO_REF_VALUE(right)->pointer;
-            if (IS_BUILTIN_VALUE(left) && TO_BUILTIN_VALUE(left)->IsBuiltinData())
-                left = TO_BUILTIN_VALUE(left)->GetBuiltinValue();
-            if (IS_BUILTIN_VALUE(right) && TO_BUILTIN_VALUE(right)->IsBuiltinData())
-                right = TO_BUILTIN_VALUE(right)->GetBuiltinValue();
-            if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))
-                Push(TO_NUM_VALUE(left) + TO_NUM_VALUE(right));
-            else if (IS_STR_VALUE(right) && IS_STR_VALUE(left))
-                Push(CreateObject<StrObject>(TO_STR_VALUE(left)->value + TO_STR_VALUE(right)->value));
-            else
-                ASSERT("Invalid binary op:%s+%s", left.Stringify().c_str(), right.Stringify().c_str());
+            
+            auto value = ValueAdd(left, right);
+
+			RegisterToGCRecordChain(value); // the value in constant list maybe not regisiter to the gc chain
+
+			Push(value);
+
             break;
         }
         case OP_SUB:
         {
-            COMMON_BINARY(-);
+			Value left = Pop();                                                                                  
+		    Value right = Pop();                                                                                
+			auto value = ValueSub(left, right);
+
+			RegisterToGCRecordChain(value); // the value in constant list maybe not regisiter to the gc chain
+
+			Push(value);
             break;
         }
         case OP_MUL:
         {
-            COMMON_BINARY(*);
-            break;
+			Value left = Pop();
+			Value right = Pop();
+			auto value = ValueMul(left, right);
+
+			RegisterToGCRecordChain(value); // the value in constant list maybe not regisiter to the gc chain
+
+			Push(value);
+			break;
         }
         case OP_DIV:
         {
-            COMMON_BINARY(/);
-            break;
+			Value left = Pop();
+			Value right = Pop();
+			auto value = ValueDiv(left, right);
+
+			RegisterToGCRecordChain(value); // the value in constant list maybe not regisiter to the gc chain
+
+			Push(value);
+			break;
         }
         case OP_GREATER:
         {
