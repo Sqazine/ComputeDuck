@@ -1,7 +1,6 @@
 #include "LLVMCompiler.h"
 #include "BuiltinManager.h"
 
-
 LLVMCompiler::LLVMCompiler()
 	: m_SymbolTable(nullptr)
 {
@@ -58,12 +57,28 @@ void LLVMCompiler::ResetStatus()
 		types[0] = mValuePtrType;
 		types[1] = mInt8Type;
 		mNativeFunctionType = llvm::FunctionType::get(mValueType, types, false);
+
+		types.resize(2);
+		types[0] = mValueType;
+		types[1] = mValueType;
+		mValueFunctionType = llvm::FunctionType::get(mValueType, types, false);
 	}
 
 	if (m_SymbolTable)
 		SAFE_DELETE(m_SymbolTable);
 	m_SymbolTable = new LLVMSymbolTable();
 
+	BuiltinManager::GetInstance()->RegisterLlvmFn("ValueAdd", llvm::Function::Create(mValueFunctionType, llvm::Function::ExternalLinkage, "ValueAdd", m_Module.get()));
+	m_SymbolTable->DefineBuiltin("ValueAdd");
+
+	BuiltinManager::GetInstance()->RegisterLlvmFn("ValueSub", llvm::Function::Create(mValueFunctionType, llvm::Function::ExternalLinkage, "ValueSub", m_Module.get()));
+	m_SymbolTable->DefineBuiltin("ValueSub");
+
+	BuiltinManager::GetInstance()->RegisterLlvmFn("ValueMul", llvm::Function::Create(mValueFunctionType, llvm::Function::ExternalLinkage, "ValueMul", m_Module.get()));
+	m_SymbolTable->DefineBuiltin("ValueMul");
+
+	BuiltinManager::GetInstance()->RegisterLlvmFn("ValueDiv", llvm::Function::Create(mValueFunctionType, llvm::Function::ExternalLinkage, "ValueDiv", m_Module.get()));
+	m_SymbolTable->DefineBuiltin("ValueDiv");
 
 	BuiltinManager::GetInstance()->RegisterLlvmFn("print", llvm::Function::Create(mNativeFunctionType, llvm::Function::ExternalLinkage, "print", m_Module.get()));
 	m_SymbolTable->DefineBuiltin("print");
@@ -230,17 +245,14 @@ void LLVMCompiler::CompileInfixExpr(InfixExpr* expr)
 		auto lValue = Pop();
 		auto rValue = Pop();
 
-		if (!lValue || !rValue)
-			return;
-
 		if (expr->op == "+")
-			Push(m_Builder->CreateFAdd(lValue, rValue));
+			Push(m_Builder->CreateCall(BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueAdd"],{ lValue, rValue }));
 		else if (expr->op == "-")
-			Push(m_Builder->CreateFSub(lValue, rValue));
+			Push(m_Builder->CreateCall(BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueSub"],{ lValue, rValue }));
 		else if (expr->op == "*")
-			Push(m_Builder->CreateFMul(lValue, rValue));
+			Push(m_Builder->CreateCall(BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueMul"],{ lValue, rValue }));
 		else if (expr->op == "/")
-			Push(m_Builder->CreateFDiv(lValue, rValue));
+			Push(m_Builder->CreateCall(BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueDiv"],{ lValue, rValue }));
 		else if (expr->op == ">")
 			Push(m_Builder->CreateFCmpUGT(lValue, rValue));
 		else if (expr->op == "<")
@@ -267,11 +279,23 @@ void LLVMCompiler::CompileInfixExpr(InfixExpr* expr)
 }
 void LLVMCompiler::CompileNumExpr(NumExpr* expr)
 {
-	Push(llvm::ConstantFP::get(*m_Context, llvm::APFloat(expr->value)));
+	auto d = llvm::ConstantFP::get(*m_Context, llvm::APFloat(expr->value));
+	auto b = llvm::ConstantInt::get(*m_Context, llvm::APInt(1, 0));
+	auto p = llvm::ConstantPointerNull::get(mObjectPtrType);
+
+	auto v= llvm::ConstantStruct::get(mValueType, { d,b,p });
+
+	Push(v);
 }
 void LLVMCompiler::CompileBoolExpr(BoolExpr* expr)
 {
-	Push(llvm::ConstantInt::get(*m_Context, llvm::APInt(1, expr->value ? 1 : 0)));
+	auto d = llvm::ConstantFP::get(*m_Context, llvm::APFloat(0.0f));
+	auto b = llvm::ConstantInt::get(*m_Context, llvm::APInt(1, expr->value ? 1 : 0));
+	auto p = llvm::ConstantPointerNull::get(mObjectPtrType);
+
+	auto v = llvm::ConstantStruct::get(mValueType, { d,b,p });
+
+	Push(v);
 }
 void LLVMCompiler::CompilePrefixExpr(PrefixExpr* expr)
 {
@@ -291,11 +315,11 @@ void LLVMCompiler::CompilePrefixExpr(PrefixExpr* expr)
 }
 void LLVMCompiler::CompileStrExpr(StrExpr* expr)
 {
-	Push(m_Builder->CreateGlobalString(expr->value));
+	//Push(m_Builder->CreateGlobalString(expr->value));
 }
 void LLVMCompiler::CompileNilExpr(NilExpr* expr)
 {
-	Push(llvm::ConstantPointerNull::get(llvm::PointerType::get(llvm::Type::getVoidTy(*m_Context), 0)));
+	//Push(llvm::ConstantPointerNull::get(llvm::PointerType::get(llvm::Type::getVoidTy(*m_Context), 0)));
 }
 void LLVMCompiler::CompileGroupExpr(GroupExpr* expr)
 {
@@ -322,7 +346,8 @@ void LLVMCompiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& st
 		{
 		case LLVMSymbolScope::GLOBAL:
 		{
-			Push(m_Builder->CreateLoad(symbol.alloc->getAllocatedType(), symbol.alloc, expr->literal));
+			auto v = m_Builder->CreateLoad(symbol.alloc->getAllocatedType(), symbol.alloc, expr->literal);
+			Push(v);
 			break;
 		}
 		case LLVMSymbolScope::LOCAL:
@@ -339,7 +364,8 @@ void LLVMCompiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& st
 		}
 		case LLVMSymbolScope::BUILTIN:
 		{
-			Push(BuiltinManager::GetInstance()->m_LlvmBuiltins[symbol.name]);
+			auto v = BuiltinManager::GetInstance()->m_LlvmBuiltins[symbol.name];
+			Push(v);
 			break;
 		}
 		default:
@@ -446,9 +472,15 @@ void LLVMCompiler::CompileFunctionCallExpr(FunctionCallExpr* expr)
 			return;
 	}
 
-	llvm::Value* arg1 = m_Builder->getInt32(argsV.size());
+	auto valueArrayType = llvm::ArrayType::get(mValueType, argsV.size());
 
-	std::vector<llvm::Value*> args = { argsV[0], arg1};
+	auto alloc0 = m_Builder->CreateAlloca(valueArrayType,nullptr,"args");
+
+	auto args0Ptr = m_Builder->CreateInBoundsGEP(valueArrayType,alloc0,{ llvm::ConstantInt::get(*m_Context, llvm::APInt(8, 0)),llvm::ConstantInt::get(*m_Context, llvm::APInt(8, 0)) },"args0Ptr");
+
+	llvm::Value* arg1 = m_Builder->getInt8(argsV.size());
+
+	std::vector<llvm::Value*> args = { args0Ptr, arg1 };
 
 	m_Builder->CreateCall(fn, args);
 }
@@ -473,10 +505,12 @@ void LLVMCompiler::Push(llvm::Value* v)
 {
 	m_ValueStack.push_back(v);
 }
+
 llvm::Value* LLVMCompiler::Peek(int32_t distance)
 {
 	return m_ValueStack[m_ValueStack.size() - 1 - distance];
 }
+
 llvm::Value* LLVMCompiler::Pop()
 {
 	auto v = Peek(0);
