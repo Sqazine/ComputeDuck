@@ -38,6 +38,7 @@ void Run(std::string_view content)
 
 #ifdef BUILD_WITH_LLVM
 	auto fn = gLLVMCompiler->Compile(stmts);
+	gLLVMCompiler->Run(fn);
 #else
 
 	auto chunk = gCompiler->Compile(stmts);

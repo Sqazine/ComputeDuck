@@ -42,19 +42,23 @@ add_executable(computeduck main.cpp ${EXAMPLES})
 if(BuildLLVMImpl)
     include(SetLLVM.cmake)
     
-    set(LLVM_DIR "3rd/llvm14/LLVM/llvm")
+    set(LLVM_DIR "3rd/llvm18/LLVM/llvm" )
 
     SetLLVM(${LLVM_DIR} LLVM_LIBS)
 
-    list(APPEND ROOT_SRC LLVMCompiler.cpp LLVMCompiler.h)
+    message(STATUS "LLVM_LIBS=${LLVM_LIBS}")
+
+    list(APPEND ROOT_SRC LLVMCompiler.cpp LLVMCompiler.h LLVMJit.h LLVMJit.cpp)
 
     source_group("src" FILES ${ROOT_SRC})
     add_library(libcomputeduck SHARED ${ROOT_SRC})
     
     target_link_libraries(libcomputeduck PRIVATE ${LLVM_LIBS})
-    target_include_directories(libcomputeduck PRIVATE ${LLVM_DIR}/include ${LLVM_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/llvm)
+    target_include_directories(libcomputeduck PRIVATE ${LLVM_DIR}/include ${LLVM_BINARY_DIR}/include)
     target_include_directories(computeduck PRIVATE ${LLVM_DIR}/include ${LLVM_BINARY_DIR}/include)
     
+    message(STATUS "LLVM_BINARY_DIR=${LLVM_BINARY_DIR}")
+
     target_compile_definitions(libcomputeduck PUBLIC BUILD_WITH_LLVM)
     target_compile_definitions(computeduck PUBLIC BUILD_WITH_LLVM)
 else()

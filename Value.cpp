@@ -101,7 +101,7 @@ bool operator!=(const Value& left, const Value& right)
 	return !(left == right);
 }
 
-Value ValueAdd(Value left, Value right)
+Value gValueAdd(Value left, Value right)
 {
 	while (IS_REF_VALUE(left))
 		left = *TO_REF_VALUE(left)->pointer;
@@ -137,17 +137,17 @@ Value ValueAdd(Value left, Value right)
             ASSERT("Invalid binary op:%s%s", (left.Stringify() + (#op)).c_str(), right.Stringify().c_str()); \
     } while (0);
 
-Value ValueSub(Value left, Value right)
+Value gValueSub(Value left, Value right)
 {
 	COMMON_BINARY(-, left, right);
 }
 
-Value ValueMul(Value left, Value right)
+Value gValueMul(Value left, Value right)
 {
 	COMMON_BINARY(*, left, right);
 }
 
-Value ValueDiv(Value left, Value right)
+Value gValueDiv(Value left, Value right)
 {
 	COMMON_BINARY(/, left, right);
 }
