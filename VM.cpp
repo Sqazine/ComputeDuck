@@ -129,7 +129,7 @@ void VM::Execute()
             Value left = Pop();
             Value right = Pop();
             
-            auto value = ValueAdd(left, right);
+            auto value = gValueAdd(left, right);
 
 			RegisterToGCRecordChain(value); // the value in constant list maybe not regisiter to the gc chain
 
@@ -141,7 +141,7 @@ void VM::Execute()
         {
 			Value left = Pop();                                                                                  
 		    Value right = Pop();                                                                                
-			auto value = ValueSub(left, right);
+			auto value = gValueSub(left, right);
 
 			RegisterToGCRecordChain(value); // the value in constant list maybe not regisiter to the gc chain
 
@@ -152,7 +152,7 @@ void VM::Execute()
         {
 			Value left = Pop();
 			Value right = Pop();
-			auto value = ValueMul(left, right);
+			auto value = gValueMul(left, right);
 
 			RegisterToGCRecordChain(value); // the value in constant list maybe not regisiter to the gc chain
 
@@ -163,7 +163,7 @@ void VM::Execute()
         {
 			Value left = Pop();
 			Value right = Pop();
-			auto value = ValueDiv(left, right);
+			auto value = gValueDiv(left, right);
 
 			RegisterToGCRecordChain(value); // the value in constant list maybe not regisiter to the gc chain
 
@@ -361,7 +361,8 @@ void VM::Execute()
 
                 m_StackTop -= (argCount + 1);
 
-                Value returnValue = builtin->GetBuiltinFn()(slot, argCount);
+                Value returnValue;
+                builtin->GetBuiltinFn()(slot, argCount,&returnValue);
               
                 RegisterToGCRecordChain(returnValue);
                 Push(returnValue);

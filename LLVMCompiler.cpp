@@ -22,90 +22,46 @@ llvm::Function* LLVMCompiler::Compile(const std::vector<Stmt*>& stmts)
 	m_Module->print(llvm::outs(), nullptr);
 #endif
 
-	return GetCurFunction();
+	auto fn = GetCurFunction();
+
+	m_Builder->CreateRet(Pop());
+
+	auto b = llvm::verifyFunction(*fn);
+	m_FPM->run(*fn);
+
+	return fn;
+}
+
+void LLVMCompiler::Run(llvm::Function* fn)
+{
+	auto rt = m_Jit->GetMainJITDylib().createResourceTracker();
+
+	auto tsm = llvm::orc::ThreadSafeModule(std::move(m_Module), std::move(m_Context));
+
+	m_Jit->AddModule(std::move(tsm), rt);
+
+	InitModuleAndPassManager();
+
+	auto symbol = m_ExitOnErr(m_Jit->LookUp("main"));
+
+	void (*fp)() = symbol.getAddress().toPtr<void (*)()>();
+	fp();
+	rt->remove();
 }
 
 void LLVMCompiler::ResetStatus()
 {
-	m_Context = std::make_unique<llvm::LLVMContext>();
-	m_Module = std::make_unique<llvm::Module>(BuiltinManager::GetInstance()->GetExecuteFilePath(), *m_Context);
-	m_Builder = std::make_unique<llvm::IRBuilder<>>(*m_Context);
-
-	{
-		mInt8Type = llvm::Type::getInt8Ty(*m_Context);
-		mDoubleType = llvm::Type::getDoubleTy(*m_Context);
-		llvm::Type* uint64Type = llvm::Type::getInt64Ty(*m_Context);
-		llvm::Type* int32Type = llvm::Type::getInt32Ty(*m_Context);
-		llvm::Type* voidType = llvm::Type::getVoidTy(*m_Context);
-		mBoolType = llvm::Type::getInt1Ty(*m_Context);
-
-		llvm::PointerType* in64PtrType = llvm::Type::getInt64PtrTy(*m_Context);
-		llvm::PointerType* in32PtrType = llvm::Type::getInt32PtrTy(*m_Context);
-		llvm::Type* uint8PtrType = llvm::Type::getInt8PtrTy(*m_Context);
-		llvm::PointerType* boolPtrType = llvm::Type::getInt1PtrTy(*m_Context);
-
-
-		mVoidPtrType = llvm::Type::getInt8PtrTy(*m_Context);
-
-		mObjectType = llvm::StructType::create(*m_Context, { mInt8Type,uint8PtrType,mInt8Type }, "Object");
-		mObjectPtrType = llvm::PointerType::get(mObjectType, 0);
-
-		mValueType = llvm::StructType::create(*m_Context, { mDoubleType,mBoolType ,mObjectPtrType }, "Value");
-		mValuePtrType = llvm::PointerType::get(mValueType, 0);
-
-		std::vector<llvm::Type*> types(2);
-		types[0] = mValuePtrType;
-		types[1] = mInt8Type;
-		mNativeFunctionType = llvm::FunctionType::get(mValueType, types, false);
-
-		types.resize(2);
-		types[0] = mValueType;
-		types[1] = mValueType;
-		mValueFunctionType = llvm::FunctionType::get(mValueType, types, false);
-	}
+	llvm::InitializeNativeTarget();
+	llvm::InitializeNativeTargetAsmPrinter();
+	llvm::InitializeNativeTargetAsmParser();
 
 	if (m_SymbolTable)
 		SAFE_DELETE(m_SymbolTable);
 	m_SymbolTable = new LLVMSymbolTable();
 
-	BuiltinManager::GetInstance()->RegisterLlvmFn("ValueAdd", llvm::Function::Create(mValueFunctionType, llvm::Function::ExternalLinkage, "ValueAdd", m_Module.get()));
-	m_SymbolTable->DefineBuiltin("ValueAdd");
+	m_Jit = LLVMJit::Create();
 
-	BuiltinManager::GetInstance()->RegisterLlvmFn("ValueSub", llvm::Function::Create(mValueFunctionType, llvm::Function::ExternalLinkage, "ValueSub", m_Module.get()));
-	m_SymbolTable->DefineBuiltin("ValueSub");
-
-	BuiltinManager::GetInstance()->RegisterLlvmFn("ValueMul", llvm::Function::Create(mValueFunctionType, llvm::Function::ExternalLinkage, "ValueMul", m_Module.get()));
-	m_SymbolTable->DefineBuiltin("ValueMul");
-
-	BuiltinManager::GetInstance()->RegisterLlvmFn("ValueDiv", llvm::Function::Create(mValueFunctionType, llvm::Function::ExternalLinkage, "ValueDiv", m_Module.get()));
-	m_SymbolTable->DefineBuiltin("ValueDiv");
-
-	BuiltinManager::GetInstance()->RegisterLlvmFn("print", llvm::Function::Create(mNativeFunctionType, llvm::Function::ExternalLinkage, "print", m_Module.get()));
-	m_SymbolTable->DefineBuiltin("print");
-
-	BuiltinManager::GetInstance()->RegisterLlvmFn("println", llvm::Function::Create(mNativeFunctionType, llvm::Function::ExternalLinkage, "println", m_Module.get()));
-	m_SymbolTable->DefineBuiltin("println");
-
-	BuiltinManager::GetInstance()->RegisterLlvmFn("sizeof", llvm::Function::Create(mNativeFunctionType, llvm::Function::ExternalLinkage, "sizeof", m_Module.get()));
-	m_SymbolTable->DefineBuiltin("sizeof");
-
-	BuiltinManager::GetInstance()->RegisterLlvmFn("insert", llvm::Function::Create(mNativeFunctionType, llvm::Function::ExternalLinkage, "insert", m_Module.get()));
-	m_SymbolTable->DefineBuiltin("insert");
-
-	BuiltinManager::GetInstance()->RegisterLlvmFn("erase", llvm::Function::Create(mNativeFunctionType, llvm::Function::ExternalLinkage, "erase", m_Module.get()));
-	m_SymbolTable->DefineBuiltin("erase");
-
-	BuiltinManager::GetInstance()->RegisterLlvmFn("clock", llvm::Function::Create(mNativeFunctionType, llvm::Function::ExternalLinkage, "clock", m_Module.get()));
-	m_SymbolTable->DefineBuiltin("clock");
-
-	m_FunctionStack.clear();
-
-	llvm::FunctionType* fnType = llvm::FunctionType::get(llvm::Type::getVoidTy(*m_Context), false);
-	llvm::Function* fn = llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, "main", m_Module.get());
-	llvm::BasicBlock* codeBlock = llvm::BasicBlock::Create(*m_Context, "", fn);
-	m_Builder->SetInsertPoint(codeBlock);
-
-	m_FunctionStack.emplace_back(fn);
+	InitModuleAndPassManager();
 }
 
 void LLVMCompiler::CompileStmt(Stmt* stmt)
@@ -246,13 +202,13 @@ void LLVMCompiler::CompileInfixExpr(InfixExpr* expr)
 		auto rValue = Pop();
 
 		if (expr->op == "+")
-			Push(m_Builder->CreateCall(BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueAdd"],{ lValue, rValue }));
+			Push(m_Builder->CreateCall(BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueAdd"], { lValue, rValue }));
 		else if (expr->op == "-")
-			Push(m_Builder->CreateCall(BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueSub"],{ lValue, rValue }));
+			Push(m_Builder->CreateCall(BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueSub"], { lValue, rValue }));
 		else if (expr->op == "*")
-			Push(m_Builder->CreateCall(BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueMul"],{ lValue, rValue }));
+			Push(m_Builder->CreateCall(BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueMul"], { lValue, rValue }));
 		else if (expr->op == "/")
-			Push(m_Builder->CreateCall(BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueDiv"],{ lValue, rValue }));
+			Push(m_Builder->CreateCall(BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueDiv"], { lValue, rValue }));
 		else if (expr->op == ">")
 			Push(m_Builder->CreateFCmpUGT(lValue, rValue));
 		else if (expr->op == "<")
@@ -279,21 +235,25 @@ void LLVMCompiler::CompileInfixExpr(InfixExpr* expr)
 }
 void LLVMCompiler::CompileNumExpr(NumExpr* expr)
 {
+	auto vT = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::NUM));
 	auto d = llvm::ConstantFP::get(*m_Context, llvm::APFloat(expr->value));
-	auto b = llvm::ConstantInt::get(*m_Context, llvm::APInt(1, 0));
-	auto p = llvm::ConstantPointerNull::get(mObjectPtrType);
 
-	auto v= llvm::ConstantStruct::get(mValueType, { d,b,p });
+	auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr);
 
-	Push(v);
+	llvm::Value* memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
+	m_Builder->CreateStore(vT, memberAddr);
+	memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
+	m_Builder->CreateStore(d, memberAddr);
+
+	Push(alloc);
 }
 void LLVMCompiler::CompileBoolExpr(BoolExpr* expr)
 {
 	auto d = llvm::ConstantFP::get(*m_Context, llvm::APFloat(0.0f));
 	auto b = llvm::ConstantInt::get(*m_Context, llvm::APInt(1, expr->value ? 1 : 0));
-	auto p = llvm::ConstantPointerNull::get(mObjectPtrType);
+	auto p = llvm::ConstantPointerNull::get(m_ObjectPtrType);
 
-	auto v = llvm::ConstantStruct::get(mValueType, { d,b,p });
+	auto v = llvm::ConstantStruct::get(m_ValueType, { d,b,p });
 
 	Push(v);
 }
@@ -381,18 +341,18 @@ void LLVMCompiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& st
 		case LLVMSymbolScope::GLOBAL:
 		{
 			auto init = Pop();
-			auto alloc = m_Builder->CreateAlloca(mValueType, nullptr, symbol.name);
+			auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr, symbol.name);
 			m_SymbolTable->Set(symbol.name, alloc);
 
 			llvm::Value* memberAddr = nullptr;
-			if (init->getType() == mDoubleType)
-				memberAddr = m_Builder->CreateGEP(mValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) }, symbol.name);
-			else if (init->getType() == mBoolType)
-				memberAddr = m_Builder->CreateGEP(mValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(1) }, symbol.name);
+			if (init->getType() == m_DoubleType)
+				memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) }, symbol.name);
+			else if (init->getType() == m_BoolType)
+				memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(1) }, symbol.name);
 			else
 			{
 				//TODO:Object not implemented!
-				//memberAddr = m_Builder->CreateGEP(mValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(2) }, symbol.name);
+				//memberAddr = m_Builder->CreateInBoundsGEP(mValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(2) }, symbol.name);
 				memberAddr = alloc;
 			}
 
@@ -402,18 +362,18 @@ void LLVMCompiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& st
 		case LLVMSymbolScope::LOCAL:
 		{
 			auto init = Pop();
-			auto alloc = m_Builder->CreateAlloca(mValueType, nullptr, symbol.name);
+			auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr, symbol.name);
 			m_SymbolTable->Set(symbol.name, alloc);
 
 			llvm::Value* memberAddr = nullptr;
-			if (init->getType() == mDoubleType)
-				memberAddr = m_Builder->CreateGEP(mValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) }, symbol.name);
-			else if (init->getType() == mBoolType)
-				memberAddr = m_Builder->CreateGEP(mValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(1) }, symbol.name);
+			if (init->getType() == m_DoubleType)
+				memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) }, symbol.name);
+			else if (init->getType() == m_BoolType)
+				memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(1) }, symbol.name);
 			else
 			{
 				//TODO:Object not implemented!
-				//memberAddr = m_Builder->CreateGEP(mValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(2) }, symbol.name);
+				//memberAddr = m_Builder->CreateInBoundsGEP(mValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(2) }, symbol.name);
 				memberAddr = alloc;
 			}
 
@@ -463,26 +423,35 @@ void LLVMCompiler::CompileFunctionCallExpr(FunctionCallExpr* expr)
 	//if (fn->arg_size() != expr->arguments.size())
 	//	ASSERT("InCompatible arg size:%d,%d", fn->arg_size(), expr->arguments.size());
 
-	std::vector<llvm::Value*> argsV;
-	for (unsigned i = 0; i < expr->arguments.size(); ++i)
+	// builtin function
 	{
-		CompileExpr(expr->arguments[i]);
-		argsV.push_back(Pop());
-		if (!argsV.back())
-			return;
+		std::vector<llvm::Value*> argsV;
+		for (unsigned i = 0; i < expr->arguments.size(); ++i)
+		{
+			CompileExpr(expr->arguments[i]);
+			argsV.push_back(Pop());
+			if (!argsV.back())
+				return;
+		}
+
+		auto valueArrayType = llvm::ArrayType::get(m_ValueType, argsV.size());
+
+		auto arg0 = m_Builder->CreateAlloca(valueArrayType, nullptr);
+
+		for (auto i = 0; i < argsV.size(); ++i)
+		{
+			llvm::Value* arg0MemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, { m_Builder->getInt32(0), m_Builder->getInt32(i) });
+			m_Builder->CreateMemCpy(arg0MemberAddr, llvm::MaybeAlign(8), argsV[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+		}
+
+		llvm::Value* arg0MemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
+
+		llvm::Value* arg1 = m_Builder->getInt8(argsV.size());
+
+		fn->addParamAttr(0, llvm::Attribute::NoUndef);
+
+		Push(m_Builder->CreateCall(fn, { arg0MemberAddr, arg1 }));
 	}
-
-	auto valueArrayType = llvm::ArrayType::get(mValueType, argsV.size());
-
-	auto alloc0 = m_Builder->CreateAlloca(valueArrayType,nullptr,"args");
-
-	auto args0Ptr = m_Builder->CreateInBoundsGEP(valueArrayType,alloc0,{ llvm::ConstantInt::get(*m_Context, llvm::APInt(8, 0)),llvm::ConstantInt::get(*m_Context, llvm::APInt(8, 0)) },"args0Ptr");
-
-	llvm::Value* arg1 = m_Builder->getInt8(argsV.size());
-
-	std::vector<llvm::Value*> args = { args0Ptr, arg1 };
-
-	m_Builder->CreateCall(fn, args);
 }
 void LLVMCompiler::CompileStructCallExpr(StructCallExpr* expr, const RWState& state)
 {
@@ -523,7 +492,7 @@ llvm::Function* LLVMCompiler::GetCurFunction()
 	return PeekFunction(0);
 }
 
-void LLVMCompiler::AddFunction(llvm::Function* fn)
+void LLVMCompiler::PushFunction(llvm::Function* fn)
 {
 	m_FunctionStack.push_back(fn);
 }
@@ -547,4 +516,88 @@ void LLVMCompiler::EnterScope()
 void LLVMCompiler::ExitScope()
 {
 	m_SymbolTable = m_SymbolTable->enclosing;
+}
+
+void LLVMCompiler::InitModuleAndPassManager()
+{
+
+	m_Context = std::make_unique<llvm::LLVMContext>();
+
+	m_Module = std::make_unique<llvm::Module>(BuiltinManager::GetInstance()->GetExecuteFilePath(), *m_Context);
+	m_Module->setDataLayout(m_Jit->GetDataLayout());
+
+	m_Builder = std::make_unique<llvm::IRBuilder<>>(*m_Context);
+
+	m_FPM = std::make_unique<llvm::legacy::FunctionPassManager>(m_Module.get());
+	m_FPM->add(llvm::createPromoteMemoryToRegisterPass());
+	m_FPM->add(llvm::createInstructionCombiningPass());
+	m_FPM->add(llvm::createReassociatePass());
+	m_FPM->add(llvm::createGVNPass());
+	m_FPM->add(llvm::createCFGSimplificationPass());
+	m_FPM->doInitialization();
+
+	{
+		m_Int8Type = llvm::Type::getInt8Ty(*m_Context);
+		m_DoubleType = llvm::Type::getDoubleTy(*m_Context);
+		m_BoolType = llvm::Type::getInt1Ty(*m_Context);
+		m_Int64Type = llvm::Type::getInt64Ty(*m_Context);
+		m_Int32Type = llvm::Type::getInt32Ty(*m_Context);
+		m_VoidType = llvm::Type::getVoidTy(*m_Context);
+
+		m_Int64PtrType = llvm::PointerType::get(m_Int64Type, 0);
+		m_Int32PtrType = llvm::PointerType::get(m_Int32Type, 0);
+		m_Int8PtrType = llvm::PointerType::get(m_Int8Type, 0);
+		m_BoolPtrType = llvm::PointerType::get(m_BoolType, 0);
+
+		m_ObjectType = llvm::StructType::create(*m_Context, { m_Int8Type,m_Int8PtrType,m_Int8Type }, "struct.Object");
+		m_ObjectPtrType = llvm::PointerType::get(m_ObjectType, 0);
+
+		mUnionType = llvm::StructType::create(*m_Context, { m_DoubleType }, "union.anon");
+
+		m_ValueType = llvm::StructType::create(*m_Context, { m_Int8Type, mUnionType }, "struct.Value");
+		m_ValuePtrType = llvm::PointerType::get(m_ValueType, 0);
+
+		m_BuiiltinFunctionType = llvm::FunctionType::get(m_ValuePtrType, { m_ValuePtrType,m_Int8Type }, false);
+
+		m_ValueFunctionType = llvm::FunctionType::get(m_ValuePtrType, { m_ValuePtrType,m_ValuePtrType }, false);
+	}
+
+	BuiltinManager::GetInstance()->RegisterLlvmFn("ValueAdd", llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "gValueAdd", m_Module.get()));
+	m_SymbolTable->DefineBuiltin("ValueAdd");
+
+	BuiltinManager::GetInstance()->RegisterLlvmFn("ValueSub", llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "gValueSub", m_Module.get()));
+	m_SymbolTable->DefineBuiltin("ValueSub");
+
+	BuiltinManager::GetInstance()->RegisterLlvmFn("ValueMul", llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "gValueMul", m_Module.get()));
+	m_SymbolTable->DefineBuiltin("ValueMul");
+
+	BuiltinManager::GetInstance()->RegisterLlvmFn("ValueDiv", llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "gValueDiv", m_Module.get()));
+	m_SymbolTable->DefineBuiltin("ValueDiv");
+
+	BuiltinManager::GetInstance()->RegisterLlvmFn("print", llvm::Function::Create(m_BuiiltinFunctionType, llvm::Function::ExternalLinkage, "gPrint", m_Module.get()));
+	m_SymbolTable->DefineBuiltin("print");
+
+	BuiltinManager::GetInstance()->RegisterLlvmFn("println", llvm::Function::Create(m_BuiiltinFunctionType, llvm::Function::ExternalLinkage, "gPrintln", m_Module.get()));
+	m_SymbolTable->DefineBuiltin("println");
+
+	BuiltinManager::GetInstance()->RegisterLlvmFn("sizeof", llvm::Function::Create(m_BuiiltinFunctionType, llvm::Function::ExternalLinkage, "gSizeof", m_Module.get()));
+	m_SymbolTable->DefineBuiltin("sizeof");
+
+	BuiltinManager::GetInstance()->RegisterLlvmFn("insert", llvm::Function::Create(m_BuiiltinFunctionType, llvm::Function::ExternalLinkage, "gInsert", m_Module.get()));
+	m_SymbolTable->DefineBuiltin("insert");
+
+	BuiltinManager::GetInstance()->RegisterLlvmFn("erase", llvm::Function::Create(m_BuiiltinFunctionType, llvm::Function::ExternalLinkage, "gErase", m_Module.get()));
+	m_SymbolTable->DefineBuiltin("erase");
+
+	BuiltinManager::GetInstance()->RegisterLlvmFn("clock", llvm::Function::Create(m_BuiiltinFunctionType, llvm::Function::ExternalLinkage, "gClock", m_Module.get()));
+	m_SymbolTable->DefineBuiltin("clock");
+
+	m_FunctionStack.clear();
+
+	llvm::FunctionType* fnType = llvm::FunctionType::get(llvm::Type::getVoidTy(*m_Context), false);
+	llvm::Function* fn = llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, "main", m_Module.get());
+	llvm::BasicBlock* codeBlock = llvm::BasicBlock::Create(*m_Context, "", fn);
+	m_Builder->SetInsertPoint(codeBlock);
+
+	PushFunction(fn);
 }

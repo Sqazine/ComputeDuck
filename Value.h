@@ -26,7 +26,7 @@
 #define TO_STRUCT_VALUE(v) (TO_STRUCT_OBJ(v.object))
 #define TO_BUILTIN_VALUE(v) (TO_BUILTIN_OBJ(v.object))
 
-enum class ValueType
+enum class ValueType:uint8_t
 {
 	NIL,
 	NUM,
@@ -34,7 +34,7 @@ enum class ValueType
 	OBJECT,
 };
 
-struct COMPUTE_DUCK_API Value
+extern "C" struct COMPUTE_DUCK_API Value
 {
 	Value();
 	Value(double number);
@@ -47,6 +47,7 @@ struct COMPUTE_DUCK_API Value
 	std::string Stringify() const;
 	void Mark() const;
 	void UnMark() const;
+
 	ValueType type;
 
 	union
@@ -60,7 +61,7 @@ struct COMPUTE_DUCK_API Value
 bool operator==(const Value& left, const Value& right);
 bool operator!=(const Value& left, const Value& right);
 
-extern "C" COMPUTE_DUCK_API Value ValueAdd(Value left, Value right);
-extern "C" COMPUTE_DUCK_API Value ValueSub(Value left, Value right);
-extern "C" COMPUTE_DUCK_API Value ValueMul(Value left, Value right);
-extern "C" COMPUTE_DUCK_API Value ValueDiv(Value left, Value right);
+extern "C" COMPUTE_DUCK_API Value gValueAdd(Value left, Value right);
+extern "C" COMPUTE_DUCK_API Value gValueSub(Value left, Value right);
+extern "C" COMPUTE_DUCK_API Value gValueMul(Value left, Value right);
+extern "C" COMPUTE_DUCK_API Value gValueDiv(Value left, Value right);
