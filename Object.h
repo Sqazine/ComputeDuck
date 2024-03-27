@@ -249,7 +249,7 @@ struct StructObject : public Object
 	std::unordered_map<std::string, Value> members;
 };
 
-using BuiltinFn = std::function<void(Value *, uint8_t,Value*)>;
+using BuiltinFn = std::function<void(Value *, uint8_t,Value&)>;
 
 struct BuiltinObject : public Object
 {

@@ -202,7 +202,31 @@ void LLVMCompiler::CompileInfixExpr(InfixExpr* expr)
 		auto rValue = Pop();
 
 		if (expr->op == "+")
-			Push(m_Builder->CreateCall(BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueAdd"], { lValue, rValue }));
+		{
+			auto result = m_Builder->CreateAlloca(m_ValueType, nullptr);
+			llvm::Value* resultAddr = m_Builder->CreateInBoundsGEP(m_ValueType, result, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
+
+			auto argLeft = m_Builder->CreateAlloca(m_ValueType, nullptr);
+			llvm::Value* argLeftAddr = m_Builder->CreateInBoundsGEP(m_ValueType, argLeft, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
+			m_Builder->CreateMemCpy(argLeftAddr, llvm::MaybeAlign(8), lValue, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+
+			auto argRight = m_Builder->CreateAlloca(m_ValueType, nullptr);
+			llvm::Value* argRightAddr = m_Builder->CreateInBoundsGEP(m_ValueType, argRight, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
+			m_Builder->CreateMemCpy(argRightAddr, llvm::MaybeAlign(8), rValue, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+
+			auto fn = BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueAdd"];
+			fn->addParamAttr(0, llvm::Attribute::NoUndef);
+			fn->addParamAttr(1, llvm::Attribute::NoUndef);
+			fn->addParamAttr(2, llvm::Attribute::NoUndef);
+
+			auto callInst = m_Builder->CreateCall(fn, { argLeftAddr, argRightAddr,resultAddr });
+			callInst->addParamAttr(0, llvm::Attribute::NoUndef);
+			callInst->addParamAttr(1, llvm::Attribute::NoUndef);
+			callInst->addParamAttr(2, llvm::Attribute::NoUndef);
+
+			Push(resultAddr);
+
+		}
 		else if (expr->op == "-")
 			Push(m_Builder->CreateCall(BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueSub"], { lValue, rValue }));
 		else if (expr->op == "*")
@@ -342,21 +366,10 @@ void LLVMCompiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& st
 		{
 			auto init = Pop();
 			auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr, symbol.name);
+			auto memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) }, symbol.name);
 			m_SymbolTable->Set(symbol.name, alloc);
 
-			llvm::Value* memberAddr = nullptr;
-			if (init->getType() == m_DoubleType)
-				memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) }, symbol.name);
-			else if (init->getType() == m_BoolType)
-				memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(1) }, symbol.name);
-			else
-			{
-				//TODO:Object not implemented!
-				//memberAddr = m_Builder->CreateInBoundsGEP(mValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(2) }, symbol.name);
-				memberAddr = alloc;
-			}
-
-			m_Builder->CreateStore(init, memberAddr);
+			auto store=m_Builder->CreateStore(init, memberAddr);
 			break;
 		}
 		case LLVMSymbolScope::LOCAL:
@@ -443,14 +456,21 @@ void LLVMCompiler::CompileFunctionCallExpr(FunctionCallExpr* expr)
 			llvm::Value* arg0MemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, { m_Builder->getInt32(0), m_Builder->getInt32(i) });
 			m_Builder->CreateMemCpy(arg0MemberAddr, llvm::MaybeAlign(8), argsV[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
 		}
-
 		llvm::Value* arg0MemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
 
 		llvm::Value* arg1 = m_Builder->getInt8(argsV.size());
 
-		fn->addParamAttr(0, llvm::Attribute::NoUndef);
+		auto result = m_Builder->CreateAlloca(m_ValueType, nullptr);
+		auto resultAddr = m_Builder->CreateInBoundsGEP(m_ValueType, result, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
 
-		Push(m_Builder->CreateCall(fn, { arg0MemberAddr, arg1 }));
+		fn->addParamAttr(0, llvm::Attribute::NoUndef);
+		fn->addParamAttr(2, llvm::Attribute::NoUndef);
+
+		auto callInst = m_Builder->CreateCall(fn, { arg0MemberAddr, arg1 ,resultAddr });
+		callInst->addParamAttr(0, llvm::Attribute::NoUndef);
+		callInst->addParamAttr(2, llvm::Attribute::NoUndef);
+
+		Push(result);
 	}
 }
 void LLVMCompiler::CompileStructCallExpr(StructCallExpr* expr, const RWState& state)
@@ -557,9 +577,9 @@ void LLVMCompiler::InitModuleAndPassManager()
 		m_ValueType = llvm::StructType::create(*m_Context, { m_Int8Type, mUnionType }, "struct.Value");
 		m_ValuePtrType = llvm::PointerType::get(m_ValueType, 0);
 
-		m_BuiiltinFunctionType = llvm::FunctionType::get(m_ValuePtrType, { m_ValuePtrType,m_Int8Type }, false);
+		m_BuiiltinFunctionType = llvm::FunctionType::get(m_VoidType, { m_ValuePtrType,m_Int8Type ,m_ValuePtrType }, false);
 
-		m_ValueFunctionType = llvm::FunctionType::get(m_ValuePtrType, { m_ValuePtrType,m_ValuePtrType }, false);
+		m_ValueFunctionType = llvm::FunctionType::get(m_VoidType, { m_ValuePtrType,m_ValuePtrType,m_ValuePtrType }, false);
 	}
 
 	BuiltinManager::GetInstance()->RegisterLlvmFn("ValueAdd", llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "gValueAdd", m_Module.get()));
