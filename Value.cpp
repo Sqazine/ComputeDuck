@@ -2,7 +2,7 @@
 #include "Object.h"
 
 Value::Value()
-	: type(ValueType::NIL),object(nullptr)
+	: type(ValueType::NIL), object(nullptr)
 {
 }
 
@@ -101,22 +101,22 @@ bool operator!=(const Value& left, const Value& right)
 	return !(left == right);
 }
 
-Value gValueAdd(Value left, Value right)
+void gValueAdd(Value* left, Value* right, Value& result)
 {
-	while (IS_REF_VALUE(left))
-		left = *TO_REF_VALUE(left)->pointer;
-	while (IS_REF_VALUE(right))
-		right = *TO_REF_VALUE(right)->pointer;
-	if (IS_BUILTIN_VALUE(left) && TO_BUILTIN_VALUE(left)->IsBuiltinData())
-		left = TO_BUILTIN_VALUE(left)->GetBuiltinValue();
-	if (IS_BUILTIN_VALUE(right) && TO_BUILTIN_VALUE(right)->IsBuiltinData())
-		right = TO_BUILTIN_VALUE(right)->GetBuiltinValue();
-	if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))
-		return (TO_NUM_VALUE(left) + TO_NUM_VALUE(right));
-	else if (IS_STR_VALUE(right) && IS_STR_VALUE(left))
-		return new StrObject(TO_STR_VALUE(left)->value + TO_STR_VALUE(right)->value);
+	while (IS_REF_VALUE(*left))
+		left = TO_REF_VALUE(*left)->pointer;
+	while (IS_REF_VALUE(*right))
+		right = TO_REF_VALUE(*right)->pointer;
+	//if (IS_BUILTIN_VALUE(*left) && TO_BUILTIN_VALUE(*left)->IsBuiltinData())
+	//	left = TO_BUILTIN_VALUE(*left)->GetBuiltinValue();
+	//if (IS_BUILTIN_VALUE(right) && TO_BUILTIN_VALUE(right)->IsBuiltinData())
+	//	right = TO_BUILTIN_VALUE(right)->GetBuiltinValue();
+	if (IS_NUM_VALUE(*right) && IS_NUM_VALUE(*left))
+		result = Value(TO_NUM_VALUE(*left) + TO_NUM_VALUE(*right));
+	else if (IS_STR_VALUE(*right) && IS_STR_VALUE(*left))
+		result = Value(new StrObject(TO_STR_VALUE(*left)->value + TO_STR_VALUE(*right)->value));
 	else
-		ASSERT("Invalid binary op:%s+%s", left.Stringify().c_str(), right.Stringify().c_str());
+		ASSERT("Invalid binary op:%s+%s", left->Stringify().c_str(), right->Stringify().c_str());
 }
 
 //  - * /
@@ -132,22 +132,22 @@ Value gValueAdd(Value left, Value right)
         if (IS_BUILTIN_VALUE(right) && TO_BUILTIN_VALUE(right)->IsBuiltinData())                             \
             right = TO_BUILTIN_VALUE(right)->GetBuiltinValue();                                              \
         if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                                       \
-            return TO_NUM_VALUE(left) op TO_NUM_VALUE(right);                                                 \
+            result = new Value(TO_NUM_VALUE(left) op TO_NUM_VALUE(right));                                   \
         else                                                                                                 \
             ASSERT("Invalid binary op:%s%s", (left.Stringify() + (#op)).c_str(), right.Stringify().c_str()); \
     } while (0);
 
-Value gValueSub(Value left, Value right)
+void gValueSub(Value* left, Value* right, Value& result)
 {
-	COMMON_BINARY(-, left, right);
+	//COMMON_BINARY(-, left, right);
 }
 
-Value gValueMul(Value left, Value right)
+void gValueMul(Value* left, Value* right, Value& result)
 {
-	COMMON_BINARY(*, left, right);
+	//COMMON_BINARY(*, left, right);
 }
 
-Value gValueDiv(Value left, Value right)
+void gValueDiv(Value* left, Value* right, Value& result)
 {
-	COMMON_BINARY(/, left, right);
+	//COMMON_BINARY(/ , left, right);
 }
