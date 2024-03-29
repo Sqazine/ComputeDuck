@@ -274,7 +274,7 @@ struct BuiltinObject : public Object
 	struct BuiltinData
 	{
 		std::string name;
-		std::variant<BuiltinFn, Value> v;
+		std::variant<BuiltinFn, Value*> v;
 	};
 
 	BuiltinObject(void *nativeData, std::function<void(void *nativeData)> destroyFunc)
@@ -295,7 +295,7 @@ struct BuiltinObject : public Object
 		data = bd;
 	}
 
-	BuiltinObject(std::string_view name, const Value &value)
+	BuiltinObject(std::string_view name, Value* value)
 		: Object(ObjectType::BUILTIN)
 	{
 		BuiltinData bd;
@@ -318,7 +318,7 @@ struct BuiltinObject : public Object
 		else if (IsNativeData())
 			vStr = "(0x" + PointerAddressToString(GetNativeData().nativeData) + ")";
 		else
-			vStr = GetBuiltinValue().Stringify();
+			vStr = GetBuiltinValue()->Stringify();
 
 		return "Builtin :" + std::get<BuiltinData>(data).name + ":" + vStr;
 	}
@@ -369,7 +369,7 @@ struct BuiltinObject : public Object
 		return std::get<0>(std::get<1>(data).v);
 	}
 
-	Value GetBuiltinValue()
+	Value* GetBuiltinValue()
 	{
 		return std::get<1>(std::get<1>(data).v);
 	}

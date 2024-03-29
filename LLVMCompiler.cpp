@@ -207,21 +207,12 @@ void LLVMCompiler::CompileInfixExpr(InfixExpr* expr)
 			auto result = m_Builder->CreateAlloca(m_ValueType, nullptr);
 			llvm::Value* resultAddr = m_Builder->CreateInBoundsGEP(m_ValueType, result, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
 
-			//auto argLeft = m_Builder->CreateAlloca(m_ValueType, nullptr);
-			//llvm::Value* argLeftAddr = m_Builder->CreateInBoundsGEP(m_ValueType, argLeft, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
-			//m_Builder->CreateMemCpy(argLeftAddr, llvm::MaybeAlign(8), lValue, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
-
-			//auto argRight = m_Builder->CreateAlloca(m_ValueType, nullptr);
-			//llvm::Value* argRightAddr = m_Builder->CreateInBoundsGEP(m_ValueType, argRight, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
-			//m_Builder->CreateMemCpy(argRightAddr, llvm::MaybeAlign(8), rValue, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
-
 			auto fn = BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueAdd"];
 			fn->addParamAttr(0, llvm::Attribute::NoUndef);
 			fn->addParamAttr(1, llvm::Attribute::NoUndef);
 			fn->addParamAttr(2, llvm::Attribute::NoUndef);
 
 			auto callInst = m_Builder->CreateCall(fn, { lValue, rValue,resultAddr });
-			//auto callInst = m_Builder->CreateCall(fn, { argLeftAddr, argRightAddr,resultAddr });
 			callInst->addParamAttr(0, llvm::Attribute::NoUndef);
 			callInst->addParamAttr(1, llvm::Attribute::NoUndef);
 			callInst->addParamAttr(2, llvm::Attribute::NoUndef);
@@ -230,11 +221,59 @@ void LLVMCompiler::CompileInfixExpr(InfixExpr* expr)
 
 		}
 		else if (expr->op == "-")
-			Push(m_Builder->CreateCall(BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueSub"], { lValue, rValue }));
+		{
+			auto result = m_Builder->CreateAlloca(m_ValueType, nullptr);
+			llvm::Value* resultAddr = m_Builder->CreateInBoundsGEP(m_ValueType, result, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
+
+			auto fn = BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueSub"];
+			fn->addParamAttr(0, llvm::Attribute::NoUndef);
+			fn->addParamAttr(1, llvm::Attribute::NoUndef);
+			fn->addParamAttr(2, llvm::Attribute::NoUndef);
+
+			auto callInst = m_Builder->CreateCall(fn, { lValue, rValue,resultAddr });
+			callInst->addParamAttr(0, llvm::Attribute::NoUndef);
+			callInst->addParamAttr(1, llvm::Attribute::NoUndef);
+			callInst->addParamAttr(2, llvm::Attribute::NoUndef);
+
+			Push(resultAddr);
+
+		}
 		else if (expr->op == "*")
-			Push(m_Builder->CreateCall(BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueMul"], { lValue, rValue }));
+		{
+			auto result = m_Builder->CreateAlloca(m_ValueType, nullptr);
+			llvm::Value* resultAddr = m_Builder->CreateInBoundsGEP(m_ValueType, result, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
+
+			auto fn = BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueMul"];
+			fn->addParamAttr(0, llvm::Attribute::NoUndef);
+			fn->addParamAttr(1, llvm::Attribute::NoUndef);
+			fn->addParamAttr(2, llvm::Attribute::NoUndef);
+
+			auto callInst = m_Builder->CreateCall(fn, { lValue, rValue,resultAddr });
+			callInst->addParamAttr(0, llvm::Attribute::NoUndef);
+			callInst->addParamAttr(1, llvm::Attribute::NoUndef);
+			callInst->addParamAttr(2, llvm::Attribute::NoUndef);
+
+			Push(resultAddr);
+
+		}
 		else if (expr->op == "/")
-			Push(m_Builder->CreateCall(BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueDiv"], { lValue, rValue }));
+		{
+			auto result = m_Builder->CreateAlloca(m_ValueType, nullptr);
+			llvm::Value* resultAddr = m_Builder->CreateInBoundsGEP(m_ValueType, result, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
+
+			auto fn = BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueDiv"];
+			fn->addParamAttr(0, llvm::Attribute::NoUndef);
+			fn->addParamAttr(1, llvm::Attribute::NoUndef);
+			fn->addParamAttr(2, llvm::Attribute::NoUndef);
+
+			auto callInst = m_Builder->CreateCall(fn, { lValue, rValue,resultAddr });
+			callInst->addParamAttr(0, llvm::Attribute::NoUndef);
+			callInst->addParamAttr(1, llvm::Attribute::NoUndef);
+			callInst->addParamAttr(2, llvm::Attribute::NoUndef);
+
+			Push(resultAddr);
+
+		}
 		else if (expr->op == ">")
 			Push(m_Builder->CreateFCmpUGT(lValue, rValue));
 		else if (expr->op == "<")
