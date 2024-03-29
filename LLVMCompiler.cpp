@@ -93,7 +93,8 @@ void LLVMCompiler::CompileStmt(Stmt* stmt)
 
 void LLVMCompiler::CompileExprStmt(ExprStmt* stmt)
 {
-	return CompileExpr(stmt->expr);
+	CompileExpr(stmt->expr);
+	//Pop();
 }
 
 void LLVMCompiler::CompileIfStmt(IfStmt* stmt)
@@ -206,20 +207,21 @@ void LLVMCompiler::CompileInfixExpr(InfixExpr* expr)
 			auto result = m_Builder->CreateAlloca(m_ValueType, nullptr);
 			llvm::Value* resultAddr = m_Builder->CreateInBoundsGEP(m_ValueType, result, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
 
-			auto argLeft = m_Builder->CreateAlloca(m_ValueType, nullptr);
-			llvm::Value* argLeftAddr = m_Builder->CreateInBoundsGEP(m_ValueType, argLeft, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
-			m_Builder->CreateMemCpy(argLeftAddr, llvm::MaybeAlign(8), lValue, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+			//auto argLeft = m_Builder->CreateAlloca(m_ValueType, nullptr);
+			//llvm::Value* argLeftAddr = m_Builder->CreateInBoundsGEP(m_ValueType, argLeft, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
+			//m_Builder->CreateMemCpy(argLeftAddr, llvm::MaybeAlign(8), lValue, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
 
-			auto argRight = m_Builder->CreateAlloca(m_ValueType, nullptr);
-			llvm::Value* argRightAddr = m_Builder->CreateInBoundsGEP(m_ValueType, argRight, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
-			m_Builder->CreateMemCpy(argRightAddr, llvm::MaybeAlign(8), rValue, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+			//auto argRight = m_Builder->CreateAlloca(m_ValueType, nullptr);
+			//llvm::Value* argRightAddr = m_Builder->CreateInBoundsGEP(m_ValueType, argRight, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
+			//m_Builder->CreateMemCpy(argRightAddr, llvm::MaybeAlign(8), rValue, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
 
 			auto fn = BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueAdd"];
 			fn->addParamAttr(0, llvm::Attribute::NoUndef);
 			fn->addParamAttr(1, llvm::Attribute::NoUndef);
 			fn->addParamAttr(2, llvm::Attribute::NoUndef);
 
-			auto callInst = m_Builder->CreateCall(fn, { argLeftAddr, argRightAddr,resultAddr });
+			auto callInst = m_Builder->CreateCall(fn, { lValue, rValue,resultAddr });
+			//auto callInst = m_Builder->CreateCall(fn, { argLeftAddr, argRightAddr,resultAddr });
 			callInst->addParamAttr(0, llvm::Attribute::NoUndef);
 			callInst->addParamAttr(1, llvm::Attribute::NoUndef);
 			callInst->addParamAttr(2, llvm::Attribute::NoUndef);
@@ -266,10 +268,10 @@ void LLVMCompiler::CompileNumExpr(NumExpr* expr)
 
 	llvm::Value* memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
 	m_Builder->CreateStore(vT, memberAddr);
-	memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
-	m_Builder->CreateStore(d, memberAddr);
+	llvm::Value* memberAddr1 = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
+	m_Builder->CreateStore(d, memberAddr1);
 
-	Push(alloc);
+	Push(memberAddr);
 }
 void LLVMCompiler::CompileBoolExpr(BoolExpr* expr)
 {
@@ -330,8 +332,7 @@ void LLVMCompiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& st
 		{
 		case LLVMSymbolScope::GLOBAL:
 		{
-			auto v = m_Builder->CreateLoad(symbol.alloc->getAllocatedType(), symbol.alloc, expr->literal);
-			Push(v);
+			Push(symbol.allocationGEP);
 			break;
 		}
 		case LLVMSymbolScope::LOCAL:
@@ -367,9 +368,13 @@ void LLVMCompiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& st
 			auto init = Pop();
 			auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr, symbol.name);
 			auto memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) }, symbol.name);
-			m_SymbolTable->Set(symbol.name, alloc);
 
-			auto store=m_Builder->CreateStore(init, memberAddr);
+			m_Builder->CreateMemCpy(memberAddr, llvm::MaybeAlign(8), init, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+
+			m_SymbolTable->Set(symbol.name, memberAddr);
+
+			//m_Builder->CreateStore(init, memberAddr);
+			Push(memberAddr);
 			break;
 		}
 		case LLVMSymbolScope::LOCAL:
@@ -450,13 +455,20 @@ void LLVMCompiler::CompileFunctionCallExpr(FunctionCallExpr* expr)
 		auto valueArrayType = llvm::ArrayType::get(m_ValueType, argsV.size());
 
 		auto arg0 = m_Builder->CreateAlloca(valueArrayType, nullptr);
+		llvm::Value* arg0MemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
 
 		for (auto i = 0; i < argsV.size(); ++i)
 		{
-			llvm::Value* arg0MemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, { m_Builder->getInt32(0), m_Builder->getInt32(i) });
-			m_Builder->CreateMemCpy(arg0MemberAddr, llvm::MaybeAlign(8), argsV[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+			if (i == 0)
+			{
+				m_Builder->CreateMemCpy(arg0MemberAddr, llvm::MaybeAlign(8), argsV[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+			}
+			else
+			{
+				llvm::Value* argIMemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, { m_Builder->getInt32(0), m_Builder->getInt32(i) });
+				m_Builder->CreateMemCpy(argIMemberAddr, llvm::MaybeAlign(8), argsV[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+			}
 		}
-		llvm::Value* arg0MemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
 
 		llvm::Value* arg1 = m_Builder->getInt8(argsV.size());
 
@@ -470,7 +482,7 @@ void LLVMCompiler::CompileFunctionCallExpr(FunctionCallExpr* expr)
 		callInst->addParamAttr(0, llvm::Attribute::NoUndef);
 		callInst->addParamAttr(2, llvm::Attribute::NoUndef);
 
-		Push(result);
+		Push(resultAddr);
 	}
 }
 void LLVMCompiler::CompileStructCallExpr(StructCallExpr* expr, const RWState& state)

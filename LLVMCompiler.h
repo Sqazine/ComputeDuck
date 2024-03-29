@@ -39,18 +39,18 @@ enum class LLVMSymbolScope
 struct LLVMSymbol
 {
     LLVMSymbol()
-        : scope(LLVMSymbolScope::GLOBAL), alloc(nullptr), scopeDepth(0), isInUpScope(0)
+        : scope(LLVMSymbolScope::GLOBAL), allocationGEP(nullptr), scopeDepth(0), isInUpScope(0)
     {
     }
 
-    LLVMSymbol(const std::string &name, const LLVMSymbolScope &scope, llvm::AllocaInst * alloc, int32_t scopeDepth = 0)
-        : name(name), scope(scope), alloc(alloc), scopeDepth(scopeDepth), isInUpScope(0)
+    LLVMSymbol(const std::string &name, const LLVMSymbolScope &scope, llvm::Value* allocationGEP, int32_t scopeDepth = 0)
+        : name(name), scope(scope), allocationGEP(allocationGEP), scopeDepth(scopeDepth), isInUpScope(0)
     {
     }
 
     std::string name;
     LLVMSymbolScope scope;
-    llvm::AllocaInst *alloc;
+    llvm:: Value *allocationGEP;
     int32_t scopeDepth;
     int32_t isInUpScope;
 };
@@ -79,7 +79,7 @@ struct LLVMSymbolTable
         }
     }
 
-    LLVMSymbol Define(const std::string &name, llvm::AllocaInst *a = nullptr)
+    LLVMSymbol Define(const std::string &name, llvm::Value*a = nullptr)
     {
         auto symbol = LLVMSymbol(name, LLVMSymbolScope::GLOBAL, a, scopeDepth);
 
@@ -103,9 +103,9 @@ struct LLVMSymbolTable
 	}
 
 
-    void Set(const std::string& name, llvm::AllocaInst* a)
+    void Set(const std::string& name, llvm::Value* a)
     {
-		symbolMaps[name].alloc = a;
+		symbolMaps[name].allocationGEP = a;
     }
 
     bool Resolve(const std::string &name, LLVMSymbol &symbol)
