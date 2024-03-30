@@ -15,8 +15,8 @@
 #define IS_STRUCT_VALUE(v) (IS_OBJECT_VALUE(v) && IS_STRUCT_OBJ((v).object))
 #define IS_BUILTIN_VALUE(v) (IS_OBJECT_VALUE(v) && IS_BUILTIN_OBJ((v).object))
 
-#define TO_NUM_VALUE(v) ((v).number)
-#define TO_BOOL_VALUE(v) ((v).boolean)
+#define TO_NUM_VALUE(v) ((v).stored)
+#define TO_BOOL_VALUE(v) ((v).stored)
 #define TO_OBJECT_VALUE(v) ((v).object)
 #define TO_STR_VALUE(v) (TO_STR_OBJ((v).object))
 #define TO_ARRAY_VALUE(v) (TO_ARRAY_OBJ((v).object))
@@ -52,8 +52,7 @@ extern "C" struct COMPUTE_DUCK_API Value
 
 	union
 	{
-		double number;
-		bool boolean;
+		double stored;
 		struct Object* object{ nullptr };
 	};
 };

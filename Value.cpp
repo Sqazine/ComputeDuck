@@ -7,17 +7,17 @@ Value::Value()
 }
 
 Value::Value(double number)
-	: number(number), type(ValueType::NUM)
+	: stored(number), type(ValueType::NUM)
 {
 }
 
 Value::Value(uint64_t number)
-	: number((double)number), type(ValueType::NUM)
+	: stored((double)number), type(ValueType::NUM)
 {
 }
 
 Value::Value(bool boolean)
-	: boolean(boolean), type(ValueType::BOOL)
+	: stored(boolean), type(ValueType::BOOL)
 {
 }
 Value::Value(Object* object)
@@ -40,9 +40,9 @@ std::string Value::Stringify() const
 	case ValueType::NIL:
 		return "nil";
 	case ValueType::NUM:
-		return std::to_string(number);
+		return std::to_string(stored);
 	case ValueType::BOOL:
-		return boolean ? "true" : "false";
+		return stored==1.0 ? "true" : "false";
 	case ValueType::OBJECT:
 		return object->Stringify();
 	default:
@@ -74,14 +74,14 @@ bool operator==(const Value& left, const Value& right)
 	case ValueType::NUM:
 	{
 		if (IS_NUM_VALUE(right))
-			return left.number == TO_NUM_VALUE(right);
+			return left.stored == TO_NUM_VALUE(right);
 		else
 			return false;
 	}
 	case ValueType::BOOL:
 	{
 		if (IS_BOOL_VALUE(right))
-			return left.boolean == TO_BOOL_VALUE(right);
+			return left.stored == TO_BOOL_VALUE(right);
 		return false;
 	}
 	case ValueType::OBJECT:
