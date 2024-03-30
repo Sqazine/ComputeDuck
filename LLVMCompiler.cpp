@@ -24,7 +24,9 @@ llvm::Function* LLVMCompiler::Compile(const std::vector<Stmt*>& stmts)
 
 	auto fn = GetCurFunction();
 
-	m_Builder->CreateRet(Pop());
+	PopFunction();
+
+	m_Builder->CreateRet(llvm::ConstantPointerNull::get(m_ValuePtrType));
 
 	auto b = llvm::verifyFunction(*fn);
 	m_FPM->run(*fn);
@@ -94,7 +96,7 @@ void LLVMCompiler::CompileStmt(Stmt* stmt)
 void LLVMCompiler::CompileExprStmt(ExprStmt* stmt)
 {
 	CompileExpr(stmt->expr);
-	//Pop();
+	Pop();
 }
 
 void LLVMCompiler::CompileIfStmt(IfStmt* stmt)
@@ -208,9 +210,6 @@ void LLVMCompiler::CompileInfixExpr(InfixExpr* expr)
 			llvm::Value* resultAddr = m_Builder->CreateInBoundsGEP(m_ValueType, result, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
 
 			auto fn = BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueAdd"];
-			fn->addParamAttr(0, llvm::Attribute::NoUndef);
-			fn->addParamAttr(1, llvm::Attribute::NoUndef);
-			fn->addParamAttr(2, llvm::Attribute::NoUndef);
 
 			auto callInst = m_Builder->CreateCall(fn, { lValue, rValue,resultAddr });
 			callInst->addParamAttr(0, llvm::Attribute::NoUndef);
@@ -226,9 +225,6 @@ void LLVMCompiler::CompileInfixExpr(InfixExpr* expr)
 			llvm::Value* resultAddr = m_Builder->CreateInBoundsGEP(m_ValueType, result, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
 
 			auto fn = BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueSub"];
-			fn->addParamAttr(0, llvm::Attribute::NoUndef);
-			fn->addParamAttr(1, llvm::Attribute::NoUndef);
-			fn->addParamAttr(2, llvm::Attribute::NoUndef);
 
 			auto callInst = m_Builder->CreateCall(fn, { lValue, rValue,resultAddr });
 			callInst->addParamAttr(0, llvm::Attribute::NoUndef);
@@ -244,9 +240,6 @@ void LLVMCompiler::CompileInfixExpr(InfixExpr* expr)
 			llvm::Value* resultAddr = m_Builder->CreateInBoundsGEP(m_ValueType, result, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
 
 			auto fn = BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueMul"];
-			fn->addParamAttr(0, llvm::Attribute::NoUndef);
-			fn->addParamAttr(1, llvm::Attribute::NoUndef);
-			fn->addParamAttr(2, llvm::Attribute::NoUndef);
 
 			auto callInst = m_Builder->CreateCall(fn, { lValue, rValue,resultAddr });
 			callInst->addParamAttr(0, llvm::Attribute::NoUndef);
@@ -262,9 +255,6 @@ void LLVMCompiler::CompileInfixExpr(InfixExpr* expr)
 			llvm::Value* resultAddr = m_Builder->CreateInBoundsGEP(m_ValueType, result, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
 
 			auto fn = BuiltinManager::GetInstance()->m_LlvmBuiltins["ValueDiv"];
-			fn->addParamAttr(0, llvm::Attribute::NoUndef);
-			fn->addParamAttr(1, llvm::Attribute::NoUndef);
-			fn->addParamAttr(2, llvm::Attribute::NoUndef);
 
 			auto callInst = m_Builder->CreateCall(fn, { lValue, rValue,resultAddr });
 			callInst->addParamAttr(0, llvm::Attribute::NoUndef);
@@ -376,14 +366,7 @@ void LLVMCompiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& st
 		}
 		case LLVMSymbolScope::LOCAL:
 		{
-			for (auto& arg : m_Builder->GetInsertBlock()->getParent()->args())
-			{
-				if (arg.getName() == symbol.name)
-				{
-					Push(&arg);
-					break;
-				}
-			}
+			Push(symbol.allocationGEP);
 			break;
 		}
 		case LLVMSymbolScope::BUILTIN:
@@ -405,36 +388,45 @@ void LLVMCompiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& st
 		case LLVMSymbolScope::GLOBAL:
 		{
 			auto init = Pop();
-			auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr, symbol.name);
-			auto memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) }, symbol.name);
+			if (!isFound) //already exists like:a=10;{a=20;}
+			{
+				auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr, symbol.name);
+				auto memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) }, symbol.name);
 
-			m_Builder->CreateMemCpy(memberAddr, llvm::MaybeAlign(8), init, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+				m_Builder->CreateMemCpy(memberAddr, llvm::MaybeAlign(8), init, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
 
-			m_SymbolTable->Set(symbol.name, memberAddr);
+				m_SymbolTable->Set(symbol.name, memberAddr);
 
-			//m_Builder->CreateStore(init, memberAddr);
-			Push(memberAddr);
+				Push(memberAddr);
+			}
+			else
+			{
+				auto memberAddr = symbol.allocationGEP;
+				m_Builder->CreateMemCpy(memberAddr, llvm::MaybeAlign(8), init, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+				Push(memberAddr);
+			}
 			break;
 		}
 		case LLVMSymbolScope::LOCAL:
 		{
 			auto init = Pop();
-			auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr, symbol.name);
-			m_SymbolTable->Set(symbol.name, alloc);
+			if (!isFound) //already exists like:{a=10;{a=20;}}
+			{
+				auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr, symbol.name);
+				auto memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) }, symbol.name);
 
-			llvm::Value* memberAddr = nullptr;
-			if (init->getType() == m_DoubleType)
-				memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) }, symbol.name);
-			else if (init->getType() == m_BoolType)
-				memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(1) }, symbol.name);
+				m_Builder->CreateMemCpy(memberAddr, llvm::MaybeAlign(8), init, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+
+				m_SymbolTable->Set(symbol.name, memberAddr);
+
+				Push(memberAddr);
+			}
 			else
 			{
-				//TODO:Object not implemented!
-				//memberAddr = m_Builder->CreateInBoundsGEP(mValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(2) }, symbol.name);
-				memberAddr = alloc;
+				auto memberAddr = symbol.allocationGEP;
+				m_Builder->CreateMemCpy(memberAddr, llvm::MaybeAlign(8), init, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+				Push(memberAddr);
 			}
-
-			m_Builder->CreateStore(init, memberAddr);
 			break;
 		}
 		default:
@@ -633,37 +625,71 @@ void LLVMCompiler::InitModuleAndPassManager()
 		m_ValueFunctionType = llvm::FunctionType::get(m_VoidType, { m_ValuePtrType,m_ValuePtrType,m_ValuePtrType }, false);
 	}
 
-	BuiltinManager::GetInstance()->RegisterLlvmFn("ValueAdd", llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "gValueAdd", m_Module.get()));
+	auto valueAddFn = llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "gValueAdd", m_Module.get());
+	valueAddFn->addParamAttr(0, llvm::Attribute::NoUndef);
+	valueAddFn->addParamAttr(1, llvm::Attribute::NoUndef);
+	valueAddFn->addParamAttr(2, llvm::Attribute::NoUndef);
+
+	auto valueSubFn = llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "gValueSub", m_Module.get());
+	valueSubFn->addParamAttr(0, llvm::Attribute::NoUndef);
+	valueSubFn->addParamAttr(1, llvm::Attribute::NoUndef);
+	valueSubFn->addParamAttr(2, llvm::Attribute::NoUndef);
+
+	auto valueMulFn = llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "gValueMul", m_Module.get());
+	valueMulFn->addParamAttr(0, llvm::Attribute::NoUndef);
+	valueMulFn->addParamAttr(1, llvm::Attribute::NoUndef);
+	valueMulFn->addParamAttr(2, llvm::Attribute::NoUndef);
+
+	auto valueDivFn = llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "gValueDiv", m_Module.get());
+	valueDivFn->addParamAttr(0, llvm::Attribute::NoUndef);
+	valueDivFn->addParamAttr(1, llvm::Attribute::NoUndef);
+	valueDivFn->addParamAttr(2, llvm::Attribute::NoUndef);
+
+	auto printFn = llvm::Function::Create(m_BuiiltinFunctionType, llvm::Function::ExternalLinkage, "gPrint", m_Module.get());
+	printFn->addParamAttr(0, llvm::Attribute::NoUndef);
+	printFn->addParamAttr(2, llvm::Attribute::NoUndef);
+
+	auto printlnFn = llvm::Function::Create(m_BuiiltinFunctionType, llvm::Function::ExternalLinkage, "gPrintln", m_Module.get());
+	printlnFn->addParamAttr(0, llvm::Attribute::NoUndef);
+	printlnFn->addParamAttr(2, llvm::Attribute::NoUndef);
+
+	auto sizeofFn = llvm::Function::Create(m_BuiiltinFunctionType, llvm::Function::ExternalLinkage, "gSizeof", m_Module.get());
+	sizeofFn->addParamAttr(0, llvm::Attribute::NoUndef);
+	sizeofFn->addParamAttr(2, llvm::Attribute::NoUndef);
+
+	auto insertFn = llvm::Function::Create(m_BuiiltinFunctionType, llvm::Function::ExternalLinkage, "gInsert", m_Module.get());
+	insertFn->addParamAttr(0, llvm::Attribute::NoUndef);
+	insertFn->addParamAttr(2, llvm::Attribute::NoUndef);
+
+	auto eraseFn = llvm::Function::Create(m_BuiiltinFunctionType, llvm::Function::ExternalLinkage, "gErase", m_Module.get());
+	eraseFn->addParamAttr(0, llvm::Attribute::NoUndef);
+	eraseFn->addParamAttr(2, llvm::Attribute::NoUndef);
+
+	auto clockFn = llvm::Function::Create(m_BuiiltinFunctionType, llvm::Function::ExternalLinkage, "gClock", m_Module.get());
+	clockFn->addParamAttr(0, llvm::Attribute::NoUndef);
+	clockFn->addParamAttr(2, llvm::Attribute::NoUndef);
+
+	BuiltinManager::GetInstance()->RegisterLlvmFn("ValueAdd", valueAddFn);
+	BuiltinManager::GetInstance()->RegisterLlvmFn("ValueSub", valueSubFn);
+	BuiltinManager::GetInstance()->RegisterLlvmFn("ValueMul", valueMulFn);
+	BuiltinManager::GetInstance()->RegisterLlvmFn("ValueDiv", valueDivFn);
+	BuiltinManager::GetInstance()->RegisterLlvmFn("print", printFn);
+	BuiltinManager::GetInstance()->RegisterLlvmFn("println", printlnFn);
+	BuiltinManager::GetInstance()->RegisterLlvmFn("sizeof", sizeofFn);
+	BuiltinManager::GetInstance()->RegisterLlvmFn("insert", insertFn);
+	BuiltinManager::GetInstance()->RegisterLlvmFn("erase", eraseFn);
+	BuiltinManager::GetInstance()->RegisterLlvmFn("clock", clockFn);
+
 	m_SymbolTable->DefineBuiltin("ValueAdd");
-
-	BuiltinManager::GetInstance()->RegisterLlvmFn("ValueSub", llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "gValueSub", m_Module.get()));
 	m_SymbolTable->DefineBuiltin("ValueSub");
-
-	BuiltinManager::GetInstance()->RegisterLlvmFn("ValueMul", llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "gValueMul", m_Module.get()));
 	m_SymbolTable->DefineBuiltin("ValueMul");
-
-	BuiltinManager::GetInstance()->RegisterLlvmFn("ValueDiv", llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "gValueDiv", m_Module.get()));
 	m_SymbolTable->DefineBuiltin("ValueDiv");
-
-	BuiltinManager::GetInstance()->RegisterLlvmFn("print", llvm::Function::Create(m_BuiiltinFunctionType, llvm::Function::ExternalLinkage, "gPrint", m_Module.get()));
 	m_SymbolTable->DefineBuiltin("print");
-
-	BuiltinManager::GetInstance()->RegisterLlvmFn("println", llvm::Function::Create(m_BuiiltinFunctionType, llvm::Function::ExternalLinkage, "gPrintln", m_Module.get()));
 	m_SymbolTable->DefineBuiltin("println");
-
-	BuiltinManager::GetInstance()->RegisterLlvmFn("sizeof", llvm::Function::Create(m_BuiiltinFunctionType, llvm::Function::ExternalLinkage, "gSizeof", m_Module.get()));
 	m_SymbolTable->DefineBuiltin("sizeof");
-
-	BuiltinManager::GetInstance()->RegisterLlvmFn("insert", llvm::Function::Create(m_BuiiltinFunctionType, llvm::Function::ExternalLinkage, "gInsert", m_Module.get()));
 	m_SymbolTable->DefineBuiltin("insert");
-
-	BuiltinManager::GetInstance()->RegisterLlvmFn("erase", llvm::Function::Create(m_BuiiltinFunctionType, llvm::Function::ExternalLinkage, "gErase", m_Module.get()));
 	m_SymbolTable->DefineBuiltin("erase");
-
-	BuiltinManager::GetInstance()->RegisterLlvmFn("clock", llvm::Function::Create(m_BuiiltinFunctionType, llvm::Function::ExternalLinkage, "gClock", m_Module.get()));
 	m_SymbolTable->DefineBuiltin("clock");
-
-	m_FunctionStack.clear();
 
 	llvm::FunctionType* fnType = llvm::FunctionType::get(llvm::Type::getVoidTy(*m_Context), false);
 	llvm::Function* fn = llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, "main", m_Module.get());
