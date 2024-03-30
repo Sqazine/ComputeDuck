@@ -304,13 +304,17 @@ void LLVMCompiler::CompileNumExpr(NumExpr* expr)
 }
 void LLVMCompiler::CompileBoolExpr(BoolExpr* expr)
 {
-	auto d = llvm::ConstantFP::get(*m_Context, llvm::APFloat(0.0f));
-	auto b = llvm::ConstantInt::get(*m_Context, llvm::APInt(1, expr->value ? 1 : 0));
-	auto p = llvm::ConstantPointerNull::get(m_ObjectPtrType);
+	auto vT = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::BOOL));
+	auto d = llvm::ConstantFP::get(*m_Context, llvm::APFloat(expr->value ? 1.0 : 0.0));
 
-	auto v = llvm::ConstantStruct::get(m_ValueType, { d,b,p });
+	auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr);
 
-	Push(v);
+	llvm::Value* memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
+	m_Builder->CreateStore(vT, memberAddr);
+	llvm::Value* memberAddr1 = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
+	m_Builder->CreateStore(d, memberAddr1);
+
+	Push(memberAddr);
 }
 void LLVMCompiler::CompilePrefixExpr(PrefixExpr* expr)
 {
