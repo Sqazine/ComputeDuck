@@ -10,3 +10,9 @@
 #else
 #define COMPUTE_DUCK_API
 #endif
+
+enum class RWState //read write state
+{
+	READ,
+	WRITE,
+};

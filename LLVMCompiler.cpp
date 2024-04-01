@@ -59,7 +59,7 @@ void LLVMCompiler::ResetStatus()
 
 	if (m_SymbolTable)
 		SAFE_DELETE(m_SymbolTable);
-	m_SymbolTable = new LLVMSymbolTable();
+	m_SymbolTable = new SymbolTable();
 
 	m_Jit = LLVMJit::Create();
 
@@ -354,7 +354,7 @@ void LLVMCompiler::CompileIndexExpr(IndexExpr* expr)
 }
 void LLVMCompiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& state)
 {
-	LLVMSymbol symbol;
+	Symbol symbol;
 	bool isFound = m_SymbolTable->Resolve(expr->literal, symbol);
 	if (state == RWState::READ)
 	{
@@ -363,17 +363,17 @@ void LLVMCompiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& st
 
 		switch (symbol.scope)
 		{
-		case LLVMSymbolScope::GLOBAL:
+		case SymbolScope::GLOBAL:
 		{
 			Push(symbol.allocationGEP);
 			break;
 		}
-		case LLVMSymbolScope::LOCAL:
+		case SymbolScope::LOCAL:
 		{
 			Push(symbol.allocationGEP);
 			break;
 		}
-		case LLVMSymbolScope::BUILTIN:
+		case SymbolScope::BUILTIN:
 		{
 			auto v = BuiltinManager::GetInstance()->m_LlvmBuiltins[symbol.name];
 			Push(v);
@@ -389,7 +389,7 @@ void LLVMCompiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& st
 			symbol = m_SymbolTable->Define(expr->literal);
 		switch (symbol.scope)
 		{
-		case LLVMSymbolScope::GLOBAL:
+		case SymbolScope::GLOBAL:
 		{
 			auto init = Pop();
 			if (!isFound) //already exists like:a=10;{a=20;}
@@ -411,7 +411,7 @@ void LLVMCompiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& st
 			}
 			break;
 		}
-		case LLVMSymbolScope::LOCAL:
+		case SymbolScope::LOCAL:
 		{
 			auto init = Pop();
 			if (!isFound) //already exists like:{a=10;{a=20;}}
@@ -578,7 +578,7 @@ llvm::Function* LLVMCompiler::PopFunction()
 
 void LLVMCompiler::EnterScope()
 {
-	m_SymbolTable = new LLVMSymbolTable(m_SymbolTable);
+	m_SymbolTable = new SymbolTable(m_SymbolTable);
 }
 void LLVMCompiler::ExitScope()
 {
