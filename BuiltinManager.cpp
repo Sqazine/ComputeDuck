@@ -33,7 +33,7 @@ namespace
 		}
 	}
 
-	extern "C" COMPUTE_DUCK_API void gSizeofFn(Value * args, uint8_t argCount, Value& result)
+	extern "C" COMPUTE_DUCK_API void gSizeof(Value * args, uint8_t argCount, Value& result)
 	{
 		if (argCount == 0 || argCount > 1)
 			ASSERT("[Native function 'sizeof']:Expect a argument.");
@@ -134,7 +134,7 @@ BuiltinManager::BuiltinManager()
 {
 	Register<BuiltinFn>("print", gPrint);
 	Register<BuiltinFn>("println", gPrintln);
-	Register<BuiltinFn>("sizeof", gSizeofFn);
+	Register<BuiltinFn>("sizeof", gSizeof);
 	Register<BuiltinFn>("insert", gInsert);
 	Register<BuiltinFn>("erase", gErase);
 	Register<BuiltinFn>("clock", gClock);

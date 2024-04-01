@@ -24,119 +24,10 @@
 #include "llvm/Transforms/Utils.h"
 #include "Config.h"
 #include "Ast.h"
-#include "Config.h"
 #include "Utils.h"
 #include "Value.h"
+#include "SymbolTable.h"
 #include "LLVMJit.h"
-
-enum class LLVMSymbolScope
-{
-    GLOBAL,
-    LOCAL,
-    BUILTIN,
-};
-
-struct LLVMSymbol
-{
-    LLVMSymbol()
-        : scope(LLVMSymbolScope::GLOBAL), allocationGEP(nullptr), scopeDepth(0), isInUpScope(0)
-    {
-    }
-
-    LLVMSymbol(const std::string &name, const LLVMSymbolScope &scope, llvm::Value* allocationGEP, int32_t scopeDepth = 0)
-        : name(name), scope(scope), allocationGEP(allocationGEP), scopeDepth(scopeDepth), isInUpScope(0)
-    {
-    }
-
-    std::string name;
-    LLVMSymbolScope scope;
-    llvm:: Value *allocationGEP;
-    int32_t scopeDepth;
-    int32_t isInUpScope;
-};
-
-struct LLVMSymbolTable
-{
-    LLVMSymbolTable()
-        : enclosing(nullptr), scopeDepth(0)
-    {
-    }
-
-    LLVMSymbolTable(LLVMSymbolTable *enclosing)
-        : enclosing(enclosing)
-    {
-        scopeDepth = enclosing->scopeDepth + 1;
-    }
-
-    ~LLVMSymbolTable()
-    {
-        auto p = enclosing;
-        while (p)
-        {
-            auto q = p->enclosing;
-            SAFE_DELETE(p);
-            p = q;
-        }
-    }
-
-    LLVMSymbol Define(const std::string &name, llvm::Value*a = nullptr)
-    {
-        auto symbol = LLVMSymbol(name, LLVMSymbolScope::GLOBAL, a, scopeDepth);
-
-        if (!enclosing)
-            symbol.scope = LLVMSymbolScope::GLOBAL;
-        else
-            symbol.scope = LLVMSymbolScope::LOCAL;
-
-        if (symbolMaps.find(name) != symbolMaps.end())
-            ASSERT("Redefined variable:(%s) in current context.", name.data());
-
-        symbolMaps[name] = symbol;
-        return symbol;
-    }
-
-	LLVMSymbol DefineBuiltin(const std::string& name)
-	{
-		auto symbol = LLVMSymbol(name, LLVMSymbolScope::BUILTIN,nullptr, scopeDepth);
-		symbolMaps[name] = symbol;
-		return symbol;
-	}
-
-
-    void Set(const std::string& name, llvm::Value* a)
-    {
-		symbolMaps[name].allocationGEP = a;
-    }
-
-    bool Resolve(const std::string &name, LLVMSymbol &symbol)
-    {
-        auto iter = symbolMaps.find(name);
-        if (iter != symbolMaps.end())
-        {
-            symbol = iter->second;
-            return true;
-        }
-        else if (enclosing)
-        {
-            bool isFound = enclosing->Resolve(name, symbol);
-            if (!isFound)
-                return false;
-            if (symbol.scope == LLVMSymbolScope::GLOBAL)
-                return true;
-
-            symbol.isInUpScope = 1;
-
-            symbolMaps[symbol.name] = symbol;
-            return true;
-        }
-
-        return false;
-    }
-
-    LLVMSymbolTable *enclosing;
-    std::unordered_map<std::string, LLVMSymbol> symbolMaps;
-    int32_t scopeDepth;
-};
 
 class COMPUTE_DUCK_API LLVMCompiler
 {
@@ -151,11 +42,6 @@ public:
     void ResetStatus();
 
 private:
-    enum class RWState //read write state
-    {
-        READ,
-        WRITE,
-    };
     void CompileStmt(Stmt *stmt);
     void CompileExprStmt(ExprStmt *stmt);
     void CompileIfStmt(IfStmt *stmt);
@@ -196,33 +82,33 @@ private:
 
     void InitModuleAndPassManager();
      
-        llvm::StructType* m_ValueType;
-        llvm::PointerType* m_ValuePtrType;
+	llvm::StructType* m_ValueType;
+	llvm::PointerType* m_ValuePtrType;
 
-        llvm::StructType* mUnionType;
+	llvm::StructType* mUnionType;
 
-        llvm::StructType* m_ObjectType;
-        llvm::PointerType* m_ObjectPtrType;
+	llvm::StructType* m_ObjectType;
+	llvm::PointerType* m_ObjectPtrType;
 
-        llvm::FunctionType* m_BuiiltinFunctionType;
-        llvm::FunctionType* m_ValueFunctionType;
+	llvm::FunctionType* m_BuiiltinFunctionType;
+	llvm::FunctionType* m_ValueFunctionType;
 
-        llvm::Type* m_Int8Type;
-        llvm::Type* m_BoolType;
-        llvm::Type* m_DoubleType;
-        llvm::Type* m_Int64Type;
-        llvm::Type* m_Int32Type;
-        llvm::Type* m_VoidType;
-        llvm::Type* m_Int64PtrType;
-        llvm::Type* m_Int32PtrType;
-        llvm::Type* m_Int8PtrType;
-        llvm::Type* m_BoolPtrType;
+	llvm::Type* m_Int8Type;
+	llvm::Type* m_BoolType;
+	llvm::Type* m_DoubleType;
+	llvm::Type* m_Int64Type;
+	llvm::Type* m_Int32Type;
+	llvm::Type* m_VoidType;
+	llvm::Type* m_Int64PtrType;
+	llvm::Type* m_Int32PtrType;
+	llvm::Type* m_Int8PtrType;
+	llvm::Type* m_BoolPtrType;
     
 
     std::vector<llvm::Value *> m_ValueStack;
     std::vector<llvm::Function*> m_FunctionStack;
 
-    LLVMSymbolTable *m_SymbolTable;
+    SymbolTable *m_SymbolTable;
 
     std::unique_ptr<llvm::LLVMContext> m_Context;
     std::unique_ptr<llvm::Module> m_Module;

@@ -31,6 +31,7 @@ set(ROOT_SRC Ast.h
              Object.h 
              Parser.cpp Parser.h
              Token.h
+             SymbolTable.h
              Utils.h
              Value.cpp Value.h
              BuiltinManager.cpp BuiltinManager.h
