@@ -5,7 +5,7 @@
 #include "Value.h"
 void RegisterBuiltins()
 {
-#define REGISTER_VALUE(x) BuiltinManager::GetInstance()->Register(#x, Value((double)(x)));
+#define REGISTER_VALUE(x) BuiltinManager::GetInstance()->Register(#x,new Value((double)(x)));
 
     REGISTER_VALUE(SDL_QUIT)
 
@@ -79,8 +79,8 @@ void RegisterBuiltins()
     BuiltinManager::GetInstance()->Register("SDL_CreateWindow", [&](Value *args, uint8_t argCount, Value &result) -> bool
                                             {
                                                 auto name = TO_STR_VALUE(args[0])->value.c_str();
-                                                auto posX = (int)TO_NUM_VALUE(TO_BUILTIN_VALUE(args[1])->GetBuiltinValue());
-                                                auto posY = (int)TO_NUM_VALUE(TO_BUILTIN_VALUE(args[2])->GetBuiltinValue());
+                                                auto posX = (int)TO_NUM_VALUE(*TO_BUILTIN_VALUE(args[1])->GetBuiltinValue());
+                                                auto posY = (int)TO_NUM_VALUE(*TO_BUILTIN_VALUE(args[2])->GetBuiltinValue());
                                                 int32_t width = (int32_t)TO_NUM_VALUE(args[3]);
                                                 int32_t height = (int32_t)TO_NUM_VALUE(args[4]);
                                                 uint32_t flags = (uint32_t)TO_NUM_VALUE(args[5]);
@@ -215,11 +215,11 @@ void RegisterBuiltins()
                                                 if (!IS_BUILTIN_VALUE(args[1]) && !IS_NUM_VALUE(args[1]))
                                                     ASSERT("Not a valid builtin value or num value of SDL_GL_SetAttribute(args[1]).");
 
-                                                auto flags0 = (int)TO_NUM_VALUE(TO_BUILTIN_VALUE(args[0])->GetBuiltinValue());
+                                                auto flags0 = (int)TO_NUM_VALUE(*TO_BUILTIN_VALUE(args[0])->GetBuiltinValue());
 
                                                 int flags1 = 0;
                                                 if (IS_BUILTIN_VALUE(args[1]))
-                                                    flags1 = (int)TO_NUM_VALUE(TO_BUILTIN_VALUE(args[1])->GetBuiltinValue());
+                                                    flags1 = (int)TO_NUM_VALUE(*TO_BUILTIN_VALUE(args[1])->GetBuiltinValue());
                                                 else if (IS_NUM_VALUE(args[1]))
                                                     flags1 = (int)TO_NUM_VALUE(args[1]);
 
