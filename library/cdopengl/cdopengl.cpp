@@ -6,7 +6,7 @@
 #include <cassert>
 void RegisterBuiltins()
 {
-#define REGISTER_VALUE(x) BuiltinManager::GetInstance()->Register(#x, Value((double)(x)));
+#define REGISTER_VALUE(x) BuiltinManager::GetInstance()->Register(#x,new Value((double)(x)));
 
 	REGISTER_VALUE(GL_ARRAY_BUFFER)
 	REGISTER_VALUE(GL_STATIC_DRAW)
@@ -50,7 +50,7 @@ void RegisterBuiltins()
 												{
 													GLuint id = -1;
 													glGenVertexArrays(count, &id);
-													ref->number = id;
+													ref->stored = id;
 													assert(glGetError() == 0);
 												}
 												else
@@ -82,42 +82,42 @@ void RegisterBuiltins()
 
 												if (IS_NIL_VALUE(args[5]))
 												{
-													glVertexAttribPointer(arg0, arg1, (GLenum)arg2.number, (GLboolean)arg3.number, arg4, (void *)0);
+													glVertexAttribPointer(arg0, arg1, (GLenum)arg2->stored, (GLboolean)arg3->stored, arg4, (void *)0);
 												}
 												else
 												{
-													if (arg2.number == GL_FLOAT)
+													if (arg2->stored == GL_FLOAT)
 													{
 														auto arg5 = TO_REF_VALUE(args[5])->pointer;
 														auto arrArg5 = TO_ARRAY_VALUE((*arg5));
 
 														std::vector<float> rawArg5(arrArg5->elements.size());
 														for (int32_t i = 0; i < rawArg5.size(); ++i)
-															rawArg5[i] = (float)arrArg5->elements[i].number;
+															rawArg5[i] = (float)arrArg5->elements[i].stored;
 
-														glVertexAttribPointer(arg0, arg1, (GLenum)arg2.number, (GLboolean)arg3.number, arg4, (void *)rawArg5.data());
+														glVertexAttribPointer(arg0, arg1, (GLenum)arg2->stored, (GLboolean)arg3->stored, arg4, (void *)rawArg5.data());
 													}
-													else if (arg2.number == GL_UNSIGNED_INT)
+													else if (arg2->stored == GL_UNSIGNED_INT)
 													{
 														auto arg5 = TO_REF_VALUE(args[5])->pointer;
 														auto arrArg5 = TO_ARRAY_VALUE((*arg5));
 
 														std::vector<uint32_t> rawArg5(arrArg5->elements.size());
 														for (int32_t i = 0; i < rawArg5.size(); ++i)
-															rawArg5[i] = (uint32_t)arrArg5->elements[i].number;
+															rawArg5[i] = (uint32_t)arrArg5->elements[i].stored;
 
-														glVertexAttribPointer(arg0, arg1, (GLenum)arg2.number, (GLboolean)arg3.number, arg4, (void *)rawArg5.data());
+														glVertexAttribPointer(arg0, arg1, (GLenum)arg2->stored, (GLboolean)arg3->stored, arg4, (void *)rawArg5.data());
 													}
-													else if (arg2.number == GL_INT)
+													else if (arg2->stored == GL_INT)
 													{
 														auto arg5 = TO_REF_VALUE(args[5])->pointer;
 														auto arrArg5 = TO_ARRAY_VALUE((*arg5));
 
 														std::vector<int32_t> rawArg5(arrArg5->elements.size());
 														for (int32_t i = 0; i < rawArg5.size(); ++i)
-															rawArg5[i] = (uint32_t)arrArg5->elements[i].number;
+															rawArg5[i] = (uint32_t)arrArg5->elements[i].stored;
 
-														glVertexAttribPointer(arg0, arg1, (GLenum)arg2.number, (GLboolean)arg3.number, arg4, (void *)rawArg5.data());
+														glVertexAttribPointer(arg0, arg1, (GLenum)arg2->stored, (GLboolean)arg3->stored, arg4, (void *)rawArg5.data());
 													}
 												}
 												assert(glGetError() == 0);
@@ -157,7 +157,7 @@ void RegisterBuiltins()
 												{
 													GLuint id = -1;
 													glGenBuffers(count, &id);
-													ref->number = id;
+													ref->stored = id;
 													assert(glGetError() == 0);
 												}
 												else
@@ -171,7 +171,7 @@ void RegisterBuiltins()
 												if (!IS_BUILTIN_VALUE(args[0]) && !IS_NUM_VALUE(args[1]))
 													ASSERT("Not a valid value of glBindBuffer(args[0],args[1]).");
 
-												auto flag = (GLuint)(TO_BUILTIN_VALUE(args[0])->GetBuiltinValue()).number;
+												auto flag = (GLuint)(TO_BUILTIN_VALUE(args[0])->GetBuiltinValue())->stored;
 												auto obj = (GLuint)TO_NUM_VALUE(args[1]);
 												glBindBuffer(flag, obj);
 												assert(glGetError() == 0);
@@ -183,16 +183,16 @@ void RegisterBuiltins()
 												if (!IS_BUILTIN_VALUE(args[0]) && !IS_NUM_VALUE(args[1]) && !IS_ARRAY_VALUE(args[2]) && !IS_BUILTIN_VALUE(args[3]))
 													ASSERT("Not a valid value of glBufferData(args[0],args[1],args[2],args[3]).");
 
-												auto arg0 = (GLuint)(TO_BUILTIN_VALUE(args[0])->GetBuiltinValue()).number;
+												auto arg0 = (GLuint)(TO_BUILTIN_VALUE(args[0])->GetBuiltinValue())->stored;
 												auto arg1 = (GLuint)TO_NUM_VALUE(args[1]);
 												auto arg2 = TO_ARRAY_VALUE(args[2]);
-												auto arg3 = (GLuint)(TO_BUILTIN_VALUE(args[3])->GetBuiltinValue()).number;
+												auto arg3 = (GLuint)(TO_BUILTIN_VALUE(args[3])->GetBuiltinValue())->stored;
 
 												if (arg0 == GL_ELEMENT_ARRAY_BUFFER)
 												{
 													std::vector<uint32_t> rawArg2(arg2->elements.size());
 													for (int32_t i = 0; i < rawArg2.size(); ++i)
-														rawArg2[i] = (uint32_t)arg2->elements[i].number;
+														rawArg2[i] = (uint32_t)arg2->elements[i].stored;
 
 													glBufferData(arg0, arg1, (const void *)rawArg2.data(), arg3);
 												}
@@ -200,7 +200,7 @@ void RegisterBuiltins()
 												{
 													std::vector<float> rawArg2(arg2->elements.size());
 													for (int32_t i = 0; i < rawArg2.size(); ++i)
-														rawArg2[i] = (float)arg2->elements[i].number;
+														rawArg2[i] = (float)arg2->elements[i].stored;
 
 													glBufferData(arg0, arg1, (const void *)rawArg2.data(), arg3);
 												}
@@ -213,7 +213,7 @@ void RegisterBuiltins()
 												if (!IS_BUILTIN_VALUE(args[0]))
 													ASSERT("Not a valid value of glCreateShader(args[0]).");
 
-												auto arg0 = (GLuint)(TO_BUILTIN_VALUE(args[0])->GetBuiltinValue()).number;
+												auto arg0 = (GLuint)(TO_BUILTIN_VALUE(args[0])->GetBuiltinValue())->stored;
 												result = (double)glCreateShader(arg0);
 												assert(glGetError() == 0);
 												return true;
@@ -321,7 +321,7 @@ void RegisterBuiltins()
 											{
 												if (IS_BUILTIN_VALUE(args[0]))
 												{
-													auto arg0 = (GLuint)(TO_BUILTIN_VALUE(args[0])->GetBuiltinValue().number);
+													auto arg0 = (GLuint)(TO_BUILTIN_VALUE(args[0])->GetBuiltinValue()->stored);
 													glClear(arg0);
 												}
 												else if (IS_NUM_VALUE(args[0]))
@@ -351,9 +351,9 @@ void RegisterBuiltins()
 												if (!IS_BUILTIN_VALUE(args[0]) && !IS_NUM_VALUE(args[1]) && !IS_BUILTIN_VALUE(args[2]) && !(IS_REF_VALUE(args[3]) || IS_NIL_VALUE(args[3])))
 													ASSERT("Not a valid value of glDrawElements(args[0],arg[1],arg[2],arg[3]).");
 
-												auto arg0 = (GLenum)TO_BUILTIN_VALUE(args[0])->GetBuiltinValue().number;
+												auto arg0 = (GLenum)TO_BUILTIN_VALUE(args[0])->GetBuiltinValue()->stored;
 												auto arg1 = (GLuint)TO_NUM_VALUE(args[1]);
-												auto arg2 = (GLenum)TO_BUILTIN_VALUE(args[2])->GetBuiltinValue().number;
+												auto arg2 = (GLenum)TO_BUILTIN_VALUE(args[2])->GetBuiltinValue()->stored;
 
 												if (IS_NIL_VALUE(args[3]))
 													glDrawElements(arg0, arg1, arg2, nullptr);
@@ -364,7 +364,7 @@ void RegisterBuiltins()
 
 													std::vector<uint32_t> rawArg3(arrArg3->elements.size());
 													for (int32_t i = 0; i < rawArg3.size(); ++i)
-														rawArg3[i] = (uint32_t)arrArg3->elements[i].number;
+														rawArg3[i] = (uint32_t)arrArg3->elements[i].stored;
 
 													glDrawElements(arg0, arg1, arg2, rawArg3.data());
 												}

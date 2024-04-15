@@ -3,8 +3,10 @@
 #include <unordered_map>
 #include "Object.h"
 #include "Config.h"
+#ifdef BUILD_WITH_LLVM
 #include "llvm/IR/Verifier.h"
 #include "llvm/IR/Value.h"
+#endif
 
 // using LlvmBuiltinFn = std::function<bool(llvm::Value*, uint8_t, llvm::Value&)>;
 
@@ -40,8 +42,9 @@ private:
     friend class VM;
     friend class Compiler;
     friend class LLVMCompiler;
-
+#ifdef BUILD_WITH_LLVM
     std::unordered_map<std::string, llvm::Function *> m_LlvmBuiltins;
+#endif
 
     std::vector<BuiltinObject *> m_Builtins;
     std::vector<std::string> m_BuiltinNames;

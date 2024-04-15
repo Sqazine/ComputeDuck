@@ -11,9 +11,9 @@ set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/Bin/Debug)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Bin/Release)
 
-option(BuildLLVMImpl "build llvm impl" ON)
-option(BuildSDL2 "build SDL2 third party for cdsdl2" OFF) 
-option(BuildOpengl "build glad third party for cdopengl" OFF)  
+option(BuildLLVMImpl "build llvm impl" OFF)
+option(BuildSDL2 "build SDL2 third party for cdsdl2" ON) 
+option(BuildOpengl "build glad third party for cdopengl" ON)  
 
 file(GLOB EXAMPLES "${CMAKE_SOURCE_DIR}/examples/*.cd")
 
