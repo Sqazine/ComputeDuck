@@ -89,6 +89,8 @@ private:
 
 	llvm::StructType* m_ObjectType;
 	llvm::PointerType* m_ObjectPtrType;
+	llvm::StructType* m_StrObjectType;
+	llvm::PointerType* m_StrObjectPtrType;
 
 	llvm::FunctionType* m_BuiiltinFunctionType;
 	llvm::FunctionType* m_ValueFunctionType;

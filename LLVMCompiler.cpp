@@ -334,11 +334,40 @@ void LLVMCompiler::CompilePrefixExpr(PrefixExpr* expr)
 }
 void LLVMCompiler::CompileStrExpr(StrExpr* expr)
 {
-	//Push(m_Builder->CreateGlobalString(expr->value));
+	auto str = m_Builder->CreateGlobalString(expr->value);
+
+	auto objAlloc = m_Builder->CreateAlloca(m_StrObjectType,nullptr);
+	m_Builder->CreateMemSet(objAlloc,llvm::ConstantInt::get(m_Int8Type,llvm::APInt(8,0)),32, llvm::MaybeAlign(8));
+
+	llvm::Value* objAddr0 = m_Builder->CreateInBoundsGEP(m_StrObjectType, objAlloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
+
+
+	llvm::Value* objAddr1 = m_Builder->CreateInBoundsGEP(m_StrObjectType, objAlloc, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
+	m_Builder->CreateStore(str, objAddr1);
+
+	auto vT = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::OBJECT));
+
+	auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr);
+	llvm::Value* memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
+	m_Builder->CreateStore(vT, memberAddr);
+	llvm::Value* memberAddr1 = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
+	m_Builder->CreateStore(objAddr0, memberAddr1);
+
+	Push(memberAddr);
 }
 void LLVMCompiler::CompileNilExpr(NilExpr* expr)
 {
-	//Push(llvm::ConstantPointerNull::get(llvm::PointerType::get(llvm::Type::getVoidTy(*m_Context), 0)));
+	auto vT = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::NIL));
+	auto d = llvm::ConstantFP::get(*m_Context, llvm::APFloat(0.0));
+
+	auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr);
+
+	llvm::Value* memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
+	m_Builder->CreateStore(vT, memberAddr);
+	llvm::Value* memberAddr1 = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
+	m_Builder->CreateStore(d, memberAddr1);
+
+	Push(memberAddr);
 }
 void LLVMCompiler::CompileGroupExpr(GroupExpr* expr)
 {
@@ -618,6 +647,9 @@ void LLVMCompiler::InitModuleAndPassManager()
 
 		m_ObjectType = llvm::StructType::create(*m_Context, { m_Int8Type,m_Int8PtrType,m_Int8Type }, "struct.Object");
 		m_ObjectPtrType = llvm::PointerType::get(m_ObjectType, 0);
+
+		m_StrObjectType = llvm::StructType::create(*m_Context, { m_ObjectType,m_Int8PtrType },"struct.StrObject");
+		m_StrObjectPtrType = llvm::PointerType::get(m_StrObjectType, 0);
 
 		mUnionType = llvm::StructType::create(*m_Context, { m_DoubleType }, "union.anon");
 
