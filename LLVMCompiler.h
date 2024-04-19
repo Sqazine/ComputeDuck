@@ -22,7 +22,6 @@
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"
 #include "llvm/Transforms/Utils.h"
-#include "Config.h"
 #include "Ast.h"
 #include "Utils.h"
 #include "Value.h"
@@ -37,7 +36,7 @@ public:
 
     llvm::Function *Compile(const std::vector<Stmt *> &stmts);
 
-    void Run(llvm::Function* fn);
+    void Run(llvm::Function *fn);
 
     void ResetStatus();
 
@@ -65,50 +64,54 @@ private:
     void CompileFunctionCallExpr(FunctionCallExpr *expr);
     void CompileStructCallExpr(StructCallExpr *expr, const RWState &state = RWState::READ);
     void CompileRefExpr(RefExpr *expr);
-    void CompileAnonyStructExpr(AnonyStructExpr *expr);
+    void CompileStructExpr(StructExpr *expr);
     void CompileDllImportExpr(DllImportExpr *expr);
 
-	void Push(llvm::Value *v);
-	llvm::Value *Peek(int32_t distance);
-	llvm::Value *Pop();
+    void Push(llvm::Value *v);
+    llvm::Value *Peek(int32_t distance);
+    llvm::Value *Pop();
 
-    llvm::Function* GetCurFunction();
-    void PushFunction(llvm::Function* fn);
-    llvm::Function* PeekFunction(int32_t distance);
-    llvm::Function* PopFunction();
+    llvm::Function *GetCurFunction();
+    void PushFunction(llvm::Function *fn);
+    llvm::Function *PeekFunction(int32_t distance);
+    llvm::Function *PopFunction();
 
     void EnterScope();
     void ExitScope();
 
     void InitModuleAndPassManager();
-     
-	llvm::StructType* m_ValueType;
-	llvm::PointerType* m_ValuePtrType;
 
-	llvm::StructType* mUnionType;
+    void RegisterLlvmFn(std::string_view name, llvm::Function *fn);
+    llvm::Function *GetLlvmFn(std::string_view name);
 
-	llvm::StructType* m_ObjectType;
-	llvm::PointerType* m_ObjectPtrType;
-	llvm::StructType* m_StrObjectType;
-	llvm::PointerType* m_StrObjectPtrType;
+    std::unordered_map<std::string, llvm::Function *> m_LlvmBuiltins;
 
-	llvm::FunctionType* m_BuiiltinFunctionType;
-	llvm::FunctionType* m_ValueFunctionType;
+    llvm::StructType *m_ValueType;
+    llvm::PointerType *m_ValuePtrType;
 
-	llvm::Type* m_Int8Type;
-	llvm::Type* m_BoolType;
-	llvm::Type* m_DoubleType;
-	llvm::Type* m_Int64Type;
-	llvm::Type* m_Int32Type;
-	llvm::Type* m_VoidType;
-	llvm::Type* m_Int64PtrType;
-	llvm::Type* m_Int32PtrType;
-	llvm::Type* m_Int8PtrType;
-	llvm::Type* m_BoolPtrType;
-    
+    llvm::StructType *mUnionType;
+
+    llvm::StructType *m_ObjectType;
+    llvm::PointerType *m_ObjectPtrType;
+    llvm::StructType *m_StrObjectType;
+    llvm::PointerType *m_StrObjectPtrType;
+
+    llvm::FunctionType *m_BuiltinFunctionType;
+    llvm::FunctionType *m_ValueFunctionType;
+
+    llvm::Type *m_Int8Type;
+    llvm::Type *m_BoolType;
+    llvm::Type *m_DoubleType;
+    llvm::Type *m_Int64Type;
+    llvm::Type *m_Int32Type;
+    llvm::Type *m_VoidType;
+    llvm::Type *m_Int64PtrType;
+    llvm::Type *m_Int32PtrType;
+    llvm::Type *m_Int8PtrType;
+    llvm::Type *m_BoolPtrType;
 
     std::vector<llvm::Value *> m_ValueStack;
-    std::vector<llvm::Function*> m_FunctionStack;
+    std::vector<llvm::Function *> m_FunctionStack;
 
     SymbolTable *m_SymbolTable;
 

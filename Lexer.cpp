@@ -145,7 +145,7 @@ void Lexer::GenerateToken()
         else if (IsLetter(c))
             Identifier();
         else
-            AddToken(TokenType::UNKNOWN);
+            AddToken(TokenType::END);
         break;
     }
 }

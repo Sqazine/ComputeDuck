@@ -3,7 +3,7 @@
 #include <iomanip>
 #include <array>
 #include "Value.h"
-#include "Config.h"
+
 enum OpCode
 {
     OP_CONSTANT,
@@ -43,7 +43,7 @@ enum OpCode
     OP_SP_OFFSET,
 };
 
-typedef std::vector<int32_t> OpCodes;
+typedef std::vector<int16_t> OpCodes;
 
 class COMPUTE_DUCK_API Chunk
 {

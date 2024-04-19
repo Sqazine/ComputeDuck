@@ -7,6 +7,7 @@
 #include "Value.h"
 #include "Chunk.h"
 #include <variant>
+#include <type_traits>
 
 #define TO_STR_OBJ(obj) ((StrObject *)obj)
 #define TO_ARRAY_OBJ(obj) ((ArrayObject *)obj)
@@ -85,7 +86,7 @@ struct ArrayObject : public Object
 
 	~ArrayObject() override
 	{
-		std::vector<Value>().swap(elements);
+		// std::vector<Value>().swap(elements);
 	}
 
 	std::string Stringify() override
@@ -166,7 +167,7 @@ struct RefObject : public Object
 
 struct FunctionObject : public Object
 {
-	FunctionObject(const OpCodes &opCodes, int32_t localVarCount = 0, int32_t parameterCount = 0)
+	FunctionObject(const OpCodes &opCodes, uint8_t localVarCount = 0, uint8_t parameterCount = 0)
 		: Object(ObjectType::FUNCTION), opCodes(opCodes), localVarCount(localVarCount), parameterCount(parameterCount)
 	{
 	}
@@ -196,8 +197,8 @@ struct FunctionObject : public Object
 	}
 
 	OpCodes opCodes;
-	int32_t localVarCount;
-	int32_t parameterCount;
+	uint8_t localVarCount;
+	uint8_t parameterCount;
 };
 
 struct StructObject : public Object
@@ -249,7 +250,7 @@ struct StructObject : public Object
 	std::unordered_map<std::string, Value> members;
 };
 
-using BuiltinFn = std::function<void(Value *, uint8_t,Value&)>;
+using BuiltinFn = std::function<bool(Value *, uint8_t, Value &)>;
 
 struct BuiltinObject : public Object
 {
@@ -274,7 +275,7 @@ struct BuiltinObject : public Object
 	struct BuiltinData
 	{
 		std::string name;
-		std::variant<BuiltinFn, Value*> v;
+		std::variant<BuiltinFn, Value> v;
 	};
 
 	BuiltinObject(void *nativeData, std::function<void(void *nativeData)> destroyFunc)
@@ -286,21 +287,14 @@ struct BuiltinObject : public Object
 		data = nd;
 	}
 
-	BuiltinObject(std::string_view name, const BuiltinFn &fn)
+	template <typename T>
+		requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value>)
+	BuiltinObject(std::string_view name, const T &v)
 		: Object(ObjectType::BUILTIN)
 	{
 		BuiltinData bd;
 		bd.name = name;
-		bd.v = fn;
-		data = bd;
-	}
-
-	BuiltinObject(std::string_view name, Value* value)
-		: Object(ObjectType::BUILTIN)
-	{
-		BuiltinData bd;
-		bd.name = name;
-		bd.v = value;
+		bd.v = v;
 		data = bd;
 	}
 
@@ -318,7 +312,7 @@ struct BuiltinObject : public Object
 		else if (IsNativeData())
 			vStr = "(0x" + PointerAddressToString(GetNativeData().nativeData) + ")";
 		else
-			vStr = GetBuiltinValue()->Stringify();
+			vStr = GetBuiltinValue().Stringify();
 
 		return "Builtin :" + std::get<BuiltinData>(data).name + ":" + vStr;
 	}
@@ -336,7 +330,7 @@ struct BuiltinObject : public Object
 			return PointerAddressToString(thisNd.nativeData) == PointerAddressToString(otherNd.nativeData);
 		}
 		else
-			return GetBuiltinName() == TO_BUILTIN_OBJ(other)->GetBuiltinName();
+			return std::get<1>(data).name == std::get<1>(TO_BUILTIN_OBJ(other)->data).name;
 	}
 
 	bool IsNativeData()
@@ -349,7 +343,7 @@ struct BuiltinObject : public Object
 		return data.index() == 1 && std::get<1>(data).v.index() == 0;
 	}
 
-	bool IsBuiltinData()
+	bool IsBuiltinValue()
 	{
 		return data.index() == 1 && std::get<1>(data).v.index() == 1;
 	}
@@ -359,17 +353,12 @@ struct BuiltinObject : public Object
 		return std::get<0>(data);
 	}
 
-	std::string GetBuiltinName()
-	{
-		return std::get<1>(data).name;
-	}
-
 	BuiltinFn GetBuiltinFn()
 	{
 		return std::get<0>(std::get<1>(data).v);
 	}
 
-	Value* GetBuiltinValue()
+	Value GetBuiltinValue()
 	{
 		return std::get<1>(std::get<1>(data).v);
 	}

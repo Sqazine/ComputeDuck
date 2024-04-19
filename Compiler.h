@@ -4,7 +4,7 @@
 #include "Ast.h"
 #include "Value.h"
 #include "SymbolTable.h"
-#include "Config.h"
+
 
 class COMPUTE_DUCK_API Compiler
 {
@@ -41,7 +41,7 @@ private:
     void CompileFunctionCallExpr(FunctionCallExpr *expr);
     void CompileStructCallExpr(StructCallExpr *expr, const RWState &state = RWState::READ);
     void CompileRefExpr(RefExpr *expr);
-    void CompileAnonyStructExpr(AnonyStructExpr *expr);
+    void CompileStructExpr(StructExpr *expr);
     void CompileDllImportExpr(DllImportExpr *expr);
 
     void EnterScope();
@@ -49,14 +49,15 @@ private:
 
     OpCodes &CurOpCodes();
 
-    uint32_t Emit(int32_t opcode);
+    uint32_t Emit(int16_t opcode);
     uint32_t EmitConstant(uint32_t pos);
 
-    void ModifyOpCode(uint32_t pos, int32_t opcode);
+    void ModifyOpCode(uint32_t pos, int16_t opcode);
 
     uint32_t AddConstant(const Value &value);
 
     void LoadSymbol(const Symbol &symbol);
+    void StoreSymbol(const Symbol &symbol);
 
     std::vector<Value> m_Constants;
 

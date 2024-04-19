@@ -4,7 +4,7 @@
 #include <algorithm>
 #include "Token.h"
 #include "Lexer.h"
-#include "Config.h"
+
 #include "Utils.h"
 #include "BuiltinManager.h"
 

@@ -33,7 +33,7 @@ private:
     Expr* FoldFunctionCallExpr(FunctionCallExpr *expr);
     Expr* FoldStructCallExpr(StructCallExpr *expr);
     Expr* FoldRefExpr(RefExpr *expr);
-    Expr* FoldAnonyStructExpr(AnonyStructExpr *expr);
+    Expr* FoldStructExpr(StructExpr *expr);
 
     Expr *ConstantFold(Expr *expr);
 };

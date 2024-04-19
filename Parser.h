@@ -7,7 +7,7 @@
 #include "Ast.h"
 #include "Utils.h"
 #include "ConstantFolder.h"
-#include "Config.h"
+
 
 enum class Precedence
 {
@@ -53,14 +53,13 @@ private:
 	Expr *ParseNumExpr();
 	Expr *ParseStrExpr();
 	Expr *ParseNilExpr();
-	Expr *ParseTrueExpr();
-	Expr *ParseFalseExpr();
+	Expr *ParseBoolExpr();
 	Expr *ParseGroupExpr();
 	Expr *ParseArrayExpr();
 	Expr *ParsePrefixExpr();
 	Expr *ParseRefExpr();
 	Expr *ParseFunctionExpr();
-	Expr *ParseAnonyStructExpr();
+	Expr *ParseStructExpr();
 	Expr *ParseInfixExpr(Expr *prefixExpr);
 	Expr *ParseIndexExpr(Expr *prefixExpr);
 	Expr *ParseFunctionCallExpr(Expr *prefixExpr);
@@ -88,7 +87,7 @@ private:
 
 	std::vector<Token> m_Tokens;
 
-	int32_t m_FunctionOrFunctionScopeDepth;
+	int32_t m_FunctionScopeDepth;
 
 	ConstantFolder m_ConstantFolder;
 

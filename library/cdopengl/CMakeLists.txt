@@ -1,4 +1,4 @@
-if(BuildOpengl)
+if(ComputeDuck_Build_Opengl)
     file(GLOB glad "${CMAKE_CURRENT_SOURCE_DIR}/glad/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/glad/*.c")
     add_library(cdopengl SHARED  cdopengl.h  cdopengl.cpp ${glad})
     target_include_directories(cdopengl PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/glad" ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR})

@@ -6,21 +6,11 @@ Value::Value()
 {
 }
 
-Value::Value(double number)
-	: stored(number), type(ValueType::NUM)
-{
-}
-
-Value::Value(uint64_t number)
-	: stored((double)number), type(ValueType::NUM)
-{
-}
-
 Value::Value(bool boolean)
 	: stored(boolean), type(ValueType::BOOL)
 {
 }
-Value::Value(Object* object)
+Value::Value(Object *object)
 	: object(object), type(ValueType::OBJECT)
 {
 }
@@ -42,7 +32,7 @@ std::string Value::Stringify() const
 	case ValueType::NUM:
 		return std::to_string(stored);
 	case ValueType::BOOL:
-		return stored==1.0 ? "true" : "false";
+		return stored == 1.0 ? "true" : "false";
 	case ValueType::OBJECT:
 		return object->Stringify();
 	default:
@@ -62,7 +52,7 @@ void Value::UnMark() const
 		object->UnMark();
 }
 
-bool operator==(const Value& left, const Value& right)
+bool operator==(const Value &left, const Value &right)
 {
 	if (left.type != right.type)
 		return false;
@@ -96,58 +86,58 @@ bool operator==(const Value& left, const Value& right)
 	return false;
 }
 
-bool operator!=(const Value& left, const Value& right)
+bool operator!=(const Value &left, const Value &right)
 {
 	return !(left == right);
 }
 
-void gValueAdd(Value* left, Value* right, Value& result)
+void ValueAdd(Value &left, Value &right, Value &result)
 {
-	while (IS_REF_VALUE(*left))
-		left = TO_REF_VALUE(*left)->pointer;
-	while (IS_REF_VALUE(*right))
-		right = TO_REF_VALUE(*right)->pointer;
-	if (IS_BUILTIN_VALUE(*left) && TO_BUILTIN_VALUE(*left)->IsBuiltinData())
-		left = TO_BUILTIN_VALUE(*left)->GetBuiltinValue();
-	if (IS_BUILTIN_VALUE(*right) && TO_BUILTIN_VALUE(*right)->IsBuiltinData())
-		right = TO_BUILTIN_VALUE(*right)->GetBuiltinValue();
-	if (IS_NUM_VALUE(*right) && IS_NUM_VALUE(*left))
-		result = Value(TO_NUM_VALUE(*left) + TO_NUM_VALUE(*right));
-	else if (IS_STR_VALUE(*right) && IS_STR_VALUE(*left))
-		result = Value(new StrObject(TO_STR_VALUE(*left)->value + TO_STR_VALUE(*right)->value));
+	while (IS_REF_VALUE(left))
+		left = TO_REF_VALUE(left)->pointer;
+	while (IS_REF_VALUE(right))
+		right = TO_REF_VALUE(right)->pointer;
+	if (IS_BUILTIN_VALUE(left) && TO_BUILTIN_VALUE(left)->IsBuiltinValue())
+		left = TO_BUILTIN_VALUE(left)->GetBuiltinValue();
+	if (IS_BUILTIN_VALUE(right) && TO_BUILTIN_VALUE(right)->IsBuiltinValue())
+		right = TO_BUILTIN_VALUE(right)->GetBuiltinValue();
+	if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))
+		result = Value(TO_NUM_VALUE(left) + TO_NUM_VALUE(right));
+	else if (IS_STR_VALUE(right) && IS_STR_VALUE(left))
+		result = Value(new StrObject(TO_STR_VALUE(left)->value + TO_STR_VALUE(right)->value));
 	else
-		ASSERT("Invalid binary op:%s+%s", left->Stringify().c_str(), right->Stringify().c_str());
+		ASSERT("Invalid binary op:%s+%s", left.Stringify().c_str(), right.Stringify().c_str());
 }
 
 //  - * /
-#define COMMON_BINARY(op,left,right)                                                                         \
-    do                                                                                                       \
-    {                                                                                                        \
-        while (IS_REF_VALUE(*left))                                                                           \
-            left = TO_REF_VALUE(*left)->pointer;                                                             \
-        while (IS_REF_VALUE(*right))                                                                          \
-            right = TO_REF_VALUE(*right)->pointer;                                                           \
-        if (IS_BUILTIN_VALUE(*left) && TO_BUILTIN_VALUE(*left)->IsBuiltinData())                               \
-            left = TO_BUILTIN_VALUE(*left)->GetBuiltinValue();                                                \
-        if (IS_BUILTIN_VALUE(*right) && TO_BUILTIN_VALUE(*right)->IsBuiltinData())                             \
-            right = TO_BUILTIN_VALUE(*right)->GetBuiltinValue();                                              \
-        if (IS_NUM_VALUE(*right) && IS_NUM_VALUE(*left))                                                       \
-            result = Value(TO_NUM_VALUE(*left) op TO_NUM_VALUE(*right));                                   \
-        else                                                                                                 \
-            ASSERT("Invalid binary op:%s%s", (left->Stringify() + (#op)).c_str(), right->Stringify().c_str()); \
-    } while (0);
+#define COMMON_BINARY(op, left, right)                                                                        \
+	do                                                                                                        \
+	{                                                                                                         \
+		while (IS_REF_VALUE(left))                                                                            \
+			left = *TO_REF_VALUE(left)->pointer;                                                              \
+		while (IS_REF_VALUE(right))                                                                           \
+			right = *TO_REF_VALUE(right)->pointer;                                                            \
+		if (IS_BUILTIN_VALUE(left) && TO_BUILTIN_VALUE(left)->IsBuiltinValue())                               \
+			left = TO_BUILTIN_VALUE(left)->GetBuiltinValue();                                                 \
+		if (IS_BUILTIN_VALUE(right) && TO_BUILTIN_VALUE(right)->IsBuiltinValue())                             \
+			right = TO_BUILTIN_VALUE(right)->GetBuiltinValue();                                               \
+		if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                                        \
+			result = Value(TO_NUM_VALUE(left) op TO_NUM_VALUE(right));                                        \
+		else                                                                                                  \
+			ASSERT("Invalid binary op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
+	} while (0);
 
-void gValueSub(Value* left, Value* right, Value& result)
+void ValueSub(Value &left, Value &right, Value &result)
 {
 	COMMON_BINARY(-, left, right);
 }
 
-void gValueMul(Value* left, Value* right, Value& result)
+void ValueMul(Value &left, Value &right, Value &result)
 {
 	COMMON_BINARY(*, left, right);
 }
 
-void gValueDiv(Value* left, Value* right, Value& result)
+void ValueDiv(Value &left, Value &right, Value &result)
 {
-	COMMON_BINARY(/ , left, right);
+	COMMON_BINARY(/, left, right);
 }

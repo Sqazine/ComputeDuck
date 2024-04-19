@@ -4,12 +4,10 @@
 #include <unordered_map>
 #include <vector>
 #include <memory>
-#include "Config.h"
 #include "Utils.h"
 
 enum class AstType
 {
-	//expr
 	NUM,
 	STR,
 	NIL,
@@ -22,16 +20,16 @@ enum class AstType
 	INDEX,
 	REF,
 	FUNCTION,
-	ANONY_STRUCT,
 	FUNCTION_CALL,
 	STRUCT_CALL,
 	DLL_IMPORT,
-	//stmt
+
 	EXPR,
 	RETURN,
 	IF,
 	SCOPE,
 	WHILE,
+
 	STRUCT,
 };
 
@@ -375,21 +373,22 @@ struct FunctionExpr : public Expr
 	ScopeStmt *body;
 };
 
-struct AnonyStructExpr : public Expr
+struct StructExpr : public Expr
 {
-	AnonyStructExpr(const std::unordered_map<IdentifierExpr *, Expr *> &memberPairs) : Expr(AstType::ANONY_STRUCT), memberPairs(memberPairs) {}
-	~AnonyStructExpr() override { std::unordered_map<IdentifierExpr *, Expr *>().swap(memberPairs); }
+	StructExpr() :Expr(AstType::STRUCT) {}
+	StructExpr(const std::unordered_map<IdentifierExpr *, Expr *> &members) : Expr(AstType::STRUCT), members(members) {}
+	~StructExpr() override { std::unordered_map<IdentifierExpr *, Expr *>().swap(members); }
 
 	std::string Stringify() override
 	{
 		std::string result = "{";
-		for (const auto &[k, v] : memberPairs)
+		for (const auto &[k, v] : members)
 			result += k->Stringify() + ":" + v->Stringify() + ",\n";
 		result += "}";
 		return result;
 	}
 
-	std::unordered_map<IdentifierExpr *, Expr *> memberPairs;
+	std::unordered_map<IdentifierExpr *, Expr *> members;
 };
 
 struct WhileStmt : public Stmt
@@ -413,23 +412,18 @@ struct WhileStmt : public Stmt
 
 struct StructStmt : public Stmt
 {
-	StructStmt() : Stmt(AstType::STRUCT) {}
-	StructStmt(std::string_view name, std::vector<std::pair<IdentifierExpr *, Expr *>> members) : Stmt(AstType::STRUCT), name(name), members(members) {}
+	StructStmt() : Stmt(AstType::STRUCT),body(new StructExpr()) {}
+	StructStmt(std::string_view name,StructExpr* body) : Stmt(AstType::STRUCT), name(name), body(body) {}
 	~StructStmt() override
 	{
-		std::vector<std::pair<IdentifierExpr *, Expr *>>().swap(members);
+	    SAFE_DELETE(body);
 	}
 
 	std::string Stringify() override
 	{
-		std::string result = "struct " + name + "{";
-
-		for (const auto &member : members)
-			result += member.first->Stringify() + ":" + member.second->Stringify() + "\n";
-
-		return result + "}";
+		return "struct " + name + body->Stringify();
 	}
 
 	std::string name;
-	std::vector<std::pair<IdentifierExpr *, Expr *>> members;
+	StructExpr* body;
 };
