@@ -246,7 +246,7 @@ void Lexer::Number()
             while (IsNumber(GetCurChar()))
                 GetCurCharAndStepOnce();
         else
-            ASSERT("[line %lld]:Number cannot end with '.'" , m_Line);
+            ASSERT("[line %lld]:Number cannot end with '.'", m_Line);
     }
 
     AddToken(TokenType::NUMBER);
@@ -282,7 +282,7 @@ void Lexer::String()
     }
 
     if (IsAtEnd())
-        ASSERT("[line %lld]:Uniterminated string.",m_Line);
+        ASSERT("[line %lld]:Uniterminated string.", m_Line);
 
     GetCurCharAndStepOnce(); // eat the second '\"'
 

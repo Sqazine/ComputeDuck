@@ -375,7 +375,7 @@ struct FunctionExpr : public Expr
 
 struct StructExpr : public Expr
 {
-	StructExpr() :Expr(AstType::STRUCT) {}
+	StructExpr() : Expr(AstType::STRUCT) {}
 	StructExpr(const std::unordered_map<IdentifierExpr *, Expr *> &members) : Expr(AstType::STRUCT), members(members) {}
 	~StructExpr() override { std::unordered_map<IdentifierExpr *, Expr *>().swap(members); }
 
@@ -412,11 +412,11 @@ struct WhileStmt : public Stmt
 
 struct StructStmt : public Stmt
 {
-	StructStmt() : Stmt(AstType::STRUCT),body(new StructExpr()) {}
-	StructStmt(std::string_view name,StructExpr* body) : Stmt(AstType::STRUCT), name(name), body(body) {}
+	StructStmt() : Stmt(AstType::STRUCT), body(new StructExpr()) {}
+	StructStmt(std::string_view name, StructExpr *body) : Stmt(AstType::STRUCT), name(name), body(body) {}
 	~StructStmt() override
 	{
-	    SAFE_DELETE(body);
+		SAFE_DELETE(body);
 	}
 
 	std::string Stringify() override
@@ -425,5 +425,5 @@ struct StructStmt : public Stmt
 	}
 
 	std::string name;
-	StructExpr* body;
+	StructExpr *body;
 };

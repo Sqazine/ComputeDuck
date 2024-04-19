@@ -1,7 +1,7 @@
 #include "Chunk.h"
 #include "Object.h"
 
-Chunk::Chunk(OpCodes opCodes, const std::vector<Value>& constants)
+Chunk::Chunk(OpCodes opCodes, const std::vector<Value> &constants)
     : opCodes(opCodes), constants(constants)
 {
 }

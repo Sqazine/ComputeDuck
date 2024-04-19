@@ -66,7 +66,7 @@ std::unordered_map<TokenType, Precedence> Parser::m_Precedence =
 };
 
 Parser::Parser()
-	:m_CurPos(0), m_FunctionScopeDepth(0)
+	: m_CurPos(0), m_FunctionScopeDepth(0)
 {
 }
 Parser::~Parser()
@@ -86,7 +86,7 @@ std::vector<Stmt *> Parser::Parse(const std::vector<Token> &tokens)
 	while (!IsMatchCurToken(TokenType::END))
 		stmts.emplace_back(ParseStmt());
 
-	 m_ConstantFolder.Fold(stmts);
+	m_ConstantFolder.Fold(stmts);
 
 	return stmts;
 }
@@ -197,7 +197,7 @@ Stmt *Parser::ParseStructStmt()
 			v = ParseExpr();
 		}
 		IsMatchCurTokenAndStepOnce(TokenType::COMMA);
-		structStmt->body->members[k]=v;
+		structStmt->body->members[k] = v;
 	}
 
 	Consume(TokenType::RBRACE, "Expect '}'.");
@@ -249,7 +249,7 @@ Expr *Parser::ParseNilExpr()
 	Consume(TokenType::NIL, "Expect 'nil' keyword");
 	return new NilExpr();
 }
-Expr* Parser::ParseBoolExpr()
+Expr *Parser::ParseBoolExpr()
 {
 	bool flag = false;
 	if (IsMatchCurToken(TokenType::TRUE))

@@ -16,26 +16,26 @@ namespace
 	std::string g_SourceFilePath;
 }
 
-PreProcessor* g_PreProcessor = new PreProcessor();
-Parser* g_Parser = new Parser();
-Compiler* g_Compiler = new Compiler();
-VM* g_Vm = new VM();
+PreProcessor *g_PreProcessor = new PreProcessor();
+Parser *g_Parser = new Parser();
+Compiler *g_Compiler = new Compiler();
+VM *g_Vm = new VM();
 
 #ifdef BUILD_WITH_LLVM
-LLVMCompiler* g_LLVMCompiler = new LLVMCompiler();
+LLVMCompiler *g_LLVMCompiler = new LLVMCompiler();
 #endif
 
 void Run(std::string_view content, bool isLineInterpret)
 {
 	auto tokens = g_PreProcessor->PreProcess(content);
 #ifdef _DEBUG
-	for (const auto& token : tokens)
+	for (const auto &token : tokens)
 		std::cout << token << std::endl;
 #endif
 
 	auto stmts = g_Parser->Parse(tokens);
 #ifdef _DEBUG
-	for (const auto& stmt : stmts)
+	for (const auto &stmt : stmts)
 		std::cout << stmt->Stringify() << std::endl;
 #endif
 
@@ -50,7 +50,7 @@ void Run(std::string_view content, bool isLineInterpret)
 	}
 	else
 	{
-		auto chunk = g_Compiler->Compile(stmts,isLineInterpret);
+		auto chunk = g_Compiler->Compile(stmts, isLineInterpret);
 #ifdef _DEBUG
 		chunk->Stringify();
 #endif
@@ -69,7 +69,7 @@ void Repl()
 	std::cout << "> ";
 	while (getline(std::cin, line))
 	{
-		if(line=="exit")
+		if (line == "exit")
 			return;
 		if (line == "clear")
 		{
@@ -86,7 +86,7 @@ void Repl()
 				g_Compiler->ResetStatus();
 		}
 		else
-			Run(line,true);
+			Run(line, true);
 
 		std::cout << "> ";
 	}
@@ -95,7 +95,7 @@ void Repl()
 void RunFile(std::string_view path)
 {
 	std::string content = ReadFile(path);
-	Run(content,false);
+	Run(content, false);
 }
 
 void PrintUsage()
@@ -118,7 +118,7 @@ void SetBasePath(std::string_view path)
 }
 
 #undef main
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
 	for (size_t i = 0; i < argc; ++i)
 	{

@@ -36,9 +36,9 @@ void VM::Execute()
 			left = *TO_REF_VALUE(left)->pointer;                                          \
 		while (IS_REF_VALUE(right))                                                       \
 			right = *TO_REF_VALUE(right)->pointer;                                        \
-		if (IS_BUILTIN_VALUE(left) && TO_BUILTIN_VALUE(left)->IsBuiltinValue())            \
+		if (IS_BUILTIN_VALUE(left) && TO_BUILTIN_VALUE(left)->IsBuiltinValue())           \
 			left = TO_BUILTIN_VALUE(left)->GetBuiltinValue();                             \
-		if (IS_BUILTIN_VALUE(right) && TO_BUILTIN_VALUE(right)->IsBuiltinValue())          \
+		if (IS_BUILTIN_VALUE(right) && TO_BUILTIN_VALUE(right)->IsBuiltinValue())         \
 			right = TO_BUILTIN_VALUE(right)->GetBuiltinValue();                           \
 		if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                    \
 			Push(TO_NUM_VALUE(left) op TO_NUM_VALUE(right) ? Value(true) : Value(false)); \
@@ -47,22 +47,22 @@ void VM::Execute()
 	} while (0);
 
 // and or
-#define LOGIC_BINARY(op)                                                                              \
-	do                                                                                                \
-	{                                                                                                 \
-		Value left = Pop();                                                                           \
-		Value right = Pop();                                                                          \
-		while (IS_REF_VALUE(left))                                                                    \
-			left = *TO_REF_VALUE(left)->pointer;                                                      \
-		while (IS_REF_VALUE(right))                                                                   \
-			right = *TO_REF_VALUE(right)->pointer;                                                    \
+#define LOGIC_BINARY(op)                                                                               \
+	do                                                                                                 \
+	{                                                                                                  \
+		Value left = Pop();                                                                            \
+		Value right = Pop();                                                                           \
+		while (IS_REF_VALUE(left))                                                                     \
+			left = *TO_REF_VALUE(left)->pointer;                                                       \
+		while (IS_REF_VALUE(right))                                                                    \
+			right = *TO_REF_VALUE(right)->pointer;                                                     \
 		if (IS_BUILTIN_VALUE(left) && TO_BUILTIN_VALUE(left)->IsBuiltinValue())                        \
-			left = TO_BUILTIN_VALUE(left)->GetBuiltinValue();                                         \
+			left = TO_BUILTIN_VALUE(left)->GetBuiltinValue();                                          \
 		if (IS_BUILTIN_VALUE(right) && TO_BUILTIN_VALUE(right)->IsBuiltinValue())                      \
-			right = TO_BUILTIN_VALUE(right)->GetBuiltinValue();                                       \
-		if (IS_BOOL_VALUE(right) && IS_BOOL_VALUE(left))                                              \
-			Push(TO_BOOL_VALUE(left) op TO_BOOL_VALUE(right) ? Value(true) : Value(false));           \
-		else                                                                                          \
+			right = TO_BUILTIN_VALUE(right)->GetBuiltinValue();                                        \
+		if (IS_BOOL_VALUE(right) && IS_BOOL_VALUE(left))                                               \
+			Push(TO_BOOL_VALUE(left) op TO_BOOL_VALUE(right) ? Value(true) : Value(false));            \
+		else                                                                                           \
 			ASSERT("Invalid op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
 	} while (0);
 
@@ -85,17 +85,17 @@ void VM::Execute()
 			ASSERT("Invalid op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
 	} while (0);
 
-#define ARITHMETIC(op,fn) \
-case op:\
-{\
-	Value left = Pop();\
-	Value right = Pop();\
-	Value value;\
-	fn(left, right, value);\
-	RegisterToGCRecordChain(value);\
-	Push(value);\
-	break;\
-}
+#define ARITHMETIC(op, fn)              \
+	case op:                            \
+	{                                   \
+		Value left = Pop();             \
+		Value right = Pop();            \
+		Value value;                    \
+		fn(left, right, value);         \
+		RegisterToGCRecordChain(value); \
+		Push(value);                    \
+		break;                          \
+	}
 
 	while (1)
 	{
@@ -131,10 +131,10 @@ case op:\
 			Push(value);
 			break;
 		}
-		ARITHMETIC(OP_ADD, ValueAdd);
-		ARITHMETIC(OP_SUB, ValueSub);
-		ARITHMETIC(OP_MUL, ValueMul);
-		ARITHMETIC(OP_DIV, ValueDiv);
+			ARITHMETIC(OP_ADD, ValueAdd);
+			ARITHMETIC(OP_SUB, ValueSub);
+			ARITHMETIC(OP_MUL, ValueMul);
+			ARITHMETIC(OP_DIV, ValueDiv);
 		case OP_GREATER:
 		{
 			COMPARE_BINARY(>);
@@ -227,14 +227,14 @@ case op:\
 			auto numElements = *frame->ip++;
 			auto elements = std::vector<Value>(numElements);
 
-			int32_t i = numElements-1;
-			for (Value *p = m_StackTop-1; p >= m_StackTop - numElements && i>=0; --p, --i)
+			int32_t i = numElements - 1;
+			for (Value *p = m_StackTop - 1; p >= m_StackTop - numElements && i >= 0; --p, --i)
 				elements[i] = *p;
 
 			auto array = CreateObject<ArrayObject>(elements);
 
 			m_StackTop -= numElements;
-			
+
 			Push(array);
 			break;
 		}
@@ -310,7 +310,7 @@ case op:\
 				auto callFrame = CallFrame(fn, m_StackTop - argCount);
 
 				PushCallFrame(callFrame);
-		
+
 				m_StackTop = callFrame.slot + fn->localVarCount;
 			}
 			else if (IS_BUILTIN_VALUE(value))
@@ -560,17 +560,17 @@ Value VM::Pop()
 	return *(--m_StackTop);
 }
 
-void VM::PushCallFrame(const CallFrame& callFrame)
+void VM::PushCallFrame(const CallFrame &callFrame)
 {
 	*m_CallFrameTop++ = callFrame;
 }
 
-CallFrame* VM::PopCallFrame()
+CallFrame *VM::PopCallFrame()
 {
 	return --m_CallFrameTop;
 }
 
-CallFrame* VM::PeekCallFrame(int32_t distance)
+CallFrame *VM::PeekCallFrame(int32_t distance)
 {
 	return m_CallFrameTop - distance;
 }
@@ -585,7 +585,7 @@ void VM::Gc(bool isExitingVM)
 			slot->Mark();
 		if (m_Chunk)
 		{
-			for (const auto& c : m_Chunk->constants)
+			for (const auto &c : m_Chunk->constants)
 				c.Mark();
 		}
 		for (auto &g : m_GlobalVariables)
@@ -598,7 +598,7 @@ void VM::Gc(bool isExitingVM)
 		// unMark all objects while exiting vm
 		for (Value *slot = m_ValueStack; slot < m_StackTop; ++slot)
 			slot->UnMark();
-		if (m_Chunk) 
+		if (m_Chunk)
 		{
 			for (const auto &c : m_Chunk->constants)
 				c.UnMark();

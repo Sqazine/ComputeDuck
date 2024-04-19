@@ -5,7 +5,6 @@
 #include "Value.h"
 #include "SymbolTable.h"
 
-
 class COMPUTE_DUCK_API Compiler
 {
 
@@ -65,6 +64,6 @@ private:
 
     SymbolTable *m_SymbolTable;
 
-    //record builtin object names,for finding new added symbol names
+    // record builtin object names,for finding new added symbol names
     std::vector<std::string> m_BuiltinNames;
 };
