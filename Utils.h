@@ -17,11 +17,16 @@
 
 enum class RWState
 {
-	READ,
-	WRITE,
+    READ,
+    WRITE,
 };
 
-#define SAFE_DELETE(x)  do { delete x; x = nullptr; } while (false);
+#define SAFE_DELETE(x) \
+    do                 \
+    {                  \
+        delete x;      \
+        x = nullptr;   \
+    } while (false);
 
 #define ASSERT(...)                                                                 \
     do                                                                              \

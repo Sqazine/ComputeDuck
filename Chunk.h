@@ -48,8 +48,8 @@ typedef std::vector<int16_t> OpCodes;
 class COMPUTE_DUCK_API Chunk
 {
 public:
-    Chunk(OpCodes opCodes, const std::vector<Value>& constants);
-    ~Chunk() 
+    Chunk(OpCodes opCodes, const std::vector<Value> &constants);
+    ~Chunk()
     {
         OpCodes().swap(opCodes);
     }

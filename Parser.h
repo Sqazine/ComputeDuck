@@ -8,7 +8,6 @@
 #include "Utils.h"
 #include "ConstantFolder.h"
 
-
 enum class Precedence
 {
 	LOWEST = 0, // ,

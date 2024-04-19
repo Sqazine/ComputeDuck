@@ -20,18 +20,18 @@ struct Symbol
 	{
 	}
 
-	Symbol(const std::string& name, const SymbolScope& scope, int32_t index, int32_t scopeDepth = 0, bool isStructSymbol = false)
+	Symbol(const std::string &name, const SymbolScope &scope, int32_t index, int32_t scopeDepth = 0, bool isStructSymbol = false)
 		: name(name), scope(scope), index(index), isStructSymbol(isStructSymbol), scopeDepth(scopeDepth), isInUpScope(0)
 	{
 	}
 
 #ifdef BUILD_WITH_LLVM
-	Symbol(const std::string& name, const SymbolScope& scope, llvm::Value* allocationGEP, int32_t scopeDepth = 0)
+	Symbol(const std::string &name, const SymbolScope &scope, llvm::Value *allocationGEP, int32_t scopeDepth = 0)
 		: name(name), scope(scope), allocationGEP(allocationGEP), scopeDepth(scopeDepth), isInUpScope(0)
 	{
 	}
 
-	llvm::Value* allocationGEP;
+	llvm::Value *allocationGEP;
 #endif
 
 	std::string name;
@@ -49,7 +49,7 @@ struct SymbolTable
 	{
 	}
 
-	SymbolTable(SymbolTable* enclosing)
+	SymbolTable(SymbolTable *enclosing)
 		: enclosing(enclosing), definitionCount(0)
 	{
 		scopeDepth = enclosing->scopeDepth + 1;
@@ -67,13 +67,13 @@ struct SymbolTable
 	}
 
 #ifdef BUILD_WITH_LLVM
-	void Set(const std::string& name, llvm::Value* a)
+	void Set(const std::string &name, llvm::Value *a)
 	{
 		symbolMaps[name].allocationGEP = a;
 	}
 #endif
 
-	Symbol Define(const std::string& name, bool isStructSymbol = false)
+	Symbol Define(const std::string &name, bool isStructSymbol = false)
 	{
 		auto symbol = Symbol(name, SymbolScope::GLOBAL, definitionCount, scopeDepth, isStructSymbol);
 
@@ -90,14 +90,14 @@ struct SymbolTable
 		return symbol;
 	}
 
-	Symbol DefineBuiltin(const std::string& name, int32_t index = -1)
+	Symbol DefineBuiltin(const std::string &name, int32_t index = -1)
 	{
 		auto symbol = Symbol(name, SymbolScope::BUILTIN, index, scopeDepth);
 		symbolMaps[name] = symbol;
 		return symbol;
 	}
 
-	bool Resolve(const std::string& name, Symbol& symbol)
+	bool Resolve(const std::string &name, Symbol &symbol)
 	{
 		auto iter = symbolMaps.find(name);
 		if (iter != symbolMaps.end())
@@ -122,7 +122,7 @@ struct SymbolTable
 		return false;
 	}
 
-	SymbolTable* enclosing;
+	SymbolTable *enclosing;
 	std::unordered_map<std::string, Symbol> symbolMaps;
 	uint8_t definitionCount;
 	uint8_t scopeDepth;

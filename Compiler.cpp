@@ -629,21 +629,21 @@ void Compiler::LoadSymbol(const Symbol &symbol)
     }
 }
 
-void Compiler::StoreSymbol(const Symbol& symbol)
+void Compiler::StoreSymbol(const Symbol &symbol)
 {
-	switch (symbol.scope)
-	{
-	case SymbolScope::GLOBAL:
-		Emit(OP_SET_GLOBAL);
-		Emit(symbol.index);
-		break;
-	case SymbolScope::LOCAL:
-		Emit(OP_SET_LOCAL);
-		Emit(symbol.isInUpScope);
-		Emit(symbol.scopeDepth);
-		Emit(symbol.index);
-		break;
-	default:
-		break;
-	}
+    switch (symbol.scope)
+    {
+    case SymbolScope::GLOBAL:
+        Emit(OP_SET_GLOBAL);
+        Emit(symbol.index);
+        break;
+    case SymbolScope::LOCAL:
+        Emit(OP_SET_LOCAL);
+        Emit(symbol.isInUpScope);
+        Emit(symbol.scopeDepth);
+        Emit(symbol.index);
+        break;
+    default:
+        break;
+    }
 }

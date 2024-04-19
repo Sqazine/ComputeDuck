@@ -10,7 +10,6 @@
 class COMPUTE_DUCK_API Lexer
 {
 public:
-
 public:
 	Lexer();
 	~Lexer();

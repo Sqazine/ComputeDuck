@@ -3,7 +3,6 @@
 #include <unordered_map>
 #include "Object.h"
 
-
 class COMPUTE_DUCK_API BuiltinManager
 {
 public:

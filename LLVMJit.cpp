@@ -1,16 +1,17 @@
 #include "LLVMJit.h"
 
 LLVMJit::LLVMJit(std::unique_ptr<llvm::orc::ExecutionSession> es, llvm::orc::JITTargetMachineBuilder jtmb, llvm::DataLayout dl)
-	:m_Es(std::move(es)), m_DataLayout(std::move(dl)), m_Mangle(*m_Es, m_DataLayout),
-	m_ObjectLayer(*m_Es,
-		[]() { return std::make_unique<llvm::SectionMemoryManager>(); }),
-	m_CompileLayer(*m_Es, m_ObjectLayer,
-		std::make_unique<llvm::orc::ConcurrentIRCompiler>(std::move(jtmb))),
-	m_MainJD(m_Es->createBareJITDylib("<main>"))
+	: m_Es(std::move(es)), m_DataLayout(std::move(dl)), m_Mangle(*m_Es, m_DataLayout),
+	  m_ObjectLayer(*m_Es,
+					[]()
+					{ return std::make_unique<llvm::SectionMemoryManager>(); }),
+	  m_CompileLayer(*m_Es, m_ObjectLayer,
+					 std::make_unique<llvm::orc::ConcurrentIRCompiler>(std::move(jtmb))),
+	  m_MainJD(m_Es->createBareJITDylib("<main>"))
 {
 	m_MainJD.addGenerator(cantFail(llvm::orc::DynamicLibrarySearchGenerator::GetForCurrentProcess(m_DataLayout.getGlobalPrefix())));
 
-	if (jtmb.getTargetTriple().isOSBinFormatCOFF()) 
+	if (jtmb.getTargetTriple().isOSBinFormatCOFF())
 	{
 		m_ObjectLayer.setOverrideObjectFlagsWithResponsibilityFlags(true);
 		m_ObjectLayer.setAutoClaimResponsibilityForObjectSymbols(true);
@@ -37,15 +38,15 @@ std::unique_ptr<LLVMJit> LLVMJit::Create()
 	if (!dataLayout)
 		return nullptr;
 
-	return std::make_unique<LLVMJit>(std::move(es), std::move(JTMB),std::move(*dataLayout));
+	return std::make_unique<LLVMJit>(std::move(es), std::move(JTMB), std::move(*dataLayout));
 }
 
-const llvm::DataLayout& LLVMJit::GetDataLayout() const
+const llvm::DataLayout &LLVMJit::GetDataLayout() const
 {
 	return m_DataLayout;
 }
 
-llvm::orc::JITDylib& LLVMJit::GetMainJITDylib()
+llvm::orc::JITDylib &LLVMJit::GetMainJITDylib()
 {
 	return m_MainJD;
 }
@@ -59,5 +60,5 @@ llvm::Error LLVMJit::AddModule(llvm::orc::ThreadSafeModule tsm, llvm::orc::Resou
 
 llvm::Expected<llvm::orc::ExecutorSymbolDef> LLVMJit::LookUp(llvm::StringRef name)
 {
-	return m_Es->lookup({ &m_MainJD }, m_Mangle(name.str()));
+	return m_Es->lookup({&m_MainJD}, m_Mangle(name.str()));
 }
