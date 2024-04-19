@@ -5,9 +5,9 @@
 
 namespace
 {
-	extern "C" COMPUTE_DUCK_API void gPrint(Value * args, uint8_t argCount,Value& result)
+	extern "C" COMPUTE_DUCK_API bool Print(Value *args, uint8_t argCount, Value &result)
 	{
-		if (argCount > 0) 
+		if (argCount > 0)
 		{
 			for (size_t i = 0; i < argCount; ++i)
 			{
@@ -16,9 +16,10 @@ namespace
 					std::cout << ",";
 			}
 		}
+		return false;
 	}
 
-	extern "C" COMPUTE_DUCK_API void gPrintln(Value * args, uint8_t argCount, Value& result)
+	extern "C" COMPUTE_DUCK_API bool Println(Value *args, uint8_t argCount, Value &result)
 	{
 		if (argCount > 0)
 		{
@@ -29,31 +30,33 @@ namespace
 					std::cout << ",";
 			}
 
-			std::cout << std::endl;;
+			std::cout << std::endl;
 		}
+		return false;
 	}
 
-	extern "C" COMPUTE_DUCK_API void gSizeof(Value * args, uint8_t argCount, Value& result)
+	extern "C" COMPUTE_DUCK_API bool Sizeof(Value *args, uint8_t argCount, Value &result)
 	{
 		if (argCount == 0 || argCount > 1)
 			ASSERT("[Native function 'sizeof']:Expect a argument.");
 
 		if (IS_ARRAY_VALUE(args[0]))
-			result= Value((double)TO_ARRAY_VALUE(args[0])->elements.size());
+			result = Value(TO_ARRAY_VALUE(args[0])->elements.size());
 		else if (IS_STR_VALUE(args[0]))
-			result = Value((double)TO_STR_VALUE(args[0])->value.size());
+			result = Value(TO_STR_VALUE(args[0])->value.size());
 		else
 			ASSERT("[Native function 'sizeof']:Expect a array or string argument.");
+		return true;
 	}
 
-	extern "C" COMPUTE_DUCK_API void gInsert(Value * args, uint8_t argCount, Value& result)
+	extern "C" COMPUTE_DUCK_API bool Insert(Value *args, uint8_t argCount, Value &result)
 	{
 		if (argCount == 0 || argCount != 3)
 			ASSERT("[Native function 'insert']:Expect 3 arguments,the arg0 must be array or string object.The arg1 is the index object.The arg2 is the value object.");
 
 		if (IS_ARRAY_VALUE(args[0]))
 		{
-			ArrayObject* array = TO_ARRAY_VALUE(args[0]);
+			ArrayObject *array = TO_ARRAY_VALUE(args[0]);
 			if (!IS_NUM_VALUE(args[1]))
 				ASSERT("[Native function 'insert']:Arg1 must be integer type while insert to a array");
 
@@ -66,7 +69,7 @@ namespace
 		}
 		else if (IS_STR_VALUE(args[0]))
 		{
-			StrObject* string = TO_STR_VALUE(args[0]);
+			StrObject *string = TO_STR_VALUE(args[0]);
 			if (!IS_NUM_VALUE(args[1]))
 				ASSERT("[Native function 'insert']:Arg1 must be integer type while insert to a string");
 
@@ -79,16 +82,18 @@ namespace
 		}
 		else
 			ASSERT("[Native function 'insert']:Expect a array or string argument.");
+
+		return false;
 	}
 
-	extern "C" COMPUTE_DUCK_API void gErase(Value * args, uint8_t argCount, Value & result)
+	extern "C" COMPUTE_DUCK_API bool Erase(Value *args, uint8_t argCount, Value &result)
 	{
 		if (argCount == 0 || argCount != 2)
 			ASSERT("[Native function 'erase']:Expect 2 arguments,the arg0 must be array or string object.The arg1 is the corresponding index object.");
 
 		if (IS_ARRAY_VALUE(args[0]))
 		{
-			ArrayObject* array = TO_ARRAY_VALUE(args[0]);
+			ArrayObject *array = TO_ARRAY_VALUE(args[0]);
 			if (!IS_NUM_VALUE(args[1]))
 				ASSERT("[Native function 'erase']:Arg1 must be integer type while deleting array element");
 
@@ -101,7 +106,7 @@ namespace
 		}
 		else if (IS_STR_VALUE(args[0]))
 		{
-			StrObject* string = TO_STR_VALUE(args[0]);
+			StrObject *string = TO_STR_VALUE(args[0]);
 			if (!IS_NUM_VALUE(args[1]))
 				ASSERT("[Native function 'erase']:Arg1 must be integer type while deleting string element");
 
@@ -114,15 +119,16 @@ namespace
 		}
 		else
 			ASSERT("[Native function 'erase']:Expect a array or string argument.");
+
+		return false;
 	}
 
-	extern "C" COMPUTE_DUCK_API void gClock(Value * args, uint8_t argCount, Value & result)
+	extern "C" COMPUTE_DUCK_API bool Clock(Value *args, uint8_t argCount, Value &result)
 	{
-		result=Value((double)clock() / CLOCKS_PER_SEC);
+		result = Value(clock() / CLOCKS_PER_SEC);
+		return true;
 	}
 }
-
-std::string BuiltinManager::m_CurExecuteFilePath;
 
 BuiltinManager *BuiltinManager::GetInstance()
 {
@@ -132,25 +138,18 @@ BuiltinManager *BuiltinManager::GetInstance()
 
 BuiltinManager::BuiltinManager()
 {
-	Register<BuiltinFn>("print", gPrint);
-	Register<BuiltinFn>("println", gPrintln);
-	Register<BuiltinFn>("sizeof", gSizeof);
-	Register<BuiltinFn>("insert", gInsert);
-	Register<BuiltinFn>("erase", gErase);
-	Register<BuiltinFn>("clock", gClock);
+	Register<BuiltinFn>("print", Print);
+	Register<BuiltinFn>("println", Println);
+	Register<BuiltinFn>("sizeof", Sizeof);
+	Register<BuiltinFn>("insert", Insert);
+	Register<BuiltinFn>("erase", Erase);
+	Register<BuiltinFn>("clock", Clock);
 }
 BuiltinManager::~BuiltinManager()
 {
 	std::vector<BuiltinObject *>().swap(m_Builtins);
 	std::vector<std::string>().swap(m_BuiltinNames);
 }
-
-#ifdef BUILD_WITH_LLVM
-void BuiltinManager::RegisterLlvmFn(std::string_view name, llvm::Function *fn)
-{
-	m_LlvmBuiltins[name.data()] = fn;
-}
-#endif
 
 void BuiltinManager::SetExecuteFilePath(std::string_view path)
 {

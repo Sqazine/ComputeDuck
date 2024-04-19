@@ -6,15 +6,15 @@ std::unordered_map<TokenType, PrefixFn> Parser::m_PrefixFunctions =
 		{TokenType::NUMBER, &Parser::ParseNumExpr},
 		{TokenType::STRING, &Parser::ParseStrExpr},
 		{TokenType::NIL, &Parser::ParseNilExpr},
-		{TokenType::TRUE, &Parser::ParseTrueExpr},
-		{TokenType::FALSE, &Parser::ParseFalseExpr},
+		{TokenType::TRUE, &Parser::ParseBoolExpr},
+		{TokenType::FALSE, &Parser::ParseBoolExpr},
 		{TokenType::MINUS, &Parser::ParsePrefixExpr},
 		{TokenType::NOT, &Parser::ParsePrefixExpr},
 		{TokenType::LPAREN, &Parser::ParseGroupExpr},
 		{TokenType::LBRACKET, &Parser::ParseArrayExpr},
 		{TokenType::REF, &Parser::ParseRefExpr},
 		{TokenType::FUNCTION, &Parser::ParseFunctionExpr},
-		{TokenType::LBRACE, &Parser::ParseAnonyStructExpr},
+		{TokenType::LBRACE, &Parser::ParseStructExpr},
 		{TokenType::DLLIMPORT, &Parser::ParseDllImportExpr},
 		{TokenType::TILDE, &Parser::ParsePrefixExpr},
 };
@@ -66,7 +66,7 @@ std::unordered_map<TokenType, Precedence> Parser::m_Precedence =
 };
 
 Parser::Parser()
-	:m_CurPos(0), m_FunctionOrFunctionScopeDepth(0)
+	:m_CurPos(0), m_FunctionScopeDepth(0)
 {
 }
 Parser::~Parser()
@@ -80,13 +80,13 @@ std::vector<Stmt *> Parser::Parse(const std::vector<Token> &tokens)
 {
 	m_CurPos = 0;
 	m_Tokens = tokens;
-	m_FunctionOrFunctionScopeDepth = 0;
+	m_FunctionScopeDepth = 0;
 
 	std::vector<Stmt *> stmts;
 	while (!IsMatchCurToken(TokenType::END))
 		stmts.emplace_back(ParseStmt());
 
-	// m_ConstantFolder.Fold(stmts);
+	 m_ConstantFolder.Fold(stmts);
 
 	return stmts;
 }
@@ -117,7 +117,7 @@ Stmt *Parser::ParseExprStmt()
 
 Stmt *Parser::ParseReturnStmt()
 {
-	if (m_FunctionOrFunctionScopeDepth == 0)
+	if (m_FunctionScopeDepth == 0)
 		ASSERT("Return statement only available in function");
 
 	Consume(TokenType::RETURN, "Expect 'return' key word.");
@@ -197,7 +197,7 @@ Stmt *Parser::ParseStructStmt()
 			v = ParseExpr();
 		}
 		IsMatchCurTokenAndStepOnce(TokenType::COMMA);
-		structStmt->members.emplace_back(k, v);
+		structStmt->body->members[k]=v;
 	}
 
 	Consume(TokenType::RBRACE, "Expect '}'.");
@@ -236,8 +236,7 @@ Expr *Parser::ParseIdentifierExpr()
 
 Expr *Parser::ParseNumExpr()
 {
-	std::string numLiteral = Consume(TokenType::NUMBER, "Expect a number literal.").literal;
-	return new NumExpr(std::stod(numLiteral));
+	return new NumExpr(std::stod(Consume(TokenType::NUMBER, "Expect a number literal.").literal));
 }
 
 Expr *Parser::ParseStrExpr()
@@ -250,15 +249,17 @@ Expr *Parser::ParseNilExpr()
 	Consume(TokenType::NIL, "Expect 'nil' keyword");
 	return new NilExpr();
 }
-Expr *Parser::ParseTrueExpr()
+Expr* Parser::ParseBoolExpr()
 {
-	Consume(TokenType::TRUE, "Expect 'true' keyword");
-	return new BoolExpr(true);
-}
-Expr *Parser::ParseFalseExpr()
-{
-	Consume(TokenType::FALSE, "Expect 'false' keyword");
-	return new BoolExpr(false);
+	bool flag = false;
+	if (IsMatchCurToken(TokenType::TRUE))
+		flag = true;
+	else if (IsMatchCurToken(TokenType::FALSE))
+		flag = false;
+
+	GetCurTokenAndStepOnce();
+
+	return new BoolExpr(flag);
 }
 
 Expr *Parser::ParseGroupExpr()
@@ -328,7 +329,7 @@ Expr *Parser::ParseRefExpr()
 
 Expr *Parser::ParseFunctionExpr()
 {
-	m_FunctionOrFunctionScopeDepth++;
+	m_FunctionScopeDepth++;
 
 	Consume(TokenType::FUNCTION, "Expect 'function' keyword");
 
@@ -350,12 +351,12 @@ Expr *Parser::ParseFunctionExpr()
 
 	functionExpr->body = (ScopeStmt *)ParseScopeStmt();
 
-	m_FunctionOrFunctionScopeDepth--;
+	m_FunctionScopeDepth--;
 
 	return functionExpr;
 }
 
-Expr *Parser::ParseAnonyStructExpr()
+Expr *Parser::ParseStructExpr()
 {
 	std::unordered_map<IdentifierExpr *, Expr *> memPairs;
 	Consume(TokenType::LBRACE, "Expect '{'.");
@@ -373,7 +374,7 @@ Expr *Parser::ParseAnonyStructExpr()
 	}
 
 	Consume(TokenType::RBRACE, "Expect '}'.");
-	return new AnonyStructExpr(memPairs);
+	return new StructExpr(memPairs);
 }
 
 Expr *Parser::ParseFunctionCallExpr(Expr *prefixExpr)

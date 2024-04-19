@@ -75,8 +75,7 @@ Stmt *ConstantFolder::FoldReturnStmt(ReturnStmt *stmt)
 
 Stmt *ConstantFolder::FoldStructStmt(StructStmt *stmt)
 {
-    for (auto &[k, v] : stmt->members)
-        v = FoldExpr(v);
+    stmt->body = (StructExpr *)FoldStructExpr(stmt->body);
     return stmt;
 }
 Expr *ConstantFolder::FoldExpr(Expr *expr)
@@ -111,8 +110,8 @@ Expr *ConstantFolder::FoldExpr(Expr *expr)
         return FoldRefExpr((RefExpr *)expr);
     case AstType::FUNCTION:
         return FoldFunctionExpr((FunctionExpr *)expr);
-    case AstType::ANONY_STRUCT:
-        return FoldAnonyStructExpr((AnonyStructExpr *)expr);
+    case AstType::STRUCT:
+        return FoldStructExpr((StructExpr *)expr);
     default:
         return expr;
     }
@@ -189,9 +188,9 @@ Expr *ConstantFolder::FoldRefExpr(RefExpr *expr)
     return expr;
 }
 
-Expr *ConstantFolder::FoldAnonyStructExpr(AnonyStructExpr *expr)
+Expr *ConstantFolder::FoldStructExpr(StructExpr *expr)
 {
-    for (auto &[k, v] : expr->memberPairs)
+    for (auto &[k, v] : expr->members)
         v = FoldExpr(v);
     return expr;
 }

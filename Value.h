@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
+#include <type_traits>
 #include "Utils.h"
-#include "Config.h"
 
 #define IS_NIL_VALUE(v) ((v).type == ValueType::NIL)
 #define IS_NUM_VALUE(v) ((v).type == ValueType::NUM)
@@ -26,7 +26,7 @@
 #define TO_STRUCT_VALUE(v) (TO_STRUCT_OBJ((v).object))
 #define TO_BUILTIN_VALUE(v) (TO_BUILTIN_OBJ((v).object))
 
-enum class ValueType:uint8_t
+enum class ValueType : uint8_t
 {
 	NIL,
 	NUM,
@@ -34,13 +34,17 @@ enum class ValueType:uint8_t
 	OBJECT,
 };
 
-extern "C" struct COMPUTE_DUCK_API Value
+struct COMPUTE_DUCK_API Value
 {
+	template <typename T>
+		requires(std::is_integral_v<T> || std::is_floating_point_v<T>)
+	Value(T number)
+		: stored(static_cast<double>(number)), type(ValueType::NUM)
+	{
+	}
 	Value();
-	Value(double number);
-	Value(uint64_t number);
 	Value(bool boolean);
-	Value(struct Object* object);
+	Value(struct Object *object);
 	Value(ValueType type);
 	~Value();
 
@@ -53,14 +57,14 @@ extern "C" struct COMPUTE_DUCK_API Value
 	union
 	{
 		double stored;
-		struct Object* object{ nullptr };
+		struct Object *object{nullptr};
 	};
 };
 
-bool operator==(const Value& left, const Value& right);
-bool operator!=(const Value& left, const Value& right);
+bool operator==(const Value &left, const Value &right);
+bool operator!=(const Value &left, const Value &right);
 
-extern "C" COMPUTE_DUCK_API void gValueAdd(Value* left, Value* right,Value& result);
-extern "C" COMPUTE_DUCK_API void gValueSub(Value* left, Value* right,Value& result);
-extern "C" COMPUTE_DUCK_API void gValueMul(Value* left, Value* right,Value& result);
-extern "C" COMPUTE_DUCK_API void gValueDiv(Value * left, Value * right, Value& result);
+extern "C" COMPUTE_DUCK_API void ValueAdd(Value &left, Value &right, Value &result);
+extern "C" COMPUTE_DUCK_API void ValueSub(Value &left, Value &right, Value &result);
+extern "C" COMPUTE_DUCK_API void ValueMul(Value &left, Value &right, Value &result);
+extern "C" COMPUTE_DUCK_API void ValueDiv(Value &left, Value &right, Value &result);

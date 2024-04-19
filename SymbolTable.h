@@ -1,7 +1,8 @@
 #pragma once
 #include <string>
 #include <unordered_map>
-#include "Config.h"
+
+#include "Utils.h"
 #ifdef BUILD_WITH_LLVM
 #include "llvm/IR/Value.h"
 #endif
@@ -123,6 +124,6 @@ struct SymbolTable
 
 	SymbolTable* enclosing;
 	std::unordered_map<std::string, Symbol> symbolMaps;
-	int32_t definitionCount;
-	int32_t scopeDepth;
+	uint8_t definitionCount;
+	uint8_t scopeDepth;
 };

@@ -49,7 +49,6 @@ enum class TokenType
 	REF,		   // ref
 	DLLIMPORT,	   // dllimport
 	IMPORT,		   // import
-	UNKNOWN,
 	END
 };
 
@@ -65,5 +64,5 @@ struct Token
 
 inline std::ostream &operator<<(std::ostream &stream, const Token &token)
 {
-	return stream << token.literal << "," << token.line;
+	return stream << token.filePath<< ":'"<< token.literal << "'," << token.line;
 }

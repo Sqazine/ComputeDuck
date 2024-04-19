@@ -5,7 +5,7 @@
 #ifdef _WIN32
 #include <Windows.h>
 #elif __linux__
-#include <dlfcn.h>  
+#include <dlfcn.h>
 #elif __APPLE__
 #endif
 
@@ -21,7 +21,7 @@ Compiler::~Compiler()
         SAFE_DELETE(m_SymbolTable);
 }
 
-Chunk* Compiler::Compile(const std::vector<Stmt *> &stmts, bool isLineInterpret)
+Chunk *Compiler::Compile(const std::vector<Stmt *> &stmts, bool isLineInterpret)
 {
     for (const auto &stmt : stmts)
         CompileStmt(stmt);
@@ -47,7 +47,7 @@ void Compiler::ResetStatus()
     m_SymbolTable = new SymbolTable();
 
     m_BuiltinNames.clear();
-  
+
     for (int32_t i = 0; i < BuiltinManager::GetInstance()->m_BuiltinNames.size(); ++i)
     {
         m_BuiltinNames.emplace_back(BuiltinManager::GetInstance()->m_BuiltinNames[i]);
@@ -91,19 +91,19 @@ void Compiler::CompileIfStmt(IfStmt *stmt)
 {
     CompileExpr(stmt->condition);
     Emit(OP_JUMP_IF_FALSE);
-    auto jumpIfFalseAddress = Emit(65536); // 65536 just a temp address
+    auto jumpIfFalseAddress = Emit(65535); // 65535 just a temp address
 
     CompileStmt(stmt->thenBranch);
 
     Emit(OP_JUMP);
-    auto jumpAddress = Emit(65536);
+    auto jumpAddress = Emit(65535);
 
-    ModifyOpCode(jumpIfFalseAddress, (int32_t)CurOpCodes().size() - 1);
+    ModifyOpCode(jumpIfFalseAddress, (int16_t)CurOpCodes().size() - 1);
 
     if (stmt->elseBranch)
         CompileStmt(stmt->elseBranch);
 
-    ModifyOpCode(jumpAddress, (int32_t)CurOpCodes().size() - 1);
+    ModifyOpCode(jumpAddress, (int16_t)CurOpCodes().size() - 1);
 }
 
 void Compiler::CompileScopeStmt(ScopeStmt *stmt)
@@ -116,10 +116,18 @@ void Compiler::CompileScopeStmt(ScopeStmt *stmt)
         CompileStmt(s);
 
     auto localVarCount = m_SymbolTable->definitionCount;
-    CurOpCodes()[idx] = localVarCount;
 
-    Emit(OP_SP_OFFSET);
-    Emit(-localVarCount);
+    if (localVarCount == 0)
+    {
+        m_Scopes.back().erase(m_Scopes.back().begin() + idx);
+        m_Scopes.back().erase(m_Scopes.back().begin() + (idx - 1));
+    }
+    else
+    {
+        CurOpCodes()[idx] = localVarCount;
+        Emit(OP_SP_OFFSET);
+        Emit(-localVarCount);
+    }
 
     ExitScope();
 }
@@ -130,14 +138,14 @@ void Compiler::CompileWhileStmt(WhileStmt *stmt)
     CompileExpr(stmt->condition);
 
     Emit(OP_JUMP_IF_FALSE);
-    auto jumpIfFalseAddress = Emit(65536); // 65536 just a temp address
+    auto jumpIfFalseAddress = Emit(65535); // 65535 just a temp address
 
     CompileStmt(stmt->body);
 
     Emit(OP_JUMP);
     Emit(jumpAddress);
 
-    ModifyOpCode(jumpIfFalseAddress, (int32_t)CurOpCodes().size() - 1);
+    ModifyOpCode(jumpIfFalseAddress, (int16_t)CurOpCodes().size() - 1);
 }
 
 void Compiler::CompileReturnStmt(ReturnStmt *stmt)
@@ -159,21 +167,9 @@ void Compiler::CompileStructStmt(StructStmt *stmt)
 {
     auto symbol = m_SymbolTable->Define(stmt->name, true);
 
-    EnterScope();
     m_Scopes.emplace_back(OpCodes());
 
-    for (int32_t i = (int32_t)stmt->members.size() - 1; i >= 0; --i)
-    {
-        CompileExpr(stmt->members[i].second);
-        EmitConstant(AddConstant(new StrObject(stmt->members[i].first->literal)));
-    }
-
-    auto localVarCount = m_SymbolTable->definitionCount;
-
-    Emit(OP_STRUCT);
-    Emit((int32_t)stmt->members.size());
-
-    ExitScope();
+    CompileStructExpr(stmt->body);
 
     auto opCodes = m_Scopes.back();
     m_Scopes.pop_back();
@@ -181,19 +177,11 @@ void Compiler::CompileStructStmt(StructStmt *stmt)
     opCodes.emplace_back(OP_RETURN);
     opCodes.emplace_back(1);
 
-    auto fn = new FunctionObject(opCodes, localVarCount);
+    auto fn = new FunctionObject(opCodes);
 
     EmitConstant(AddConstant(fn));
 
-    if (symbol.scope == SymbolScope::GLOBAL)
-        Emit(OP_SET_GLOBAL);
-    else
-    {
-        Emit(OP_SET_LOCAL);
-        Emit(symbol.isInUpScope);
-        Emit(symbol.scopeDepth);
-    }
-    Emit(symbol.index);
+    StoreSymbol(symbol);
 }
 
 void Compiler::CompileExpr(Expr *expr, const RWState &state)
@@ -242,8 +230,8 @@ void Compiler::CompileExpr(Expr *expr, const RWState &state)
     case AstType::FUNCTION:
         CompileFunctionExpr((FunctionExpr *)expr);
         break;
-    case AstType::ANONY_STRUCT:
-        CompileAnonyStructExpr((AnonyStructExpr *)expr);
+    case AstType::STRUCT:
+        CompileStructExpr((StructExpr *)expr);
         break;
     case AstType::DLL_IMPORT:
         CompileDllImportExpr((DllImportExpr *)expr);
@@ -312,17 +300,15 @@ void Compiler::CompileInfixExpr(InfixExpr *expr)
 
 void Compiler::CompileNumExpr(NumExpr *expr)
 {
-    auto value = Value(expr->value);
-    auto pos = AddConstant(value);
-    EmitConstant(pos);
+    EmitConstant(AddConstant(expr->value));
 }
 
 void Compiler::CompileBoolExpr(BoolExpr *expr)
 {
     if (expr->value)
-        EmitConstant(AddConstant(Value(true)));
+        EmitConstant(AddConstant(true));
     else
-        EmitConstant(AddConstant(Value(false)));
+        EmitConstant(AddConstant(false));
 }
 
 void Compiler::CompilePrefixExpr(PrefixExpr *expr)
@@ -340,9 +326,7 @@ void Compiler::CompilePrefixExpr(PrefixExpr *expr)
 
 void Compiler::CompileStrExpr(StrExpr *expr)
 {
-    auto value = Value(new StrObject(expr->value));
-    auto pos = AddConstant(value);
-    EmitConstant(pos);
+    EmitConstant(AddConstant(new StrObject(expr->value)));
 }
 
 void Compiler::CompileNilExpr(NilExpr *expr)
@@ -361,7 +345,7 @@ void Compiler::CompileArrayExpr(ArrayExpr *expr)
         CompileExpr(e);
 
     Emit(OP_ARRAY);
-    Emit((uint32_t)expr->elements.size());
+    Emit(expr->elements.size());
 }
 
 void Compiler::CompileIndexExpr(IndexExpr *expr)
@@ -378,28 +362,14 @@ void Compiler::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state)
     if (state == RWState::READ)
     {
         if (!isFound)
-            ASSERT("Undefined variable:%s",expr->Stringify().c_str());
+            ASSERT("Undefined variable:%s", expr->Stringify().c_str());
         LoadSymbol(symbol);
     }
     else
     {
         if (!isFound)
             symbol = m_SymbolTable->Define(expr->literal);
-        switch (symbol.scope)
-        {
-        case SymbolScope::GLOBAL:
-            Emit(OP_SET_GLOBAL);
-            Emit(symbol.index);
-            break;
-        case SymbolScope::LOCAL:
-            Emit(OP_SET_LOCAL);
-            Emit(symbol.isInUpScope);
-            Emit(symbol.scopeDepth);
-            Emit(symbol.index);
-            break;
-        default:
-            break;
-        }
+        StoreSymbol(symbol);
     }
 }
 
@@ -417,10 +387,10 @@ void Compiler::CompileFunctionExpr(FunctionExpr *expr)
 
     auto localVarCount = m_SymbolTable->definitionCount;
 
-    ExitScope();
-
     auto opCodes = m_Scopes.back();
     m_Scopes.pop_back();
+
+    ExitScope();
 
     // for non return  or empty stmt in function scope:add a return to return nothing
     if (opCodes.empty() || opCodes[opCodes.size() - 2] != OP_RETURN)
@@ -429,7 +399,7 @@ void Compiler::CompileFunctionExpr(FunctionExpr *expr)
         opCodes.emplace_back(0);
     }
 
-    auto fn = new FunctionObject(opCodes, localVarCount, (int32_t)expr->parameters.size());
+    auto fn = new FunctionObject(opCodes, localVarCount, expr->parameters.size());
 
     EmitConstant(AddConstant(fn));
 }
@@ -442,7 +412,7 @@ void Compiler::CompileFunctionCallExpr(FunctionCallExpr *expr)
         CompileExpr(argu);
 
     Emit(OP_FUNCTION_CALL);
-    Emit((int32_t)expr->arguments.size());
+    Emit(expr->arguments.size());
 }
 
 void Compiler::CompileStructCallExpr(StructCallExpr *expr, const RWState &state)
@@ -468,7 +438,7 @@ void Compiler::CompileStructCallExpr(StructCallExpr *expr, const RWState &state)
                 CompileExpr(argu);
 
             Emit(OP_FUNCTION_CALL);
-            Emit((int32_t)funcCall->arguments.size());
+            Emit(funcCall->arguments.size());
         }
     }
     else
@@ -525,20 +495,16 @@ void Compiler::CompileRefExpr(RefExpr *expr)
     }
 }
 
-void Compiler::CompileAnonyStructExpr(AnonyStructExpr *expr)
+void Compiler::CompileStructExpr(StructExpr *expr)
 {
-    EnterScope();
-
-    for (const auto &[k, v] : expr->memberPairs)
+    for (const auto &[k, v] : expr->members)
     {
         CompileExpr(v);
         EmitConstant(AddConstant(new StrObject(k->literal)));
     }
 
     Emit(OP_STRUCT);
-    Emit((int32_t)expr->memberPairs.size());
-
-    ExitScope();
+    Emit(expr->members.size());
 }
 
 void Compiler::CompileDllImportExpr(DllImportExpr *expr)
@@ -551,24 +517,24 @@ void Compiler::CompileDllImportExpr(DllImportExpr *expr)
     HINSTANCE hInstance;
     hInstance = LoadLibrary(dllpath.c_str());
     if (!hInstance)
-        ASSERT("Failed to load dll library:%s",dllpath.c_str());
+        ASSERT("Failed to load dll library:%s", dllpath.c_str());
 
     RegFn RegisterBuiltins = (RegFn)(GetProcAddress(hInstance, "RegisterBuiltins"));
 
     RegisterBuiltins();
 #elif __linux__
-    void *handle;  
-	double (*cosine)(double);  
-	char *error;  
-  
-	handle = dlopen (dllpath.c_str(), RTLD_LAZY);  
-	if (!handle)   
-        ASSERT("Failed to load dll library:%s",dllpath.c_str());
+    void *handle;
+    double (*cosine)(double);
+    char *error;
+
+    handle = dlopen(dllpath.c_str(), RTLD_LAZY);
+    if (!handle)
+        ASSERT("Failed to load dll library:%s", dllpath.c_str());
 
     RegFn RegisterBuiltins = (RegFn)(dlsym(handle, "RegisterBuiltins"));
     RegisterBuiltins();
 #elif __APPLE__
-
+#error "DllImport Expr not implemented yet on APPLE Platform!"
 #endif
 
     std::vector<std::string> newAddedBuiltinNames;
@@ -610,20 +576,20 @@ OpCodes &Compiler::CurOpCodes()
     return m_Scopes.back();
 }
 
-uint32_t Compiler::Emit(int32_t opcode)
+uint32_t Compiler::Emit(int16_t opcode)
 {
     CurOpCodes().emplace_back(opcode);
-    return (int32_t)CurOpCodes().size() - 1;
+    return CurOpCodes().size() - 1;
 }
 
 uint32_t Compiler::EmitConstant(uint32_t pos)
 {
     Emit(OP_CONSTANT);
     Emit(pos);
-    return (int32_t)CurOpCodes().size() - 1;
+    return CurOpCodes().size() - 1;
 }
 
-void Compiler::ModifyOpCode(uint32_t pos, int32_t opcode)
+void Compiler::ModifyOpCode(uint32_t pos, int16_t opcode)
 {
     CurOpCodes()[pos] = opcode;
 }
@@ -631,7 +597,7 @@ void Compiler::ModifyOpCode(uint32_t pos, int32_t opcode)
 uint32_t Compiler::AddConstant(const Value &value)
 {
     m_Constants.emplace_back(value);
-    return (uint32_t)(m_Constants.size()-1);
+    return m_Constants.size() - 1;
 }
 
 void Compiler::LoadSymbol(const Symbol &symbol)
@@ -661,4 +627,23 @@ void Compiler::LoadSymbol(const Symbol &symbol)
         Emit(OP_FUNCTION_CALL);
         Emit(0);
     }
+}
+
+void Compiler::StoreSymbol(const Symbol& symbol)
+{
+	switch (symbol.scope)
+	{
+	case SymbolScope::GLOBAL:
+		Emit(OP_SET_GLOBAL);
+		Emit(symbol.index);
+		break;
+	case SymbolScope::LOCAL:
+		Emit(OP_SET_LOCAL);
+		Emit(symbol.isInUpScope);
+		Emit(symbol.scopeDepth);
+		Emit(symbol.index);
+		break;
+	default:
+		break;
+	}
 }

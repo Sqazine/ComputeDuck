@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(ComputeDuck LANGUAGES CXX C)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_C_STANDARD 11)
@@ -11,9 +11,9 @@ set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/Bin/Debug)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Bin/Release)
 
-option(BuildLLVMImpl "build llvm impl" OFF)
-option(BuildSDL2 "build SDL2 third party for cdsdl2" ON) 
-option(BuildOpengl "build glad third party for cdopengl" ON)  
+option(ComputeDuck_Build_LLVM_Impl "build llvm impl" ON)
+option(ComputeDuck_Build_SDL2 "build SDL2 third party for cdsdl2" ON) 
+option(ComputeDuck_Build_Opengl "build glad third party for cdopengl" ON)  
 
 file(GLOB EXAMPLES "${CMAKE_SOURCE_DIR}/examples/*.cd")
 
@@ -23,7 +23,6 @@ add_subdirectory(library/cdsdl2)
 add_subdirectory(library/cdopengl)
 
 set(ROOT_SRC Ast.h
-             Config.h
              Chunk.cpp Chunk.h
              Compiler.cpp Compiler.h 
              ConstantFolder.h ConstantFolder.cpp 
@@ -40,7 +39,7 @@ set(ROOT_SRC Ast.h
 
 add_executable(computeduck main.cpp ${EXAMPLES})
 
-if(BuildLLVMImpl)
+if(ComputeDuck_Build_LLVM_Impl)
     include(SetLLVM.cmake)
     
     set(LLVM_DIR "3rd/llvm18/LLVM/llvm" )

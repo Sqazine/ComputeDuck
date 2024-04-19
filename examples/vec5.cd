@@ -1,4 +1,4 @@
-import("Vec4.cd");
+import("vec4.cd");
 
 struct Vec5
 {
