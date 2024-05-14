@@ -1,6 +1,7 @@
-#include "Compiler.h"
+#include "OpCodeCompilerImpl.h"
 #include "Object.h"
 #include "BuiltinManager.h"
+#include <limits>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -9,34 +10,30 @@
 #elif __APPLE__
 #endif
 
-Compiler::Compiler()
+constexpr int16_t INVALID_OPCODE = std::numeric_limits<int16_t>::max();
+
+OpCodeCompilerImpl::OpCodeCompilerImpl()
     : m_SymbolTable(nullptr)
 {
-    ResetStatus();
 }
 
-Compiler::~Compiler()
+OpCodeCompilerImpl::~OpCodeCompilerImpl()
 {
     if (m_SymbolTable)
         SAFE_DELETE(m_SymbolTable);
 }
 
-Chunk *Compiler::Compile(const std::vector<Stmt *> &stmts, bool isLineInterpret)
+Chunk *OpCodeCompilerImpl::Compile(const std::vector<Stmt *> &stmts)
 {
+    ResetStatus();
+
     for (const auto &stmt : stmts)
         CompileStmt(stmt);
-
-    if (!isLineInterpret)
-    {
-        // tag as program exit
-        Emit(OP_RETURN);
-        Emit(0);
-    }
 
     return new Chunk(CurOpCodes(), m_Constants);
 }
 
-void Compiler::ResetStatus()
+void OpCodeCompilerImpl::ResetStatus()
 {
     std::vector<Value>().swap(m_Constants);
     std::vector<OpCodes>().swap(m_Scopes);
@@ -55,7 +52,7 @@ void Compiler::ResetStatus()
     }
 }
 
-void Compiler::CompileStmt(Stmt *stmt)
+void OpCodeCompilerImpl::CompileStmt(Stmt *stmt)
 {
     switch (stmt->type)
     {
@@ -82,21 +79,21 @@ void Compiler::CompileStmt(Stmt *stmt)
     }
 }
 
-void Compiler::CompileExprStmt(ExprStmt *stmt)
+void OpCodeCompilerImpl::CompileExprStmt(ExprStmt *stmt)
 {
     CompileExpr(stmt->expr);
 }
 
-void Compiler::CompileIfStmt(IfStmt *stmt)
+void OpCodeCompilerImpl::CompileIfStmt(IfStmt *stmt)
 {
     CompileExpr(stmt->condition);
     Emit(OP_JUMP_IF_FALSE);
-    auto jumpIfFalseAddress = Emit(65535); // 65535 just a temp address
+    auto jumpIfFalseAddress = Emit(INVALID_OPCODE);
 
     CompileStmt(stmt->thenBranch);
 
     Emit(OP_JUMP);
-    auto jumpAddress = Emit(65535);
+    auto jumpAddress = Emit(INVALID_OPCODE);
 
     ModifyOpCode(jumpIfFalseAddress, (int16_t)CurOpCodes().size() - 1);
 
@@ -106,7 +103,7 @@ void Compiler::CompileIfStmt(IfStmt *stmt)
     ModifyOpCode(jumpAddress, (int16_t)CurOpCodes().size() - 1);
 }
 
-void Compiler::CompileScopeStmt(ScopeStmt *stmt)
+void OpCodeCompilerImpl::CompileScopeStmt(ScopeStmt *stmt)
 {
     EnterScope();
     Emit(OP_SP_OFFSET);
@@ -132,13 +129,13 @@ void Compiler::CompileScopeStmt(ScopeStmt *stmt)
     ExitScope();
 }
 
-void Compiler::CompileWhileStmt(WhileStmt *stmt)
+void OpCodeCompilerImpl::CompileWhileStmt(WhileStmt *stmt)
 {
     auto jumpAddress = (int32_t)CurOpCodes().size() - 1;
     CompileExpr(stmt->condition);
 
     Emit(OP_JUMP_IF_FALSE);
-    auto jumpIfFalseAddress = Emit(65535); // 65535 just a temp address
+    auto jumpIfFalseAddress = Emit(INVALID_OPCODE);
 
     CompileStmt(stmt->body);
 
@@ -148,7 +145,7 @@ void Compiler::CompileWhileStmt(WhileStmt *stmt)
     ModifyOpCode(jumpIfFalseAddress, (int16_t)CurOpCodes().size() - 1);
 }
 
-void Compiler::CompileReturnStmt(ReturnStmt *stmt)
+void OpCodeCompilerImpl::CompileReturnStmt(ReturnStmt *stmt)
 {
     if (stmt->expr)
     {
@@ -163,7 +160,7 @@ void Compiler::CompileReturnStmt(ReturnStmt *stmt)
     }
 }
 
-void Compiler::CompileStructStmt(StructStmt *stmt)
+void OpCodeCompilerImpl::CompileStructStmt(StructStmt *stmt)
 {
     auto symbol = m_SymbolTable->Define(stmt->name, true);
 
@@ -184,7 +181,7 @@ void Compiler::CompileStructStmt(StructStmt *stmt)
     StoreSymbol(symbol);
 }
 
-void Compiler::CompileExpr(Expr *expr, const RWState &state)
+void OpCodeCompilerImpl::CompileExpr(Expr *expr, const RWState &state)
 {
     switch (expr->type)
     {
@@ -241,7 +238,7 @@ void Compiler::CompileExpr(Expr *expr, const RWState &state)
     }
 }
 
-void Compiler::CompileInfixExpr(InfixExpr *expr)
+void OpCodeCompilerImpl::CompileInfixExpr(InfixExpr *expr)
 {
 
     if (expr->op == "=")
@@ -298,12 +295,12 @@ void Compiler::CompileInfixExpr(InfixExpr *expr)
     }
 }
 
-void Compiler::CompileNumExpr(NumExpr *expr)
+void OpCodeCompilerImpl::CompileNumExpr(NumExpr *expr)
 {
     EmitConstant(AddConstant(expr->value));
 }
 
-void Compiler::CompileBoolExpr(BoolExpr *expr)
+void OpCodeCompilerImpl::CompileBoolExpr(BoolExpr *expr)
 {
     if (expr->value)
         EmitConstant(AddConstant(true));
@@ -311,7 +308,7 @@ void Compiler::CompileBoolExpr(BoolExpr *expr)
         EmitConstant(AddConstant(false));
 }
 
-void Compiler::CompilePrefixExpr(PrefixExpr *expr)
+void OpCodeCompilerImpl::CompilePrefixExpr(PrefixExpr *expr)
 {
     CompileExpr(expr->right);
     if (expr->op == "-")
@@ -324,22 +321,22 @@ void Compiler::CompilePrefixExpr(PrefixExpr *expr)
         ASSERT("Unrecognized prefix op");
 }
 
-void Compiler::CompileStrExpr(StrExpr *expr)
+void OpCodeCompilerImpl::CompileStrExpr(StrExpr *expr)
 {
     EmitConstant(AddConstant(new StrObject(expr->value)));
 }
 
-void Compiler::CompileNilExpr(NilExpr *expr)
+void OpCodeCompilerImpl::CompileNilExpr(NilExpr *expr)
 {
     EmitConstant(AddConstant(Value()));
 }
 
-void Compiler::CompileGroupExpr(GroupExpr *expr)
+void OpCodeCompilerImpl::CompileGroupExpr(GroupExpr *expr)
 {
     CompileExpr(expr->expr);
 }
 
-void Compiler::CompileArrayExpr(ArrayExpr *expr)
+void OpCodeCompilerImpl::CompileArrayExpr(ArrayExpr *expr)
 {
     for (const auto &e : expr->elements)
         CompileExpr(e);
@@ -348,14 +345,14 @@ void Compiler::CompileArrayExpr(ArrayExpr *expr)
     Emit(expr->elements.size());
 }
 
-void Compiler::CompileIndexExpr(IndexExpr *expr)
+void OpCodeCompilerImpl::CompileIndexExpr(IndexExpr *expr)
 {
     CompileExpr(expr->ds);
     CompileExpr(expr->index);
     Emit(OP_INDEX);
 }
 
-void Compiler::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state)
+void OpCodeCompilerImpl::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state)
 {
     Symbol symbol;
     bool isFound = m_SymbolTable->Resolve(expr->literal, symbol);
@@ -373,7 +370,7 @@ void Compiler::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state)
     }
 }
 
-void Compiler::CompileFunctionExpr(FunctionExpr *expr)
+void OpCodeCompilerImpl::CompileFunctionExpr(FunctionExpr *expr)
 {
     EnterScope();
 
@@ -404,7 +401,7 @@ void Compiler::CompileFunctionExpr(FunctionExpr *expr)
     EmitConstant(AddConstant(fn));
 }
 
-void Compiler::CompileFunctionCallExpr(FunctionCallExpr *expr)
+void OpCodeCompilerImpl::CompileFunctionCallExpr(FunctionCallExpr *expr)
 {
     CompileExpr(expr->name);
 
@@ -415,7 +412,7 @@ void Compiler::CompileFunctionCallExpr(FunctionCallExpr *expr)
     Emit(expr->arguments.size());
 }
 
-void Compiler::CompileStructCallExpr(StructCallExpr *expr, const RWState &state)
+void OpCodeCompilerImpl::CompileStructCallExpr(StructCallExpr *expr, const RWState &state)
 {
     if (expr->callMember->type == AstType::FUNCTION_CALL && state == RWState::WRITE)
         ASSERT("Cannot assign to a struct's function call expr");
@@ -445,7 +442,7 @@ void Compiler::CompileStructCallExpr(StructCallExpr *expr, const RWState &state)
         Emit(OP_SET_STRUCT);
 }
 
-void Compiler::CompileRefExpr(RefExpr *expr)
+void OpCodeCompilerImpl::CompileRefExpr(RefExpr *expr)
 {
     Symbol symbol;
     if (expr->refExpr->type == AstType::INDEX)
@@ -495,7 +492,7 @@ void Compiler::CompileRefExpr(RefExpr *expr)
     }
 }
 
-void Compiler::CompileStructExpr(StructExpr *expr)
+void OpCodeCompilerImpl::CompileStructExpr(StructExpr *expr)
 {
     for (const auto &[k, v] : expr->members)
     {
@@ -507,10 +504,21 @@ void Compiler::CompileStructExpr(StructExpr *expr)
     Emit(expr->members.size());
 }
 
-void Compiler::CompileDllImportExpr(DllImportExpr *expr)
+void OpCodeCompilerImpl::CompileDllImportExpr(DllImportExpr *expr)
 {
     typedef void (*RegFn)();
     auto dllpath = expr->dllPath;
+
+    if (dllpath.find(".") == std::string::npos) // no file suffix
+    {
+#ifdef _WIN32
+        dllpath = "./lib" + dllpath + ".dll";
+#elif __linux__
+        dllpath = "./lib" + dllpath + ".so";
+#elif __APPLE__
+        dllpath += ".dylib";
+#endif
+    }
 
 #ifdef _WIN32
 
@@ -562,45 +570,45 @@ void Compiler::CompileDllImportExpr(DllImportExpr *expr)
     }
 }
 
-void Compiler::EnterScope()
+void OpCodeCompilerImpl::EnterScope()
 {
     m_SymbolTable = new SymbolTable(m_SymbolTable);
 }
-void Compiler::ExitScope()
+void OpCodeCompilerImpl::ExitScope()
 {
     m_SymbolTable = m_SymbolTable->enclosing;
 }
 
-OpCodes &Compiler::CurOpCodes()
+OpCodes &OpCodeCompilerImpl::CurOpCodes()
 {
     return m_Scopes.back();
 }
 
-uint32_t Compiler::Emit(int16_t opcode)
+uint32_t OpCodeCompilerImpl::Emit(int16_t opcode)
 {
     CurOpCodes().emplace_back(opcode);
     return CurOpCodes().size() - 1;
 }
 
-uint32_t Compiler::EmitConstant(uint32_t pos)
+uint32_t OpCodeCompilerImpl::EmitConstant(uint32_t pos)
 {
     Emit(OP_CONSTANT);
     Emit(pos);
     return CurOpCodes().size() - 1;
 }
 
-void Compiler::ModifyOpCode(uint32_t pos, int16_t opcode)
+void OpCodeCompilerImpl::ModifyOpCode(uint32_t pos, int16_t opcode)
 {
     CurOpCodes()[pos] = opcode;
 }
 
-uint32_t Compiler::AddConstant(const Value &value)
+uint32_t OpCodeCompilerImpl::AddConstant(const Value &value)
 {
     m_Constants.emplace_back(value);
     return m_Constants.size() - 1;
 }
 
-void Compiler::LoadSymbol(const Symbol &symbol)
+void OpCodeCompilerImpl::LoadSymbol(const Symbol &symbol)
 {
     switch (symbol.scope)
     {
@@ -629,7 +637,7 @@ void Compiler::LoadSymbol(const Symbol &symbol)
     }
 }
 
-void Compiler::StoreSymbol(const Symbol &symbol)
+void OpCodeCompilerImpl::StoreSymbol(const Symbol &symbol)
 {
     switch (symbol.scope)
     {

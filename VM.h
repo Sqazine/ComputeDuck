@@ -23,6 +23,13 @@ struct CallFrame
 	{
 	}
 
+	bool IsEnd()
+	{
+		if ((ip - fn->opCodes.data()) < fn->opCodes.size())
+			return false;
+		return true;
+	}
+
 	FunctionObject *fn{nullptr};
 	int16_t *ip{nullptr};
 	Value *slot{nullptr};

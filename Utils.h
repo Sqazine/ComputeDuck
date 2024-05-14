@@ -5,6 +5,7 @@
 #include <string_view>
 #include <string>
 #include <vector>
+#include <cassert>
 #ifdef _WIN32
 #ifdef COMPUTE_DUCK_BUILD_DLL
 #define COMPUTE_DUCK_API __declspec(dllexport)

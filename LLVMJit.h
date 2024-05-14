@@ -27,7 +27,7 @@ public:
 
 	llvm::Error AddModule(llvm::orc::ThreadSafeModule tsm, llvm::orc::ResourceTrackerSP rt = nullptr);
 
-	llvm::Expected<llvm::orc::ExecutorSymbolDef> LookUp(llvm::StringRef name);
+	llvm::Expected<llvm::JITEvaluatedSymbol> LookUp(llvm::StringRef name);
 
 private:
 	std::unique_ptr<llvm::orc::ExecutionSession> m_Es;

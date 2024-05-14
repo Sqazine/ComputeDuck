@@ -10,21 +10,40 @@ set(CMAKE_C_EXTENSIONS OFF)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/Bin/Debug)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Bin/Release)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/Bin/Debug)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Bin/Release)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/Bin/Debug)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Bin/Release)
 
-option(ComputeDuck_Build_LLVM_Impl "build llvm impl" ON)
-option(ComputeDuck_Build_SDL2 "build SDL2 third party for cdsdl2" ON) 
-option(ComputeDuck_Build_Opengl "build glad third party for cdopengl" ON)  
+option(COMPUTEDUCK_BUILD_WITH_LLVM "build llvm impl" ON)
+option(COMPUTEDUCK_BUILD_WITH_SDL2 "build SDL2 third party for cdsdl2" ON) 
+option(COMPUTEDUCK_BUILD_WITH_OPENGL "build glad third party for cdopengl" ON)  
 
 file(GLOB EXAMPLES "${CMAKE_SOURCE_DIR}/examples/*.cd")
 
 source_group("examples" FILES ${EXAMPLES})
 
-add_subdirectory(library/cdsdl2)
-add_subdirectory(library/cdopengl)
+if(MSVC)
+    set(LIB_NAME libdycomputeduck)
+else()
+    set(LIB_NAME dycomputeduck)
+endif()
+
+set(EXE_NAME computeduck)
+
+if(COMPUTEDUCK_BUILD_WITH_SDL2)
+    add_subdirectory(library/cdsdl2)
+endif()
+
+if(COMPUTEDUCK_BUILD_WITH_OPENGL)
+    add_subdirectory(library/cdopengl)
+endif()
+
 
 set(ROOT_SRC Ast.h
              Chunk.cpp Chunk.h
-             Compiler.cpp Compiler.h 
+             Compiler.h 
+             OpCodeCompilerImpl.cpp OpCodeCompilerImpl.h 
              ConstantFolder.h ConstantFolder.cpp 
              Lexer.cpp Lexer.h
              Object.h 
@@ -37,41 +56,42 @@ set(ROOT_SRC Ast.h
              VM.cpp VM.h
              PreProcessor.h)
 
-add_executable(computeduck main.cpp ${EXAMPLES})
+add_executable(${EXE_NAME} main.cpp ${EXAMPLES})
 
-if(ComputeDuck_Build_LLVM_Impl)
+if(COMPUTEDUCK_BUILD_WITH_LLVM)
     include(SetLLVM.cmake)
     
-    set(LLVM_DIR "3rd/llvm18/LLVM/llvm" )
+    set(LLVM_DIR "3rd/llvm14_0_0/llvm" CACHE PATH "")
+    set(LLVM_GENERATE_DIR "${CMAKE_BINARY_DIR}/${LLVM_DIR}")
 
     SetLLVM(${LLVM_DIR} LLVM_LIBS)
 
     message(STATUS "LLVM_LIBS=${LLVM_LIBS}")
+    message(STATUS "LLVM_GENERATE_DIR=${LLVM_GENERATE_DIR}")
 
-    list(APPEND ROOT_SRC LLVMCompiler.cpp LLVMCompiler.h LLVMJit.h LLVMJit.cpp)
+    list(APPEND ROOT_SRC LLVMCompilerImpl.cpp LLVMCompilerImpl.h LLVMJit.h LLVMJit.cpp)
 
     source_group("src" FILES ${ROOT_SRC})
-    add_library(libcomputeduck SHARED ${ROOT_SRC})
+    add_library(${LIB_NAME} SHARED ${ROOT_SRC})
     
-    target_link_libraries(libcomputeduck PRIVATE ${LLVM_LIBS})
-    target_include_directories(libcomputeduck PRIVATE ${LLVM_DIR}/include ${LLVM_BINARY_DIR}/include)
-    target_include_directories(computeduck PRIVATE ${LLVM_DIR}/include ${LLVM_BINARY_DIR}/include)
+    target_link_libraries(${LIB_NAME} PRIVATE ${LLVM_LIBS})
+    target_include_directories(${LIB_NAME} PRIVATE ${LLVM_DIR}/include ${LLVM_GENERATE_DIR}/include)
+    target_include_directories(${EXE_NAME} PRIVATE ${LLVM_DIR}/include ${LLVM_GENERATE_DIR}/include)
     
-    message(STATUS "LLVM_BINARY_DIR=${LLVM_BINARY_DIR}")
-
-    target_compile_definitions(libcomputeduck PUBLIC BUILD_WITH_LLVM)
-    target_compile_definitions(computeduck PUBLIC BUILD_WITH_LLVM)
+    target_compile_definitions(${LIB_NAME} PUBLIC BUILD_WITH_LLVM)
 else()
     source_group("src" FILES ${ROOT_SRC})
-    add_library(libcomputeduck SHARED ${ROOT_SRC})
+    add_library(${LIB_NAME} SHARED ${ROOT_SRC})
 endif()
 
-target_link_libraries(computeduck PRIVATE libcomputeduck)
-target_compile_definitions(libcomputeduck PUBLIC COMPUTE_DUCK_BUILD_DLL)
+target_link_libraries(${EXE_NAME} PRIVATE ${LIB_NAME})
+target_compile_definitions(${LIB_NAME} PUBLIC COMPUTE_DUCK_BUILD_DLL)
 
 if(MSVC)
-    target_compile_options(libcomputeduck PRIVATE "/wd4251;")
-    target_compile_options(computeduck PRIVATE "/wd4251;")
-endif()
+    target_compile_definitions(${LIB_NAME} PUBLIC NOMINMAX)
+    target_compile_definitions(${EXE_NAME} PUBLIC NOMINMAX)
 
-set_property ( DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT computeduck )
+    target_compile_options(${LIB_NAME} PRIVATE "/wd4251;")
+    target_compile_options(${EXE_NAME} PRIVATE "/wd4251;")
+    set_property ( DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${EXE_NAME} )
+endif()

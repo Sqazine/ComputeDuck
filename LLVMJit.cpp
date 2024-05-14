@@ -58,7 +58,7 @@ llvm::Error LLVMJit::AddModule(llvm::orc::ThreadSafeModule tsm, llvm::orc::Resou
 	return m_CompileLayer.add(rt, std::move(tsm));
 }
 
-llvm::Expected<llvm::orc::ExecutorSymbolDef> LLVMJit::LookUp(llvm::StringRef name)
+llvm::Expected<llvm::JITEvaluatedSymbol> LLVMJit::LookUp(llvm::StringRef name)
 {
 	return m_Es->lookup({&m_MainJD}, m_Mangle(name.str()));
 }

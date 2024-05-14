@@ -80,7 +80,7 @@ void VM::Execute()
 		if (IS_BUILTIN_VALUE(right))                                                                   \
 			right = TO_BUILTIN_VALUE(right)->GetBuiltinValue();                                        \
 		if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                                 \
-			Push((uint64_t)TO_NUM_VALUE(left) op(uint64_t) TO_NUM_VALUE(right));                       \
+			Push((uint64_t)TO_NUM_VALUE(left) op (uint64_t) TO_NUM_VALUE(right));                       \
 		else                                                                                           \
 			ASSERT("Invalid op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
 	} while (0);
@@ -100,6 +100,9 @@ void VM::Execute()
 	while (1)
 	{
 		auto frame = PeekCallFrame(1);
+
+		if (frame->IsEnd())
+			return;
 
 		int32_t instruction = *frame->ip++;
 		switch (instruction)
@@ -327,9 +330,11 @@ void VM::Execute()
 				Value returnValue;
 				auto hasRet = builtin->GetBuiltinFn()(slot, argCount, returnValue);
 
-				RegisterToGCRecordChain(returnValue);
 				if (hasRet)
+				{
+					RegisterToGCRecordChain(returnValue);
 					Push(returnValue);
+				}
 			}
 			else
 				ASSERT("Calling not a function or a builtinFn");

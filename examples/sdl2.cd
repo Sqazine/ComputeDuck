@@ -1,6 +1,6 @@
 dllimport("cdsdl2");
 
-ok=SDL_Init();
+ok=SDL_Init(SDL_INIT_VIDEO);
 if(ok<0)
     println("Failed to init sdl2!");
 window=SDL_CreateWindow("sdl2",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,800,600,SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE|SDL_WINDOW_ALLOW_HIGHDPI);
