@@ -1,24 +1,25 @@
-#include "LLVMCompiler.h"
+#include "LLVMCompilerImpl.h"
 #include "BuiltinManager.h"
 
-LLVMCompiler::LLVMCompiler()
+LLVMCompilerImpl::LLVMCompilerImpl()
 	: m_SymbolTable(nullptr)
 {
-	ResetStatus();
 }
 
-LLVMCompiler::~LLVMCompiler()
+LLVMCompilerImpl::~LLVMCompilerImpl()
 {
 	if (m_SymbolTable)
 		SAFE_DELETE(m_SymbolTable);
 }
 
-llvm::Function *LLVMCompiler::Compile(const std::vector<Stmt *> &stmts)
+llvm::Function *LLVMCompilerImpl::Compile(const std::vector<Stmt *> &stmts)
 {
+	ResetStatus();
+
 	for (const auto &stmt : stmts)
 		CompileStmt(stmt);
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 	m_Module->print(llvm::outs(), nullptr);
 #endif
 
@@ -34,24 +35,24 @@ llvm::Function *LLVMCompiler::Compile(const std::vector<Stmt *> &stmts)
 	return fn;
 }
 
-void LLVMCompiler::Run(llvm::Function *fn)
+void LLVMCompilerImpl::Run(llvm::Function *fn)
 {
 	auto rt = m_Jit->GetMainJITDylib().createResourceTracker();
 
 	auto tsm = llvm::orc::ThreadSafeModule(std::move(m_Module), std::move(m_Context));
 
-	m_Jit->AddModule(std::move(tsm), rt);
-
-	InitModuleAndPassManager();
+	m_ExitOnErr(m_Jit->AddModule(std::move(tsm), rt));
 
 	auto symbol = m_ExitOnErr(m_Jit->LookUp("main"));
 
-	void (*fp)() = symbol.getAddress().toPtr<void (*)()>();
+	using JitFuncType = void (*)();
+
+	JitFuncType fp = reinterpret_cast<JitFuncType>(symbol.getAddress());
 	fp();
-	rt->remove();
+	m_ExitOnErr(rt->remove());
 }
 
-void LLVMCompiler::ResetStatus()
+void LLVMCompilerImpl::ResetStatus()
 {
 	llvm::InitializeNativeTarget();
 	llvm::InitializeNativeTargetAsmPrinter();
@@ -66,7 +67,7 @@ void LLVMCompiler::ResetStatus()
 	InitModuleAndPassManager();
 }
 
-void LLVMCompiler::CompileStmt(Stmt *stmt)
+void LLVMCompilerImpl::CompileStmt(Stmt *stmt)
 {
 	switch (stmt->type)
 	{
@@ -93,16 +94,16 @@ void LLVMCompiler::CompileStmt(Stmt *stmt)
 	}
 }
 
-void LLVMCompiler::CompileExprStmt(ExprStmt *stmt)
+void LLVMCompilerImpl::CompileExprStmt(ExprStmt *stmt)
 {
 	CompileExpr(stmt->expr);
 	Pop();
 }
 
-void LLVMCompiler::CompileIfStmt(IfStmt *stmt)
+void LLVMCompilerImpl::CompileIfStmt(IfStmt *stmt)
 {
 }
-void LLVMCompiler::CompileScopeStmt(ScopeStmt *stmt)
+void LLVMCompilerImpl::CompileScopeStmt(ScopeStmt *stmt)
 {
 	EnterScope();
 
@@ -115,10 +116,10 @@ void LLVMCompiler::CompileScopeStmt(ScopeStmt *stmt)
 
 	ExitScope();
 }
-void LLVMCompiler::CompileWhileStmt(WhileStmt *stmt)
+void LLVMCompilerImpl::CompileWhileStmt(WhileStmt *stmt)
 {
 }
-void LLVMCompiler::CompileReturnStmt(ReturnStmt *stmt)
+void LLVMCompilerImpl::CompileReturnStmt(ReturnStmt *stmt)
 {
 	auto function = m_Builder->GetInsertBlock()->getParent();
 	if (!stmt->expr)
@@ -126,11 +127,11 @@ void LLVMCompiler::CompileReturnStmt(ReturnStmt *stmt)
 	CompileExpr(stmt->expr);
 	m_Builder->CreateRet(Pop());
 }
-void LLVMCompiler::CompileStructStmt(StructStmt *stmt)
+void LLVMCompilerImpl::CompileStructStmt(StructStmt *stmt)
 {
 }
 
-void LLVMCompiler::CompileExpr(Expr *expr, const RWState &state)
+void LLVMCompilerImpl::CompileExpr(Expr *expr, const RWState &state)
 {
 	switch (expr->type)
 	{
@@ -176,7 +177,7 @@ void LLVMCompiler::CompileExpr(Expr *expr, const RWState &state)
 	case AstType::FUNCTION:
 		CompileFunctionExpr((FunctionExpr *)expr);
 		break;
-	case AstType::ANONY_STRUCT:
+	case AstType::STRUCT:
 		CompileStructExpr((StructExpr *)expr);
 		break;
 	case AstType::DLL_IMPORT:
@@ -186,7 +187,7 @@ void LLVMCompiler::CompileExpr(Expr *expr, const RWState &state)
 		break;
 	}
 }
-void LLVMCompiler::CompileInfixExpr(InfixExpr *expr)
+void LLVMCompilerImpl::CompileInfixExpr(InfixExpr *expr)
 {
 	if (expr->op == "=")
 	{
@@ -211,10 +212,7 @@ void LLVMCompiler::CompileInfixExpr(InfixExpr *expr)
 
 			auto fn = m_LlvmBuiltins["ValueAdd"];
 
-			auto callInst = m_Builder->CreateCall(fn, {lValue, rValue, resultAddr});
-			callInst->addParamAttr(0, llvm::Attribute::NoUndef);
-			callInst->addParamAttr(1, llvm::Attribute::NoUndef);
-			callInst->addParamAttr(2, llvm::Attribute::NoUndef);
+			auto callInst = AddValueFnParamAttributes(m_Builder->CreateCall(fn, {lValue, rValue, resultAddr}));
 
 			Push(resultAddr);
 		}
@@ -253,10 +251,7 @@ void LLVMCompiler::CompileInfixExpr(InfixExpr *expr)
 
 			auto fn = m_LlvmBuiltins["ValueDiv"];
 
-			auto callInst = m_Builder->CreateCall(fn, {lValue, rValue, resultAddr});
-			callInst->addParamAttr(0, llvm::Attribute::NoUndef);
-			callInst->addParamAttr(1, llvm::Attribute::NoUndef);
-			callInst->addParamAttr(2, llvm::Attribute::NoUndef);
+			auto callInst = AddValueFnParamAttributes(m_Builder->CreateCall(fn, {lValue, rValue, resultAddr}));
 
 			Push(resultAddr);
 		}
@@ -284,7 +279,7 @@ void LLVMCompiler::CompileInfixExpr(InfixExpr *expr)
 			Push(m_Builder->CreateLogicalOr(lValue, rValue));
 	}
 }
-void LLVMCompiler::CompileNumExpr(NumExpr *expr)
+void LLVMCompilerImpl::CompileNumExpr(NumExpr *expr)
 {
 	auto vT = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::NUM));
 	auto d = llvm::ConstantFP::get(*m_Context, llvm::APFloat(expr->value));
@@ -293,12 +288,13 @@ void LLVMCompiler::CompileNumExpr(NumExpr *expr)
 
 	llvm::Value *memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, {m_Builder->getInt32(0), m_Builder->getInt32(0)});
 	m_Builder->CreateStore(vT, memberAddr);
-	llvm::Value *memberAddr1 = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, {m_Builder->getInt32(0), m_Builder->getInt32(1)});
+	llvm::Value* memberAddr1 = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
+	memberAddr1 = m_Builder->CreateBitCast(memberAddr1, m_DoublePtrType);
 	m_Builder->CreateStore(d, memberAddr1);
 
 	Push(memberAddr);
 }
-void LLVMCompiler::CompileBoolExpr(BoolExpr *expr)
+void LLVMCompilerImpl::CompileBoolExpr(BoolExpr *expr)
 {
 	auto vT = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::BOOL));
 	auto d = llvm::ConstantFP::get(*m_Context, llvm::APFloat(expr->value ? 1.0 : 0.0));
@@ -312,7 +308,7 @@ void LLVMCompiler::CompileBoolExpr(BoolExpr *expr)
 
 	Push(memberAddr);
 }
-void LLVMCompiler::CompilePrefixExpr(PrefixExpr *expr)
+void LLVMCompilerImpl::CompilePrefixExpr(PrefixExpr *expr)
 {
 	CompileExpr(expr->right);
 	auto rValue = Pop();
@@ -328,7 +324,7 @@ void LLVMCompiler::CompilePrefixExpr(PrefixExpr *expr)
 	else
 		ASSERT("Unrecognized prefix op");
 }
-void LLVMCompiler::CompileStrExpr(StrExpr *expr)
+void LLVMCompilerImpl::CompileStrExpr(StrExpr *expr)
 {
 	auto str = m_Builder->CreateGlobalString(expr->value);
 
@@ -350,7 +346,7 @@ void LLVMCompiler::CompileStrExpr(StrExpr *expr)
 
 	Push(memberAddr);
 }
-void LLVMCompiler::CompileNilExpr(NilExpr *expr)
+void LLVMCompilerImpl::CompileNilExpr(NilExpr *expr)
 {
 	auto vT = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::NIL));
 	auto d = llvm::ConstantFP::get(*m_Context, llvm::APFloat(0.0));
@@ -364,17 +360,17 @@ void LLVMCompiler::CompileNilExpr(NilExpr *expr)
 
 	Push(memberAddr);
 }
-void LLVMCompiler::CompileGroupExpr(GroupExpr *expr)
+void LLVMCompilerImpl::CompileGroupExpr(GroupExpr *expr)
 {
 	CompileExpr(expr->expr);
 }
-void LLVMCompiler::CompileArrayExpr(ArrayExpr *expr)
+void LLVMCompilerImpl::CompileArrayExpr(ArrayExpr *expr)
 {
 }
-void LLVMCompiler::CompileIndexExpr(IndexExpr *expr)
+void LLVMCompilerImpl::CompileIndexExpr(IndexExpr *expr)
 {
 }
-void LLVMCompiler::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state)
+void LLVMCompilerImpl::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state)
 {
 	Symbol symbol;
 	bool isFound = m_SymbolTable->Resolve(expr->literal, symbol);
@@ -460,7 +456,7 @@ void LLVMCompiler::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &st
 		}
 	}
 }
-void LLVMCompiler::CompileFunctionExpr(FunctionExpr *expr)
+void LLVMCompilerImpl::CompileFunctionExpr(FunctionExpr *expr)
 {
 	auto beforeblock = m_Builder->GetInsertBlock();
 
@@ -488,12 +484,12 @@ void LLVMCompiler::CompileFunctionExpr(FunctionExpr *expr)
 
 	Push(fn);
 }
-void LLVMCompiler::CompileFunctionCallExpr(FunctionCallExpr *expr)
+void LLVMCompilerImpl::CompileFunctionCallExpr(FunctionCallExpr *expr)
 {
 	CompileExpr(expr->name);
 	auto fn = static_cast<llvm::Function *>(Pop());
 	if (!fn)
-		ASSERT("Unknown function:%s", expr->name->Stringify());
+		ASSERT("Unknown function:%s", expr->name->Stringify().c_str());
 
 	// if (fn->arg_size() != expr->arguments.size())
 	//	ASSERT("InCompatible arg size:%d,%d", fn->arg_size(), expr->arguments.size());
@@ -530,82 +526,75 @@ void LLVMCompiler::CompileFunctionCallExpr(FunctionCallExpr *expr)
 		llvm::Value *arg1 = m_Builder->getInt8(argsV.size());
 
 		auto result = m_Builder->CreateAlloca(m_ValueType, nullptr);
-		auto resultAddr = m_Builder->CreateInBoundsGEP(m_ValueType, result, {m_Builder->getInt32(0), m_Builder->getInt32(0)});
 
-		fn->addParamAttr(0, llvm::Attribute::NoUndef);
-		fn->addParamAttr(2, llvm::Attribute::NoUndef);
+		auto callInst = AddBuiltinFnOrCallParamAttributes( m_Builder->CreateCall(fn, { arg0MemberAddr, arg1, result}));
 
-		auto callInst = m_Builder->CreateCall(fn, {arg0MemberAddr, arg1, resultAddr});
-		callInst->addParamAttr(0, llvm::Attribute::NoUndef);
-		callInst->addParamAttr(2, llvm::Attribute::NoUndef);
-
-		Push(resultAddr);
+		Push(callInst);
 	}
 }
-void LLVMCompiler::CompileStructCallExpr(StructCallExpr *expr, const RWState &state)
+void LLVMCompilerImpl::CompileStructCallExpr(StructCallExpr *expr, const RWState &state)
 {
 }
-void LLVMCompiler::CompileRefExpr(RefExpr *expr)
+void LLVMCompilerImpl::CompileRefExpr(RefExpr *expr)
 {
 }
-void LLVMCompiler::CompileStructExpr(StructExpr *expr)
+void LLVMCompilerImpl::CompileStructExpr(StructExpr *expr)
 {
 }
-void LLVMCompiler::CompileDllImportExpr(DllImportExpr *expr)
+void LLVMCompilerImpl::CompileDllImportExpr(DllImportExpr *expr)
 {
 }
 
-void LLVMCompiler::Push(llvm::Value *v)
+void LLVMCompilerImpl::Push(llvm::Value *v)
 {
 	m_ValueStack.push_back(v);
 }
 
-llvm::Value *LLVMCompiler::Peek(int32_t distance)
+llvm::Value *LLVMCompilerImpl::Peek(int32_t distance)
 {
 	return m_ValueStack[m_ValueStack.size() - 1 - distance];
 }
 
-llvm::Value *LLVMCompiler::Pop()
+llvm::Value *LLVMCompilerImpl::Pop()
 {
 	auto v = Peek(0);
 	m_ValueStack.pop_back();
 	return v;
 }
 
-llvm::Function *LLVMCompiler::GetCurFunction()
+llvm::Function *LLVMCompilerImpl::GetCurFunction()
 {
 	return PeekFunction(0);
 }
 
-void LLVMCompiler::PushFunction(llvm::Function *fn)
+void LLVMCompilerImpl::PushFunction(llvm::Function *fn)
 {
 	m_FunctionStack.push_back(fn);
 }
 
-llvm::Function *LLVMCompiler::PeekFunction(int32_t distance)
+llvm::Function *LLVMCompilerImpl::PeekFunction(int32_t distance)
 {
 	return m_FunctionStack[m_FunctionStack.size() - 1 - distance];
 }
 
-llvm::Function *LLVMCompiler::PopFunction()
+llvm::Function *LLVMCompilerImpl::PopFunction()
 {
 	auto f = PeekFunction(0);
 	m_FunctionStack.pop_back();
 	return f;
 }
 
-void LLVMCompiler::EnterScope()
+void LLVMCompilerImpl::EnterScope()
 {
 	m_SymbolTable = new SymbolTable(m_SymbolTable);
 }
-void LLVMCompiler::ExitScope()
+void LLVMCompilerImpl::ExitScope()
 {
 	m_SymbolTable = m_SymbolTable->enclosing;
 }
 
-void LLVMCompiler::InitModuleAndPassManager()
+void LLVMCompilerImpl::InitModuleAndPassManager()
 {
-
 	m_Context = std::make_unique<llvm::LLVMContext>();
 
 	m_Module = std::make_unique<llvm::Module>(BuiltinManager::GetInstance()->GetExecuteFilePath(), *m_Context);
@@ -633,6 +622,7 @@ void LLVMCompiler::InitModuleAndPassManager()
 		m_Int32PtrType = llvm::PointerType::get(m_Int32Type, 0);
 		m_Int8PtrType = llvm::PointerType::get(m_Int8Type, 0);
 		m_BoolPtrType = llvm::PointerType::get(m_BoolType, 0);
+		m_DoublePtrType = llvm::PointerType::get(m_DoubleType, 0);
 
 		m_ObjectType = llvm::StructType::create(*m_Context, {m_Int8Type, m_Int8PtrType, m_Int8Type}, "struct.Object");
 		m_ObjectPtrType = llvm::PointerType::get(m_ObjectType, 0);
@@ -645,54 +635,22 @@ void LLVMCompiler::InitModuleAndPassManager()
 		m_ValueType = llvm::StructType::create(*m_Context, {m_Int8Type, mUnionType}, "struct.Value");
 		m_ValuePtrType = llvm::PointerType::get(m_ValueType, 0);
 
-		m_BuiltinFunctionType = llvm::FunctionType::get(m_VoidType, {m_ValuePtrType, m_Int8Type, m_ValuePtrType}, false);
+		m_BuiltinFunctionType = llvm::FunctionType::get(m_BoolType, {m_ValuePtrType, m_Int8Type, m_ValuePtrType}, false);
 
-		m_ValueFunctionType = llvm::FunctionType::get(m_BoolType, {m_ValuePtrType, m_ValuePtrType, m_ValuePtrType}, false);
+		m_ValueFunctionType = llvm::FunctionType::get(m_VoidType, {m_ValuePtrType, m_ValuePtrType, m_ValuePtrType}, false);
 	}
 
-	auto valueAddFn = llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "ValueAdd", m_Module.get());
-	valueAddFn->addParamAttr(0, llvm::Attribute::NoUndef);
-	valueAddFn->addParamAttr(1, llvm::Attribute::NoUndef);
-	valueAddFn->addParamAttr(2, llvm::Attribute::NoUndef);
+	auto valueAddFn = AddValueFnParamAttributes(llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "ValueAdd", m_Module.get()));
+	auto valueSubFn = AddValueFnParamAttributes(llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "ValueSub", m_Module.get()));
+	auto valueMulFn = AddValueFnParamAttributes(llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "ValueMul", m_Module.get()));
+	auto valueDivFn = AddValueFnParamAttributes(llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "ValueDiv", m_Module.get()));
 
-	auto valueSubFn = llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "ValueSub", m_Module.get());
-	valueSubFn->addParamAttr(0, llvm::Attribute::NoUndef);
-	valueSubFn->addParamAttr(1, llvm::Attribute::NoUndef);
-	valueSubFn->addParamAttr(2, llvm::Attribute::NoUndef);
-
-	auto valueMulFn = llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "ValueMul", m_Module.get());
-	valueMulFn->addParamAttr(0, llvm::Attribute::NoUndef);
-	valueMulFn->addParamAttr(1, llvm::Attribute::NoUndef);
-	valueMulFn->addParamAttr(2, llvm::Attribute::NoUndef);
-
-	auto valueDivFn = llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "ValueDiv", m_Module.get());
-	valueDivFn->addParamAttr(0, llvm::Attribute::NoUndef);
-	valueDivFn->addParamAttr(1, llvm::Attribute::NoUndef);
-	valueDivFn->addParamAttr(2, llvm::Attribute::NoUndef);
-
-	auto printFn = llvm::Function::Create(m_BuiltinFunctionType, llvm::Function::ExternalLinkage, "Print", m_Module.get());
-	printFn->addParamAttr(0, llvm::Attribute::NoUndef);
-	printFn->addParamAttr(2, llvm::Attribute::NoUndef);
-
-	auto printlnFn = llvm::Function::Create(m_BuiltinFunctionType, llvm::Function::ExternalLinkage, "Println", m_Module.get());
-	printlnFn->addParamAttr(0, llvm::Attribute::NoUndef);
-	printlnFn->addParamAttr(2, llvm::Attribute::NoUndef);
-
-	auto sizeofFn = llvm::Function::Create(m_BuiltinFunctionType, llvm::Function::ExternalLinkage, "Sizeof", m_Module.get());
-	sizeofFn->addParamAttr(0, llvm::Attribute::NoUndef);
-	sizeofFn->addParamAttr(2, llvm::Attribute::NoUndef);
-
-	auto insertFn = llvm::Function::Create(m_BuiltinFunctionType, llvm::Function::ExternalLinkage, "Insert", m_Module.get());
-	insertFn->addParamAttr(0, llvm::Attribute::NoUndef);
-	insertFn->addParamAttr(2, llvm::Attribute::NoUndef);
-
-	auto eraseFn = llvm::Function::Create(m_BuiltinFunctionType, llvm::Function::ExternalLinkage, "Erase", m_Module.get());
-	eraseFn->addParamAttr(0, llvm::Attribute::NoUndef);
-	eraseFn->addParamAttr(2, llvm::Attribute::NoUndef);
-
-	auto clockFn = llvm::Function::Create(m_BuiltinFunctionType, llvm::Function::ExternalLinkage, "Clock", m_Module.get());
-	clockFn->addParamAttr(0, llvm::Attribute::NoUndef);
-	clockFn->addParamAttr(2, llvm::Attribute::NoUndef);
+	auto printFn = AddBuiltinFnOrCallParamAttributes(llvm::Function::Create(m_BuiltinFunctionType, llvm::Function::ExternalLinkage, "Print", m_Module.get()));
+	auto printlnFn = AddBuiltinFnOrCallParamAttributes(llvm::Function::Create(m_BuiltinFunctionType, llvm::Function::ExternalLinkage, "Println", m_Module.get()));
+	auto sizeofFn = AddBuiltinFnOrCallParamAttributes(llvm::Function::Create(m_BuiltinFunctionType, llvm::Function::ExternalLinkage, "Sizeof", m_Module.get()));
+	auto insertFn = AddBuiltinFnOrCallParamAttributes(llvm::Function::Create(m_BuiltinFunctionType, llvm::Function::ExternalLinkage, "Insert", m_Module.get()));
+	auto eraseFn = AddBuiltinFnOrCallParamAttributes(llvm::Function::Create(m_BuiltinFunctionType, llvm::Function::ExternalLinkage, "Erase", m_Module.get()));
+	auto clockFn = AddBuiltinFnOrCallParamAttributes(llvm::Function::Create(m_BuiltinFunctionType, llvm::Function::ExternalLinkage, "Clock", m_Module.get()));
 
 	RegisterLlvmFn("ValueAdd", valueAddFn);
 	RegisterLlvmFn("ValueSub", valueSubFn);
@@ -724,7 +682,7 @@ void LLVMCompiler::InitModuleAndPassManager()
 	PushFunction(fn);
 }
 
-void LLVMCompiler::RegisterLlvmFn(std::string_view name, llvm::Function *fn)
+void LLVMCompilerImpl::RegisterLlvmFn(std::string_view name, llvm::Function *fn)
 {
 	m_LlvmBuiltins[name.data()] = fn;
 }

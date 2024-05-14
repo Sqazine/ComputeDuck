@@ -6,7 +6,7 @@
 #include <cassert>
 void RegisterBuiltins()
 {
-#define REGISTER_VALUE(x) BuiltinManager::GetInstance()->Register(#x, Value(x))
+#define REGISTER_VALUE(x) BuiltinManager::GetInstance()->Register(#x, Value((uint64_t)x))
 
 	REGISTER_VALUE(GL_ARRAY_BUFFER);
 	REGISTER_VALUE(GL_STATIC_DRAW);

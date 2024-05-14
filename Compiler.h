@@ -1,69 +1,69 @@
 #pragma once
-#include <vector>
-#include "Chunk.h"
-#include "Ast.h"
-#include "Value.h"
-#include "SymbolTable.h"
+#include "OpCodeCompilerImpl.h"
+#ifdef BUILD_WITH_LLVM
+#include "LLVMCompilerImpl.h"
+#endif
 
-class COMPUTE_DUCK_API Compiler
+enum class CompileFlag
 {
+	OPCODE,
+	LLVM,
+};
 
+class Compiler
+{
 public:
-    Compiler();
-    ~Compiler();
+	Compiler(CompileFlag flag)
+		:m_CompileFlag(flag)
+	{
+		m_OpcodeCompilerImpl = new OpCodeCompilerImpl();
+#ifdef BUILD_WITH_LLVM
+		m_LLVMCompilerImpl = new LLVMCompilerImpl();
+#else
+#error "Cannot run with llvm,not build yet.";
+#endif
+	}
+	~Compiler()
+	{
+		SAFE_DELETE(m_OpcodeCompilerImpl);
+#ifdef BUILD_WITH_LLVM
+		SAFE_DELETE(m_LLVMCompilerImpl);
+#else
+#error "Cannot run with llvm,not build yet.";
+#endif
+	}
 
-    Chunk *Compile(const std::vector<Stmt *> &stmts, bool isLineInterpret = false);
-
-    void ResetStatus();
+	Chunk* Compile(const std::vector<Stmt*>& stmts)
+	{
+		switch (m_CompileFlag)
+		{
+		case CompileFlag::OPCODE:
+			return m_OpcodeCompilerImpl->Compile(stmts);
+			break;
+		case CompileFlag::LLVM:
+		{
+#ifdef BUILD_WITH_LLVM
+			auto fn = m_LLVMCompilerImpl->Compile(stmts);
+			m_LLVMCompilerImpl->Run(fn);
+#else
+#error "Cannot run with llvm,not build yet.";
+#endif
+			break;
+		}
+		default:
+			break;
+		}
+		return nullptr;
+	}
 
 private:
-    void CompileStmt(Stmt *stmt);
-    void CompileExprStmt(ExprStmt *stmt);
-    void CompileIfStmt(IfStmt *stmt);
-    void CompileScopeStmt(ScopeStmt *stmt);
-    void CompileWhileStmt(WhileStmt *stmt);
-    void CompileReturnStmt(ReturnStmt *stmt);
-    void CompileStructStmt(StructStmt *stmt);
 
-    void CompileExpr(Expr *expr, const RWState &state = RWState::READ);
-    void CompileInfixExpr(InfixExpr *expr);
-    void CompileNumExpr(NumExpr *expr);
-    void CompileBoolExpr(BoolExpr *expr);
-    void CompilePrefixExpr(PrefixExpr *expr);
-    void CompileStrExpr(StrExpr *expr);
-    void CompileNilExpr(NilExpr *expr);
-    void CompileGroupExpr(GroupExpr *expr);
-    void CompileArrayExpr(ArrayExpr *expr);
-    void CompileIndexExpr(IndexExpr *expr);
-    void CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state);
-    void CompileFunctionExpr(FunctionExpr *expr);
-    void CompileFunctionCallExpr(FunctionCallExpr *expr);
-    void CompileStructCallExpr(StructCallExpr *expr, const RWState &state = RWState::READ);
-    void CompileRefExpr(RefExpr *expr);
-    void CompileStructExpr(StructExpr *expr);
-    void CompileDllImportExpr(DllImportExpr *expr);
+	CompileFlag m_CompileFlag;
 
-    void EnterScope();
-    void ExitScope();
-
-    OpCodes &CurOpCodes();
-
-    uint32_t Emit(int16_t opcode);
-    uint32_t EmitConstant(uint32_t pos);
-
-    void ModifyOpCode(uint32_t pos, int16_t opcode);
-
-    uint32_t AddConstant(const Value &value);
-
-    void LoadSymbol(const Symbol &symbol);
-    void StoreSymbol(const Symbol &symbol);
-
-    std::vector<Value> m_Constants;
-
-    std::vector<OpCodes> m_Scopes;
-
-    SymbolTable *m_SymbolTable;
-
-    // record builtin object names,for finding new added symbol names
-    std::vector<std::string> m_BuiltinNames;
+	OpCodeCompilerImpl* m_OpcodeCompilerImpl;
+#ifdef BUILD_WITH_LLVM
+	LLVMCompilerImpl* m_LLVMCompilerImpl;
+#else
+#error "Cannot run with llvm,not build yet.";
+#endif
 };

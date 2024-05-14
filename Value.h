@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <type_traits>
+#include <cfloat>
 #include "Utils.h"
 
 #define IS_NIL_VALUE(v) ((v).type == ValueType::NIL)
@@ -16,7 +17,7 @@
 #define IS_BUILTIN_VALUE(v) (IS_OBJECT_VALUE(v) && IS_BUILTIN_OBJ((v).object))
 
 #define TO_NUM_VALUE(v) ((v).stored)
-#define TO_BOOL_VALUE(v) ((v).stored)
+#define TO_BOOL_VALUE(v) (((v).stored >= DBL_EPSILON)? true : false)
 #define TO_OBJECT_VALUE(v) ((v).object)
 #define TO_STR_VALUE(v) (TO_STR_OBJ((v).object))
 #define TO_ARRAY_VALUE(v) (TO_ARRAY_OBJ((v).object))

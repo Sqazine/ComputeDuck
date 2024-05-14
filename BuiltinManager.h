@@ -29,8 +29,8 @@ private:
     std::string m_CurExecuteFilePath;
 
     friend class VM;
-    friend class Compiler;
-    friend class LLVMCompiler;
+    friend class OpCodeCompilerImpl;
+    friend class LLVMCompilerImpl;
 
     std::vector<BuiltinObject *> m_Builtins;
     std::vector<std::string> m_BuiltinNames;

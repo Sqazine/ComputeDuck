@@ -5,7 +5,16 @@
 #include "Value.h"
 void RegisterBuiltins()
 {
-#define REGISTER_VALUE(x) BuiltinManager::GetInstance()->Register(#x, Value(x))
+#define REGISTER_VALUE(x) BuiltinManager::GetInstance()->Register(#x, Value((uint64_t)x))
+
+	REGISTER_VALUE(SDL_INIT_AUDIO);
+	REGISTER_VALUE(SDL_INIT_VIDEO);
+	REGISTER_VALUE(SDL_INIT_JOYSTICK);
+	REGISTER_VALUE(SDL_INIT_HAPTIC);
+	REGISTER_VALUE(SDL_INIT_GAMECONTROLLER);
+	REGISTER_VALUE(SDL_INIT_EVENTS);
+	REGISTER_VALUE(SDL_INIT_NOPARACHUTE);
+	REGISTER_VALUE(SDL_INIT_EVERYTHING);
 
 	REGISTER_VALUE(SDL_QUIT);
 
@@ -65,7 +74,7 @@ void RegisterBuiltins()
 
 	BuiltinManager::GetInstance()->Register<BuiltinFn>("SDL_Init", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													   {
-															auto ret = SDL_Init(SDL_INIT_EVERYTHING);
+															auto ret = SDL_Init(TO_NUM_VALUE(args[0]));
 															result = Value(ret);
 															return true; });
 
