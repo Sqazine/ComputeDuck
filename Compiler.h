@@ -1,4 +1,5 @@
 #pragma once
+#include "Utils.h"
 #include "OpCodeCompilerImpl.h"
 #ifdef BUILD_WITH_LLVM
 #include "LLVMCompilerImpl.h"
@@ -10,7 +11,7 @@ enum class CompileFlag
 	LLVM,
 };
 
-class Compiler
+class COMPUTE_DUCK_API Compiler
 {
 public:
 	Compiler(CompileFlag flag)

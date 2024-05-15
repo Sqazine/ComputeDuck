@@ -50,7 +50,7 @@ set(ROOT_SRC Ast.h
              Parser.cpp Parser.h
              Token.h
              SymbolTable.h
-             Utils.h
+             Utils.h Utils.cpp
              Value.cpp Value.h
              BuiltinManager.cpp BuiltinManager.h
              VM.cpp VM.h

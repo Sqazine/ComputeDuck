@@ -3,13 +3,6 @@
 #include "BuiltinManager.h"
 #include <limits>
 
-#ifdef _WIN32
-#include <Windows.h>
-#elif __linux__
-#include <dlfcn.h>
-#elif __APPLE__
-#endif
-
 constexpr int16_t INVALID_OPCODE = std::numeric_limits<int16_t>::max();
 
 OpCodeCompilerImpl::OpCodeCompilerImpl()
@@ -506,44 +499,9 @@ void OpCodeCompilerImpl::CompileStructExpr(StructExpr *expr)
 
 void OpCodeCompilerImpl::CompileDllImportExpr(DllImportExpr *expr)
 {
-    typedef void (*RegFn)();
     auto dllpath = expr->dllPath;
 
-    if (dllpath.find(".") == std::string::npos) // no file suffix
-    {
-#ifdef _WIN32
-        dllpath = "./lib" + dllpath + ".dll";
-#elif __linux__
-        dllpath = "./lib" + dllpath + ".so";
-#elif __APPLE__
-        dllpath += ".dylib";
-#endif
-    }
-
-#ifdef _WIN32
-
-    HINSTANCE hInstance;
-    hInstance = LoadLibrary(dllpath.c_str());
-    if (!hInstance)
-        ASSERT("Failed to load dll library:%s", dllpath.c_str());
-
-    RegFn RegisterBuiltins = (RegFn)(GetProcAddress(hInstance, "RegisterBuiltins"));
-
-    RegisterBuiltins();
-#elif __linux__
-    void *handle;
-    double (*cosine)(double);
-    char *error;
-
-    handle = dlopen(dllpath.c_str(), RTLD_LAZY);
-    if (!handle)
-        ASSERT("Failed to load dll library:%s", dllpath.c_str());
-
-    RegFn RegisterBuiltins = (RegFn)(dlsym(handle, "RegisterBuiltins"));
-    RegisterBuiltins();
-#elif __APPLE__
-#error "DllImport Expr not implemented yet on APPLE Platform!"
-#endif
+    RegisterBuiltinFunctions(dllpath);
 
     std::vector<std::string> newAddedBuiltinNames;
 
