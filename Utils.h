@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <cassert>
+
 #ifdef _WIN32
 #ifdef COMPUTE_DUCK_BUILD_DLL
 #define COMPUTE_DUCK_API __declspec(dllexport)
@@ -22,11 +23,14 @@ enum class RWState
     WRITE,
 };
 
-#define SAFE_DELETE(x) \
-    do                 \
-    {                  \
-        delete x;      \
-        x = nullptr;   \
+#define SAFE_DELETE(x)   \
+    do                   \
+    {                    \
+        if (x)           \
+        {                \
+            delete x;    \
+            x = nullptr; \
+        }                \
     } while (false);
 
 #define ASSERT(...)                                                                 \
@@ -37,25 +41,8 @@ enum class RWState
         abort();                                                                    \
     } while (false);
 
-inline std::string ReadFile(std::string_view path)
-{
-    std::fstream file;
-    file.open(path.data(), std::ios::in | std::ios::binary);
-    if (!file.is_open())
-        ASSERT("Failed to open file:%s", path.data());
+COMPUTE_DUCK_API std::string ReadFile(std::string_view path);
 
-    std::stringstream sstream;
-    sstream << file.rdbuf();
+COMPUTE_DUCK_API std::string PointerAddressToString(void *pointer);
 
-    file.close();
-
-    return sstream.str();
-}
-
-inline std::string PointerAddressToString(void *pointer)
-{
-    std::stringstream sstr;
-    sstr << pointer;
-    std::string address = sstr.str();
-    return address;
-}
+COMPUTE_DUCK_API void RegisterBuiltinFunctions(std::string rawDllPath);

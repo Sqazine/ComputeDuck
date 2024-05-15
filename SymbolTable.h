@@ -33,7 +33,7 @@ struct Symbol
     {
     }
 
-    llvm::Value* allocationGEP;
+    llvm::Value* allocationGEP{nullptr};
 #else
 #error "Cannot run with llvm,not build yet.";
 #endif
