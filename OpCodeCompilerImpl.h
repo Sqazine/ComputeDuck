@@ -48,11 +48,9 @@ private:
     OpCodes &CurOpCodes();
 
     uint32_t Emit(int16_t opcode);
-    uint32_t EmitConstant(uint32_t pos);
+    uint32_t EmitConstant(const Value& value);
 
     void ModifyOpCode(uint32_t pos, int16_t opcode);
-
-    uint32_t AddConstant(const Value &value);
 
     void LoadSymbol(const Symbol &symbol);
     void StoreSymbol(const Symbol &symbol);

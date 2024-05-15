@@ -169,7 +169,7 @@ void OpCodeCompilerImpl::CompileStructStmt(StructStmt *stmt)
 
     auto fn = new FunctionObject(opCodes);
 
-    EmitConstant(AddConstant(fn));
+    EmitConstant(fn);
 
     StoreSymbol(symbol);
 }
@@ -290,15 +290,15 @@ void OpCodeCompilerImpl::CompileInfixExpr(InfixExpr *expr)
 
 void OpCodeCompilerImpl::CompileNumExpr(NumExpr *expr)
 {
-    EmitConstant(AddConstant(expr->value));
+    EmitConstant(expr->value);
 }
 
 void OpCodeCompilerImpl::CompileBoolExpr(BoolExpr *expr)
 {
     if (expr->value)
-        EmitConstant(AddConstant(true));
+        EmitConstant(true);
     else
-        EmitConstant(AddConstant(false));
+        EmitConstant(false);
 }
 
 void OpCodeCompilerImpl::CompilePrefixExpr(PrefixExpr *expr)
@@ -316,12 +316,12 @@ void OpCodeCompilerImpl::CompilePrefixExpr(PrefixExpr *expr)
 
 void OpCodeCompilerImpl::CompileStrExpr(StrExpr *expr)
 {
-    EmitConstant(AddConstant(new StrObject(expr->value)));
+    EmitConstant(new StrObject(expr->value));
 }
 
 void OpCodeCompilerImpl::CompileNilExpr(NilExpr *expr)
 {
-    EmitConstant(AddConstant(Value()));
+    EmitConstant(Value());
 }
 
 void OpCodeCompilerImpl::CompileGroupExpr(GroupExpr *expr)
@@ -391,7 +391,7 @@ void OpCodeCompilerImpl::CompileFunctionExpr(FunctionExpr *expr)
 
     auto fn = new FunctionObject(opCodes, localVarCount, expr->parameters.size());
 
-    EmitConstant(AddConstant(fn));
+    EmitConstant(fn);
 }
 
 void OpCodeCompilerImpl::CompileFunctionCallExpr(FunctionCallExpr *expr)
@@ -413,9 +413,9 @@ void OpCodeCompilerImpl::CompileStructCallExpr(StructCallExpr *expr, const RWSta
     CompileExpr(expr->callee);
 
     if (expr->callMember->type == AstType::IDENTIFIER)
-        EmitConstant(AddConstant(new StrObject(((IdentifierExpr *)expr->callMember)->literal)));
+        EmitConstant(new StrObject(((IdentifierExpr *)expr->callMember)->literal));
     else if (expr->callMember->type == AstType::FUNCTION_CALL)
-        EmitConstant(AddConstant(new StrObject(((IdentifierExpr *)((FunctionCallExpr *)expr->callMember)->name)->literal)));
+        EmitConstant(new StrObject(((IdentifierExpr *)((FunctionCallExpr *)expr->callMember)->name)->literal));
 
     if (state == RWState::READ)
     {
@@ -490,7 +490,7 @@ void OpCodeCompilerImpl::CompileStructExpr(StructExpr *expr)
     for (const auto &[k, v] : expr->members)
     {
         CompileExpr(v);
-        EmitConstant(AddConstant(new StrObject(k->literal)));
+        EmitConstant(new StrObject(k->literal));
     }
 
     Emit(OP_STRUCT);
@@ -548,8 +548,11 @@ uint32_t OpCodeCompilerImpl::Emit(int16_t opcode)
     return CurOpCodes().size() - 1;
 }
 
-uint32_t OpCodeCompilerImpl::EmitConstant(uint32_t pos)
+uint32_t OpCodeCompilerImpl::EmitConstant(const Value& value)
 {
+    m_Constants.emplace_back(value);
+    auto pos= static_cast<int16_t>(m_Constants.size() - 1);
+
     Emit(OP_CONSTANT);
     Emit(pos);
     return CurOpCodes().size() - 1;
@@ -558,12 +561,6 @@ uint32_t OpCodeCompilerImpl::EmitConstant(uint32_t pos)
 void OpCodeCompilerImpl::ModifyOpCode(uint32_t pos, int16_t opcode)
 {
     CurOpCodes()[pos] = opcode;
-}
-
-uint32_t OpCodeCompilerImpl::AddConstant(const Value &value)
-{
-    m_Constants.emplace_back(value);
-    return m_Constants.size() - 1;
 }
 
 void OpCodeCompilerImpl::LoadSymbol(const Symbol &symbol)
