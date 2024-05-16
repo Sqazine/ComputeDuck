@@ -140,20 +140,18 @@ void Chunk::OpCodeStringify(const OpCodes &opcodes)
         }
         case OP_SET_LOCAL:
         {
-            auto isInUpScope = opcodes[i + 1];
-            auto scopeDepth = opcodes[i + 2];
-            auto index = opcodes[i + 3];
-            std::cout << std::setfill('0') << std::setw(8) << i << "\tOP_SET_LOCAL\t" << isInUpScope << "\t" << scopeDepth << "\t" << index << std::endl;
-            i += 3;
+            auto scopeDepth = opcodes[i + 1];
+            auto index = opcodes[i + 2];
+            std::cout << std::setfill('0') << std::setw(8) << i << "\tOP_SET_LOCAL\t" << scopeDepth << "\t" << index << std::endl;
+            i += 2;
             break;
         }
         case OP_GET_LOCAL:
         {
-            auto isInUpScope = opcodes[i + 1];
-            auto scopeDepth = opcodes[i + 2];
-            auto index = opcodes[i + 3];
-            std::cout << std::setfill('0') << std::setw(8) << i << "\tOP_GET_LOCAL\t" << isInUpScope << "\t" << scopeDepth << "\t" << index << std::endl;
-            i += 3;
+            auto scopeDepth = opcodes[i + 1];
+            auto index = opcodes[i + 2];
+            std::cout << std::setfill('0') << std::setw(8) << i << "\tOP_GET_LOCAL\t" << scopeDepth << "\t" << index << std::endl;
+            i += 2;
             break;
         }
         case OP_FUNCTION_CALL:
@@ -194,11 +192,10 @@ void Chunk::OpCodeStringify(const OpCodes &opcodes)
         }
         case OP_REF_LOCAL:
         {
-            auto isInUpScope = opcodes[i + 1];
-            auto scopeDepth = opcodes[i + 2];
-            auto index = opcodes[i + 3];
-            std::cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_LOCAL\t" << isInUpScope << "\t" << scopeDepth << "\t" << index << std::endl;
-            i += 3;
+            auto scopeDepth = opcodes[i + 1];
+            auto index = opcodes[i + 2];
+            std::cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_LOCAL\t" << scopeDepth << "\t" << index << std::endl;
+            i += 2;
             break;
         }
         case OP_REF_INDEX_GLOBAL:
@@ -210,11 +207,10 @@ void Chunk::OpCodeStringify(const OpCodes &opcodes)
         }
         case OP_REF_INDEX_LOCAL:
         {
-            auto isInUpScope = opcodes[i + 1];
-            auto scopeDepth = opcodes[i + 2];
-            auto index = opcodes[i + 3];
-            std::cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_INDEX_LOCAL\t" << isInUpScope << "\t" << scopeDepth << "\t" << index << std::endl;
-            i += 3;
+            auto scopeDepth = opcodes[i + 1];
+            auto index = opcodes[i + 2];
+            std::cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_INDEX_LOCAL\t" << scopeDepth << "\t" << index << std::endl;
+            i += 2;
             break;
         }
         case OP_SP_OFFSET:
