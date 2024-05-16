@@ -86,7 +86,7 @@ std::vector<Stmt *> Parser::Parse(const std::vector<Token> &tokens)
 	while (!IsMatchCurToken(TokenType::END))
 		stmts.emplace_back(ParseStmt());
 
-	//m_ConstantFolder.Fold(stmts);
+	m_ConstantFolder.Fold(stmts);
 
 	return stmts;
 }
@@ -489,7 +489,7 @@ Token Parser::Consume(TokenType type, std::string_view errMsg)
 {
 	if (IsMatchCurToken(type))
 		return GetCurTokenAndStepOnce();
-	ASSERT("[file %s line %lud]:%s", GetCurToken().filePath.c_str(), GetCurToken().line, errMsg.data());
+	ASSERT("[file %s line %u]:%s", GetCurToken().filePath.c_str(), GetCurToken().line, errMsg.data());
 }
 
 bool Parser::IsAtEnd()

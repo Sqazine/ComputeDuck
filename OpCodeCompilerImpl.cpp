@@ -6,14 +6,12 @@
 constexpr int16_t INVALID_OPCODE = std::numeric_limits<int16_t>::max();
 
 OpCodeCompilerImpl::OpCodeCompilerImpl()
-    : m_SymbolTable(nullptr)
 {
 }
 
 OpCodeCompilerImpl::~OpCodeCompilerImpl()
 {
-    if (m_SymbolTable)
-        SAFE_DELETE(m_SymbolTable);
+    SAFE_DELETE(m_SymbolTable);
 }
 
 Chunk *OpCodeCompilerImpl::Compile(const std::vector<Stmt *> &stmts)
@@ -32,8 +30,8 @@ void OpCodeCompilerImpl::ResetStatus()
     std::vector<OpCodes>().swap(m_Scopes);
     m_Scopes.emplace_back(OpCodes()); // set a default opcodes
 
-    if (m_SymbolTable)
-        SAFE_DELETE(m_SymbolTable);
+    SAFE_DELETE(m_SymbolTable);
+    
     m_SymbolTable = new SymbolTable();
 
     for (const auto& [k,v]:BuiltinManager::GetInstance()->GetBuiltinObjectList())
@@ -330,7 +328,7 @@ void OpCodeCompilerImpl::CompileArrayExpr(ArrayExpr *expr)
         CompileExpr(e);
 
     Emit(OP_ARRAY);
-    Emit(expr->elements.size());
+    Emit(static_cast<int16_t>(expr->elements.size()));
 }
 
 void OpCodeCompilerImpl::CompileIndexExpr(IndexExpr *expr)
@@ -384,7 +382,7 @@ void OpCodeCompilerImpl::CompileFunctionExpr(FunctionExpr *expr)
         opCodes.emplace_back(0);
     }
 
-    auto fn = new FunctionObject(opCodes, localVarCount, expr->parameters.size());
+    auto fn = new FunctionObject(opCodes, localVarCount,static_cast<uint8_t>(expr->parameters.size()));
 
     EmitConstant(fn);
 }
@@ -397,7 +395,7 @@ void OpCodeCompilerImpl::CompileFunctionCallExpr(FunctionCallExpr *expr)
         CompileExpr(argu);
 
     Emit(OP_FUNCTION_CALL);
-    Emit(expr->arguments.size());
+    Emit(static_cast<int16_t>(expr->arguments.size()));
 }
 
 void OpCodeCompilerImpl::CompileStructCallExpr(StructCallExpr *expr, const RWState &state)
@@ -423,7 +421,7 @@ void OpCodeCompilerImpl::CompileStructCallExpr(StructCallExpr *expr, const RWSta
                 CompileExpr(argu);
 
             Emit(OP_FUNCTION_CALL);
-            Emit(funcCall->arguments.size());
+            Emit(static_cast<int16_t>(funcCall->arguments.size()));
         }
     }
     else
@@ -487,7 +485,7 @@ void OpCodeCompilerImpl::CompileStructExpr(StructExpr *expr)
     }
 
     Emit(OP_STRUCT);
-    Emit(expr->members.size());
+    Emit(static_cast<int16_t>(expr->members.size()));
 }
 
 void OpCodeCompilerImpl::CompileDllImportExpr(DllImportExpr *expr)
@@ -517,7 +515,7 @@ OpCodes &OpCodeCompilerImpl::CurOpCodes()
 uint32_t OpCodeCompilerImpl::Emit(int16_t opcode)
 {
     CurOpCodes().emplace_back(opcode);
-    return CurOpCodes().size() - 1;
+    return static_cast<uint32_t>(CurOpCodes().size() - 1);
 }
 
 uint32_t OpCodeCompilerImpl::EmitConstant(const Value& value)
@@ -527,7 +525,7 @@ uint32_t OpCodeCompilerImpl::EmitConstant(const Value& value)
 
     Emit(OP_CONSTANT);
     Emit(pos);
-    return CurOpCodes().size() - 1;
+    return static_cast<uint32_t>(CurOpCodes().size() - 1);
 }
 
 void OpCodeCompilerImpl::ModifyOpCode(uint32_t pos, int16_t opcode)

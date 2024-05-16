@@ -2,14 +2,12 @@
 #include "BuiltinManager.h"
 
 LLVMCompilerImpl::LLVMCompilerImpl()
-	: m_SymbolTable(nullptr)
 {
 }
 
 LLVMCompilerImpl::~LLVMCompilerImpl()
 {
-	if (m_SymbolTable)
-		SAFE_DELETE(m_SymbolTable);
+    SAFE_DELETE(m_SymbolTable);
 }
 
 llvm::Function *LLVMCompilerImpl::Compile(const std::vector<Stmt *> &stmts)
@@ -58,8 +56,8 @@ void LLVMCompilerImpl::ResetStatus()
 	llvm::InitializeNativeTargetAsmPrinter();
 	llvm::InitializeNativeTargetAsmParser();
 
-	if (m_SymbolTable)
-		SAFE_DELETE(m_SymbolTable);
+	SAFE_DELETE(m_SymbolTable);
+	
 	m_SymbolTable = new SymbolTable();
 
 	m_Jit = LLVMJit::Create();

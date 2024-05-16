@@ -17,10 +17,7 @@ enum class SymbolScope
 
 struct Symbol
 {
-    Symbol()
-        : scope(SymbolScope::GLOBAL), index(0), scopeDepth(0), isStructSymbol(false)
-    {
-    }
+    Symbol() {}
 
     Symbol(std::string_view name, const SymbolScope& scope, int32_t index, int32_t scopeDepth = 0, bool isStructSymbol = false)
         : name(name), scope(scope), index(index), isStructSymbol(isStructSymbol), scopeDepth(scopeDepth)
@@ -28,7 +25,7 @@ struct Symbol
     }
 
 #ifdef BUILD_WITH_LLVM
-    Symbol(std::string_view name, const SymbolScope& scope, llvm::Value* allocationGEP, int32_t scopeDepth = 1)
+    Symbol(std::string_view name, const SymbolScope& scope, llvm::Value* allocationGEP, int32_t scopeDepth = 0)
         : name(name), scope(scope), allocationGEP(allocationGEP), scopeDepth(scopeDepth)
     {
     }
@@ -39,23 +36,19 @@ struct Symbol
 #endif
 
     std::string_view name;
-    bool isStructSymbol;
-    SymbolScope scope;
-    int32_t index;
-    int32_t scopeDepth;
+    bool isStructSymbol{false};
+    SymbolScope scope{ SymbolScope::GLOBAL };
+    int32_t index{0};
+    int32_t scopeDepth{0};
 };
 
 struct SymbolTable
 {
-    SymbolTable()
-        : enclosing(nullptr), definitionCount(0), scopeDepth(0)
-    {
-    }
+    SymbolTable(){}
 
     SymbolTable(SymbolTable* enclosing)
-        : enclosing(enclosing), definitionCount(0)
+        : enclosing(enclosing), scopeDepth(enclosing->scopeDepth + 1)
     {
-        scopeDepth = enclosing->scopeDepth + 1;
     }
 
     ~SymbolTable()
@@ -97,6 +90,10 @@ struct SymbolTable
 
     Symbol DefineBuiltin(std::string_view name)
     {
+        auto iter = symbolMaps.find(name);
+        if (iter != symbolMaps.end())
+            return iter->second;
+
         auto symbol = Symbol(name, SymbolScope::BUILTIN, -1, scopeDepth);
         symbolMaps[name] = symbol;
         return symbol;
@@ -125,8 +122,8 @@ struct SymbolTable
         return false;
     }
 
-    SymbolTable* enclosing;
+    SymbolTable* enclosing{nullptr};
     std::unordered_map<std::string_view, Symbol> symbolMaps;
-    uint8_t definitionCount;
-    uint8_t scopeDepth;
+    uint8_t definitionCount{0};
+    uint8_t scopeDepth{0};
 };

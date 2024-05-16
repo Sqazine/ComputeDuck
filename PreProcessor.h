@@ -95,16 +95,16 @@ private:
         while (loc != -1)
         {
             if (tokens[loc + 1].type != TokenType::LPAREN)
-                ASSERT("[line %lud]:Expect '(' after import keyword.", tokens[loc + 1].line);
+                ASSERT("[line %u]:Expect '(' after import keyword.", tokens[loc + 1].line);
 
             if (tokens[loc + 2].type != TokenType::STRING)
-                ASSERT("[line %lud]:Expect file path after import stmt's '('.", tokens[loc + 2].line);
+                ASSERT("[line %u]:Expect file path after import stmt's '('.", tokens[loc + 2].line);
 
             if (tokens[loc + 3].type != TokenType::RPAREN)
-                ASSERT("[line %lud]:Expect ')' after import stmt's file path.", tokens[loc + 3].line);
+                ASSERT("[line %u]:Expect ')' after import stmt's file path.", tokens[loc + 3].line);
 
             if (tokens[loc + 4].type != TokenType::SEMICOLON)
-                ASSERT("[line %lud]:Expect ';' at the end of import stmt.", tokens[loc + 4].line);
+                ASSERT("[line %u]:Expect ';' at the end of import stmt.", tokens[loc + 4].line);
 
             importFilePaths.emplace_back(tokens[loc + 2].literal);
             tokens.erase(tokens.begin() + loc, tokens.begin() + loc + 5);

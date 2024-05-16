@@ -38,7 +38,7 @@ void Run(std::string_view content)
 		std::cout << stmt->Stringify() << std::endl;
 #endif
 
-	auto chunk=g_Compiler->Compile(stmts);
+	auto chunk = g_Compiler->Compile(stmts);
 
 	if (chunk)
 	{
@@ -67,7 +67,7 @@ void Repl(std::string_view exePath)
 			return;
 		if (line == "clear")
 			allLines.clear();
-		
+
 		Run(allLines);
 
 		std::cout << "> ";
@@ -81,7 +81,7 @@ void RunFile(std::string_view path)
 	Run(content);
 }
 
-int32_t  PrintUsage()
+int32_t PrintUsage()
 {
 	std::cout << "Usage: ComputeDuck [option]:" << std::endl;
 	std::cout << "-h or --help:show usage info." << std::endl;
@@ -91,7 +91,7 @@ int32_t  PrintUsage()
 }
 
 #undef main
-int32_t main(int argc,const char **argv)
+int32_t main(int argc, const char **argv)
 {
 	std::string_view sourceFilePath;
 	CompileFlag compileFlag = CompileFlag::OPCODE;

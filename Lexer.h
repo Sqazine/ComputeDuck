@@ -44,9 +44,9 @@ private:
 	void Identifier();
 	void String();
 
-	uint64_t m_StartPos;
-	uint64_t m_CurPos;
-	uint64_t m_Line;
+	uint32_t m_StartPos;
+	uint32_t m_CurPos;
+	uint32_t m_Line;
 	std::string m_Source;
 	std::vector<Token> m_Tokens;
 	std::string m_FilePath;

@@ -113,35 +113,35 @@ private:
 
     std::unordered_map<std::string_view, llvm::Function *> m_LlvmBuiltins;
 
-    llvm::StructType *m_ValueType;
-    llvm::PointerType *m_ValuePtrType;
+    llvm::StructType* m_ValueType{nullptr};
+    llvm::PointerType *m_ValuePtrType{ nullptr };
 
-    llvm::StructType *mUnionType;
+    llvm::StructType *mUnionType{ nullptr };
 
-    llvm::StructType *m_ObjectType;
-    llvm::PointerType *m_ObjectPtrType;
-    llvm::StructType *m_StrObjectType;
-    llvm::PointerType *m_StrObjectPtrType;
+    llvm::StructType *m_ObjectType{ nullptr };
+    llvm::PointerType *m_ObjectPtrType{ nullptr };
+    llvm::StructType *m_StrObjectType{ nullptr };
+    llvm::PointerType *m_StrObjectPtrType{ nullptr };
 
-    llvm::FunctionType *m_BuiltinFunctionType;
-    llvm::FunctionType *m_ValueFunctionType;
+    llvm::FunctionType *m_BuiltinFunctionType{ nullptr };
+    llvm::FunctionType *m_ValueFunctionType{ nullptr };
 
-    llvm::Type *m_Int8Type;
-    llvm::Type *m_BoolType;
-    llvm::Type *m_DoubleType;
-    llvm::Type *m_Int64Type;
-    llvm::Type *m_Int32Type;
-    llvm::Type *m_VoidType;
-    llvm::Type *m_Int64PtrType;
-    llvm::Type *m_Int32PtrType;
-    llvm::Type *m_Int8PtrType;
-    llvm::Type *m_BoolPtrType;
-    llvm::Type *m_DoublePtrType;
+    llvm::Type *m_Int8Type{ nullptr };
+    llvm::Type *m_BoolType{ nullptr };
+    llvm::Type *m_DoubleType{ nullptr };
+    llvm::Type *m_Int64Type{ nullptr };
+    llvm::Type *m_Int32Type{ nullptr };
+    llvm::Type *m_VoidType{ nullptr };
+    llvm::Type *m_Int64PtrType{ nullptr };
+    llvm::Type *m_Int32PtrType{ nullptr };
+    llvm::Type *m_Int8PtrType{ nullptr };
+    llvm::Type *m_BoolPtrType{ nullptr };
+    llvm::Type *m_DoublePtrType{ nullptr };
 
     std::vector<llvm::Value *> m_ValueStack;
     std::vector<llvm::Function *> m_FunctionStack;
 
-    SymbolTable *m_SymbolTable;
+    SymbolTable *m_SymbolTable{ nullptr };
 
     std::unique_ptr<llvm::LLVMContext> m_Context;
     std::unique_ptr<llvm::Module> m_Module;

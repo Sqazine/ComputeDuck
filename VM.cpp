@@ -80,7 +80,7 @@ void VM::Execute()
 		if (IS_BUILTIN_VALUE(right))                                                                   \
 			right = TO_BUILTIN_VALUE(right)->GetBuiltinValue();                                        \
 		if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                                 \
-			Push((uint64_t)TO_NUM_VALUE(left) op (uint64_t) TO_NUM_VALUE(right));                       \
+			Push((uint64_t)TO_NUM_VALUE(left) op(uint64_t) TO_NUM_VALUE(right));                       \
 		else                                                                                           \
 			ASSERT("Invalid op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
 	} while (0);
