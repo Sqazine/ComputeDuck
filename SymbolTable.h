@@ -18,18 +18,18 @@ enum class SymbolScope
 struct Symbol
 {
     Symbol()
-        : scope(SymbolScope::GLOBAL), index(0), scopeDepth(0), isInUpScope(0), isStructSymbol(false)
+        : scope(SymbolScope::GLOBAL), index(0), scopeDepth(0), isStructSymbol(false)
     {
     }
 
     Symbol(std::string_view name, const SymbolScope& scope, int32_t index, int32_t scopeDepth = 0, bool isStructSymbol = false)
-        : name(name), scope(scope), index(index), isStructSymbol(isStructSymbol), scopeDepth(scopeDepth), isInUpScope(0)
+        : name(name), scope(scope), index(index), isStructSymbol(isStructSymbol), scopeDepth(scopeDepth)
     {
     }
 
 #ifdef BUILD_WITH_LLVM
-    Symbol(std::string_view name, const SymbolScope& scope, llvm::Value* allocationGEP, int32_t scopeDepth = 0)
-        : name(name), scope(scope), allocationGEP(allocationGEP), scopeDepth(scopeDepth), isInUpScope(0)
+    Symbol(std::string_view name, const SymbolScope& scope, llvm::Value* allocationGEP, int32_t scopeDepth = 1)
+        : name(name), scope(scope), allocationGEP(allocationGEP), scopeDepth(scopeDepth)
     {
     }
 
@@ -43,7 +43,6 @@ struct Symbol
     SymbolScope scope;
     int32_t index;
     int32_t scopeDepth;
-    int32_t isInUpScope;
 };
 
 struct SymbolTable
@@ -118,8 +117,6 @@ struct SymbolTable
                 return false;
             if (symbol.scope == SymbolScope::GLOBAL || symbol.scope == SymbolScope::BUILTIN)
                 return true;
-
-            symbol.isInUpScope = 1;
 
             symbolMaps[symbol.name] = symbol;
             return true;

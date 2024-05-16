@@ -342,17 +342,11 @@ void VM::Execute()
 		}
 		case OP_SET_LOCAL:
 		{
-			auto isInUpScope = *frame->ip++;
 			auto scopeDepth = *frame->ip++;
 			auto index = *frame->ip++;
 			auto value = Pop();
 
-			Value *slot = nullptr;
-
-			if (isInUpScope == 0)
-				slot = frame->slot + index;
-			else
-				slot = PeekCallFrame(scopeDepth)->slot + index;
+			Value *slot = PeekCallFrame(scopeDepth)->slot + index;
 
 			if (IS_REF_VALUE((*slot)))
 				while (IS_REF_VALUE((*slot)))
@@ -362,16 +356,10 @@ void VM::Execute()
 		}
 		case OP_GET_LOCAL:
 		{
-			auto isInUpScope = *frame->ip++;
 			auto scopeDepth = *frame->ip++;
 			auto index = *frame->ip++;
 
-			Value *slot = nullptr;
-
-			if (isInUpScope == 0)
-				slot = (frame->slot + index);
-			else
-				slot = (PeekCallFrame(scopeDepth)->slot + index);
+			Value *slot = PeekCallFrame(scopeDepth)->slot + index;
 
 			Push(*slot);
 			break;
@@ -449,16 +437,10 @@ void VM::Execute()
 		}
 		case OP_REF_LOCAL:
 		{
-			auto isInUpScope = *frame->ip++;
 			auto scopeDepth = *frame->ip++;
 			auto index = *frame->ip++;
 
-			Value *slot = nullptr;
-
-			if (isInUpScope == 0)
-				slot = frame->slot + index;
-			else
-				slot = PeekCallFrame(scopeDepth)->slot + index;
+			Value *slot = PeekCallFrame(scopeDepth)->slot + index;
 
 			Push(CreateObject<RefObject>(slot));
 			break;
@@ -488,17 +470,12 @@ void VM::Execute()
 		}
 		case OP_REF_INDEX_LOCAL:
 		{
-			auto isInUpScope = *frame->ip++;
 			auto scopeDepth = *frame->ip++;
 			auto index = *frame->ip++;
 
 			auto idxValue = Pop();
 
-			Value *slot = nullptr;
-			if (isInUpScope == 0)
-				slot = frame->slot + index;
-			else
-				slot = PeekCallFrame(scopeDepth)->slot + index;
+			Value *slot = PeekCallFrame(scopeDepth)->slot + index;
 
 			while (IS_REF_VALUE((*slot)))
 				slot = TO_REF_VALUE((*slot))->pointer;

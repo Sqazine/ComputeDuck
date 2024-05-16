@@ -448,7 +448,6 @@ void OpCodeCompilerImpl::CompileRefExpr(RefExpr *expr)
             break;
         case SymbolScope::LOCAL:
             Emit(OP_REF_INDEX_LOCAL);
-            Emit(symbol.isInUpScope);
             Emit(symbol.scopeDepth);
             Emit(symbol.index);
             break;
@@ -470,7 +469,6 @@ void OpCodeCompilerImpl::CompileRefExpr(RefExpr *expr)
             break;
         case SymbolScope::LOCAL:
             Emit(OP_REF_LOCAL);
-            Emit(symbol.isInUpScope);
             Emit(symbol.scopeDepth);
             Emit(symbol.index);
             break;
@@ -547,7 +545,6 @@ void OpCodeCompilerImpl::LoadSymbol(const Symbol &symbol)
         break;
     case SymbolScope::LOCAL:
         Emit(OP_GET_LOCAL);
-        Emit(symbol.isInUpScope);
         Emit(symbol.scopeDepth);
         Emit(symbol.index);
         break;
@@ -576,7 +573,6 @@ void OpCodeCompilerImpl::StoreSymbol(const Symbol &symbol)
         break;
     case SymbolScope::LOCAL:
         Emit(OP_SET_LOCAL);
-        Emit(symbol.isInUpScope);
         Emit(symbol.scopeDepth);
         Emit(symbol.index);
         break;
