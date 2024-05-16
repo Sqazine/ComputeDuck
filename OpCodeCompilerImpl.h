@@ -59,6 +59,5 @@ private:
 
     std::vector<OpCodes> m_Scopes;
 
-    SymbolTable *m_SymbolTable;
-
+    SymbolTable* m_SymbolTable{nullptr};
 };

@@ -31,8 +31,8 @@ void Chunk::OpCodeStringify(const OpCodes &opcodes)
         {
         case OP_CONSTANT:
         {
-            auto pos = opcodes[i + 1];
-            std::cout << std::setfill('0') << std::setw(8) << i << "\tOP_CONSTANT\t" << pos << "\t'" << constants[pos].Stringify() << "'" << std::endl;
+            auto idx = opcodes[i + 1];
+            std::cout << std::setfill('0') << std::setw(8) << i << "\tOP_CONSTANT\t" << idx << "\t'" << constants[idx].Stringify() << "'" << std::endl;
             ++i;
             break;
         }
@@ -126,15 +126,15 @@ void Chunk::OpCodeStringify(const OpCodes &opcodes)
         }
         case OP_SET_GLOBAL:
         {
-            auto pos = opcodes[i + 1];
-            std::cout << std::setfill('0') << std::setw(8) << i << "\tOP_SET_GLOBAL\t" << pos << std::endl;
+            auto idx = opcodes[i + 1];
+            std::cout << std::setfill('0') << std::setw(8) << i << "\tOP_SET_GLOBAL\t" << idx << std::endl;
             ++i;
             break;
         }
         case OP_GET_GLOBAL:
         {
-            auto pos = opcodes[i + 1];
-            std::cout << std::setfill('0') << std::setw(8) << i << "\tOP_GET_GLOBAL\t" << pos << std::endl;
+            auto idx = opcodes[i + 1];
+            std::cout << std::setfill('0') << std::setw(8) << i << "\tOP_GET_GLOBAL\t" << idx << std::endl;
             ++i;
             break;
         }
@@ -200,8 +200,8 @@ void Chunk::OpCodeStringify(const OpCodes &opcodes)
         }
         case OP_REF_INDEX_GLOBAL:
         {
-            auto pos = opcodes[i + 1];
-            std::cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_INDEX_GLOBAL\t" << pos << std::endl;
+            auto idx = opcodes[i + 1];
+            std::cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_INDEX_GLOBAL\t" << idx << std::endl;
             ++i;
             break;
         }

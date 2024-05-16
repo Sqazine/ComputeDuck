@@ -54,12 +54,12 @@ enum class TokenType
 
 struct Token
 {
-	Token(TokenType type, std::string_view literal, uint64_t line, std::string_view filePath) : type(type), literal(literal), line(line), filePath(filePath) {}
+	Token(TokenType type, std::string_view literal, uint32_t line, std::string_view filePath) : type(type), literal(literal), line(line), filePath(filePath) {}
 
 	std::string filePath;
 	TokenType type;
 	std::string literal;
-	uint64_t line;
+	uint32_t line;
 };
 
 inline std::ostream &operator<<(std::ostream &stream, const Token &token)

@@ -17,6 +17,8 @@
 #define COMPUTE_DUCK_API
 #endif
 
+#define STACK_MAX 512
+
 enum class RWState
 {
     READ,

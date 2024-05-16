@@ -256,7 +256,7 @@ struct BuiltinObject : public Object
 {
 	struct NativeData
 	{
-		void *nativeData;
+		void* nativeData{nullptr};
 		std::function<void(void *nativeData)> destroyFunc;
 
 		template <typename T>

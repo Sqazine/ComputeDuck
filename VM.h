@@ -11,8 +11,6 @@
 #include "Utils.h"
 #include "Chunk.h"
 
-#define STACK_MAX 512
-
 struct CallFrame
 {
 	CallFrame() = default;

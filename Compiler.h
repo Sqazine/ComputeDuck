@@ -15,7 +15,7 @@ class COMPUTE_DUCK_API Compiler
 {
 public:
 	Compiler(CompileFlag flag)
-		:m_CompileFlag(flag)
+		: m_CompileFlag(flag)
 	{
 		m_OpcodeCompilerImpl = new OpCodeCompilerImpl();
 #ifdef BUILD_WITH_LLVM
@@ -34,7 +34,7 @@ public:
 #endif
 	}
 
-	Chunk* Compile(const std::vector<Stmt*>& stmts)
+	Chunk *Compile(const std::vector<Stmt *> &stmts)
 	{
 		switch (m_CompileFlag)
 		{
@@ -58,12 +58,11 @@ public:
 	}
 
 private:
-
 	CompileFlag m_CompileFlag;
 
-	OpCodeCompilerImpl* m_OpcodeCompilerImpl;
+	OpCodeCompilerImpl *m_OpcodeCompilerImpl;
 #ifdef BUILD_WITH_LLVM
-	LLVMCompilerImpl* m_LLVMCompilerImpl;
+	LLVMCompilerImpl *m_LLVMCompilerImpl;
 #else
 #error "Cannot run with llvm,not build yet.";
 #endif

@@ -43,7 +43,7 @@ enum OpCode
     OP_SP_OFFSET,
 };
 
-typedef std::vector<int16_t> OpCodes;
+using OpCodes = std::vector<int16_t>;
 
 class COMPUTE_DUCK_API Chunk
 {
