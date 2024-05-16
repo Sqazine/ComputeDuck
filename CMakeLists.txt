@@ -59,26 +59,34 @@ set(ROOT_SRC Ast.h
 add_executable(${EXE_NAME} main.cpp ${EXAMPLES})
 
 if(COMPUTEDUCK_BUILD_WITH_LLVM)
-    include(SetLLVM.cmake)
-    
-    set(LLVM_DIR "3rd/llvm14_0_0/llvm" CACHE PATH "")
-    set(LLVM_GENERATE_DIR "${CMAKE_BINARY_DIR}/${LLVM_DIR}")
+    if(MSVC)
+        include(SetLLVM.cmake)
 
-    SetLLVM(${LLVM_DIR} LLVM_LIBS)
+        set(LLVM_DIR "3rd/llvm14_0_0/llvm" CACHE PATH "")
+        set(LLVM_GENERATE_DIR "${CMAKE_BINARY_DIR}/${LLVM_DIR}")
 
-    message(STATUS "LLVM_LIBS=${LLVM_LIBS}")
-    message(STATUS "LLVM_GENERATE_DIR=${LLVM_GENERATE_DIR}")
+        SetLLVM(${LLVM_DIR} LLVM_LIBS)
 
-    list(APPEND ROOT_SRC LLVMCompilerImpl.cpp LLVMCompilerImpl.h LLVMJit.h LLVMJit.cpp)
+        message(STATUS "LLVM_LIBS=${LLVM_LIBS}")
+        message(STATUS "LLVM_GENERATE_DIR=${LLVM_GENERATE_DIR}")
 
-    source_group("src" FILES ${ROOT_SRC})
-    add_library(${LIB_NAME} SHARED ${ROOT_SRC})
-    
-    target_link_libraries(${LIB_NAME} PRIVATE ${LLVM_LIBS})
-    target_include_directories(${LIB_NAME} PRIVATE ${LLVM_DIR}/include ${LLVM_GENERATE_DIR}/include)
-    target_include_directories(${EXE_NAME} PRIVATE ${LLVM_DIR}/include ${LLVM_GENERATE_DIR}/include)
-    
-    target_compile_definitions(${LIB_NAME} PUBLIC BUILD_WITH_LLVM)
+        list(APPEND ROOT_SRC LLVMCompilerImpl.cpp LLVMCompilerImpl.h LLVMJit.h LLVMJit.cpp)
+
+        source_group("src" FILES ${ROOT_SRC})
+        add_library(${LIB_NAME} SHARED ${ROOT_SRC})
+
+        target_link_libraries(${LIB_NAME} PRIVATE ${LLVM_LIBS})
+        target_include_directories(${LIB_NAME} PRIVATE ${LLVM_DIR}/include ${LLVM_GENERATE_DIR}/include)
+        target_include_directories(${EXE_NAME} PRIVATE ${LLVM_DIR}/include ${LLVM_GENERATE_DIR}/include)
+
+        target_compile_definitions(${LIB_NAME} PUBLIC BUILD_WITH_LLVM)
+    elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
+        find_package(LLVM CONFIG REQUIRED)
+        target_link_libraries(${LIB_NAME} PRIVATE LLVM)
+        target_link_directories(${LIB_NAME} PUBLIC ${LLVM_LIBRARY_DIR})
+        target_include_directories(${LIB_NAME} PUBLIC ${LLVM_INCLUDE_DIRS})
+        target_compile_definitions(${LIB_NAME} PUBLIC ${LLVM_DEFINITIONS})
+    endif()
 else()
     source_group("src" FILES ${ROOT_SRC})
     add_library(${LIB_NAME} SHARED ${ROOT_SRC})
