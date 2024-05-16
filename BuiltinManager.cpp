@@ -147,8 +147,7 @@ BuiltinManager::BuiltinManager()
 }
 BuiltinManager::~BuiltinManager()
 {
-	std::vector<BuiltinObject *>().swap(m_Builtins);
-	std::vector<std::string>().swap(m_BuiltinNames);
+	std::unordered_map<std::string_view, BuiltinObject*>().swap(m_BuiltinObjects);
 }
 
 void BuiltinManager::SetExecuteFilePath(std::string_view path)
@@ -167,4 +166,17 @@ std::string BuiltinManager::ToFullPath(std::string_view filePath)
 	if (!filesysPath.is_absolute())
 		fullPath = BuiltinManager::GetInstance()->GetExecuteFilePath() + fullPath;
 	return fullPath;
+}
+
+BuiltinObject* BuiltinManager::FindBuiltinObject(std::string_view name)
+{
+	auto iter = m_BuiltinObjects.find(name);
+	if (iter == m_BuiltinObjects.end())
+		ASSERT("No builtin object:%s", name.data());
+	return iter->second;
+}
+
+const std::unordered_map<std::string_view, BuiltinObject*> BuiltinManager::GetBuiltinObjectList() const
+{
+	return m_BuiltinObjects;
 }

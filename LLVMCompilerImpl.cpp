@@ -412,8 +412,8 @@ void LLVMCompilerImpl::CompileIdentifierExpr(IdentifierExpr *expr, const RWState
 			auto init = Pop();
 			if (!isFound) // already exists like:a=10;{a=20;}
 			{
-				auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr, symbol.name);
-				auto memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, {m_Builder->getInt32(0), m_Builder->getInt32(0)}, symbol.name);
+				auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr, symbol.name.data());
+				auto memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, {m_Builder->getInt32(0), m_Builder->getInt32(0)}, symbol.name.data());
 
 				m_Builder->CreateMemCpy(memberAddr, llvm::MaybeAlign(8), init, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
 
@@ -434,8 +434,8 @@ void LLVMCompilerImpl::CompileIdentifierExpr(IdentifierExpr *expr, const RWState
 			auto init = Pop();
 			if (!isFound) // already exists like:{a=10;{a=20;}}
 			{
-				auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr, symbol.name);
-				auto memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, {m_Builder->getInt32(0), m_Builder->getInt32(0)}, symbol.name);
+				auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr, symbol.name.data());
+				auto memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, {m_Builder->getInt32(0), m_Builder->getInt32(0)}, symbol.name.data());
 
 				m_Builder->CreateMemCpy(memberAddr, llvm::MaybeAlign(8), init, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
 

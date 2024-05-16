@@ -36,13 +36,8 @@ void OpCodeCompilerImpl::ResetStatus()
         SAFE_DELETE(m_SymbolTable);
     m_SymbolTable = new SymbolTable();
 
-    m_BuiltinNames.clear();
-
-    for (int32_t i = 0; i < BuiltinManager::GetInstance()->m_BuiltinNames.size(); ++i)
-    {
-        m_BuiltinNames.emplace_back(BuiltinManager::GetInstance()->m_BuiltinNames[i]);
-        m_SymbolTable->DefineBuiltin(BuiltinManager::GetInstance()->m_BuiltinNames[i], i);
-    }
+    for (const auto& [k,v]:BuiltinManager::GetInstance()->GetBuiltinObjectList())
+        m_SymbolTable->DefineBuiltin(k);
 }
 
 void OpCodeCompilerImpl::CompileStmt(Stmt *stmt)
@@ -503,29 +498,8 @@ void OpCodeCompilerImpl::CompileDllImportExpr(DllImportExpr *expr)
 
     RegisterBuiltinFunctions(dllpath);
 
-    std::vector<std::string> newAddedBuiltinNames;
-
-    for (const auto &name : BuiltinManager::GetInstance()->m_BuiltinNames)
-    {
-        bool found = false;
-        for (const auto &recName : m_BuiltinNames)
-        {
-            if (name == recName)
-            {
-                found = true;
-                break;
-            }
-        }
-        if (found == false)
-            newAddedBuiltinNames.emplace_back(name);
-    }
-
-    int32_t legacyBuiltinCount = (int32_t)m_BuiltinNames.size();
-    for (int32_t i = 0; i < newAddedBuiltinNames.size(); ++i)
-    {
-        m_BuiltinNames.emplace_back(newAddedBuiltinNames[i]);
-        m_SymbolTable->DefineBuiltin(newAddedBuiltinNames[i], legacyBuiltinCount + i);
-    }
+    for (const auto& [k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
+        m_SymbolTable->DefineBuiltin(k);
 }
 
 void OpCodeCompilerImpl::EnterScope()
@@ -578,8 +552,8 @@ void OpCodeCompilerImpl::LoadSymbol(const Symbol &symbol)
         Emit(symbol.index);
         break;
     case SymbolScope::BUILTIN:
+        EmitConstant(new StrObject(symbol.name));
         Emit(OP_GET_BUILTIN);
-        Emit(symbol.index);
         break;
     default:
         break;

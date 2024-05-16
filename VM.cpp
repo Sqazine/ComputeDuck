@@ -384,8 +384,8 @@ void VM::Execute()
 		}
 		case OP_GET_BUILTIN:
 		{
-			auto idx = *frame->ip++;
-			auto builtinObj = BuiltinManager::GetInstance()->m_Builtins[idx];
+			auto name = TO_STR_VALUE(Pop())->value;
+			auto builtinObj = BuiltinManager::GetInstance()->FindBuiltinObject(name);
 			Push(builtinObj);
 			break;
 		}
