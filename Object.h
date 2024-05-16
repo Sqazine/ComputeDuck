@@ -272,12 +272,6 @@ struct BuiltinObject : public Object
 		}
 	};
 
-	struct BuiltinData
-	{
-		std::string name;
-		std::variant<BuiltinFn, Value> v;
-	};
-
 	BuiltinObject(void *nativeData, std::function<void(void *nativeData)> destroyFunc)
 		: Object(ObjectType::BUILTIN)
 	{
@@ -292,10 +286,7 @@ struct BuiltinObject : public Object
 	BuiltinObject(std::string_view name, const T &v)
 		: Object(ObjectType::BUILTIN)
 	{
-		BuiltinData bd;
-		bd.name = name;
-		bd.v = v;
-		data = bd;
+		data = v;
 	}
 
 	~BuiltinObject() override
@@ -314,7 +305,7 @@ struct BuiltinObject : public Object
 		else
 			vStr = GetBuiltinValue().Stringify();
 
-		return "Builtin :" + std::get<BuiltinData>(data).name + ":" + vStr;
+		return "Builtin :" + vStr;
 	}
 	void Mark() override { marked = true; }
 	void UnMark() override { marked = false; }
@@ -330,7 +321,7 @@ struct BuiltinObject : public Object
 			return PointerAddressToString(thisNd.nativeData) == PointerAddressToString(otherNd.nativeData);
 		}
 		else
-			return std::get<1>(data).name == std::get<1>(TO_BUILTIN_OBJ(other)->data).name;
+			return data.index() == TO_BUILTIN_OBJ(other)->data.index();
 	}
 
 	bool IsNativeData()
@@ -340,28 +331,28 @@ struct BuiltinObject : public Object
 
 	bool IsBuiltinFn()
 	{
-		return data.index() == 1 && std::get<1>(data).v.index() == 0;
+		return data.index() == 1;
 	}
 
 	bool IsBuiltinValue()
 	{
-		return data.index() == 1 && std::get<1>(data).v.index() == 1;
+		return data.index() == 2;
 	}
 
 	NativeData GetNativeData()
 	{
-		return std::get<0>(data);
+		return std::get<NativeData>(data);
 	}
 
 	BuiltinFn GetBuiltinFn()
 	{
-		return std::get<0>(std::get<1>(data).v);
+		return std::get<BuiltinFn>(data);
 	}
 
 	Value GetBuiltinValue()
 	{
-		return std::get<1>(std::get<1>(data).v);
+		return std::get<Value>(data);
 	}
 
-	std::variant<NativeData, BuiltinData> data;
+	std::variant<NativeData, BuiltinFn, Value> data;
 };

@@ -61,6 +61,4 @@ private:
 
     SymbolTable *m_SymbolTable;
 
-    // record builtin object names,for finding new added symbol names
-    std::vector<std::string> m_BuiltinNames;
 };

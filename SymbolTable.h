@@ -22,13 +22,13 @@ struct Symbol
     {
     }
 
-    Symbol(const std::string& name, const SymbolScope& scope, int32_t index, int32_t scopeDepth = 0, bool isStructSymbol = false)
+    Symbol(std::string_view name, const SymbolScope& scope, int32_t index, int32_t scopeDepth = 0, bool isStructSymbol = false)
         : name(name), scope(scope), index(index), isStructSymbol(isStructSymbol), scopeDepth(scopeDepth), isInUpScope(0)
     {
     }
 
 #ifdef BUILD_WITH_LLVM
-    Symbol(const std::string& name, const SymbolScope& scope, llvm::Value* allocationGEP, int32_t scopeDepth = 0)
+    Symbol(std::string_view name, const SymbolScope& scope, llvm::Value* allocationGEP, int32_t scopeDepth = 0)
         : name(name), scope(scope), allocationGEP(allocationGEP), scopeDepth(scopeDepth), isInUpScope(0)
     {
     }
@@ -38,7 +38,7 @@ struct Symbol
 #error "Cannot run with llvm,not build yet.";
 #endif
 
-    std::string name;
+    std::string_view name;
     bool isStructSymbol;
     SymbolScope scope;
     int32_t index;
@@ -71,7 +71,7 @@ struct SymbolTable
     }
 
 #ifdef BUILD_WITH_LLVM
-    void Set(const std::string& name, llvm::Value* a)
+    void Set(std::string_view name, llvm::Value* a)
     {
         symbolMaps[name].allocationGEP = a;
     }
@@ -96,9 +96,9 @@ struct SymbolTable
         return symbol;
     }
 
-    Symbol DefineBuiltin(const std::string& name, int32_t index = -1)
+    Symbol DefineBuiltin(std::string_view name)
     {
-        auto symbol = Symbol(name, SymbolScope::BUILTIN, index, scopeDepth);
+        auto symbol = Symbol(name, SymbolScope::BUILTIN, -1, scopeDepth);
         symbolMaps[name] = symbol;
         return symbol;
     }
@@ -129,7 +129,7 @@ struct SymbolTable
     }
 
     SymbolTable* enclosing;
-    std::unordered_map<std::string, Symbol> symbolMaps;
+    std::unordered_map<std::string_view, Symbol> symbolMaps;
     uint8_t definitionCount;
     uint8_t scopeDepth;
 };

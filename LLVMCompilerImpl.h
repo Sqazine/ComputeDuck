@@ -111,7 +111,7 @@ private:
     void RegisterLlvmFn(std::string_view name, llvm::Function *fn);
     llvm::Function *GetLlvmFn(std::string_view name);
 
-    std::unordered_map<std::string, llvm::Function *> m_LlvmBuiltins;
+    std::unordered_map<std::string_view, llvm::Function *> m_LlvmBuiltins;
 
     llvm::StructType *m_ValueType;
     llvm::PointerType *m_ValuePtrType;

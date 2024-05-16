@@ -165,9 +165,7 @@ void Chunk::OpCodeStringify(const OpCodes &opcodes)
         }
         case OP_GET_BUILTIN:
         {
-            auto builtinIdx = opcodes[i + 1];
-            std::cout << std::setfill('0') << std::setw(8) << i << "\tOP_GET_BUILTIN\t" << builtinIdx << std::endl;
-            ++i;
+            std::cout << std::setfill('0') << std::setw(8) << i << "\tOP_GET_BUILTIN" << std::endl;
             break;
         }
         case OP_STRUCT:
