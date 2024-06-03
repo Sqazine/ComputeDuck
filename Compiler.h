@@ -44,8 +44,8 @@ public:
 		case CompileFlag::LLVM:
 		{
 #ifdef BUILD_WITH_LLVM
-			auto fn = m_LLVMCompilerImpl->Compile(stmts);
-			m_LLVMCompilerImpl->Run(fn);
+			m_LLVMCompilerImpl->Compile(stmts);
+			m_LLVMCompilerImpl->Run();
 #else
 #error "Cannot run with llvm,not build yet.";
 #endif

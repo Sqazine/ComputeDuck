@@ -34,9 +34,9 @@ public:
     LLVMCompilerImpl();
     ~LLVMCompilerImpl();
 
-    llvm::Function *Compile(const std::vector<Stmt *> &stmts);
+    void Compile(const std::vector<Stmt *> &stmts);
 
-    void Run(llvm::Function *fn);
+    void Run();
 private:
     void ResetStatus();
 
@@ -109,7 +109,7 @@ private:
     void InitModuleAndPassManager();
 
     void RegisterLlvmFn(std::string_view name, llvm::Function *fn);
-    llvm::Function *GetLlvmFn(std::string_view name);
+    llvm::Function *FindLlvmFn(std::string_view name);
 
     std::unordered_map<std::string_view, llvm::Function *> m_LlvmBuiltins;
 
@@ -120,6 +120,7 @@ private:
 
     llvm::StructType *m_ObjectType{ nullptr };
     llvm::PointerType *m_ObjectPtrType{ nullptr };
+    llvm::PointerType *m_ObjectPtrPtrType{ nullptr };
     llvm::StructType *m_StrObjectType{ nullptr };
     llvm::PointerType *m_StrObjectPtrType{ nullptr };
 

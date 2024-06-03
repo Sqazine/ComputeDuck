@@ -23,7 +23,7 @@
 #define IS_FUNCTION_OBJ(obj) (obj->type == ObjectType::FUNCTION)
 #define IS_BUILTIN_OBJ(obj) (obj->type == ObjectType::BUILTIN)
 
-enum class ObjectType
+enum class ObjectType:uint8_t
 {
 	STR,
 	ARRAY,
@@ -48,9 +48,9 @@ struct Object
 	virtual void UnMark() = 0;
 	virtual bool IsEqualTo(Object *other) = 0;
 
-	bool marked;
-	Object *next;
 	ObjectType type;
+	bool marked;
+    Object* next;
 };
 
 struct StrObject : public Object
