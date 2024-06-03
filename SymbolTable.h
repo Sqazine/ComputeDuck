@@ -4,7 +4,7 @@
 
 #include "Utils.h"
 #ifdef BUILD_WITH_LLVM
-#include "llvm/IR/Value.h"
+#include "llvm/IR/Instructions.h"
 #else
 #error "Cannot run with llvm,not build yet.";
 #endif
@@ -25,12 +25,12 @@ struct Symbol
     }
 
 #ifdef BUILD_WITH_LLVM
-    Symbol(std::string_view name, const SymbolScope& scope, llvm::Value* allocationGEP, int32_t scopeDepth = 0)
-        : name(name), scope(scope), allocationGEP(allocationGEP), scopeDepth(scopeDepth)
+    Symbol(std::string_view name, const SymbolScope& scope, llvm::AllocaInst* allocation, int32_t scopeDepth = 0)
+        : name(name), scope(scope), allocation(allocation), scopeDepth(scopeDepth)
     {
     }
 
-    llvm::Value* allocationGEP{nullptr};
+    llvm::AllocaInst* allocation{nullptr};
 #else
 #error "Cannot run with llvm,not build yet.";
 #endif
@@ -63,9 +63,9 @@ struct SymbolTable
     }
 
 #ifdef BUILD_WITH_LLVM
-    void Set(std::string_view name, llvm::Value* a)
+    void Set(std::string_view name, llvm::AllocaInst* a)
     {
-        symbolMaps[name].allocationGEP = a;
+        symbolMaps[name].allocation = a;
     }
 #else
 #error "Cannot run with llvm,not build yet.";
