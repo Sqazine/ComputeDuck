@@ -21,7 +21,7 @@ enum class Precedence
 	COMPARE,	// < <= > >=
 	ADD_PLUS,	// + -
 	MUL_DIV,	// * /
-	PREFIX,		// not -
+	PREFIX,		// not - ~
 	INFIX,		// [] () .
 };
 

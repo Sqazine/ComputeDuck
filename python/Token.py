@@ -22,27 +22,30 @@ class TokenType(Enum):
    EQUAL = 17,		   # =
    LESS = 18,		   # <
    GREATER = 19,	   # >
-   EQUAL_EQUAL = 20,   # ==
-   LESS_EQUAL = 21,	   # <=
-   GREATER_EQUAL = 22,  # >=
-   BANG_EQUAL = 23,	   # !=
-   IF = 25,			   # if
-   ELSE = 26,		   # else
-   TRUE = 27,		   # true
-   FALSE = 28,		   # false
-   NIL = 29,		   # nil
-   WHILE = 30,		   # while
-   FUNCTION = 31,	   # function
-   RETURN = 32,		   # return
-   AND = 33,		   # and
-   OR = 34,			   # or
-   NOT = 35,		   # not
-   STRUCT = 36,		   # struct
-   REF = 37,           # ref
-   DLLIMPORT = 38       # dllimport
-   IMPORT = 39,         # import
-   UNKNOWN = 40,
-   END = 41
+   VBAR = 20,		  # |
+   CARET =21,		  # ^
+   AMPERSAND=22,	  # &
+   TILDE=23,		  # ~
+   EQUAL_EQUAL = 24,   # ==
+   LESS_EQUAL = 25,	   # <=
+   GREATER_EQUAL = 26,  # >=
+   BANG_EQUAL = 27,	   # !=
+   IF = 28,			   # if
+   ELSE = 29,		   # else
+   TRUE = 30,		   # true
+   FALSE = 31,		   # false
+   NIL = 32,		   # nil
+   WHILE = 33,		   # while
+   FUNCTION = 34,	   # function
+   RETURN = 35,		   # return
+   AND = 36,		   # and
+   OR = 37,			   # or
+   NOT = 38,		   # not
+   STRUCT = 39,		   # struct
+   REF = 40,           # ref
+   DLLIMPORT = 41,       # dllimport
+   IMPORT = 42,         # import
+   END = 43
 
 
 class Token:

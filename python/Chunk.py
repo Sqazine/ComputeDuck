@@ -14,26 +14,29 @@ class OpCode(IntEnum):
     OP_MINUS=9,
     OP_AND=10,
     OP_OR=11,
-    OP_JUMP_IF_FALSE=12,
-    OP_JUMP=13,
-    OP_SET_GLOBAL=14,
-    OP_GET_GLOBAL=15,
-    OP_SET_LOCAL=16,
-    OP_GET_LOCAL=17,
-    OP_ARRAY=18,
-    OP_INDEX=19,
-    OP_FUNCTION_CALL=20,
-    OP_RETURN=21,
-    OP_GET_BUILTIN_FUNCTION=22,
-    OP_GET_BUILTIN_VARIABLE=23,
-    OP_STRUCT=24,
-    OP_GET_STRUCT=25,
-    OP_SET_STRUCT=26,
-    OP_REF_GLOBAL=27,
-    OP_REF_LOCAL=28,
-    OP_REF_INDEX_GLOBAL=29,
-    OP_REF_INDEX_LOCAL=30,
-    OP_SP_OFFSET=31,
+    OP_BIT_AND=12,
+    OP_BIT_OR=13,
+    OP_BIT_NOT=14,
+    OP_BIT_XOR=15,
+    OP_JUMP_IF_FALSE=16,
+    OP_JUMP=17,
+    OP_SET_GLOBAL=18,
+    OP_GET_GLOBAL=19,
+    OP_SET_LOCAL=20,
+    OP_GET_LOCAL=21,
+    OP_ARRAY=22,
+    OP_INDEX=23,
+    OP_FUNCTION_CALL=24,
+    OP_RETURN=25,
+    OP_GET_BUILTIN=26,
+    OP_STRUCT=27,
+    OP_GET_STRUCT=28,
+    OP_SET_STRUCT=29,
+    OP_REF_GLOBAL=30,
+    OP_REF_LOCAL=31,
+    OP_REF_INDEX_GLOBAL=32,
+    OP_REF_INDEX_LOCAL=33,
+    OP_SP_OFFSET=34,
 
 class Chunk:
     opCodes:list[int]
@@ -44,16 +47,16 @@ class Chunk:
         self.constants=constants
         self.opCodes=opCodes
 
-    def Stringify(self)->None:
+    def stringify(self)->None:
         for i in range(0,len(self.constants)):
             if self.constants[i].type==ObjectType.FUNCTION:
-                print("=======constant idx:%d    %s======="% (i,self.constants[i]))
-                self.__OpCodeStringify(self.constants[i].opCodes)
+                print(self.constants[i])
+                self.__opcode_stringify(self.constants[i].opCodes)
                 print()
 
-        self.__OpCodeStringify(self.opCodes)
+        self.__opcode_stringify(self.opCodes)
 
-    def __OpCodeStringify(self,opcodes:list[int])->None:
+    def __opcode_stringify(self,opcodes:list[int])->None:
         i = 0
         while i < (len(opcodes)):
             if opcodes[i]==OpCode.OP_CONSTANT:
@@ -103,29 +106,21 @@ class Chunk:
                 print("%8d    OP_GET_GLOBAL    %d" % (i,pos))
                 i=i+1
             elif opcodes[i]==OpCode.OP_SET_LOCAL:
-                isInUpScope=opcodes[i+1]
-                scopeDepth=opcodes[i+2]
-                index=opcodes[i+3]
-                print("%8d    OP_SET_LOCAL    %d    %d    %d" % (i,isInUpScope,scopeDepth,index))
-                i=i+3
+                scopeDepth=opcodes[i+1]
+                index=opcodes[i+2]
+                print("%8d    OP_SET_LOCAL    %d    %d" % (i,scopeDepth,index))
+                i=i+2
             elif opcodes[i]==OpCode.OP_GET_LOCAL:
-                isInUpScope=opcodes[i+1]
-                scopeDepth=opcodes[i+2]
-                index=opcodes[i+3]
-                print("%8d    OP_GET_LOCAL    %d    %d    %d" % (i,isInUpScope,scopeDepth,index))
-                i=i+3
+                scopeDepth=opcodes[i+1]
+                index=opcodes[i+2]
+                print("%8d    OP_GET_LOCAL    %d    %d" % (i,scopeDepth,index))
+                i=i+2
             elif opcodes[i]==OpCode.OP_FUNCTION_CALL:
                 argCount=opcodes[i+1]
                 print("%8d    OP_FUNCTION_CALL    %d" % (i,argCount))
                 i=i+1
-            elif opcodes[i]==OpCode.OP_GET_BUILTIN_FUNCTION:
-                builtinIdx=opcodes[i+1]
-                print("%8d    OP_GET_BUILTIN_FUNCTION    %d" % (i,builtinIdx))
-                i=i+1
-            elif opcodes[i]==OpCode.OP_GET_BUILTIN_VARIABLE:
-                builtinIdx=opcodes[i+1]
-                print("%8d    OP_GET_BUILTIN_VARIABLE    %d" % (i,builtinIdx))
-                i=i+1
+            elif opcodes[i]==OpCode.OP_GET_BUILTIN:
+                print("%8d    OP_GET_BUILTIN" % i)
             elif opcodes[i]==OpCode.OP_STRUCT:
                 memberCount=opcodes[i+1]
                 print("%8d    OP_STRUCT    %d" % (i,memberCount))
@@ -139,21 +134,19 @@ class Chunk:
                 print("%8d    OP_REF_GLOBAL    %d" % (i,idx))
                 i=i+1
             elif opcodes[i]==OpCode.OP_REF_LOCAL:
-                isInUpScope=opcodes[i+1]
-                scopeDepth=opcodes[i+2]
-                index=opcodes[i+3]
-                print("%8d    OP_REF_LOCAL    %d    %d    %d" % (i,isInUpScope,scopeDepth,index))
-                i=i+3
+                scopeDepth=opcodes[i+1]
+                index=opcodes[i+2]
+                print("%8d    OP_REF_LOCAL    %d    %d" % (i,scopeDepth,index))
+                i=i+2
             elif opcodes[i]==OpCode.OP_REF_INDEX_GLOBAL:
                 pos=opcodes[i+1]
                 print("%8d    OP_REF_INDEX_GLOBAL    %d" % (i,pos))
                 i=i+1
             elif opcodes[i]==OpCode.OP_REF_INDEX_LOCAL:
-                isInUpScope=opcodes[i+1]
-                scopeDepth=opcodes[i+2]
-                index=opcodes[i+3]
-                print("%8d    OP_REF_INDEX_LOCAL    %d    %d    %d" % (i,isInUpScope,scopeDepth,index))
-                i=i+3
+                scopeDepth=opcodes[i+1]
+                index=opcodes[i+2]
+                print("%8d    OP_REF_INDEX_LOCAL    %d    %d" % (i,scopeDepth,index))
+                i=i+2
             elif opcodes[i]==OpCode.OP_SP_OFFSET:
                 offset=opcodes[i+1]
                 print("%8d    OP_SP_OFFSET    %d" % (i,offset))

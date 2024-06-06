@@ -20,8 +20,6 @@ public:
 		m_OpcodeCompilerImpl = new OpCodeCompilerImpl();
 #ifdef BUILD_WITH_LLVM
 		m_LLVMCompilerImpl = new LLVMCompilerImpl();
-#else
-#error "Cannot run with llvm,not build yet.";
 #endif
 	}
 	~Compiler()
@@ -29,8 +27,6 @@ public:
 		SAFE_DELETE(m_OpcodeCompilerImpl);
 #ifdef BUILD_WITH_LLVM
 		SAFE_DELETE(m_LLVMCompilerImpl);
-#else
-#error "Cannot run with llvm,not build yet.";
 #endif
 	}
 
@@ -46,8 +42,6 @@ public:
 #ifdef BUILD_WITH_LLVM
 			m_LLVMCompilerImpl->Compile(stmts);
 			m_LLVMCompilerImpl->Run();
-#else
-#error "Cannot run with llvm,not build yet.";
 #endif
 			break;
 		}
@@ -63,7 +57,5 @@ private:
 	OpCodeCompilerImpl *m_OpcodeCompilerImpl;
 #ifdef BUILD_WITH_LLVM
 	LLVMCompilerImpl *m_LLVMCompilerImpl;
-#else
-#error "Cannot run with llvm,not build yet.";
 #endif
 };
