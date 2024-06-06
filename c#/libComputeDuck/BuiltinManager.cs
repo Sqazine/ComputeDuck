@@ -145,7 +145,7 @@ namespace ComputeDuck
                 var str = (StrObject)(args[0]);
                 if (args[1].type != ObjectType.NUM)
                     Utils.Assert("[Native funcrion 'erase']:Arg1 must be integer type while deleting string element.");
-                 int iIndex = (int)((NumObject)args[1]).value;
+                int iIndex = (int)((NumObject)args[1]).value;
                 if (iIndex < 0 || iIndex >= str.value.Length)
                     Utils.Assert("[Native function 'erase']:Index out of array's range");
 

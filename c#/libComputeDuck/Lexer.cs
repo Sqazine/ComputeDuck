@@ -9,11 +9,11 @@ namespace ComputeDuck
             ResetStatus();
         }
 
-        public List<Token> GenerateTokens(string src,string filePath="RootFile")
+        public List<Token> GenerateTokens(string src, string filePath = "RootFile")
         {
             ResetStatus();
             m_Source = src;
-            m_FilePath=filePath;
+            m_FilePath = filePath;
             while (!IsAtEnd())
             {
                 m_StartPos = m_CurPos;
@@ -182,11 +182,11 @@ namespace ComputeDuck
         private void AddToken(TokenType type)
         {
             var literal = m_Source.Substring(m_StartPos, m_CurPos - m_StartPos);
-            m_Tokens.Add(new Token(type, literal, m_Line,m_FilePath));
+            m_Tokens.Add(new Token(type, literal, m_Line, m_FilePath));
         }
         private void AddToken(TokenType type, string literal)
         {
-            m_Tokens.Add(new Token(type, literal, m_Line,m_FilePath));
+            m_Tokens.Add(new Token(type, literal, m_Line, m_FilePath));
         }
 
         private bool IsAtEnd()

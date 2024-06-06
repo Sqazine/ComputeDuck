@@ -247,7 +247,7 @@ namespace ComputeDuck
     public class FunctionCallExpr : Expr
     {
 
-        public FunctionCallExpr() 
+        public FunctionCallExpr()
         : base(AstType.FUNCTION_CALL)
         {
             this.name = null;

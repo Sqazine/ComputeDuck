@@ -48,7 +48,7 @@ namespace ComputeDuck
         public SymbolTable()
         {
             this.enclosing = null;
-            this.symbolMaps=new Dictionary<string, Symbol>();
+            this.symbolMaps = new Dictionary<string, Symbol>();
             this.definitionCount = 0;
             this.scopeDepth = 0;
         }
@@ -56,7 +56,7 @@ namespace ComputeDuck
         public SymbolTable(SymbolTable enclosing)
         {
             this.enclosing = enclosing;
-            this.symbolMaps=new Dictionary<string, Symbol>();
+            this.symbolMaps = new Dictionary<string, Symbol>();
             this.definitionCount = 0;
             this.scopeDepth = enclosing.scopeDepth + 1;
         }

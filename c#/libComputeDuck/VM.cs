@@ -556,8 +556,8 @@ namespace ComputeDuck
                             var obj = Pop();
                             if (memberName.type == ObjectType.STR)
                             {
-                                var isFound= ((StructObject)instance).members.ContainsKey(((StrObject)memberName).value);
-                                if (isFound==false)
+                                var isFound = ((StructObject)instance).members.ContainsKey(((StrObject)memberName).value);
+                                if (isFound == false)
                                     Utils.Assert("no member named:" + memberName.Stringify() + " in struct instance:" + instance.Stringify());
                                 ((StructObject)instance).members[((StrObject)memberName).value] = obj;
                             }
