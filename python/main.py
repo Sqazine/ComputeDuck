@@ -46,11 +46,24 @@ def run_file(filePath):
     content = read_file(filePath)
     run(content)
 
+def print_usage():
+    print("Usage: ComputeDuck [option]:")
+    print("-h or --help:show usage info.")
+    print("-f or --file:run source file with a valid file path,like : python3 main.py -f examples/array.cd.")
+    exit(1)
+
 if __name__ == "__main__":
-    run_file("D:\\.sc\\ComputeDuck\\examples\\sdl2.cd")
-    # if len(sys.argv) == 2:
-    #     run_file(sys.argv[1])
-    # elif len(sys.argv) == 1:
-    #     repl(sys.argv[0])
-    # else:
-    #     print("Usage: ComputeDuck [filepath]")
+    sourceFilePath=""
+    for i in range(0,len(sys.argv)):
+        if sys.argv[i]=="-f" or sys.argv[i]== "--file":
+            if i+1<len(sys.argv):
+                sourceFilePath=sys.argv[i+1]
+            else:
+                print_usage()
+        if sys.argv[i]=="-h" or sys.argv[i]=="--help":
+            print_usage()
+
+    if sourceFilePath!="":
+        run_file(sourceFilePath)
+    else:
+        repl(sys.argv[0])
