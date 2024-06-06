@@ -1,10 +1,9 @@
 
-def Assert(msg):
+def error(msg):
     print(msg)
     exit(1)
 
-
-def ReadFile(path):
+def read_file(path):
     file = open(path, "r")
     contents = file.read()
     file.close()

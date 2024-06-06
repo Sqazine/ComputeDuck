@@ -226,7 +226,6 @@ void OpCodeCompilerImpl::CompileExpr(Expr *expr, const RWState &state)
 
 void OpCodeCompilerImpl::CompileInfixExpr(InfixExpr *expr)
 {
-
     if (expr->op == "=")
     {
         if (expr->left->type == AstType::IDENTIFIER && expr->right->type == AstType::FUNCTION)

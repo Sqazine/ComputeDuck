@@ -2,34 +2,29 @@
 
 # ComputeDuck
 
-玩具级类C语法的脚本语言
+A C-like syntax Scripting toy language  
 
 <!-- PROJECT SHIELDS -->
-
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![Apache-2.0 License][license-shield]][license-url]
-
 <!-- PROJECT LOGO -->
 <br />
 
-[English](https://github.com/Sqazine/ComputeDuck/blob/master/README-EN.md)
-[中文](https://github.com/Sqazine/ComputeDuck/blob/master/README.md)
-
-## 环境
-1. C++ 编译器(>=17)
+## Environment
+1. C++ compiler(>=17)
 2. CMake(>=3.10)
 
-#### 运行
+#### Build
 ```sh
-#编译
-安装opengl(仅linux)
+#run opengl example on linux,you need to install required libraries:
+install opengl(linux only)
 sudo apt-get install build-essential
 sudo apt-get install libgl1-mesa-dev
 
-安装x11(仅linux)
+install x11(linux only)
 sudo apt-get install xorg
 sudo apt-get install xauth
 sudo apt-get install openbox
@@ -37,41 +32,35 @@ sudo apt-get install xserver-xorg-legacy
 sudo apt install x11-apps -y
 apt install libx11-dev libxext-dev libxtst-dev libxrender-dev libxmu-dev libxmuu-dev
 
+# C++ build:
 git clone https://github.com/Sqazine/ComputeDuck.git
 git submodule update --init --recursive
-cd computeduck
+cd computeduck/cpp
 mkdir build
 cd build 
 cmake ..
 cmake -build .
-# 命令行运行
-windows:
-    .\computeduck.exe  
-    > a=10;println(a);
-linux:
-    chmod 777 computeduck
-    ./computeduck 
-    > a=10;println(a); 
-# 源码运行
-windows:
-    .\computeduck.exe examples/leetcode-twosum.cd
-linux:
-    chmod 777 computeduck
-    ./computeduck examples/leetcode-twosum.cd
+
+# Python build:
+# for sdl2.cd example
+pip install pysdl2-dll
+pip install pysdl2
+# for sdl2-opengl example
+pip install pyopengl
 ```
 
-## 例子
-1. 变量声明
+## Examples
+#### Variable declaration
 ```sh
 a=10;
 b=a;
-c=nil;
+c;
 b=20;
 println(a);#10
 println(b);#20
-println(c);#"nil"
+println(c);#nil
 ```
-2. 函数
+#### Function
 ```sh
 add=function(x,y){
     return x+y;
@@ -80,14 +69,14 @@ add=function(x,y){
 c=add(1.000000,2.000000);
 println(c);#3.000000
 
-#原生函数
-println("hello world!");#输出到控制台的函数
+println("hello world!");#The function that outputs to the console
 
-a=[1,2,3];#数组
-sizeof(a);#获取数组个数
+a=[1,2,3];#array
+sizeof(a);#get the size of array
 ```
-3. 数组
+#### Array
 ```sh
+
 add=function(vec1,vec2){
     return [vec1[0]+vec2[0],vec1[1]+vec2[1]];
 };
@@ -98,12 +87,13 @@ sub=function(vec1,vec2){
 
 vec1=[3,3];
 vec2=[2,2];
+
 vec3=add(vec1,vec2);
 
 println(vec3);#[5.000000,5.000000]
 ```
 
-4. 条件语句
+#### If-else
 ```sh
 a=10;
 b=a;
@@ -143,7 +133,7 @@ else
 println(a);#500.000000
 ```
 
-5. 循环
+#### Loop
 ```sh
 a=0;
 
@@ -160,7 +150,7 @@ while(a<100)
 # 99.000000
 ```
 
-6. 结构体
+#### Struct
 ```sh
 struct Vec2
 {
@@ -196,12 +186,12 @@ println(a);
 println(a.vec3.vec2.x);# 1000.000000
 ```
 
-7. 链表模拟
+#### LinkedList
 ```sh
 struct Node
 {
     v:0,
-    next:nil
+    next:nil,
 }
 
 head=Node;
@@ -223,76 +213,48 @@ while(i<10)
 println(head);
 
 #struct{
-#    v=0.000000
+#  v=0.000000
+#  next=struct
+#  {
+#    v=1.000000
 #    next=struct
+#    {
+#      v=2.000000
+#      next=struct
+#      {
+#        v=3.000000
+#        next=struct
 #        {
-#            v=1.000000
+#          v=4.000000
+#          next=struct
+#          {
+#            v=5.000000
 #            next=struct
+#            {
+#              v=6.000000
+#              next=struct
+#              {
+#                v=7.000000
+#                next=struct
 #                {
-#                    v=2.000000
-#                    next=struct
-#                        {
-#                            v=3.000000
-#                            next=struct
-#                                {
-#                                    v=4.000000
-#                                    next=struct
-#                                        {
-#                                            v=5.000000
-#                                            next=struct
-#                                                {
-#                                                    v=6.000000
-#                                                    next=struct
-#                                                        {
-#                                                            v=7.000000
-#                                                            next=struct
-#                                                                {
-#                                                                    v=8.000000
-#                                                                    next=struct
-#                                                                        {
-#                                                                            v=9.000000
-#                                                                            next=nil
-#                                                                        }
-#                                                                }
-#                                                        }
-#                                                }
-#                                        }
-#                                }
-#                        }
+#                  v=8.000000
+#                  next=struct
+#                  {
+#                    v=9.000000
+#                    next=nil
+#                  }
 #                }
+#              }
+#            }
+#          }
 #        }
+#      }
+#    }
+#  }
 #}
 ```
 
-8. leetcode 两数之和
-```sh
-nums=[2,7,11,15];
-target=9;
-
-twosum=function(nums,target)
-{
-    i=0;
-    j=i+1;
-    println(j);
-
-    while(i<sizeof(nums)-1)
-    {
-        j=i+1;
-        while(j<sizeof(nums))
-        {
-            println(nums[i]);
-            println(nums[j]);
-            if(nums[i]+nums[j]==target)
-                return [i,j];
-            j=j+1;
-        }
-        i=i+1;
-    }
-};
-
-println(twosum(nums,target));#[0.000000,1.000000]
-```
-9. 斐波那契数列
+#### Fibonacci numbers
 ```sh
 fib=function(x)
 {
@@ -307,20 +269,19 @@ a=fib(10);
 println(a);#55
 ```
 
-10. 面向对象模拟
+#### OOP simulate
 ```sh
-
 struct ShapeVtbl
 {
-    area
+    area:nil,
 }
 
 struct Shape
 {
     vptr:ShapeVtbl,
-    super:nil,
+    super,
     x:0,
-    y:0
+    y:0;
 }
 
 ShapeCtor=function(self,x,y)
@@ -355,7 +316,7 @@ struct Rectangle
 {
     super:Shape,
     width,
-    height,
+    height
 }
 
 RectangleCtor=function(self,x,y,w,h)
@@ -384,7 +345,7 @@ println(r1);#struct instance Rectangle:
 println(ShapeArea(r1));#15
 ```
 
-12. 匿名结构体(类似javascript中的对象)
+#### Anonymous Struct(similar to javascript's Object)
 ```sh
 a={
     x:10,
@@ -400,17 +361,17 @@ println(a);
 
 ```
 
-13. 外部文件引入
+#### External file import
 ```sh
-# Vec2.cd
+# vec2.cd
 struct Vec2
 {
     x:0,
     y:0
 }
 
-#Vec3.cd 
-import("../examples/Vec2.cd");
+# vec3.cd 
+import("vec2.cd");
 
 struct Vec3
 {
@@ -418,8 +379,8 @@ struct Vec3
     z:0
 }
 
-#Vec4.cd
-import("../examples/Vec2.cd");
+# vec4.cd
+import("vec2.cd");
 struct Vec4
 {
     vec2:Vec2,
@@ -427,19 +388,19 @@ struct Vec4
     w:0
 }
 
-#Vec5.cd
-import("../examples/Vec4.cd");
+# vec5.cd
+import("vec4.cd");
 struct Vec5
 {
     vec4:Vec4,
     j:0
 }
 
-#VecImport.cd 
-import("../examples/Vec3.cd");
-import("../examples/Vec4.cd");
-import("../examples/Vec2.cd");
-import("../examples/Vec5.cd");
+# vec-import.cd 
+import("vec3.cd");
+import("vec4.cd");
+import("vec2.cd");
+import("vec5.cd");
 
 a=Vec4;
 b=Vec3;
@@ -452,12 +413,11 @@ println(c);
 println(d);
 ```
 
-14. 引入第三方dll库
-
+14. Import 3th-party dll library
 ```sh
 dllimport("sdl2");
 
-ok=SDL_Init();
+ok=SDL_Init(SDL_INIT_VIDEO);
 if(ok<0)
     println("Failed to init sdl2!");
 window=SDL_CreateWindow("First Window",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,800,600);
@@ -468,7 +428,7 @@ renderer=SDL_CreateRenderer(window);
 if(renderer==nil)
     println("Failed to create renderer.");
 
-surface=SDL_LoadBMP("hello.bmp");
+surface=SDL_LoadBMP("examples/hello.bmp");
 
 if(surface==nil)
     println("Failed to load bmp image.");
@@ -495,14 +455,15 @@ while(isRunning)
 
 SDL_Quit();
 ```
-![](screenshots/Image.png)
 
+![](screenshots/image.png)
+
+#### OpenGL example
 ```sh
-
 dllimport("cdsdl2");
 dllimport("cdopengl");
 
-ok=SDL_Init();
+ok=SDL_Init(SDL_INIT_VIDEO);
 if(ok<0)
     println("Failed to init sdl2!");
 window=SDL_CreateWindow("sdl2-opengl",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,800,600,SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE|SDL_WINDOW_ALLOW_HIGHDPI|SDL_WINDOW_OPENGL);
@@ -542,6 +503,7 @@ SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
 SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
 SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
 SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+#not work on WSL2 linux subsystem
 SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
 SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 1);
 
@@ -619,14 +581,13 @@ while(isRunning)
 }
 
 SDL_Quit();
-
 ```
 
 ![](screenshots/Image2.png)
 
-## 4. 版权说明
+## 4. License
 
-该项目签署了 Apache-2.0 License 授权许可,详情请参阅 [LICENSE](https://github.com/Sqazine/ComputeDuck/blob/main/LICENSE)
+This project is licensed under the Apache-2.0 License, see the details[LICENSE](https://github.com/Sqazine/ComputeDuck/blob/main/LICENSE)
 
 <!-- links -->
 [contributors-shield]: https://img.shields.io/github/contributors/Sqazine/ComputeDuck.svg?style=flat-square

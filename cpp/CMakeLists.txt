@@ -19,9 +19,11 @@ option(COMPUTEDUCK_BUILD_WITH_LLVM "build llvm impl" ON)
 option(COMPUTEDUCK_BUILD_WITH_SDL2 "build SDL2 third party for cdsdl2" ON) 
 option(COMPUTEDUCK_BUILD_WITH_OPENGL "build glad third party for cdopengl" ON)  
 
-file(GLOB EXAMPLES "${CMAKE_SOURCE_DIR}/examples/*.cd")
+file(GLOB EXAMPLES "${CMAKE_SOURCE_DIR}/../examples/*.cd")
 
 source_group("examples" FILES ${EXAMPLES})
+
+set(THIRD_PARTY_DIR "${CMAKE_SOURCE_DIR}/3rd")
 
 if(MSVC)
     set(LIB_NAME libdycomputeduck)
@@ -32,13 +34,13 @@ endif()
 set(EXE_NAME computeduck)
 
 if(COMPUTEDUCK_BUILD_WITH_SDL2)
+    add_subdirectory("${THIRD_PARTY_DIR}/SDL2")
     add_subdirectory(library/cdsdl2)
 endif()
 
 if(COMPUTEDUCK_BUILD_WITH_OPENGL)
     add_subdirectory(library/cdopengl)
 endif()
-
 
 set(ROOT_SRC Ast.h
              Chunk.cpp Chunk.h
@@ -62,7 +64,7 @@ if(COMPUTEDUCK_BUILD_WITH_LLVM)
     if(MSVC)
         include(SetLLVM.cmake)
 
-        set(LLVM_DIR "3rd/llvm14_0_0/llvm" CACHE PATH "")
+        set(LLVM_DIR "${THIRD_PARTY_DIR}/llvm/llvm" CACHE PATH "")
         set(LLVM_GENERATE_DIR "${CMAKE_BINARY_DIR}/${LLVM_DIR}")
 
         SetLLVM(${LLVM_DIR} LLVM_LIBS)

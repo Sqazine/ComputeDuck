@@ -1,3 +1,8 @@
-[submodule "SDL"]
-	path = library/cdsdl2/SDL
+[submodule "cpp/3rd/SDL2"]
+	path = cpp/3rd/SDL2
 	url = https://github.com/libsdl-org/SDL.git
+	branch = release-2.28.x
+[submodule "cpp/3rd/llvm"]
+	path = cpp/3rd/llvm
+	url = https://github.com/llvm/llvm-project.git
+	branch = release/14.x

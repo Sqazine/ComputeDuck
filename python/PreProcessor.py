@@ -2,6 +2,7 @@ from Token import *
 from Lexer import *
 from Utils import *
 from operator import attrgetter
+from BuiltinManager import gBuiltinManager
 
 
 class TokenBlockTable:
@@ -14,23 +15,23 @@ class TokenBlockTable:
 class PreProcessor:
     __lexer: Lexer = Lexer()
 
-    def PreProcess(self, src: str) -> list[Token]:
-        tokens = self.__lexer.GenerateTokens(src)
+    def pre_process(self, src: str) -> list[Token]:
+        tokens = self.__lexer.generate_tokens(src)
 
         tables: list[TokenBlockTable] = []
 
-        loc = self.__SearchImportToken(tokens)
+        loc = self.__search_import_token(tokens)
 
         if loc == -1:
             tokens.append(Token(TokenType.END, "END", 0, "RootFile"))
             return tokens
 
-        tables.append(self.__FindBlockTable(tokens))
+        tables.append(self.__find_block_table(tokens))
 
-
-        for t in iter(tables):
+        for t in tables:
             for path in t.importedFilePaths:
-                toks = self.__lexer.GenerateTokens(ReadFile(path), path)
+                absPath=gBuiltinManager.to_full_path(path)
+                toks = self.__lexer.generate_tokens(read_file(absPath), path)
 
                 alreadyExists = False
                 for j in range(0, len(tables)):
@@ -40,7 +41,7 @@ class PreProcessor:
                         break
 
                 if alreadyExists!=True:
-                    blockTable = self.__FindBlockTable(toks)
+                    blockTable = self.__find_block_table(toks)
                     blockTable.filePath = path
                     blockTable.refCount += 1
                     tables.append(blockTable)
@@ -56,8 +57,8 @@ class PreProcessor:
         result.append(Token(TokenType.END, "END", 0, "RootFile"))
         return result
 
-    def __FindBlockTable(self, tokens: list[Token]) -> TokenBlockTable:
-        loc = self.__SearchImportToken(tokens)
+    def __find_block_table(self, tokens: list[Token]) -> TokenBlockTable:
+        loc = self.__search_import_token(tokens)
         if loc == -1:
             result = TokenBlockTable()
             result.tokens = tokens
@@ -67,31 +68,27 @@ class PreProcessor:
 
         while loc != -1:
             if tokens[loc+1].type != TokenType.LPAREN:
-                Assert("[line "+str(tokens[loc+1].line) +
-                       "]:Expect '(' after import keyword.")
+                error("[line "+str(tokens[loc+1].line) +"]:Expect '(' after import keyword.")
 
             if tokens[loc+2].type != TokenType.STRING:
-                Assert("[line "+str(tokens[loc+2].line) +
-                       "]:Expect file path after import stmt's '('.")
+                error("[line "+str(tokens[loc+2].line) +"]:Expect file path after import stmt's '('.")
 
             if tokens[loc+3].type != TokenType.RPAREN:
-                Assert("[line "+str(tokens[loc+3].line) +
-                       "]:Expect ')' after import stmt's file path.")
+                error("[line "+str(tokens[loc+3].line) +"]:Expect ')' after import stmt's file path.")
 
             if tokens[loc+4].type != TokenType.SEMICOLON:
-                Assert("[line "+str(tokens[loc+4].line) +
-                       "]:Expect ';' after the end of import stmt.")
+                error("[line "+str(tokens[loc+4].line) +"]:Expect ';' after the end of import stmt.")
 
             importedFilePaths.append(tokens[loc+2].literal)
             del tokens[loc:loc+5]
-            loc = self.__SearchImportToken(tokens)
+            loc = self.__search_import_token(tokens)
 
         result = TokenBlockTable()
         result.importedFilePaths = importedFilePaths
         result.tokens = tokens
         return result
 
-    def __SearchImportToken(self, tokens: list[Token]) -> int:
+    def __search_import_token(self, tokens: list[Token]) -> int:
         for i in range(0, len(tokens)):
             if tokens[i].type == TokenType.IMPORT:
                 return i

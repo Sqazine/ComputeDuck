@@ -5,8 +5,6 @@
 #include "Utils.h"
 #ifdef BUILD_WITH_LLVM
 #include "llvm/IR/Instructions.h"
-#else
-#error "Cannot run with llvm,not build yet.";
 #endif
 enum class SymbolScope
 {
@@ -31,8 +29,6 @@ struct Symbol
     }
 
     llvm::AllocaInst* allocation{nullptr};
-#else
-#error "Cannot run with llvm,not build yet.";
 #endif
 
     std::string_view name;
@@ -67,8 +63,6 @@ struct SymbolTable
     {
         symbolMaps[name].allocation = a;
     }
-#else
-#error "Cannot run with llvm,not build yet.";
 #endif
 
     Symbol Define(const std::string& name, bool isStructSymbol = false)

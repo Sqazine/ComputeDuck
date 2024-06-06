@@ -1,13 +1,11 @@
-from Utils import Assert
+from Utils import error
 from enum import IntEnum
 
 
 class SymbolScope(IntEnum):
     GLOBAL = 0,
     LOCAL = 1,
-    BUILTIN_FUNCTION = 2,
-    BUILTIN_VARIABLE = 3,
-
+    BUILTIN = 2,
 
 class Symbol:
     name: str
@@ -15,7 +13,6 @@ class Symbol:
     scope: SymbolScope = SymbolScope.GLOBAL
     index: int
     scopeDepth: int
-    isInUpScope: int
 
     def __init__(self, name="", scope: SymbolScope = SymbolScope.GLOBAL, index: int = 0, scopeDepth: int = 0, isStructSymbol: bool = False) -> None:
         self.name = name
@@ -23,8 +20,6 @@ class Symbol:
         self.scope = scope
         self.index = index
         self.scopeDepth = scopeDepth
-        self.isInUpScope = 0
-
 
 class SymbolTable:
     enclosing = None
@@ -41,29 +36,21 @@ class SymbolTable:
             self.scopeDepth = self.enclosing.scopeDepth+1
 
     def Define(self, name: str, isStructSymbol: bool = False) -> Symbol:
-        symbol = Symbol(name, SymbolScope.GLOBAL,
-                        self.definitionCount, self.scopeDepth, isStructSymbol)
+        symbol = Symbol(name, SymbolScope.GLOBAL,self.definitionCount, self.scopeDepth, isStructSymbol)
         if self.enclosing == None:
             symbol.scope = SymbolScope.GLOBAL
         else:
             symbol.scope = SymbolScope.LOCAL
 
         if self.symbolMaps.get(name, None) != None:
-            Assert("Redefined variable:("+name+") in current context.")
+            error("Redefined variable:("+name+") in current context.")
 
         self.symbolMaps[name] = symbol
         self.definitionCount += 1
         return symbol
 
-    def DefineBuiltinFunction(self, name: str, index: int) -> Symbol:
-        symbol = Symbol(name, SymbolScope.BUILTIN_FUNCTION,
-                        index, self.scopeDepth)
-        self.symbolMaps[name] = symbol
-        return symbol
-
-    def DefineBuiltinVariable(self, name: str, index: int) -> Symbol:
-        symbol = Symbol(name, SymbolScope.BUILTIN_VARIABLE,
-                        index, self.scopeDepth)
+    def DefineBuiltin(self, name: str) -> Symbol:
+        symbol = Symbol(name, SymbolScope.BUILTIN,-1, self.scopeDepth)
         self.symbolMaps[name] = symbol
         return symbol
 
@@ -75,10 +62,9 @@ class SymbolTable:
             isFound, symbol = self.enclosing.Resolve(name)
             if isFound == False:
                 return False, None
-            if symbol.scope == SymbolScope.GLOBAL or symbol.scope == SymbolScope.BUILTIN_FUNCTION:
+            if symbol.scope == SymbolScope.GLOBAL or symbol.scope == SymbolScope.BUILTIN:
                 return True, symbol
 
-            symbol.isInUpScope = 1
             self.symbolMaps[symbol.name] = symbol
             return True, symbol
 

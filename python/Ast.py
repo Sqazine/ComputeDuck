@@ -3,7 +3,6 @@ import abc
 
 
 class AstType(IntEnum):
-    #expr
     NUM = 0,
     STR = 1,
     NIL = 2,
@@ -16,17 +15,17 @@ class AstType(IntEnum):
     INDEX = 9,
     REF=10,
     FUNCTION=11,
-    ANONY_STRUCT=12,
-    FUNCTION_CALL = 13,
-    STRUCT_CALL = 14,
-    DLL_IMPORT=15
-    #stmt
-    EXPR = 16,
-    RETURN = 17,
-    IF = 18,
-    SCOPE = 19,
-    WHILE = 20,
-    STRUCT = 21,
+    FUNCTION_CALL = 12,
+    STRUCT_CALL = 13,
+    DLL_IMPORT=14,
+
+    EXPR = 15,
+    RETURN = 16,
+    IF = 17,
+    SCOPE = 18,
+    WHILE = 19,
+
+    STRUCT = 20,
 
 
 class AstNode:
@@ -298,11 +297,11 @@ class FunctionExpr(Expr):
         result += self.body.__str__()
         return result
 
-class AnonyStructExpr(Expr):
+class StructExpr(Expr):
     memberPairs: dict[IdentifierExpr,Expr] = {}
     
     def __init__(self,memberPairs=[]) -> None:
-        super().__init__(AstType.ANONY_STRUCT)
+        super().__init__(AstType.STRUCT)
         self.memberPairs = memberPairs
 
     def __str__(self) -> str:

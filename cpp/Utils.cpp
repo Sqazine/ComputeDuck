@@ -4,7 +4,7 @@
 #elif __linux__
 #include <dlfcn.h>
 #elif __APPLE__
-#error "Apple platform not implement yet"
+#warning "Apple platform not implement yet"
 #endif
 
 std::string ReadFile(std::string_view path)
