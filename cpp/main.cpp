@@ -109,7 +109,7 @@ int32_t main(int argc, const char **argv)
 		}
 
 		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
-			PrintUsage();
+			return PrintUsage();
 	}
 
 	g_PreProcessor = new PreProcessor();
