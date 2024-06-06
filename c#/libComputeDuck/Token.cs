@@ -48,12 +48,12 @@ namespace ComputeDuck
 
     public class Token
     {
-        public Token(TokenType type, string literal, int line,string filePath)
+        public Token(TokenType type, string literal, int line, string filePath)
         {
             this.literal = literal;
             this.type = type;
             this.line = line;
-            this.filePath=filePath;
+            this.filePath = filePath;
         }
 
         public string Stringify()

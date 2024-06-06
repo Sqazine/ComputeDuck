@@ -39,8 +39,8 @@ public class sdl2
                  0
                  );
 
-            builtinData.nativeData=window;
-            builtinData.destroyFunc=(object nativeData)=>
+            builtinData.nativeData = window;
+            builtinData.destroyFunc = (object nativeData) =>
             {
                 SDL.SDL_DestroyWindow((nint)nativeData);
             };
@@ -101,7 +101,7 @@ public class sdl2
         {
             if (args[0].type != ObjectType.STR)
                 Utils.Assert("Not a valid str data.");
-                
+
             var surface = SDL.SDL_LoadBMP(((StrObject)args[0]).value);
 
             var r = new BuiltinDataObject();
@@ -153,10 +153,10 @@ public class sdl2
             var renderer = (nint)((BuiltinDataObject)args[0]).nativeData;
             var texture = (nint)((BuiltinDataObject)args[1]).nativeData;
 
-            nint src=IntPtr.Zero;
-            nint dst=src;
+            nint src = IntPtr.Zero;
+            nint dst = src;
 
-            var ret = SDL.SDL_RenderCopy(renderer, texture,src,dst);
+            var ret = SDL.SDL_RenderCopy(renderer, texture, src, dst);
             result = new NumObject(ret);
             return true;
         });

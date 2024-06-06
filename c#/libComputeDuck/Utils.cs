@@ -23,7 +23,7 @@ namespace ComputeDuck
         //thanks for:
         //https://www.cnblogs.com/jiceberg420/p/12648624.html
         //http://theraneman.blogspot.com/2010/04/creating-instance-of-type-outside.html
-        public static void LoadAssembly(AssemblyName[] arr,string dir)
+        public static void LoadAssembly(AssemblyName[] arr, string dir)
         {
             Assembly[] loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
             List<string> names = new List<string>();
@@ -38,9 +38,9 @@ namespace ComputeDuck
                 {
                     try
                     {
-                        Assembly loadedAssembly = Assembly.LoadFrom(dir+aname.Name+".dll");
+                        Assembly loadedAssembly = Assembly.LoadFrom(dir + aname.Name + ".dll");
                         AssemblyName[] referencedAssemblies = loadedAssembly.GetReferencedAssemblies();
-                        LoadAssembly(referencedAssemblies,dir);
+                        LoadAssembly(referencedAssemblies, dir);
                     }
                     catch (Exception ex)
                     {
