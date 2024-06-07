@@ -86,10 +86,8 @@ class VM:
                 self.__push(object)
 
             elif instruction == OpCode.OP_ADD:
-                left = self.__pop()
-                left=self.__find_actual_object(left)
-                right = self.__pop()
-                right=self.__find_actual_object(right)
+                left=self.__find_actual_object(self.__pop())
+                right=self.__find_actual_object(self.__pop())
 
                 if left.type == ObjectType.NUM and right.type == ObjectType.NUM:
                     self.__push(NumObject(left.value+right.value))
@@ -99,10 +97,8 @@ class VM:
                     error("Invalid binary op:" + left.__str__() + "+" + right.__str__())
 
             elif instruction == OpCode.OP_SUB:
-                left = self.__pop()
-                left=self.__find_actual_object(left)
-                right = self.__pop()
-                right=self.__find_actual_object(right)
+                left=self.__find_actual_object(self.__pop())
+                right=self.__find_actual_object(self.__pop())
 
                 if left.type == ObjectType.NUM and right.type == ObjectType.NUM:
                     self.__push(NumObject(left.value-right.value))
@@ -111,10 +107,8 @@ class VM:
                            left.__str__()+"-"+right.__str__())
 
             elif instruction == OpCode.OP_MUL:
-                left = self.__pop()
-                left=self.__find_actual_object(left)
-                right = self.__pop()
-                right=self.__find_actual_object(right)
+                left=self.__find_actual_object(self.__pop())
+                right=self.__find_actual_object(self.__pop())
 
                 if left.type == ObjectType.NUM and right.type == ObjectType.NUM:
                     self.__push(NumObject(left.value*right.value))
@@ -122,10 +116,8 @@ class VM:
                     error("Invalid binary op:" + left.__str__()+"*"+right.__str__())
 
             elif instruction == OpCode.OP_DIV:
-                left = self.__pop()
-                left=self.__find_actual_object(left)
-                right = self.__pop()
-                right=self.__find_actual_object(right)
+                left=self.__find_actual_object(self.__pop())
+                right=self.__find_actual_object(self.__pop())
 
                 if left.type == ObjectType.NUM and right.type == ObjectType.NUM:
                     self.__push(NumObject(left.value/right.value))
@@ -134,10 +126,8 @@ class VM:
                            left.__str__()+"/"+right.__str__())
 
             elif instruction == OpCode.OP_GREATER:
-                left = self.__pop()
-                left=self.__find_actual_object(left)
-                right = self.__pop()
-                right=self.__find_actual_object(right)
+                left=self.__find_actual_object(self.__pop())
+                right=self.__find_actual_object(self.__pop())
 
                 if left.type == ObjectType.NUM and right.type == ObjectType.NUM:
                     self.__push(BoolObject(left.value > right.value))
@@ -145,10 +135,8 @@ class VM:
                     self.__push(BoolObject(False))
 
             elif instruction == OpCode.OP_LESS:
-                left = self.__pop()
-                left=self.__find_actual_object(left)
-                right = self.__pop()
-                right=self.__find_actual_object(right)
+                left=self.__find_actual_object(self.__pop())
+                right=self.__find_actual_object(self.__pop())
 
                 if left.type == ObjectType.NUM and right.type == ObjectType.NUM:
                     self.__push(BoolObject(left.value < right.value))
@@ -156,16 +144,13 @@ class VM:
                     self.__push(BoolObject(False))
 
             elif instruction == OpCode.OP_EQUAL:
-                left = self.__pop()
-                left=self.__find_actual_object(left)
-                right = self.__pop()
-                right=self.__find_actual_object(right)
+                left=self.__find_actual_object(self.__pop())
+                right=self.__find_actual_object(self.__pop())
 
                 self.__push(BoolObject(left==right))
 
             elif instruction == OpCode.OP_NOT:
-                obj = self.__pop()
-                obj = self.__find_actual_object(obj)
+                obj = self.__find_actual_object(self.__pop())
 
                 if obj.type != ObjectType.BOOL:
                     error("Not a boolean obj of:" + obj.__str__())
@@ -180,10 +165,8 @@ class VM:
                 self.__push(-obj.value)
 
             elif instruction == OpCode.OP_AND:
-                left = self.__pop()
-                left=self.__find_actual_object(left)
-                right = self.__pop()
-                right=self.__find_actual_object(right)
+                left=self.__find_actual_object(self.__pop())
+                right=self.__find_actual_object(self.__pop())
 
                 if left.type == ObjectType.BOOL and right.type == ObjectType.BOOL:
                     self.__push(BoolObject(left.value and right.value))
@@ -191,10 +174,8 @@ class VM:
                     error("Invalid op:" + left.__str__() + " and " + right.__str__())
 
             elif instruction == OpCode.OP_OR:
-                left = self.__pop()
-                left=self.__find_actual_object(left)
-                right = self.__pop()
-                right=self.__find_actual_object(right)
+                left=self.__find_actual_object(self.__pop())
+                right=self.__find_actual_object(self.__pop())
 
                 if left.type == ObjectType.BOOL and right.type == ObjectType.BOOL:
                     self.__push(BoolObject(left.value or right.value))
@@ -202,10 +183,8 @@ class VM:
                     error("Invalid op:" + left.__str__() + " or " + right.__str__())
 
             elif instruction == OpCode.OP_BIT_AND:
-                left = self.__pop()
-                left=self.__find_actual_object(left)
-                right = self.__pop()
-                right=self.__find_actual_object(right)
+                left=self.__find_actual_object(self.__pop())
+                right=self.__find_actual_object(self.__pop())
 
                 if left.type == ObjectType.NUM and right.type == ObjectType.NUM:
                     self.__push(NumObject(int(left.value) & int(right.value)))
@@ -213,10 +192,8 @@ class VM:
                     error("Invalid op:" + left.__str__() + " & " + right.__str__())
 
             elif instruction == OpCode.OP_BIT_OR:
-                left = self.__pop()
-                left=self.__find_actual_object(left)
-                right = self.__pop()
-                right=self.__find_actual_object(right)
+                left=self.__find_actual_object(self.__pop())
+                right=self.__find_actual_object(self.__pop())
 
                 if left.type == ObjectType.NUM and right.type == ObjectType.NUM:
                     self.__push(NumObject(int(left.value) | int(right.value)))
@@ -224,10 +201,8 @@ class VM:
                     error("Invalid op:" + left.__str__() + " | " + right.__str__())
 
             elif instruction == OpCode.OP_BIT_XOR:
-                left = self.__pop()
-                left=self.__find_actual_object(left)
-                right = self.__pop()
-                right=self.__find_actual_object(right)
+                left=self.__find_actual_object(self.__pop())
+                right=self.__find_actual_object(self.__pop())
 
                 if left.type == ObjectType.NUM and right.type == ObjectType.NUM:
                     self.__push(NumObject(int(left.value) ^ int(right.value)))
@@ -235,8 +210,7 @@ class VM:
                     error("Invalid op:" + left.__str__() + " ^ " + right.__str__())
 
             elif instruction == OpCode.OP_BIT_NOT:
-                obj = self.__pop()
-                obj = self.__find_actual_object(obj)
+                obj = self.__find_actual_object(self.__pop())
 
                 if obj.type != ObjectType.NUM:
                     error("Not a number obj of:" + obj.__str__())
