@@ -129,7 +129,7 @@ def sdl_gl_set_attribute_wrapper(args:list[Object]):
 
 def sdl_gl_swap_window_wrapper(args:list[Object]):
     if args[0].type != ObjectType.BUILTIN:
-	    error("Not a valid builtin value of SDL_GL_SwapWindow(args[0]).")
+        error("Not a valid builtin value of SDL_GL_SwapWindow(args[0]).")
     windowHandle = args[0].data
     sdl2.SDL_GL_SwapWindow(windowHandle)
     return False,None
