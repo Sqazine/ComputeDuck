@@ -22,7 +22,7 @@ class Object:
         self.type = type
     
     def __eq__(self, other) -> bool:
-        if other==None or (not isinstance(other,Object)) or other.type != self.type:
+        if other == None or (not isinstance(other,Object)) or other.type != self.type:
             return False
         return True
 
@@ -37,9 +37,7 @@ class NumObject(Object):
         return str(self.value)
 
     def __eq__(self, other) -> bool:
-        if other==None or other.type != ObjectType.NUM:
-            return False
-        return self.value == other.value
+        return  super().__eq__(other) and self.value == other.value
 
 
 class StrObject(Object):
@@ -53,7 +51,7 @@ class StrObject(Object):
         return self.value
 
     def __eq__(self, other) -> bool:
-        return super.__eq__(other) and self.value == other.value
+        return super().__eq__(other) and self.value == other.value
 
 class BoolObject(Object):
     value = False
@@ -69,7 +67,7 @@ class BoolObject(Object):
             return "false"
 
     def __eq__(self, other) -> bool:
-        return super.__eq__(other) and self.value == other.value
+        return super().__eq__(other) and self.value == other.value
 
 
 class NilObject(Object):
@@ -79,7 +77,6 @@ class NilObject(Object):
 
     def __str__(self) -> str:
         return "nil"
-
 
 class ArrayObject(Object):
     elements: list = []
@@ -97,7 +94,7 @@ class ArrayObject(Object):
         return result+"]"
 
     def __eq__(self, other) -> bool:
-        if super.__eq__(other) == False:
+        if super().__eq__(other) == False:
             return False
 
         if len(self.elements) != len(other.elements):
@@ -126,7 +123,7 @@ class RefObject(Object):
         return str(ctypes.cast(self.pointer, ctypes.py_object).value)
 
     def __eq__(self, other) -> bool:
-        return self.__eq__(other) and self.pointer == other.pointer
+        return super().__eq__(other) and self.pointer == other.pointer
 
 
 class FunctionObject(Object):
@@ -144,13 +141,13 @@ class FunctionObject(Object):
         return "function:(0x"+str(id(self))+")"
 
     def __eq__(self, other) -> bool:
-        if self.__eq__(other) == False:
+        if super().__eq__(other) == False:
             return False
-        otherOpCodes = other.opCodes
-        if len(self.opCodes) != len(otherOpCodes):
+
+        if len(self.opCodes) != len(other.opCodes):
             return False
         for i in range(0, len(self.opCodes)):
-            if self.opCodes[i] != otherOpCodes[i]:
+            if self.opCodes[i] != other.opCodes[i]:
                 return False
         return True
     
@@ -170,7 +167,7 @@ class StructObject(Object):
         return result
 
     def __eq__(self, other) -> bool:
-        if self.__eq__(other) == False:
+        if super().__eq__(other) == False:
             return False
         if len(self.members) != len(other.members):
             return False
@@ -197,57 +194,4 @@ class BuiltinObject(Object):
         return "Builtin:(0x"+str(id(self))+")"
 
     def __eq__(self, other) -> bool:
-        return self.__eq__(other) and self.data == other.data and self.destroyFunc==other.destroyFunction
-
-# class BuiltinFunctionObject(Object):
-#     fn: any
-
-#     def __init__(self, fn: any) -> None:
-#         super().__init__(ObjectType.BUILTIN_FUNCTION)
-#         self.fn = fn
-
-#     def __str__(self) -> str:
-#         return "Builtin Function:(0x"+str(id(self))+")"
-
-#     def __eq__(self, other) -> bool:
-#         if other==None or other.type != ObjectType.BUILTIN_FUNCTION:
-#             return False
-#         return self.fn == other.fn
-    
-
-# class BuiltinDataObject(Object):
-#     nativeData: any
-#     destroyFunc: any
-
-#     def __init__(self, nativeData, destroyFunc) -> None:
-#         super().__init__(ObjectType.BUILTIN)
-#         self.nativeData = nativeData
-#         self.destroyFunc = destroyFunc
-
-#     def __del__(self) -> None:
-#         if self.destroyFunc!=None:
-#             self.destroyFunc(self.nativeData)
-
-#     def __str__(self) -> str:
-#         return "Builtin Data:(0x"+id(self.nativeData)+")"
-
-#     def __eq__(self, other):
-#         if other==None or other.type != self.type:
-#             return False
-#         return self.nativeData == other.nativeData
-
-
-# class BuiltinVariableObject(Object):
-#     obj: Object
-
-#     def __init__(self, obj) -> None:
-#         super().__init__(ObjectType.BUILTIN)
-#         self.obj = obj
-
-#     def __str__(self) -> None:
-#         return "Builtin Variable:("+self.obj.__str__()+")"
-
-#     def __eq__(self, other: Object):
-#         if other==None or other.type != self.type:
-#             return False
-#         return self.obj == other.obj
+        return super().__eq__(other) and self.data == other.data and self.destroyFunc==other.destroyFunction
