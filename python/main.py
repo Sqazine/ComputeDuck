@@ -29,13 +29,18 @@ def run(content:str):
 def repl(path:str):
     set_base_path(path)
 
+    allLines=""
+
     print("> ", end="")
     line = input()
     while (True):
         if line == "clear":
-            compiler.reset_status()
+            allLines=""
+        elif line=="exit":
+            return
         else:
-            run(line)
+            allLines+=line
+            run(allLines)
         print("> ", end="")
         line = input()
 

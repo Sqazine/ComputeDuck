@@ -157,9 +157,7 @@ class VM:
                 self.__push(BoolObject(not obj.value))
 
             elif instruction == OpCode.OP_MINUS:
-                obj = self.__pop()
-                while obj.type == ObjectType.REF:
-                    obj = self.__search_object_by_address(obj.pointer)
+                obj = self.__find_actual_object(self.__pop())
                 if obj.type != ObjectType.NUM:
                     error("Not a valid op:'-'"+obj.__str__())
                 self.__push(-obj.value)
@@ -268,7 +266,7 @@ class VM:
                         gRefObj = self.__search_object_by_address(gRefObj.pointer)
                     self.__assign_object_by_address(gRefAddress, obj)
 
-                    refObjs = self.__search_ref_object_by_address(gRefAddress)
+                    refObjs = self.__search_ref_object_list_by_address(gRefAddress)
                     for i in range(0, len(refObjs)):
                         refObjs[i].pointer = id(obj)
 
@@ -323,7 +321,7 @@ class VM:
                         lRefObj = self.__search_object_by_address(lRefObj.pointer)
                     self.__assign_object_by_address(lRefAddress, obj)
 
-                    refObjs = self.__search_ref_object_by_address(lRefAddress)
+                    refObjs = self.__search_ref_object_list_by_address(lRefAddress)
                     for i in range(0, len(refObjs)):
                         refObjs[i].pointer = id(obj)
 
@@ -501,15 +499,14 @@ class VM:
                 self.__objectStack[p] = obj
                 return
 
-    def __search_ref_object_by_address(self, address: int) -> list:
+    def __search_ref_object_list_by_address(self, address: int) -> list:
         result: list = []
         for i in range(0, len(self.__globalVariables)):
             if self.__globalVariables[i].type == ObjectType.ARRAY:
                 for j in range(0, len(self.__globalVariables[i].elements)):
                     if self.__globalVariables[i].elements[j].type == ObjectType.REF:
                         if self.__globalVariables[i].elements[j].pointer == address:
-                            result.append(
-                                self.__globalVariables[i].elements[j])
+                            result.append(self.__globalVariables[i].elements[j])
             elif self.__globalVariables[i].type == ObjectType.REF:
                 if self.__globalVariables[i].pointer == address:
                     result.append(self.__globalVariables[i])

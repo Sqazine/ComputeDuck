@@ -22,6 +22,9 @@ class Compiler:
         self.reset_status()
 
     def compile(self, stmts: list[Stmt]) -> Chunk:
+
+        self.reset_status()
+
         for stmt in stmts:
             self.__compile_stmt(stmt)
         return Chunk(self.__cur_opcodes(), self.__constants)
