@@ -62,13 +62,15 @@ void Repl(std::string_view exePath)
 	std::cout << "> ";
 	while (getline(std::cin, line))
 	{
-		allLines += line;
 		if (line == "exit")
 			return;
-		if (line == "clear")
+		else if (line == "clear")
 			allLines.clear();
-
-		Run(allLines);
+		else
+		{
+			allLines += line;
+			Run(allLines);
+		}
 
 		std::cout << "> ";
 	}
