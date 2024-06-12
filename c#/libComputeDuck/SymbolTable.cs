@@ -6,8 +6,7 @@ namespace ComputeDuck
     {
         GLOBAL,
         LOCAL,
-        BUILTIN_FUNCTION,
-        BUILTIN_VARIABLE
+        BUILTIN
     }
 
     public class Symbol
@@ -17,7 +16,6 @@ namespace ComputeDuck
             this.scope = SymbolScope.GLOBAL;
             this.index = 0;
             this.scopeDepth = 0;
-            this.isInUpScope = 0;
             this.name = "";
         }
 
@@ -32,7 +30,6 @@ namespace ComputeDuck
             this.scope = scope;
             this.index = index;
             this.scopeDepth = scopeDepth;
-            this.isInUpScope = 0;
         }
 
         public string name;
@@ -40,7 +37,6 @@ namespace ComputeDuck
         public SymbolScope scope;
         public int index;
         public int scopeDepth;
-        public int isInUpScope;
     }
 
     public class SymbolTable
@@ -77,43 +73,35 @@ namespace ComputeDuck
             return symbol;
         }
 
-        public Symbol DefineBuiltinFunction(string name, int index)
+        public Symbol DefineBuiltin(string name)
         {
-            var symbol = new Symbol(name, SymbolScope.BUILTIN_FUNCTION, index, scopeDepth);
+            var symbol = new Symbol(name, SymbolScope.BUILTIN, -1, scopeDepth);
             symbolMaps[name] = symbol;
             return symbol;
         }
 
-        public Symbol DefineBuiltinVariable(string name, int index)
+        public (bool,Symbol?) Resolve(string name)
         {
-            var symbol = new Symbol(name, SymbolScope.BUILTIN_VARIABLE, index, scopeDepth);
-            symbolMaps[name] = symbol;
-            return symbol;
-        }
-
-        public bool Resolve(string name, out Symbol symbol)
-        {
+            Symbol symbol;
             var isFound = symbolMaps.ContainsKey(name);
             if (isFound)
             {
                 symbol = symbolMaps[name];
-                return true;
+                return (true,symbol);
             }
             else if (enclosing != null)
             {
-                isFound = enclosing.Resolve(name, out symbol);
+               (isFound,symbol) = enclosing.Resolve(name);
                 if (!isFound)
-                    return false;
-                if (symbol.scope == SymbolScope.GLOBAL || symbol.scope == SymbolScope.BUILTIN_FUNCTION || symbol.scope == SymbolScope.BUILTIN_VARIABLE)
-                    return true;
+                    return (false,null);
+                if (symbol.scope == SymbolScope.GLOBAL || symbol.scope == SymbolScope.BUILTIN)
+                    return (true,symbol);
 
-                symbol.isInUpScope = 1;
                 symbolMaps[symbol.name] = symbol;
-                return true;
+                return (true,symbol);
             }
 
-            symbol = new Symbol();// for avoiding .net compiler error
-            return false;
+            return (false,null);
         }
 
         public SymbolTable enclosing;

@@ -35,11 +35,11 @@ def sdl_poll_event_wrapper(args: list[Object]):
 
 def sdl_get_event_type_wrapper(args: list[Object]):
     if args[0].type != ObjectType.BUILTIN:
-        error("Not a valid builtin data.")
+        error("Invalid builtin data.")
 
     typeStr = type(args[0].data)().__str__()
     if typeStr.find("sdl2.events.SDL_Event") == -1:
-        error("Not a valid SDL_Event object.")
+        error("Invalid SDL_Event object.")
 
     return True, NumObject(args[0].data.type)
 
@@ -49,11 +49,11 @@ def sdl_destroy_renderer_wrapper(data: any):
 
 def sdl_create_renderer_wrapper(args: list[Object]):
     if args[0].type != ObjectType.BUILTIN:
-        error("Not a valid builtin data.")
+        error("Invalid builtin data.")
 
     typeStr = type(args[0].data)().__str__()
     if typeStr.find("sdl2.video.LP_SDL_Window") == -1:
-        error("Not a valid SDL_Wnidow object.")
+        error("Invalid SDL_Wnidow object.")
 
     window = args[0].data
     renderer = sdl2.SDL_CreateRenderer(
@@ -66,7 +66,7 @@ def sdl_free_surface_wrapper(data: any):
 
 def sdl_load_bmp_wrapper(args: list[Object]):
     if args[0].type != ObjectType.STR:
-        error("Not a valid str value.")
+        error("Invalid str value.")
 
     fullPath=gBuiltinManager.to_full_path(args[0].value)
     arg0 = ctypes.string_at(ctypes.c_char_p(fullPath.encode('utf-8')))
@@ -80,7 +80,7 @@ def sdlDestroyTextureWrapper(data: any):
 
 def sdlCreateTextureFromSurfaceWrapper(args: list[Object]):
     if args[0].type != ObjectType.BUILTIN or args[1].type != ObjectType.BUILTIN:
-        error("Not a valid builtin value of SDL_CreateTextureFromSurface(args[0] or args[1])")
+        error("Invalid builtin value of SDL_CreateTextureFromSurface(args[0] or args[1])")
 
     renderer = args[0].data
     surface = args[1].data
@@ -92,14 +92,14 @@ def sdlCreateTextureFromSurfaceWrapper(args: list[Object]):
 
 def sdl_render_clear_wrapper(args: list[Object]):
     if args[0].type != ObjectType.BUILTIN:
-        error("Not a valid builtin value of SDL_RenderClear(args[0]).")
+        error("Invalid builtin value of SDL_RenderClear(args[0]).")
     renderer = args[0].data
     sdl2.SDL_RenderClear(renderer)
     return False, None
 
 def sdl_render_copy_wrapper(args: list[Object]):
     if args[0].type != ObjectType.BUILTIN or args[1].type != ObjectType.BUILTIN:
-        error("Not a valid builtin value of SDL_RenderCopy(args[0] or args[1]).")
+        error("Invalid builtin value of SDL_RenderCopy(args[0] or args[1]).")
     renderer = args[0].data
     texture = args[1].data
     ret = sdl2.SDL_RenderCopy(renderer, texture, None, None)
@@ -107,16 +107,16 @@ def sdl_render_copy_wrapper(args: list[Object]):
 
 def sdl_render_present_wrapper(args: list[Object]):
     if args[0].type != ObjectType.BUILTIN:
-        error("Not a valid builtin value of SDL_RenderPresent(args[0]).")
+        error("Invalid builtin value of SDL_RenderPresent(args[0]).")
     renderer = args[0].data
     sdl2.SDL_RenderPresent(renderer)
     return False, None
 
 def sdl_gl_set_attribute_wrapper(args:list[Object]):
     if args[0].type!=ObjectType.BUILTIN:
-        error("Not a valid builtin value of SDL_GL_SetAttribute(args[0]).")
+        error("Invalid builtin value of SDL_GL_SetAttribute(args[0]).")
     if args[1].type!=ObjectType.BUILTIN and args[1].type!=type!=ObjectType.NUM:
-        error("Not a valid builtin value or num value of SDL_GL_SetAttribute(args[1]).")
+        error("Invalid builtin value or num value of SDL_GL_SetAttribute(args[1]).")
 
     flags0=args[0].data
     flags1=0
@@ -129,7 +129,7 @@ def sdl_gl_set_attribute_wrapper(args:list[Object]):
 
 def sdl_gl_swap_window_wrapper(args:list[Object]):
     if args[0].type != ObjectType.BUILTIN:
-        error("Not a valid builtin value of SDL_GL_SwapWindow(args[0]).")
+        error("Invalid builtin value of SDL_GL_SwapWindow(args[0]).")
     windowHandle = args[0].data
     sdl2.SDL_GL_SwapWindow(windowHandle)
     return False,None
@@ -139,7 +139,7 @@ def sdl_gl_delete_context_wrapper(data:any):
 
 def sdl_gl_create_context_wrapper(args:list[Object]):
     if args[0].type!=ObjectType.BUILTIN:
-        error("Not a valid builtin value of SDL_GL_CreateContext(args[0]).")
+        error("Invalid builtin value of SDL_GL_CreateContext(args[0]).")
     windowHandle = args[0].data
 
     ctx=sdl2.SDL_GL_CreateContext(windowHandle)
@@ -148,7 +148,7 @@ def sdl_gl_create_context_wrapper(args:list[Object]):
 
 def sdl_gl_set_swap_interval_wrapper(args:list[Object]):
     if args[0].type!=ObjectType.NUM:
-        error("Not a valid builtin value of SDL_GL_SetSwapInterval(args[0]).")
+        error("Invalid builtin value of SDL_GL_SetSwapInterval(args[0]).")
     sdl2.SDL_GL_SetSwapInterval(int(args[0].value))
     return False,None
 

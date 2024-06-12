@@ -4,7 +4,6 @@ namespace ComputeDuck
 {
     public enum AstType
     {
-        //expr
         NUM,
         STR,
         NIL,
@@ -17,16 +16,16 @@ namespace ComputeDuck
         INDEX,
         REF,
         FUNCTION,
-        ANONY_STRUCT,
         FUNCTION_CALL,
         STRUCT_CALL,
         DLL_IMPORT,
-        //stmt
+        
         EXPR,
         RETURN,
         IF,
         SCOPE,
         WHILE,
+
         STRUCT,
     }
 
@@ -447,16 +446,16 @@ namespace ComputeDuck
         public ScopeStmt? body;
     }
 
-    public class AnonyStructExpr : Expr
+    public class StructExpr : Expr
     {
-        public AnonyStructExpr()
-        : base(AstType.ANONY_STRUCT)
+        public StructExpr()
+        : base(AstType.STRUCT)
         {
             memberPairs = new List<KeyValuePair<IdentifierExpr, Expr?>>();
         }
 
-        public AnonyStructExpr(List<KeyValuePair<IdentifierExpr, Expr?>> memberPairs)
-       : base(AstType.ANONY_STRUCT)
+        public StructExpr(List<KeyValuePair<IdentifierExpr, Expr?>> memberPairs)
+       : base(AstType.STRUCT)
         {
             this.memberPairs = memberPairs;
         }

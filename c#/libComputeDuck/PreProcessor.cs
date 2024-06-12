@@ -34,7 +34,8 @@ namespace ComputeDuck
             {
                 foreach (var path in tables[i].importedFilePaths)
                 {
-                    var toks = m_Lexer.GenerateTokens(Utils.ReadFile(path), path);
+                    var fullPath=BuiltinManager.GetInstance().ToFullPath(path);
+                    var toks = m_Lexer.GenerateTokens(Utils.ReadFile(fullPath), path);
 
                     var alreadyExists = false;
                     for (int j = 0; j < tables.Count; ++j)

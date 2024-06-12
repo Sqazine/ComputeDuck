@@ -18,6 +18,10 @@ namespace ComputeDuck
         OP_MINUS,
         OP_AND,
         OP_OR,
+        OP_BIT_AND,
+        OP_BIT_OR,
+        OP_BIT_NOT,
+        OP_BIT_XOR,
         OP_JUMP_IF_FALSE,
         OP_JUMP,
         OP_SET_GLOBAL,
@@ -28,8 +32,7 @@ namespace ComputeDuck
         OP_INDEX,
         OP_FUNCTION_CALL,
         OP_RETURN,
-        OP_GET_BUILTIN_FUNCTION,
-        OP_GET_BUILTIN_VARIABLE,
+        OP_GET_BUILTIN,
         OP_STRUCT,
         OP_GET_STRUCT,
         OP_SET_STRUCT,
@@ -57,7 +60,7 @@ namespace ComputeDuck
                 var constant = constants[i];
                 if (constant.type == ObjectType.FUNCTION)
                 {
-                    Console.WriteLine("=======constant idx:{0}    {1}=======", i, constant.Stringify());
+                    Console.WriteLine("{0}", constant.ToString());
                     OpCodeStringify(((FunctionObject)constant).opCodes);
                     Console.WriteLine();
                 }
@@ -75,7 +78,7 @@ namespace ComputeDuck
                     case (int)OpCode.OP_CONSTANT:
                         {
                             var pos = opCodes[i + 1];
-                            Console.WriteLine("{0}    OP_CONSTANT    {1}    '{2}'", i.ToString().PadLeft(8), pos, constants[pos].Stringify());
+                            Console.WriteLine("{0}    OP_CONSTANT    {1}    '{2}'", i.ToString().PadLeft(8), pos, constants[pos].ToString());
                             ++i;
                             break;
                         }
@@ -124,10 +127,40 @@ namespace ComputeDuck
                             Console.WriteLine("{0}    OP_EQUAL", i.ToString().PadLeft(8));
                             break;
                         }
+                    case (int)OpCode.OP_AND:
+                        {
+                            Console.WriteLine("{0}    OP_AND", i.ToString().PadLeft(8));
+                            break;
+                        }
+                    case (int)OpCode.OP_OR:
+                        {
+                            Console.WriteLine("{0}    OP_OR", i.ToString().PadLeft(8));
+                            break;
+                        }
+                    case (int)OpCode.OP_BIT_AND:
+                        {
+                            Console.WriteLine("{0}    OP_BIT_AND", i.ToString().PadLeft(8));
+                            break;
+                        }
+                    case (int)OpCode.OP_BIT_OR:
+                        {
+                            Console.WriteLine("{0}    OP_BIT_OR", i.ToString().PadLeft(8));
+                            break;
+                        }
+                    case (int)OpCode.OP_BIT_XOR:
+                        {
+                            Console.WriteLine("{0}    OP_BIT_XOR", i.ToString().PadLeft(8));
+                            break;
+                        }
+                    case (int)OpCode.OP_BIT_NOT:
+                        {
+                            Console.WriteLine("{0}    OP_BIT_NOT", i.ToString().PadLeft(8));
+                            break;
+                        }
                     case (int)OpCode.OP_ARRAY:
                         {
                             var count = opCodes[i + 1];
-                            Console.WriteLine("{0}    OP_CONSTANT    {1}", i.ToString().PadLeft(8), count);
+                            Console.WriteLine("{0}    OP_ARRAY    {1}", i.ToString().PadLeft(8), count);
                             ++i;
                             break;
                         }
@@ -173,20 +206,18 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_SET_LOCAL:
                         {
-                            var isInUpScope = opCodes[i + 1];
-                            var scopeDepth = opCodes[i + 2];
-                            var index = opCodes[i + 3];
-                            Console.WriteLine("{0}    OP_SET_LOCAL    {1}    {2}    {3}", i.ToString().PadLeft(8), isInUpScope, scopeDepth, index);
-                            i += 3;
+                            var scopeDepth = opCodes[i + 1];
+                            var index = opCodes[i + 2];
+                            Console.WriteLine("{0}    OP_SET_LOCAL    {1}    {2}", i.ToString().PadLeft(8), scopeDepth, index);
+                            i += 2;
                             break;
                         }
                     case (int)OpCode.OP_GET_LOCAL:
                         {
-                            var isInUpScope = opCodes[i + 1];
-                            var scopeDepth = opCodes[i + 2];
-                            var index = opCodes[i + 3];
-                            Console.WriteLine("{0}    OP_GET_LOCAL    {1}    {2}    {3}", i.ToString().PadLeft(8), isInUpScope, scopeDepth, index);
-                            i += 3;
+                            var scopeDepth = opCodes[i + 1];
+                            var index = opCodes[i + 2];
+                            Console.WriteLine("{0}    OP_GET_LOCAL    {1}    {2}", i.ToString().PadLeft(8), scopeDepth, index);
+                            i += 2;
                             break;
                         }
                     case (int)OpCode.OP_FUNCTION_CALL:
@@ -196,18 +227,9 @@ namespace ComputeDuck
                             ++i;
                             break;
                         }
-                    case (int)OpCode.OP_GET_BUILTIN_FUNCTION:
+                    case (int)OpCode.OP_GET_BUILTIN:
                         {
-                            var builtinIdx = opCodes[i + 1];
-                            Console.WriteLine("{0}    OP_GET_BUILTIN_FUNCTION    {1}", i.ToString().PadLeft(8), builtinIdx);
-                            ++i;
-                            break;
-                        }
-                    case (int)OpCode.OP_GET_BUILTIN_VARIABLE:
-                        {
-                            var builtinIdx = opCodes[i + 1];
-                            Console.WriteLine("{0}    OP_GET_BUILTIN_VARIABLE    {1}", i.ToString().PadLeft(8), builtinIdx);
-                            ++i;
+                            Console.WriteLine("{0}    OP_GET_BUILTIN", i.ToString().PadLeft(8));
                             break;
                         }
                     case (int)OpCode.OP_STRUCT:
@@ -230,17 +252,16 @@ namespace ComputeDuck
                     case (int)OpCode.OP_REF_GLOBAL:
                         {
                             var idx = opCodes[i + 1];
-                            Console.WriteLine("{0}    OP_STRUCT    {1}", i.ToString().PadLeft(8), idx);
+                            Console.WriteLine("{0}    OP_REF_GLOBAL    {1}", i.ToString().PadLeft(8), idx);
                             ++i;
                             break;
                         }
                     case (int)OpCode.OP_REF_LOCAL:
                         {
-                            var isInUpScope = opCodes[i + 1];
-                            var scopeDepth = opCodes[i + 2];
-                            var index = opCodes[i + 3];
-                            Console.WriteLine("{0}    OP_REF_LOCAL    {1}    {2}    {3}", i.ToString().PadLeft(8), isInUpScope, scopeDepth, index);
-                            i += 3;
+                            var scopeDepth = opCodes[i + 1];
+                            var index = opCodes[i + 2];
+                            Console.WriteLine("{0}    OP_REF_LOCAL    {1}    {2}", i.ToString().PadLeft(8), scopeDepth, index);
+                            i += 2;
                             break;
                         }
                     case (int)OpCode.OP_REF_INDEX_GLOBAL:
@@ -252,11 +273,10 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_REF_INDEX_LOCAL:
                         {
-                            var isInUpScope = opCodes[i + 1];
-                            var scopeDepth = opCodes[i + 2];
-                            var index = opCodes[i + 3];
-                            Console.WriteLine("{0}    OP_REF_INDEX_LOCAL    {1}    {2}    {3}", i.ToString().PadLeft(8), isInUpScope, scopeDepth, index);
-                            i += 3;
+                            var scopeDepth = opCodes[i + 1];
+                            var index = opCodes[i + 2];
+                            Console.WriteLine("{0}    OP_REF_INDEX_LOCAL    {1}    {2}", i.ToString().PadLeft(8), scopeDepth, index);
+                            i += 2;
                             break;
                         }
                     case (int)OpCode.OP_SP_OFFSET:

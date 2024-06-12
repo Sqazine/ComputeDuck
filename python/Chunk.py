@@ -79,6 +79,20 @@ class Chunk:
                 print("%8d    OP_MINUS" % (i))
             elif opcodes[i]==OpCode.OP_EQUAL:
                 print("%8d    OP_EQUAL" % (i))
+            elif opcodes[i]==OpCode.OP_AND:
+                print("%8d    OP_AND" % (i))
+            elif opcodes[i]==OpCode.OP_OR:
+                print("%8d    OP_OR" % (i))
+            elif opcodes[i]==OpCode.OP_NOT:
+                print("%8d    OP_NOT" % (i))
+            elif opcodes[i]==OpCode.OP_BIT_AND:
+                print("%8d    OP_BIT_AND" % (i))
+            elif opcodes[i]==OpCode.OP_BIT_OR:
+                print("%8d    OP_BIT_OR" % (i))
+            elif opcodes[i]==OpCode.OP_BIT_XOR:
+                print("%8d    OP_BIT_XOR" % (i))
+            elif opcodes[i]==OpCode.OP_BIT_NOT:
+                print("%8d    OP_BIT_NOT" % (i))
             elif opcodes[i]==OpCode.OP_ARRAY:
                 count=opcodes[i+1]
                 print("%8d    OP_ARRAY    %d" % (i,count))
