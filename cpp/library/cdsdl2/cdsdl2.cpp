@@ -3,6 +3,7 @@
 #include <SDL.h>
 #include "BuiltinManager.h"
 #include "Value.h"
+#include "Object.h"
 void RegisterBuiltins()
 {
 #define REGISTER_VALUE(x) BuiltinManager::GetInstance()->Register(#x, Value((uint64_t)x))
@@ -86,8 +87,8 @@ void RegisterBuiltins()
 	BuiltinManager::GetInstance()->Register<BuiltinFn>("SDL_CreateWindow", [&](Value *args, uint8_t argCount, Value &result) -> bool
 													   {
 															auto name = TO_STR_VALUE(args[0])->value.c_str();
-															auto posX = (int32_t)TO_NUM_VALUE(TO_BUILTIN_VALUE(args[1])->GetBuiltinValue());
-															auto posY = (int32_t)TO_NUM_VALUE(TO_BUILTIN_VALUE(args[2])->GetBuiltinValue());
+															auto posX = (int32_t)TO_NUM_VALUE(TO_BUILTIN_VALUE(args[1])->Get<Value>());
+															auto posY = (int32_t)TO_NUM_VALUE(TO_BUILTIN_VALUE(args[2])->Get<Value>());
 															int32_t width = (int32_t)TO_NUM_VALUE(args[3]);
 															int32_t height = (int32_t)TO_NUM_VALUE(args[4]);
 															uint32_t flags = (uint32_t)TO_NUM_VALUE(args[5]);
@@ -115,9 +116,9 @@ void RegisterBuiltins()
 															if (!IS_BUILTIN_VALUE(args[0]))
 																ASSERT("Not a valid builtin data.");
 															auto builtinData = TO_BUILTIN_VALUE(args[0]);
-															if (builtinData->GetNativeData().IsSameTypeAs<SDL_Event>())
+															if (builtinData->Get<BuiltinObject::NativeData>().IsSameTypeAs<SDL_Event>())
 																ASSERT("Not a valid SDL_Event object.");
-															SDL_Event* event = builtinData->GetNativeData().As<SDL_Event>();
+															SDL_Event* event = builtinData->Get<BuiltinObject::NativeData>().As<SDL_Event>();
 															result = (double)(event->type);
 															return true; });
 
@@ -126,9 +127,9 @@ void RegisterBuiltins()
 															if (!IS_BUILTIN_VALUE(args[0]))
 																ASSERT("Not a valid builtin data.");
 															auto builtinData = TO_BUILTIN_VALUE(args[0]);
-															if (builtinData->GetNativeData().IsSameTypeAs<SDL_Window>())
+															if (builtinData->Get<BuiltinObject::NativeData>().IsSameTypeAs<SDL_Window>())
 																ASSERT("Not a valid SDL_Window object.");
-															SDL_Window* window = builtinData->GetNativeData().As<SDL_Window>();
+															SDL_Window* window = builtinData->Get<BuiltinObject::NativeData>().As<SDL_Window>();
 															SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 															BuiltinObject* resultBuiltin = new BuiltinObject(renderer, [](void* nativeData)
 																{ SDL_DestroyRenderer((SDL_Renderer*)nativeData); });
@@ -159,8 +160,8 @@ void RegisterBuiltins()
 															if (!IS_BUILTIN_VALUE(args[0]) || !IS_BUILTIN_VALUE(args[1]))
 																ASSERT("Not a valid builtin value of SDL_CreateTextureFromSurface(args[0] or args[1]).");
 
-															auto renderer = TO_BUILTIN_VALUE(args[0])->GetNativeData().As<SDL_Renderer>();
-															auto surface = TO_BUILTIN_VALUE(args[1])->GetNativeData().As<SDL_Surface>();
+															auto renderer = TO_BUILTIN_VALUE(args[0])->Get<BuiltinObject::NativeData>().As<SDL_Renderer>();
+															auto surface = TO_BUILTIN_VALUE(args[1])->Get<BuiltinObject::NativeData>().As<SDL_Surface>();
 
 															SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
 
@@ -175,7 +176,7 @@ void RegisterBuiltins()
 															if (!IS_BUILTIN_VALUE(args[0]))
 																ASSERT("Not a valid builtin value of SDL_RenderClear(args[0]).");
 
-															auto renderer = TO_BUILTIN_VALUE(args[0])->GetNativeData().As<SDL_Renderer>();
+															auto renderer = TO_BUILTIN_VALUE(args[0])->Get<BuiltinObject::NativeData>().As<SDL_Renderer>();
 															SDL_RenderClear(renderer);
 															return false; });
 
@@ -184,8 +185,8 @@ void RegisterBuiltins()
 															if (!IS_BUILTIN_VALUE(args[0]) || !IS_BUILTIN_VALUE(args[1]))
 																ASSERT("Not a valid builtin value of SDL_RenderCopy(args[0] or args[1]).");
 
-															auto renderer = TO_BUILTIN_VALUE(args[0])->GetNativeData().As<SDL_Renderer>();
-															auto texture = TO_BUILTIN_VALUE(args[1])->GetNativeData().As<SDL_Texture>();
+															auto renderer = TO_BUILTIN_VALUE(args[0])->Get<BuiltinObject::NativeData>().As<SDL_Renderer>();
+															auto texture = TO_BUILTIN_VALUE(args[1])->Get<BuiltinObject::NativeData>().As<SDL_Texture>();
 
 															auto ret = SDL_RenderCopy(renderer, texture, nullptr, nullptr);
 
@@ -197,7 +198,7 @@ void RegisterBuiltins()
 															if (!IS_BUILTIN_VALUE(args[0]))
 																ASSERT("Not a valid builtin value of SDL_RenderPresent(args[0]).");
 
-															auto renderer = TO_BUILTIN_VALUE(args[0])->GetNativeData().As<SDL_Renderer>();
+															auto renderer = TO_BUILTIN_VALUE(args[0])->Get<BuiltinObject::NativeData>().As<SDL_Renderer>();
 															SDL_RenderPresent(renderer);
 															return false; });
 
@@ -209,11 +210,11 @@ void RegisterBuiltins()
 															if (!IS_BUILTIN_VALUE(args[1]) && !IS_NUM_VALUE(args[1]))
 																ASSERT("Not a valid builtin value or num value of SDL_GL_SetAttribute(args[1]).");
 
-															auto flags0 = (int)TO_NUM_VALUE(TO_BUILTIN_VALUE(args[0])->GetBuiltinValue());
+															auto flags0 = (int)TO_NUM_VALUE(TO_BUILTIN_VALUE(args[0])->Get<Value>());
 
 															int flags1 = 0;
 															if (IS_BUILTIN_VALUE(args[1]))
-																flags1 = (int)TO_NUM_VALUE(TO_BUILTIN_VALUE(args[1])->GetBuiltinValue());
+																flags1 = (int)TO_NUM_VALUE(TO_BUILTIN_VALUE(args[1])->Get<Value>());
 															else if (IS_NUM_VALUE(args[1]))
 																flags1 = (int)TO_NUM_VALUE(args[1]);
 
@@ -225,7 +226,7 @@ void RegisterBuiltins()
 															if (!IS_BUILTIN_VALUE(args[0]))
 																ASSERT("Not a valid builtin value of SDL_GL_SwapWindow(args[0]).");
 
-															auto windowHandle = TO_BUILTIN_VALUE(args[0])->GetNativeData().As<SDL_Window>();
+															auto windowHandle = TO_BUILTIN_VALUE(args[0])->Get<BuiltinObject::NativeData>().As<SDL_Window>();
 															SDL_GL_SwapWindow(windowHandle);
 															return false; });
 
@@ -234,7 +235,7 @@ void RegisterBuiltins()
 															if (!IS_BUILTIN_VALUE(args[0]))
 																ASSERT("Not a valid builtin value of SDL_GL_CreateContext(args[0]).");
 
-															auto windowHandle = TO_BUILTIN_VALUE(args[0])->GetNativeData().As<SDL_Window>();
+															auto windowHandle = TO_BUILTIN_VALUE(args[0])->Get<BuiltinObject::NativeData>().As<SDL_Window>();
 
 															SDL_GLContext ctx = SDL_GL_CreateContext(windowHandle);
 

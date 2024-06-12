@@ -65,7 +65,7 @@ if(COMPUTEDUCK_BUILD_WITH_LLVM)
         include(SetLLVM.cmake)
 
         set(LLVM_DIR "${THIRD_PARTY_DIR}/llvm/llvm" CACHE PATH "")
-        set(LLVM_GENERATE_DIR "${LLVM_DIR}")
+        set(LLVM_GENERATE_DIR "${CMAKE_BINARY_DIR}/3rd/llvm/llvm")
 
         SetLLVM(${LLVM_DIR} LLVM_LIBS)
 
