@@ -291,19 +291,19 @@ struct BuiltinObject : public Object
 
 	~BuiltinObject() override
 	{
-		if (IsNativeData())
-			GetNativeData().destroyFunc(GetNativeData().nativeData);
+		if (Is<NativeData>())
+			Get<NativeData>().destroyFunc(Get<NativeData>().nativeData);
 	}
 
 	std::string Stringify() override
 	{
 		std::string vStr;
-		if (IsBuiltinFn())
+		if (Is<BuiltinFn>())
 			vStr = "(0x" + PointerAddressToString(this) + ")";
-		else if (IsNativeData())
-			vStr = "(0x" + PointerAddressToString(GetNativeData().nativeData) + ")";
+		else if (Is<NativeData>())
+			vStr = "(0x" + PointerAddressToString(Get<NativeData>().nativeData) + ")";
 		else
-			vStr = GetBuiltinValue().Stringify();
+			vStr = Get<Value>().Stringify();
 
 		return "Builtin :" + vStr;
 	}
@@ -314,44 +314,28 @@ struct BuiltinObject : public Object
 		if (!IS_BUILTIN_OBJ(other))
 			return false;
 
-		if (IsNativeData())
+		if (Is<NativeData>())
 		{
-			auto thisNd = GetNativeData();
-			auto otherNd = TO_BUILTIN_OBJ(other)->GetNativeData();
+			auto thisNd = Get<NativeData>();
+			auto otherNd = TO_BUILTIN_OBJ(other)->Get<NativeData>();
 			return PointerAddressToString(thisNd.nativeData) == PointerAddressToString(otherNd.nativeData);
 		}
 		else
 			return data.index() == TO_BUILTIN_OBJ(other)->data.index();
 	}
 
-	bool IsNativeData()
+	template<typename T>
+		requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value> ||std::is_same_v<T,NativeData>)
+	T Get()
 	{
-		return data.index() == 0;
+		return std::get<T>(data);
 	}
 
-	bool IsBuiltinFn()
+	template<typename T>
+		requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value> || std::is_same_v<T, NativeData>)
+	bool Is()
 	{
-		return data.index() == 1;
-	}
-
-	bool IsBuiltinValue()
-	{
-		return data.index() == 2;
-	}
-
-	NativeData GetNativeData()
-	{
-		return std::get<NativeData>(data);
-	}
-
-	BuiltinFn GetBuiltinFn()
-	{
-		return std::get<BuiltinFn>(data);
-	}
-
-	Value GetBuiltinValue()
-	{
-		return std::get<Value>(data);
+		return std::holds_alternative<T>(data);
 	}
 
 	std::variant<NativeData, BuiltinFn, Value> data;

@@ -72,8 +72,8 @@ void RegisterBuiltins()
 
 															auto arg0 = (GLuint)TO_NUM_VALUE(args[0]);
 															auto arg1 = (GLuint)TO_NUM_VALUE(args[1]);
-															auto arg2 = TO_BUILTIN_VALUE(args[2])->GetBuiltinValue();
-															auto arg3 = TO_BUILTIN_VALUE(args[3])->GetBuiltinValue();
+															auto arg2 = TO_BUILTIN_VALUE(args[2])->Get<Value>();
+															auto arg3 = TO_BUILTIN_VALUE(args[3])->Get<Value>();
 															auto arg4 = (GLuint)TO_NUM_VALUE(args[4]);
 
 															if (IS_NIL_VALUE(args[5]))
@@ -162,7 +162,7 @@ void RegisterBuiltins()
 															if (!IS_BUILTIN_VALUE(args[0]) && !IS_NUM_VALUE(args[1]))
 																ASSERT("Not a valid value of glBindBuffer(args[0],args[1]).");
 
-															auto flag = (GLuint)(TO_BUILTIN_VALUE(args[0])->GetBuiltinValue()).stored;
+															auto flag = (GLuint)(TO_BUILTIN_VALUE(args[0])->Get<Value>()).stored;
 															auto obj = (GLuint)TO_NUM_VALUE(args[1]);
 															glBindBuffer(flag, obj);
 															assert(glGetError() == 0);
@@ -173,10 +173,10 @@ void RegisterBuiltins()
 														   if (!IS_BUILTIN_VALUE(args[0]) && !IS_NUM_VALUE(args[1]) && !IS_ARRAY_VALUE(args[2]) && !IS_BUILTIN_VALUE(args[3]))
 															   ASSERT("Not a valid value of glBufferData(args[0],args[1],args[2],args[3]).");
 
-														   auto arg0 = (GLuint)(TO_BUILTIN_VALUE(args[0])->GetBuiltinValue()).stored;
+														   auto arg0 = (GLuint)(TO_BUILTIN_VALUE(args[0])->Get<Value>()).stored;
 														   auto arg1 = (GLuint)TO_NUM_VALUE(args[1]);
 														   auto arg2 = TO_ARRAY_VALUE(args[2]);
-														   auto arg3 = (GLuint)(TO_BUILTIN_VALUE(args[3])->GetBuiltinValue()).stored;
+														   auto arg3 = (GLuint)(TO_BUILTIN_VALUE(args[3])->Get<Value>()).stored;
 
 														   if (arg0 == GL_ELEMENT_ARRAY_BUFFER)
 														   {
@@ -202,7 +202,7 @@ void RegisterBuiltins()
 															if (!IS_BUILTIN_VALUE(args[0]))
 																ASSERT("Not a valid value of glCreateShader(args[0]).");
 
-															auto arg0 = (GLuint)(TO_BUILTIN_VALUE(args[0])->GetBuiltinValue()).stored;
+															auto arg0 = (GLuint)(TO_BUILTIN_VALUE(args[0])->Get<Value>()).stored;
 															result = (double)glCreateShader(arg0);
 															assert(glGetError() == 0);
 															return true; });
@@ -297,7 +297,7 @@ void RegisterBuiltins()
 													   {
 															if (IS_BUILTIN_VALUE(args[0]))
 															{
-																auto arg0 = (GLuint)(TO_BUILTIN_VALUE(args[0])->GetBuiltinValue().stored);
+																auto arg0 = (GLuint)(TO_BUILTIN_VALUE(args[0])->Get<Value>().stored);
 																glClear(arg0);
 															}
 															else if (IS_NUM_VALUE(args[0]))
@@ -325,9 +325,9 @@ void RegisterBuiltins()
 															if (!IS_BUILTIN_VALUE(args[0]) && !IS_NUM_VALUE(args[1]) && !IS_BUILTIN_VALUE(args[2]) && !(IS_REF_VALUE(args[3]) || IS_NIL_VALUE(args[3])))
 																ASSERT("Not a valid value of glDrawElements(args[0],arg[1],arg[2],arg[3]).");
 
-															auto arg0 = (GLenum)TO_BUILTIN_VALUE(args[0])->GetBuiltinValue().stored;
+															auto arg0 = (GLenum)TO_BUILTIN_VALUE(args[0])->Get<Value>().stored;
 															auto arg1 = (GLuint)TO_NUM_VALUE(args[1]);
-															auto arg2 = (GLenum)TO_BUILTIN_VALUE(args[2])->GetBuiltinValue().stored;
+															auto arg2 = (GLenum)TO_BUILTIN_VALUE(args[2])->Get<Value>().stored;
 
 															if (IS_NIL_VALUE(args[3]))
 																glDrawElements(arg0, arg1, arg2, nullptr);

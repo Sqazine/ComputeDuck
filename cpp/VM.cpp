@@ -36,10 +36,10 @@ void VM::Execute()
 			left = *TO_REF_VALUE(left)->pointer;                                          \
 		while (IS_REF_VALUE(right))                                                       \
 			right = *TO_REF_VALUE(right)->pointer;                                        \
-		if (IS_BUILTIN_VALUE(left) && TO_BUILTIN_VALUE(left)->IsBuiltinValue())           \
-			left = TO_BUILTIN_VALUE(left)->GetBuiltinValue();                             \
-		if (IS_BUILTIN_VALUE(right) && TO_BUILTIN_VALUE(right)->IsBuiltinValue())         \
-			right = TO_BUILTIN_VALUE(right)->GetBuiltinValue();                           \
+		if (IS_BUILTIN_VALUE(left) && TO_BUILTIN_VALUE(left)->Is<Value>())                \
+			left = TO_BUILTIN_VALUE(left)->Get<Value>();                                  \
+		if (IS_BUILTIN_VALUE(right) && TO_BUILTIN_VALUE(right)->Is<Value>())              \
+			right = TO_BUILTIN_VALUE(right)->Get<Value>();                                \
 		if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                    \
 			Push(TO_NUM_VALUE(left) op TO_NUM_VALUE(right) ? Value(true) : Value(false)); \
 		else                                                                              \
@@ -56,10 +56,10 @@ void VM::Execute()
 			left = *TO_REF_VALUE(left)->pointer;                                                       \
 		while (IS_REF_VALUE(right))                                                                    \
 			right = *TO_REF_VALUE(right)->pointer;                                                     \
-		if (IS_BUILTIN_VALUE(left) && TO_BUILTIN_VALUE(left)->IsBuiltinValue())                        \
-			left = TO_BUILTIN_VALUE(left)->GetBuiltinValue();                                          \
-		if (IS_BUILTIN_VALUE(right) && TO_BUILTIN_VALUE(right)->IsBuiltinValue())                      \
-			right = TO_BUILTIN_VALUE(right)->GetBuiltinValue();                                        \
+		if (IS_BUILTIN_VALUE(left) && TO_BUILTIN_VALUE(left)->Is<Value>())                             \
+			left = TO_BUILTIN_VALUE(left)->Get<Value>();                                               \
+		if (IS_BUILTIN_VALUE(right) && TO_BUILTIN_VALUE(right)->Is<Value>())                           \
+			right = TO_BUILTIN_VALUE(right)->Get<Value>();                                             \
 		if (IS_BOOL_VALUE(right) && IS_BOOL_VALUE(left))                                               \
 			Push(TO_BOOL_VALUE(left) op TO_BOOL_VALUE(right) ? Value(true) : Value(false));            \
 		else                                                                                           \
@@ -76,9 +76,9 @@ void VM::Execute()
 		while (IS_REF_VALUE(right))                                                                    \
 			right = *TO_REF_VALUE(right)->pointer;                                                     \
 		if (IS_BUILTIN_VALUE(left))                                                                    \
-			left = TO_BUILTIN_VALUE(left)->GetBuiltinValue();                                          \
+			left = TO_BUILTIN_VALUE(left)->Get<Value>();                                               \
 		if (IS_BUILTIN_VALUE(right))                                                                   \
-			right = TO_BUILTIN_VALUE(right)->GetBuiltinValue();                                        \
+			right = TO_BUILTIN_VALUE(right)->Get<Value>();                                             \
 		if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                                 \
 			Push((uint64_t)TO_NUM_VALUE(left) op(uint64_t) TO_NUM_VALUE(right));                       \
 		else                                                                                           \
@@ -156,10 +156,10 @@ void VM::Execute()
 				left = *(TO_REF_VALUE(left)->pointer);
 			while (IS_REF_VALUE(right))
 				right = *(TO_REF_VALUE(right)->pointer);
-			if (IS_BUILTIN_VALUE(left) && TO_BUILTIN_VALUE(left)->IsBuiltinValue())
-				left = (TO_BUILTIN_VALUE(left)->GetBuiltinValue());
-			if (IS_BUILTIN_VALUE(right) && TO_BUILTIN_VALUE(right)->IsBuiltinValue())
-				right = (TO_BUILTIN_VALUE(right)->GetBuiltinValue());
+			if (IS_BUILTIN_VALUE(left) && TO_BUILTIN_VALUE(left)->Is<Value>())
+				left = (TO_BUILTIN_VALUE(left)->Get<Value>());
+			if (IS_BUILTIN_VALUE(right) && TO_BUILTIN_VALUE(right)->Is<Value>())
+				right = (TO_BUILTIN_VALUE(right)->Get<Value>());
 			Push(left == right);
 			break;
 		}
@@ -168,8 +168,8 @@ void VM::Execute()
 			auto value = Pop();
 			while (IS_REF_VALUE(value))
 				value = *(TO_REF_VALUE(value)->pointer);
-			if (IS_BUILTIN_VALUE(value) && TO_BUILTIN_VALUE(value)->IsBuiltinValue())
-				value = TO_BUILTIN_VALUE(value)->GetBuiltinValue();
+			if (IS_BUILTIN_VALUE(value) && TO_BUILTIN_VALUE(value)->Is<Value>())
+				value = TO_BUILTIN_VALUE(value)->Get<Value>();
 			if (!IS_BOOL_VALUE(value))
 				ASSERT("Invalid op:'!' %s", value.Stringify().c_str());
 			Push(!TO_BOOL_VALUE(value));
@@ -180,8 +180,8 @@ void VM::Execute()
 			auto value = Pop();
 			while (IS_REF_VALUE(value))
 				value = *TO_REF_VALUE(value)->pointer;
-			if (IS_BUILTIN_VALUE(value) && TO_BUILTIN_VALUE(value)->IsBuiltinValue())
-				value = TO_BUILTIN_VALUE(value)->GetBuiltinValue();
+			if (IS_BUILTIN_VALUE(value) && TO_BUILTIN_VALUE(value)->Is<Value>())
+				value = TO_BUILTIN_VALUE(value)->Get<Value>();
 			if (!IS_NUM_VALUE(value))
 				ASSERT("Invalid op:'-' %s", value.Stringify().c_str());
 			Push(-TO_NUM_VALUE(value));
@@ -218,8 +218,8 @@ void VM::Execute()
 
 			while (IS_REF_VALUE(value))
 				value = *TO_REF_VALUE(value)->pointer;
-			if (IS_BUILTIN_VALUE(value) && TO_BUILTIN_VALUE(value)->IsBuiltinValue())
-				value = TO_BUILTIN_VALUE(value)->GetBuiltinValue();
+			if (IS_BUILTIN_VALUE(value) && TO_BUILTIN_VALUE(value)->Is<Value>())
+				value = TO_BUILTIN_VALUE(value)->Get<Value>();
 			if (!IS_NUM_VALUE(value))
 				ASSERT("Invalid op:~ %s", value.Stringify().c_str());
 			Push(~(uint64_t)TO_NUM_VALUE(value));
@@ -320,7 +320,7 @@ void VM::Execute()
 			{
 				auto builtin = TO_BUILTIN_VALUE(value);
 
-				if (!builtin->IsBuiltinFn())
+				if (!builtin->Is<BuiltinFn>())
 					ASSERT("Not a valid builtin function");
 
 				Value *slot = m_StackTop - argCount;
@@ -328,7 +328,7 @@ void VM::Execute()
 				m_StackTop -= (argCount + 1);
 
 				Value returnValue;
-				auto hasRet = builtin->GetBuiltinFn()(slot, argCount, returnValue);
+				auto hasRet = builtin->Get<BuiltinFn>()(slot, argCount, returnValue);
 
 				if (hasRet)
 				{

@@ -97,10 +97,10 @@ void ValueAdd(Value &left, Value &right, Value &result)
 		left = TO_REF_VALUE(left)->pointer;
 	while (IS_REF_VALUE(right))
 		right = TO_REF_VALUE(right)->pointer;
-	if (IS_BUILTIN_VALUE(left) && TO_BUILTIN_VALUE(left)->IsBuiltinValue())
-		left = TO_BUILTIN_VALUE(left)->GetBuiltinValue();
-	if (IS_BUILTIN_VALUE(right) && TO_BUILTIN_VALUE(right)->IsBuiltinValue())
-		right = TO_BUILTIN_VALUE(right)->GetBuiltinValue();
+	if (IS_BUILTIN_VALUE(left) && TO_BUILTIN_VALUE(left)->Is<Value>())
+		left = TO_BUILTIN_VALUE(left)->Get<Value>();
+	if (IS_BUILTIN_VALUE(right) && TO_BUILTIN_VALUE(right)->Is<Value>())
+		right = TO_BUILTIN_VALUE(right)->Get<Value>();
 	if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))
 		result = Value(TO_NUM_VALUE(left) + TO_NUM_VALUE(right));
 	else if (IS_STR_VALUE(right) && IS_STR_VALUE(left))
@@ -117,10 +117,10 @@ void ValueAdd(Value &left, Value &right, Value &result)
 			left = *TO_REF_VALUE(left)->pointer;                                                              \
 		while (IS_REF_VALUE(right))                                                                           \
 			right = *TO_REF_VALUE(right)->pointer;                                                            \
-		if (IS_BUILTIN_VALUE(left) && TO_BUILTIN_VALUE(left)->IsBuiltinValue())                               \
-			left = TO_BUILTIN_VALUE(left)->GetBuiltinValue();                                                 \
-		if (IS_BUILTIN_VALUE(right) && TO_BUILTIN_VALUE(right)->IsBuiltinValue())                             \
-			right = TO_BUILTIN_VALUE(right)->GetBuiltinValue();                                               \
+		if (IS_BUILTIN_VALUE(left) && TO_BUILTIN_VALUE(left)->Is<Value>())                               \
+			left = TO_BUILTIN_VALUE(left)->Get<Value>();                                                 \
+		if (IS_BUILTIN_VALUE(right) && TO_BUILTIN_VALUE(right)->Is<Value>())                             \
+			right = TO_BUILTIN_VALUE(right)->Get<Value>();                                               \
 		if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                                        \
 			result = Value(TO_NUM_VALUE(left) op TO_NUM_VALUE(right));                                        \
 		else                                                                                                  \
