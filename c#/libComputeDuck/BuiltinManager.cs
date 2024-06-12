@@ -5,19 +5,21 @@ namespace ComputeDuck
 {
     public class BuiltinManager
     {
-        private static BuiltinManager instance = null;
-        public List<BuiltinFunctionObject> m_BuiltinFunctions;
-        public List<string> m_BuiltinFunctionNames;
-        public List<BuiltinVariableObject> m_BuiltinVariables;
-        public List<string> m_BuiltinVariableNames;
+        private static BuiltinManager? instance = null;
+        public Dictionary<string,BuiltinObject> m_Builtins;
+        private string m_CurExecuteFilePath;
+
 
         private BuiltinManager()
         {
-            m_BuiltinFunctions = new List<BuiltinFunctionObject>();
-            m_BuiltinFunctionNames = new List<string>();
-            m_BuiltinVariables = new List<BuiltinVariableObject>();
-            m_BuiltinVariableNames = new List<string>();
-            Init();
+            m_Builtins = new Dictionary<string, BuiltinObject>();
+
+            Register("print", _Print);
+            Register("println", _Println);
+            Register("sizeof", _SizeOf);
+            Register("insert", _Insert);
+            Register("erase", _Erase);
+            Register("clock", _Clock);
         }
 
         public static BuiltinManager GetInstance()
@@ -27,57 +29,49 @@ namespace ComputeDuck
             return instance;
         }
 
-        public void Init()
+        public void Register(string name, BuiltinFn fn)
         {
-            RegisterFunction("print", _Print);
-            RegisterFunction("println", _Println);
-            RegisterFunction("sizeof", _SizeOf);
-            RegisterFunction("insert", _Insert);
-            RegisterFunction("erase", _Erase);
-            RegisterFunction("clock", _Clock);
+            if (m_Builtins.ContainsKey(name))
+                Utils.Assert("Redefined builtin:"+ name);
+            m_Builtins[name] = new BuiltinObject(fn);
         }
 
-        public void Release()
+        public void Register(string name, Object obj)
         {
-            m_BuiltinFunctions.Clear();
-            m_BuiltinFunctionNames.Clear();
-            m_BuiltinVariables.Clear();
-            m_BuiltinVariableNames.Clear();
+            if (m_Builtins.ContainsKey(name))
+                Utils.Assert("Redefined builtin:" + name);
+            m_Builtins[name] = new BuiltinObject(obj);
         }
 
-        public void RegisterFunction(string name, BuiltinFn fn)
+        public void SetExecuteFilePath(string path)
         {
-            m_BuiltinFunctions.Add(new BuiltinFunctionObject(name, fn));
-            m_BuiltinFunctionNames.Add(name);
+            m_CurExecuteFilePath = path;
         }
 
-        public void RegisterVariable(string name, Object obj)
+        public string ToFullPath(string path)
         {
-            m_BuiltinVariables.Add(new BuiltinVariableObject(name, obj));
-            m_BuiltinVariableNames.Add(name);
+            return m_CurExecuteFilePath + path;
         }
 
-        private bool _Print(List<Object> args, out Object result)
+        private (bool,Object?) _Print(List<Object> args)
         {
-            result = null;
             if (args.Count == 0)
-                return false;
-            Console.Write(args[0].Stringify());
-            return false;
+                return (false,null);
+            Console.Write(args[0].ToString());
+            return (false, null);
         }
 
-        private bool _Println(List<Object> args, out Object result)
+        private (bool, Object?) _Println(List<Object> args)
         {
-            result = null;
             if (args.Count == 0)
-                return false;
-            Console.WriteLine(args[0].Stringify());
-            return false;
+                return (false, null);
+            Console.WriteLine(args[0].ToString());
+            return (false, null);
         }
 
-        private bool _SizeOf(List<Object> args, out Object result)
+        private (bool, Object?) _SizeOf(List<Object> args)
         {
-            result = null;
+            Object? result = null;
             if (args.Count == 0 || args.Count > 1)
                 Utils.Assert("[Native function 'sizeof']:Expect a argument.");
 
@@ -87,12 +81,11 @@ namespace ComputeDuck
                 result = new NumObject(((StrObject)args[0]).value.Length);
             else
                 Utils.Assert("[Native function 'sizeof']:Expect a array or string argument.");
-            return true;
+            return (true,result);
         }
 
-        private bool _Insert(List<Object> args, out Object result)
+        private (bool, Object?) _Insert(List<Object> args)
         {
-            result = null;
             if (args.Count == 0 || args.Count != 3)
                 Utils.Assert("[Native function 'insert']:Expect 3 arguments,the arg0 must be array or string object.The arg1 is the index object.The arg2 is the value object.");
 
@@ -116,16 +109,15 @@ namespace ComputeDuck
                 if (iIndex < 0 || iIndex >= str.value.Length)
                     Utils.Assert("[Native function 'insert']:Index out of array's range");
 
-                str.value.Insert(iIndex, args[2].Stringify());
+                str.value.Insert(iIndex, args[2].ToString());
             }
             else
                 Utils.Assert("[Native function 'insert']:Expect a array or string argument.");
-            return false;
+            return (false, null);
         }
 
-        private bool _Erase(List<Object> args, out Object result)
+        private (bool, Object?) _Erase(List<Object> args)
         {
-            result = null;
             if (args.Count == 0 || args.Count != 2)
                 Utils.Assert("[Native function 'erase']:Expect 2 arguments,the arg0 must be array or string object..The arg1 is the corresponding index object.");
 
@@ -154,16 +146,16 @@ namespace ComputeDuck
             else
                 Utils.Assert("[Native function 'erase']:Expect a array or string argument.");
 
-            return false;
+            return (false, null);
         }
 
-        private bool _Clock(List<Object> args, out Object result)
+        private (bool, Object?) _Clock(List<Object> args)
         {
             long currentTicks = DateTime.Now.Ticks;
             DateTime dtFrom = new DateTime(1970, 1, 1, 0, 0, 0, 0);
             long currentMillis = (currentTicks - dtFrom.Ticks) / 10000;
-            result = new NumObject(currentMillis);
-            return true;
+            Object? result = new NumObject(currentMillis/1000.0);
+            return (true,result);
         }
     }
 }

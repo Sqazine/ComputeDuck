@@ -88,6 +88,18 @@ namespace ComputeDuck
                 case '/':
                     AddToken(TokenType.SLASH);
                     break;
+                case '&':
+                    AddToken(TokenType.AMPERSAND);
+                    break;
+                case '|':
+                    AddToken(TokenType.VBAR);
+                    break;
+                case '~':
+                    AddToken(TokenType.TILDE);
+                    break;
+                case '^':
+                    AddToken(TokenType.CARET);
+                    break;
                 case '#':
                     {
                         while (!IsMatchCurChar('\n') && !IsAtEnd())
@@ -123,7 +135,7 @@ namespace ComputeDuck
                     else if (IsLetter(c))
                         Identifier();
                     else
-                        AddToken(TokenType.UNKNOWN);
+                        AddToken(TokenType.END);
                     break;
             }
         }

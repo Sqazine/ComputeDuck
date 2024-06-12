@@ -5,15 +5,17 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <BaseOutputPath>$(SolutionDir)bin</BaseOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Remove="libComputeDuck\**" />
+    <Compile Remove="library-cdsdl2\**" />
     <Compile Remove="library-sdl2\**" />
     <EmbeddedResource Remove="libComputeDuck\**" />
-    <EmbeddedResource Remove="library-sdl2\**" />
+    <EmbeddedResource Remove="library-cdsdl2\**" />
     <None Remove="libComputeDuck\**" />
-    <None Remove="library-sdl2\**" />
+    <None Remove="library-cdsdl2\**" />
   </ItemGroup>
 
   <ItemGroup>

@@ -22,6 +22,10 @@ namespace ComputeDuck
         EQUAL,         // =
         LESS,          // <
         GREATER,       // >
+        VBAR,          // |
+        CARET,		   // ^
+        AMPERSAND,	   // &
+        TILDE,		   // ~
         EQUAL_EQUAL,   // ==
         LESS_EQUAL,    // <=
         GREATER_EQUAL, // >=
@@ -42,7 +46,6 @@ namespace ComputeDuck
         DLLIMPORT,     // dllimport
         IMPORT,        // import
 
-        UNKNOWN,
         END
     }
 

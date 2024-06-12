@@ -5,6 +5,33 @@ using System.Runtime.InteropServices;
 namespace ComputeDuck
 {
     using OpCodes = List<int>;
+
+    public delegate (bool, Object?) BuiltinFn(List<Object> args);
+
+    public delegate void DestroyFunc(object nativeData);
+
+    public class NativeData
+    {
+
+        public object? nativeData;
+        public DestroyFunc? destroyFunc;
+
+        public NativeData(object? nativeData, DestroyFunc? fn)
+        {
+            this.nativeData = nativeData;
+            this.destroyFunc = fn;
+        }
+
+        ~NativeData()
+        {
+            if (destroyFunc != null)
+            {
+                Console.WriteLine("Deleting Object!");
+                destroyFunc(nativeData);
+            }
+        }
+    };
+
     public enum ObjectType
     {
         NIL,
@@ -15,28 +42,31 @@ namespace ComputeDuck
         STRUCT,
         REF,
         FUNCTION,
-        BUILTIN_FUNCTION,
-        BUILTIN_DATA,
-        BUILTIN_VARIABLE
+        BUILTIN
     };
 
     public abstract class Object
     {
         public Object(ObjectType type)
         {
+            gcHandle = GCHandle.Alloc(this, GCHandleType.WeakTrackResurrection);
             this.type = type;
         }
-        public abstract string Stringify();
-        public abstract bool IsEqualTo(Object other);
+        public virtual bool IsEqualTo(Object other)
+        {
+            if (other != null && other.type != this.type)
+                return false;
+            return true;
+        }
 
         public IntPtr GetAddress()
         {
-            GCHandle h = GCHandle.Alloc(this, GCHandleType.WeakTrackResurrection);
-            IntPtr addr = GCHandle.ToIntPtr(h);
+            IntPtr addr = GCHandle.ToIntPtr(gcHandle);
             return addr;
         }
 
         public ObjectType type;
+        private GCHandle gcHandle;
     }
 
     public class NilObject : Object
@@ -46,16 +76,9 @@ namespace ComputeDuck
         {
         }
 
-        public override string Stringify()
+        public override string ToString()
         {
             return "nil";
-        }
-
-        public override bool IsEqualTo(Object other)
-        {
-            if (other.type != ObjectType.NIL)
-                return false;
-            return true;
         }
     }
 
@@ -72,16 +95,26 @@ namespace ComputeDuck
             this.value = value;
         }
 
-        public override string Stringify()
+        public NumObject(int value)
+        : base(ObjectType.NUM)
+        {
+            this.value = value;
+        }
+
+        public NumObject(uint value)
+            : base(ObjectType.NUM)
+        {
+            this.value = value;
+        }
+
+        public override string ToString()
         {
             return value.ToString();
         }
 
         public override bool IsEqualTo(Object other)
         {
-            if (other.type != ObjectType.NUM)
-                return false;
-            return this.value == ((NumObject)other).value;
+            return base.IsEqualTo(other) && this.value == ((NumObject)other).value;
         }
         public double value;
     }
@@ -100,16 +133,14 @@ namespace ComputeDuck
             this.value = value;
         }
 
-        public override string Stringify()
+        public override string ToString()
         {
             return value.ToString();
         }
 
         public override bool IsEqualTo(Object other)
         {
-            if (other.type != ObjectType.BOOL)
-                return false;
-            return this.value == ((BoolObject)other).value;
+            return base.IsEqualTo(other) && this.value == ((BoolObject)other).value;
         }
         public bool value;
     }
@@ -127,16 +158,14 @@ namespace ComputeDuck
             this.value = value;
         }
 
-        public override string Stringify()
+        public override string ToString()
         {
             return value.ToString();
         }
 
         public override bool IsEqualTo(Object other)
         {
-            if (other.type != ObjectType.STR)
-                return false;
-            return this.value == ((StrObject)other).value;
+            return base.IsEqualTo(other) && this.value == ((StrObject)other).value;
         }
         public string value;
     }
@@ -149,13 +178,13 @@ namespace ComputeDuck
             this.elements = elements;
         }
 
-        public override string Stringify()
+        public override string ToString()
         {
             string result = "[";
             if (elements.Count != 0)
             {
                 foreach (var e in elements)
-                    result += e.Stringify() + ",";
+                    result += e.ToString() + ",";
                 result = result.Substring(0, result.Length - 1);
             }
             result += "]";
@@ -165,7 +194,7 @@ namespace ComputeDuck
 
         public override bool IsEqualTo(Object other)
         {
-            if (other.type != ObjectType.ARRAY)
+            if (base.IsEqualTo(other) == false)
                 return false;
 
             ArrayObject arrayOther = (ArrayObject)other;
@@ -195,16 +224,14 @@ namespace ComputeDuck
             this.pointer = pointer;
         }
 
-        public override string Stringify()
+        public override string ToString()
         {
-            return pointer.ToString();
+            return GCHandle.FromIntPtr(pointer).Target.ToString();
         }
 
         public override bool IsEqualTo(Object other)
         {
-            if (other.type != ObjectType.REF)
-                return false;
-            return this.pointer == ((RefObject)other).pointer;
+            return base.IsEqualTo(other) && this.pointer == ((RefObject)other).pointer;
         }
         public IntPtr pointer;
     }
@@ -218,16 +245,14 @@ namespace ComputeDuck
             this.parameterCount = parameterCount;
         }
 
-        public override string Stringify()
+        public override string ToString()
         {
-            GCHandle h = GCHandle.Alloc(this, GCHandleType.WeakTrackResurrection);
-            IntPtr addr = GCHandle.ToIntPtr(h);
-            return "function:(0x" + addr.ToString() + ")";
+            return "function:(0x" + GetAddress() + ")";
         }
 
         public override bool IsEqualTo(Object other)
         {
-            if (other.type != ObjectType.REF)
+            if (base.IsEqualTo(other) == false)
                 return false;
 
             var otherOpCodes = ((FunctionObject)other).opCodes;
@@ -248,7 +273,7 @@ namespace ComputeDuck
     public class StructObject : Object
     {
         public StructObject()
-        : base(ObjectType.STRUCT)
+         : base(ObjectType.STRUCT)
         {
             this.members = new Dictionary<string, Object>();
         }
@@ -259,13 +284,11 @@ namespace ComputeDuck
             this.members = members;
         }
 
-        public override string Stringify()
+        public override string ToString()
         {
-            GCHandle h = GCHandle.Alloc(this, GCHandleType.WeakTrackResurrection);
-            IntPtr addr = GCHandle.ToIntPtr(h);
-            string result = "struct instance(0x:" + addr.ToString() + "):\n{\n";
+            string result = "struct instance(0x:" + GetAddress().ToString() + "):\n{\n";
             foreach (var member in members)
-                result += member.Key + ":" + member.Value.Stringify() + "\n";
+                result += member.Key + ":" + member.Value.ToString() + "\n";
             result = result.Substring(0, result.Length - 1);
             result += "\n}\n";
             return result;
@@ -273,7 +296,7 @@ namespace ComputeDuck
 
         public override bool IsEqualTo(Object other)
         {
-            if (other.type != ObjectType.STRUCT)
+            if (base.IsEqualTo(other) == false)
                 return false;
 
             var structOther = (StructObject)other;
@@ -289,95 +312,98 @@ namespace ComputeDuck
         public Dictionary<string, Object> members;
     }
 
-    public delegate bool BuiltinFn(List<Object> args, out Object result);
-
-    public class BuiltinFunctionObject : Object
+    public class BuiltinObject : Object
     {
-        public BuiltinFunctionObject(string name, BuiltinFn fn)
-        : base(ObjectType.BUILTIN_FUNCTION)
+        private Object? var = null;
+        private BuiltinFn? fn = null;
+        private NativeData? data = null;
+
+        public BuiltinObject(Object var)
+          : base(ObjectType.BUILTIN)
         {
-            this.name = name;
+            this.var = var;
+        }
+
+        public BuiltinObject(BuiltinFn fn)
+          : base(ObjectType.BUILTIN)
+        {
             this.fn = fn;
         }
 
-        public override string Stringify()
+        public BuiltinObject(NativeData data)
+         : base(ObjectType.BUILTIN)
         {
-            GCHandle h = GCHandle.Alloc(this, GCHandleType.WeakTrackResurrection);
-            IntPtr addr = GCHandle.ToIntPtr(h);
-            return "Builtin Function:(0x" + addr.ToString() + ")";
+            this.data = data;
+        }
+
+        public bool IsNativeData()
+        {
+            return data != null;
+        }
+
+        public bool IsBuiltinFn()
+        {
+            return fn != null;
+        }
+
+        public bool IsBuiltinVar()
+        {
+            return var != null;
+        }
+
+        public NativeData? GetNativeData()
+        {
+            return data;
+        }
+
+        public BuiltinFn? GetBuiltinFn()
+        {
+            return fn;
+        }
+
+        public Object? GetBuiltinVar()
+        {
+            return var;
         }
 
         public override bool IsEqualTo(Object other)
         {
-            if (other.type != ObjectType.BUILTIN_FUNCTION)
+            if (base.IsEqualTo(other) == false)
                 return false;
-            return name == ((BuiltinFunctionObject)other).name;
+
+            if (IsNativeData())
+                return data.Equals(((BuiltinObject)other)?.data);
+
+            if (IsBuiltinFn())
+                return fn.Equals(((BuiltinObject)other)?.fn);
+
+            if (IsBuiltinVar())
+                return var.IsEqualTo(((BuiltinObject)other).var);
+
+            return false;
         }
 
-        public string name;
-        public BuiltinFn fn;
-    }
-
-
-    public delegate void DestroyFunc(object nativeData);
-    public class BuiltinDataObject : Object
-    {
-        public BuiltinDataObject()
-        : base(ObjectType.BUILTIN_DATA)
+        public override string ToString()
         {
+            string result = "Builtin:";
+            if (IsNativeData())
+            {
+                GCHandle h = GCHandle.Alloc(this.data, GCHandleType.WeakTrackResurrection);
+                IntPtr addr = GCHandle.ToIntPtr(h);
+                result += "(0x" + addr.ToString() + ")";
+            }
+            else if (IsBuiltinFn())
+            {
+                GCHandle h = GCHandle.Alloc(this.fn, GCHandleType.WeakTrackResurrection);
+                IntPtr addr = GCHandle.ToIntPtr(h);
+                result += "(0x" + addr.ToString() + ")";
+            }
+            else if (IsBuiltinVar())
+                result += "(0x" + this.var.GetAddress().ToString() + ")";
+            else
+                return "";
+
+            return result;
         }
-
-        ~BuiltinDataObject()
-        {
-            if (destroyFunc != null)
-                destroyFunc(nativeData);
-        }
-
-        public override string Stringify()
-        {
-            GCHandle h = GCHandle.Alloc(this, GCHandleType.WeakTrackResurrection);
-            IntPtr addr = GCHandle.ToIntPtr(h);
-            return "Builtin Data:(0x" + addr.ToString() + ")";
-        }
-
-        public override bool IsEqualTo(Object other)
-        {
-            if (other.type != ObjectType.BUILTIN_DATA)
-                return false;
-            GCHandle h1 = GCHandle.Alloc(this, GCHandleType.WeakTrackResurrection);
-            IntPtr addr1 = GCHandle.ToIntPtr(h1);
-
-            GCHandle h2 = GCHandle.Alloc(this, GCHandleType.WeakTrackResurrection);
-            IntPtr addr2 = GCHandle.ToIntPtr(h2);
-            return addr1 == addr2;
-        }
-
-        public object? nativeData;
-        public DestroyFunc? destroyFunc;
-    }
-
-    public class BuiltinVariableObject : Object
-    {
-        public BuiltinVariableObject(string name, Object obj)
-         : base(ObjectType.BUILTIN_VARIABLE)
-        {
-            this.name = name;
-            this.obj = obj;
-        }
-
-        public override bool IsEqualTo(Object other)
-        {
-            if (other.type != ObjectType.BUILTIN_VARIABLE)
-                return false;
-            return name == ((BuiltinVariableObject)other).name && obj == ((BuiltinVariableObject)other).obj;
-        }
-
-        public override string Stringify()
-        {
-            return "Builtin Variable:(" + name + ":" + obj.Stringify() + ")";
-        }
-
-        public string name;
-        public Object obj;
     }
 }

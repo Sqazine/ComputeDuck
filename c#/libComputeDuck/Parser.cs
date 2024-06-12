@@ -9,6 +9,9 @@ namespace ComputeDuck
         ASSIGN,     // =
         OR,         // or
         AND,        // and
+        BIT_OR,		// |
+        BIT_XOR,	// ^
+        BIT_AND,	// &
         EQUAL,      // == !=
         COMPARE,    // < <= > >=
         ADD_PLUS,   // + -
@@ -323,7 +326,7 @@ namespace ComputeDuck
             return new DllImportExpr(path);
         }
 
-        private static Expr ParseAnonyStructExpr()
+        private static Expr ParseStructExpr()
         {
             List<KeyValuePair<IdentifierExpr, Expr?>> memPairs = new List<KeyValuePair<IdentifierExpr, Expr?>>();
             Consume(TokenType.LBRACE, "Expect '{'.");
@@ -341,7 +344,7 @@ namespace ComputeDuck
             }
 
             Consume(TokenType.RBRACE, "Expect '}'.");
-            return new AnonyStructExpr(memPairs);
+            return new StructExpr(memPairs);
         }
 
         private static Token GetCurToken()
@@ -444,8 +447,9 @@ namespace ComputeDuck
             {TokenType.LBRACKET, Parser.ParseArrayExpr},
             {TokenType.REF, Parser.ParseRefExpr},
             {TokenType.FUNCTION,Parser.ParseFunctionExpr},
-            {TokenType.LBRACE,Parser.ParseAnonyStructExpr},
-            {TokenType.DLLIMPORT,Parser.ParseDllImportExpr}
+            {TokenType.LBRACE,Parser.ParseStructExpr},
+            {TokenType.DLLIMPORT,Parser.ParseDllImportExpr},
+            {TokenType.TILDE,Parser.ParsePrefixExpr},
         };
         private static Dictionary<TokenType, InfixFn> m_InfixFunctions = new Dictionary<TokenType, InfixFn>()
         {
@@ -465,6 +469,9 @@ namespace ComputeDuck
             {TokenType.AND, Parser.ParseInfixExpr},
             {TokenType.OR, Parser.ParseInfixExpr},
             {TokenType.DOT, Parser.ParseStructCallExpr},
+            {TokenType.AMPERSAND,Parser.ParseInfixExpr},
+            {TokenType.VBAR,Parser.ParseInfixExpr},
+            {TokenType.CARET,Parser.ParseInfixExpr},
         };
         private static Dictionary<TokenType, Precedence> m_Precedence = new Dictionary<TokenType, Precedence>()
         {
@@ -483,7 +490,10 @@ namespace ComputeDuck
             {TokenType.LPAREN, Precedence.INFIX},
             {TokenType.AND, Precedence.AND},
             {TokenType.OR, Precedence.OR},
-            {TokenType.DOT, Precedence.INFIX}
+            {TokenType.DOT, Precedence.INFIX},
+            {TokenType.AMPERSAND,Precedence.BIT_AND},
+            {TokenType.VBAR,Precedence.BIT_OR},
+            {TokenType.CARET,Precedence.BIT_XOR},
         };
     }
 }

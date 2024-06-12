@@ -321,7 +321,7 @@ void VM::Execute()
 				auto builtin = TO_BUILTIN_VALUE(value);
 
 				if (!builtin->Is<BuiltinFn>())
-					ASSERT("Not a valid builtin function");
+					ASSERT("Invalid builtin function");
 
 				Value *slot = m_StackTop - argCount;
 

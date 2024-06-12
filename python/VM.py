@@ -159,7 +159,7 @@ class VM:
             elif instruction == OpCode.OP_MINUS:
                 obj = self.__find_actual_object(self.__pop())
                 if obj.type != ObjectType.NUM:
-                    error("Not a valid op:'-'"+obj.__str__())
+                    error("Invalid op:'-'"+obj.__str__())
                 self.__push(-obj.value)
 
             elif instruction == OpCode.OP_AND:

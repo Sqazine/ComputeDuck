@@ -22,13 +22,20 @@ namespace ComputeDuck
             this.ip = 0;
             this.slot = slot;
         }
+
+        public bool IsAtEnd()
+        {
+            if (ip < fn.opCodes.Count)
+                return false;
+            return true;
+        }
     }
     public class VM
     {
         const int STACK_MAX = 512;
-        const int GLOBAL_VARIABLE_MAX = 1024;
-        private List<Object> m_Constants;
-        private Object[] m_GlobalVariables = new Object[GLOBAL_VARIABLE_MAX];
+
+        private Chunk m_Chunk;
+        private Object[] m_GlobalVariables = new Object[STACK_MAX];
 
         private int m_StackTop;
         private Object[] m_ObjectStack = new Object[STACK_MAX];
@@ -36,13 +43,13 @@ namespace ComputeDuck
         private int m_CallFrameTop;
         private CallFrame[] m_CallFrames = new CallFrame[STACK_MAX];
 
-        public void ResetStatus()
+        private void ResetStatus()
         {
             m_StackTop = 0;
             for (int i = 0; i < STACK_MAX; ++i)
                 m_ObjectStack[i] = new NilObject();
 
-            for (int i = 0; i < GLOBAL_VARIABLE_MAX; ++i)
+            for (int i = 0; i < STACK_MAX; ++i)
                 m_GlobalVariables[i] = new NilObject();
 
             for (int i = 0; i < STACK_MAX; ++i)
@@ -53,14 +60,12 @@ namespace ComputeDuck
         {
             ResetStatus();
 
+            m_Chunk = chunk;
+
             var mainFn = new FunctionObject(chunk.opCodes);
-            var mainCallFrame = new CallFrame(mainFn, 0);
-            mainCallFrame.slot = m_StackTop;
-
-            m_CallFrames[0] = mainCallFrame;
-            m_CallFrameTop = 1;
-
-            m_Constants = chunk.constants;
+            var mainCallFrame = new CallFrame(mainFn, m_StackTop);
+            
+            PushCallFrame(mainCallFrame);
 
             Execute();
         }
@@ -69,7 +74,10 @@ namespace ComputeDuck
         {
             while (true)
             {
-                CallFrame frame = m_CallFrames[m_CallFrameTop - 1];
+                CallFrame frame = PeekCallFrame(1);
+
+                if (frame.IsAtEnd())
+                    return;
 
                 int instruction = frame.fn.opCodes[frame.ip++];
                 switch (instruction)
@@ -86,8 +94,6 @@ namespace ComputeDuck
                             if (m_CallFrameTop == 0)
                                 return;
 
-                            frame = m_CallFrames[m_CallFrameTop - 1];
-
                             m_StackTop = callFrame.slot - 1;
 
                             Push(obj);
@@ -96,115 +102,65 @@ namespace ComputeDuck
                     case (int)OpCode.OP_CONSTANT:
                         {
                             var idx = frame.fn.opCodes[frame.ip++];
-                            var value = m_Constants[idx];
+                            var value = m_Chunk.constants[idx];
 
                             Push(value);
                             break;
                         }
                     case (int)OpCode.OP_ADD:
                         {
-                            var left = Pop();
-                            var right = Pop();
-
-                            while (left.type == ObjectType.REF)
-                                left = SearchObjectByAddress(((RefObject)left).pointer);
-                            while (right.type == ObjectType.REF)
-                                right = SearchObjectByAddress(((RefObject)right).pointer);
-
-                            if (left.type == ObjectType.BUILTIN_VARIABLE)
-                                left = ((BuiltinVariableObject)left).obj;
-                            if (right.type == ObjectType.BUILTIN_VARIABLE)
-                                right = ((BuiltinVariableObject)right).obj;
+                            var left = FindActualObject(Pop());
+                            var right = FindActualObject(Pop());
 
                             if (left.type == ObjectType.NUM && right.type == ObjectType.NUM)
                                 Push(new NumObject(((NumObject)left).value + ((NumObject)right).value));
                             else if (left.type == ObjectType.STR && right.type == ObjectType.STR)
                                 Push(new StrObject(((StrObject)left).value + ((StrObject)right).value));
                             else
-                                Utils.Assert("INvalid binary op:" + left.Stringify() + "+" + right.Stringify());
+                                Utils.Assert("Invalid binary op:" + left.ToString() + "+" + right.ToString());
 
                             break;
                         }
                     case (int)OpCode.OP_SUB:
                         {
-                            var left = Pop();
-                            var right = Pop();
-
-                            while (left.type == ObjectType.REF)
-                                left = SearchObjectByAddress(((RefObject)left).pointer);
-                            while (right.type == ObjectType.REF)
-                                right = SearchObjectByAddress(((RefObject)right).pointer);
-
-                            if (left.type == ObjectType.BUILTIN_VARIABLE)
-                                left = ((BuiltinVariableObject)left).obj;
-                            if (right.type == ObjectType.BUILTIN_VARIABLE)
-                                right = ((BuiltinVariableObject)right).obj;
+                            var left =FindActualObject(Pop());
+                            var right =FindActualObject(Pop());
 
                             if (left.type == ObjectType.NUM && right.type == ObjectType.NUM)
                                 Push(new NumObject(((NumObject)left).value - ((NumObject)right).value));
                             else
-                                Utils.Assert("INvalid binary op:" + left.Stringify() + "-" + right.Stringify());
+                                Utils.Assert("Invalid binary op:" + left.ToString() + "-" + right.ToString());
 
                             break;
                         }
                     case (int)OpCode.OP_MUL:
                         {
-                            var left = Pop();
-                            var right = Pop();
-
-                            while (left.type == ObjectType.REF)
-                                left = SearchObjectByAddress(((RefObject)left).pointer);
-                            while (right.type == ObjectType.REF)
-                                right = SearchObjectByAddress(((RefObject)right).pointer);
-
-                            if (left.type == ObjectType.BUILTIN_VARIABLE)
-                                left = ((BuiltinVariableObject)left).obj;
-                            if (right.type == ObjectType.BUILTIN_VARIABLE)
-                                right = ((BuiltinVariableObject)right).obj;
+                            var left = FindActualObject(Pop());
+                            var right = FindActualObject(Pop());
 
                             if (left.type == ObjectType.NUM && right.type == ObjectType.NUM)
                                 Push(new NumObject(((NumObject)left).value * ((NumObject)right).value));
                             else
-                                Utils.Assert("INvalid binary op:" + left.Stringify() + "*" + right.Stringify());
+                                Utils.Assert("Invalid binary op:" + left.ToString() + "*" + right.ToString());
 
                             break;
                         }
                     case (int)OpCode.OP_DIV:
                         {
-                            var left = Pop();
-                            var right = Pop();
-
-                            while (left.type == ObjectType.REF)
-                                left = SearchObjectByAddress(((RefObject)left).pointer);
-                            while (right.type == ObjectType.REF)
-                                right = SearchObjectByAddress(((RefObject)right).pointer);
-
-                            if (left.type == ObjectType.BUILTIN_VARIABLE)
-                                left = ((BuiltinVariableObject)left).obj;
-                            if (right.type == ObjectType.BUILTIN_VARIABLE)
-                                right = ((BuiltinVariableObject)right).obj;
+                            var left = FindActualObject(Pop());
+                            var right = FindActualObject(Pop());
 
                             if (left.type == ObjectType.NUM && right.type == ObjectType.NUM)
                                 Push(new NumObject(((NumObject)left).value / ((NumObject)right).value));
                             else
-                                Utils.Assert("INvalid binary op:" + left.Stringify() + "/" + right.Stringify());
+                                Utils.Assert("Invalid binary op:" + left.ToString() + "/" + right.ToString());
 
                             break;
                         }
                     case (int)OpCode.OP_GREATER:
                         {
-                            var left = Pop();
-                            var right = Pop();
-
-                            while (left.type == ObjectType.REF)
-                                left = SearchObjectByAddress(((RefObject)left).pointer);
-                            while (right.type == ObjectType.REF)
-                                right = SearchObjectByAddress(((RefObject)right).pointer);
-
-                            if (left.type == ObjectType.BUILTIN_VARIABLE)
-                                left = ((BuiltinVariableObject)left).obj;
-                            if (right.type == ObjectType.BUILTIN_VARIABLE)
-                                right = ((BuiltinVariableObject)right).obj;
+                            var left = FindActualObject(Pop());
+                            var right = FindActualObject(Pop());
 
                             if (left.type == ObjectType.NUM && right.type == ObjectType.NUM)
                                 Push(new BoolObject(((NumObject)left).value > ((NumObject)right).value));
@@ -215,18 +171,8 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_LESS:
                         {
-                            var left = Pop();
-                            var right = Pop();
-
-                            while (left.type == ObjectType.REF)
-                                left = SearchObjectByAddress(((RefObject)left).pointer);
-                            while (right.type == ObjectType.REF)
-                                right = SearchObjectByAddress(((RefObject)right).pointer);
-
-                            if (left.type == ObjectType.BUILTIN_VARIABLE)
-                                left = ((BuiltinVariableObject)left).obj;
-                            if (right.type == ObjectType.BUILTIN_VARIABLE)
-                                right = ((BuiltinVariableObject)right).obj;
+                            var left = FindActualObject(Pop());
+                            var right = FindActualObject(Pop());
 
                             if (left.type == ObjectType.NUM && right.type == ObjectType.NUM)
                                 Push(new BoolObject(((NumObject)left).value < ((NumObject)right).value));
@@ -238,101 +184,97 @@ namespace ComputeDuck
 
                     case (int)OpCode.OP_EQUAL:
                         {
-                            var left = Pop();
-                            var right = Pop();
-
-                            while (left.type == ObjectType.REF)
-                                left = SearchObjectByAddress(((RefObject)left).pointer);
-                            while (right.type == ObjectType.REF)
-                                right = SearchObjectByAddress(((RefObject)right).pointer);
-
-                            if (left.type == ObjectType.BUILTIN_VARIABLE)
-                                left = ((BuiltinVariableObject)left).obj;
-                            if (right.type == ObjectType.BUILTIN_VARIABLE)
-                                right = ((BuiltinVariableObject)right).obj;
-
+                            var left = FindActualObject(Pop());
+                            var right = FindActualObject(Pop());
 
                             Push(new BoolObject(left.IsEqualTo(right)));
-
                             break;
                         }
                     case (int)OpCode.OP_NOT:
                         {
-                            var obj = Pop();
-                            while (obj.type == ObjectType.REF)
-                                obj = SearchObjectByAddress(((RefObject)obj).pointer);
-
-                            if (obj.type == ObjectType.BUILTIN_VARIABLE)
-                                obj = ((BuiltinVariableObject)obj).obj;
-
+                            var obj = FindActualObject(Pop());
                             if (obj.type != ObjectType.BOOL)
-                                Utils.Assert("Not a boolean obj of the obj:" + obj.Stringify());
+                                Utils.Assert("Not a boolean obj of the obj:" + obj.ToString());
                             Push(new BoolObject(!((BoolObject)obj).value));
                             break;
                         }
                     case (int)OpCode.OP_MINUS:
                         {
-                            var obj = Pop();
-                            while (obj.type == ObjectType.REF)
-                                obj = SearchObjectByAddress(((RefObject)obj).pointer);
+                            var obj = FindActualObject(Pop());
                             if (obj.type != ObjectType.NUM)
-                                Utils.Assert("Not a valid op:'-'" + obj.Stringify());
+                                Utils.Assert("Invalid op:'-'" + obj.ToString());
                             Push(new NumObject(-((NumObject)obj).value));
                             break;
                         }
                     case (int)OpCode.OP_AND:
                         {
-                            var left = Pop();
-                            var right = Pop();
-                            while (left.type == ObjectType.REF)
-                                left = SearchObjectByAddress(((RefObject)left).pointer);
-                            while (right.type == ObjectType.REF)
-                                right = SearchObjectByAddress(((RefObject)right).pointer);
-
-                            if (left.type == ObjectType.BUILTIN_VARIABLE)
-                                left = ((BuiltinVariableObject)left).obj;
-                            if (right.type == ObjectType.BUILTIN_VARIABLE)
-                                right = ((BuiltinVariableObject)right).obj;
-
+                            var left = FindActualObject(Pop());
+                            var right = FindActualObject(Pop());
 
                             if (left.type == ObjectType.BOOL && right.type == ObjectType.BOOL)
                                 Push(new BoolObject(((BoolObject)left).value && ((BoolObject)right).value));
                             else
-                                Utils.Assert("Invalid op:" + left.Stringify() + " and " + right.Stringify());
+                                Utils.Assert("Invalid op:" + left.ToString() + " and " + right.ToString());
                             break;
                         }
-
-
                     case (int)OpCode.OP_OR:
                         {
-                            var left = Pop();
-                            var right = Pop();
-                            while (left.type == ObjectType.REF)
-                                left = SearchObjectByAddress(((RefObject)left).pointer);
-                            while (right.type == ObjectType.REF)
-                                right = SearchObjectByAddress(((RefObject)right).pointer);
-
-                            if (left.type == ObjectType.BUILTIN_VARIABLE)
-                                left = ((BuiltinVariableObject)left).obj;
-                            if (right.type == ObjectType.BUILTIN_VARIABLE)
-                                right = ((BuiltinVariableObject)right).obj;
-
+                            var left = FindActualObject(Pop());
+                            var right = FindActualObject(Pop());
 
                             if (left.type == ObjectType.BOOL && right.type == ObjectType.BOOL)
                                 Push(new BoolObject(((BoolObject)left).value || ((BoolObject)right).value));
                             else
-                                Utils.Assert("Invalid op:" + left.Stringify() + " or " + right.Stringify());
+                                Utils.Assert("Invalid op:" + left.ToString() + " or " + right.ToString());
+                            break;
+                        }
+                    case (int)OpCode.OP_BIT_AND:
+                        {
+                            var left = FindActualObject(Pop());
+                            var right = FindActualObject(Pop());
+
+                            if (left.type == ObjectType.NUM && right.type == ObjectType.NUM)
+                                Push(new NumObject((int)((NumObject)left).value & (int)((NumObject)right).value));
+                            else
+                                Utils.Assert("Invalid op:" + left.ToString() + " & " + right.ToString());
+                            break;
+                        }
+                    case (int)OpCode.OP_BIT_OR:
+                        {
+                            var left = FindActualObject(Pop());
+                            var right = FindActualObject(Pop());
+
+                            if (left.type == ObjectType.NUM && right.type == ObjectType.NUM)
+                                Push(new NumObject((int)((NumObject)left).value | (int)((NumObject)right).value));
+                            else
+                                Utils.Assert("Invalid op:" + left.ToString() + " | " + right.ToString());
+                            break;
+                        }
+                    case (int)OpCode.OP_BIT_XOR:
+                        {
+                            var left = FindActualObject(Pop());
+                            var right = FindActualObject(Pop());
+
+                            if (left.type == ObjectType.NUM && right.type == ObjectType.NUM)
+                                Push(new NumObject((int)((NumObject)left).value ^ (int)((NumObject)right).value));
+                            else
+                                Utils.Assert("Invalid op:" + left.ToString() + " ^ " + right.ToString());
+                            break;
+                        }
+                    case (int)OpCode.OP_BIT_NOT:
+                        {
+                            var obj = FindActualObject(Pop());
+                            if (obj.type != ObjectType.NUM)
+                                Utils.Assert("Invalid op:'~'" + obj.ToString());
+                            Push(new NumObject(~(int)((NumObject)obj).value));
                             break;
                         }
                     case (int)OpCode.OP_ARRAY:
                         {
                             var numElements = frame.fn.opCodes[frame.ip++];
-
+                            List<Object> elements = new List<Object>(m_ObjectStack[(m_StackTop - numElements)..m_StackTop]);
+                            
                             m_StackTop -= numElements;
-
-                            var elements = new List<Object>();
-                            for (int i = 0; i < numElements; ++i)
-                                elements.Add(m_ObjectStack[m_StackTop + i]);
 
                             var array = new ArrayObject(elements);
                             Push(array);
@@ -352,7 +294,7 @@ namespace ComputeDuck
                                     Push(((ArrayObject)ds).elements[i]);
                             }
                             else
-                                Utils.Assert("Invalid index op:" + ds.Stringify() + "[" + index.Stringify() + "]");
+                                Utils.Assert("Invalid index op:" + ds.ToString() + "[" + index.ToString() + "]");
                             break;
                         }
                     case (int)OpCode.OP_JUMP_IF_FALSE:
@@ -360,7 +302,7 @@ namespace ComputeDuck
                             var address = frame.fn.opCodes[frame.ip++];
                             var obj = Pop();
                             if (obj.type != ObjectType.BOOL)
-                                Utils.Assert("The if condition not a boolean value:" + obj.Stringify());
+                                Utils.Assert("The if condition not a boolean value:" + obj.ToString());
                             if (((BoolObject)obj).value != true)
                                 frame.ip = address + 1;
                             break;
@@ -387,7 +329,7 @@ namespace ComputeDuck
                                 }
                                 AssignObjectByAddress(gRefAddress, obj);
 
-                                var refObjs = SearchRefObjectsByAddress(gRefAddress);
+                                var refObjs = SearchRefObjectListByAddress(gRefAddress);
                                 for (int i = 0; i < refObjs.Count; ++i)
                                     ((RefObject)refObjs[i]).pointer = obj.GetAddress();
                             }
@@ -414,20 +356,16 @@ namespace ComputeDuck
                                     Utils.Assert("Non matching function parameters for calling arguments,parameter count:" + ((FunctionObject)obj).parameterCount + ",argument count:" + argCount);
 
                                 var callFrame = new CallFrame(((FunctionObject)obj), m_StackTop - argCount);
-                                m_CallFrames[m_CallFrameTop++] = callFrame;
+                                PushCallFrame(callFrame);
                                 m_StackTop = callFrame.slot + ((FunctionObject)obj).localVarCount;
                             }
-                            else if (obj.type == ObjectType.BUILTIN_FUNCTION)
+                            else if (obj.type == ObjectType.BUILTIN)
                             {
-
-                                var args = new List<Object>();
-                                for (int i = m_StackTop - argCount; i < m_StackTop; ++i)
-                                    args.Add(m_ObjectStack[i]);
-
+                                var args = new List<Object>(m_ObjectStack[(m_StackTop-argCount)..m_StackTop]);
+                               
                                 m_StackTop -= (argCount + 1);
 
-                                Object returnValue;
-                                bool hasReturnValue = ((BuiltinFunctionObject)obj).fn(args, out returnValue);
+                                var (hasReturnValue,returnValue) = ((BuiltinObject)obj).GetBuiltinFn()(args);
 
                                 if (hasReturnValue)
                                     Push(returnValue);
@@ -438,18 +376,12 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_SET_LOCAL:
                         {
-                            var isInUpScope = frame.fn.opCodes[frame.ip++];
                             var scopeDepth = frame.fn.opCodes[frame.ip++];
                             var index = frame.fn.opCodes[frame.ip++];
 
                             var obj = Pop();
 
-                            var slot = 0;
-
-                            if (isInUpScope == 0)
-                                slot = frame.slot + index;
-                            else
-                                slot = PeekCallFrame(scopeDepth).slot + index;
+                            var slot = PeekCallFrame(scopeDepth).slot + index;
 
                             if (m_ObjectStack[slot].type == ObjectType.REF)
                             {
@@ -462,7 +394,7 @@ namespace ComputeDuck
                                 }
                                 AssignObjectByAddress(lRefAddress, obj);
 
-                                var refObjs = SearchRefObjectsByAddress(lRefAddress);
+                                var refObjs = SearchRefObjectListByAddress(lRefAddress);
                                 for (int i = 0; i < refObjs.Count; ++i)
                                     ((RefObject)refObjs[i]).pointer = obj.GetAddress();
                                 ((RefObject)m_ObjectStack[slot]).pointer = obj.GetAddress();
@@ -476,15 +408,10 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_GET_LOCAL:
                         {
-                            var isInUpScope = frame.fn.opCodes[frame.ip++];
                             var scopeDepth = frame.fn.opCodes[frame.ip++];
                             var index = frame.fn.opCodes[frame.ip++];
 
-                            int slot = 0;
-                            if (isInUpScope == 0)
-                                slot = frame.slot + index;
-                            else
-                                slot = PeekCallFrame(scopeDepth).slot + index;
+                            int slot =  PeekCallFrame(scopeDepth).slot + index;
 
                             Push(m_ObjectStack[slot]);
 
@@ -496,17 +423,10 @@ namespace ComputeDuck
                             m_StackTop += offset;
                             break;
                         }
-                    case (int)OpCode.OP_GET_BUILTIN_FUNCTION:
+                    case (int)OpCode.OP_GET_BUILTIN:
                         {
-                            var idx = frame.fn.opCodes[frame.ip++];
-                            var builtinObj = BuiltinManager.GetInstance().m_BuiltinFunctions[idx];
-                            Push(builtinObj);
-                            break;
-                        }
-                    case (int)OpCode.OP_GET_BUILTIN_VARIABLE:
-                        {
-                            var idx = frame.fn.opCodes[frame.ip++];
-                            var builtinObj = BuiltinManager.GetInstance().m_BuiltinVariables[idx];
+                            var name = ((StrObject)Pop()).value;
+                            var builtinObj = BuiltinManager.GetInstance().m_Builtins[name];
                             Push(builtinObj);
                             break;
                         }
@@ -541,7 +461,7 @@ namespace ComputeDuck
                             {
                                 var obj = ((StructObject)instance).members.GetValueOrDefault(((StrObject)memberName).value, new NilObject());
                                 if (obj.type == ObjectType.NIL)
-                                    Utils.Assert("no member named:" + memberName.Stringify() + ") in struct instance:" + instance.Stringify());
+                                    Utils.Assert("no member named:" + memberName.ToString() + ") in struct instance:" + instance.ToString());
                                 Push(obj);
                             }
                             break;
@@ -558,7 +478,7 @@ namespace ComputeDuck
                             {
                                 var isFound = ((StructObject)instance).members.ContainsKey(((StrObject)memberName).value);
                                 if (isFound == false)
-                                    Utils.Assert("no member named:" + memberName.Stringify() + " in struct instance:" + instance.Stringify());
+                                    Utils.Assert("no member named:" + memberName.ToString() + " in struct instance:" + instance.ToString());
                                 ((StructObject)instance).members[((StrObject)memberName).value] = obj;
                             }
 
@@ -572,15 +492,10 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_REF_LOCAL:
                         {
-                            var isInUpScope = frame.fn.opCodes[frame.ip++];
                             var scopeDepth = frame.fn.opCodes[frame.ip++];
                             var index = frame.fn.opCodes[frame.ip++];
 
-                            int slot = 0;
-                            if (isInUpScope == 0)
-                                slot = frame.slot + index;
-                            else
-                                slot = PeekCallFrame(scopeDepth).slot + index;
+                            int slot =  PeekCallFrame(scopeDepth).slot + index;
 
                             Push(new RefObject(m_ObjectStack[slot].GetAddress()));
 
@@ -608,17 +523,12 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_REF_INDEX_LOCAL:
                         {
-                            var isInUpScope = frame.fn.opCodes[frame.ip++];
                             var scopeDepth = frame.fn.opCodes[frame.ip++];
                             var index = frame.fn.opCodes[frame.ip++];
 
                             var idxValue = Pop();
 
-                            int slot = 0;
-                            if (isInUpScope == 0)
-                                slot = frame.slot + index;
-                            else
-                                slot = PeekCallFrame(scopeDepth).slot + index;
+                            int slot = PeekCallFrame(scopeDepth).slot + index;
 
                             while (m_ObjectStack[slot].type == ObjectType.REF)
                                 m_ObjectStack[slot] = SearchObjectByAddress(((RefObject)m_ObjectStack[slot]).pointer);
@@ -633,7 +543,7 @@ namespace ComputeDuck
                                 Push(new RefObject(((ArrayObject)m_ObjectStack[slot]).elements[(int)((NumObject)idxValue).value].GetAddress()));
                             }
                             else
-                                Utils.Assert("Invalid indexed reference type:" + m_ObjectStack[slot].Stringify() + " not a array value.");
+                                Utils.Assert("Invalid indexed reference type:" + m_ObjectStack[slot].ToString() + " not a array value.");
 
                             break;
                         }
@@ -652,14 +562,31 @@ namespace ComputeDuck
             return m_ObjectStack[--m_StackTop];
         }
 
+        private void PushCallFrame(CallFrame callFrame)
+        {
+            m_CallFrames[m_CallFrameTop++] = callFrame;
+        }
+
         private CallFrame PopCallFrame()
         {
             return m_CallFrames[--m_CallFrameTop];
         }
 
-        CallFrame PeekCallFrame(int distance)
+        private CallFrame PeekCallFrame(int distance)
         {
             return m_CallFrames[m_CallFrameTop - distance];
+        }
+
+        private Object FindActualObject(Object obj)
+        {
+            var actual = obj;
+            while (actual.type == ObjectType.REF)
+                actual = SearchObjectByAddress(((RefObject)actual).pointer);
+           
+            if (actual.type == ObjectType.BUILTIN && ((BuiltinObject)actual).IsBuiltinVar())
+                actual = ((BuiltinObject)actual).GetBuiltinVar();
+
+            return actual;
         }
 
         private Object SearchObjectByAddress(IntPtr address)
@@ -713,7 +640,7 @@ namespace ComputeDuck
             }
         }
 
-        private List<Object> SearchRefObjectsByAddress(IntPtr address)
+        private List<Object> SearchRefObjectListByAddress(IntPtr address)
         {
             List<Object> result = new List<Object>();
 

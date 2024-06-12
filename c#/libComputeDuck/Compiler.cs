@@ -20,9 +20,6 @@ namespace ComputeDuck
 
         private SymbolTable m_SymbolTable;
 
-        private List<string> m_BuiltinFunctionNames;
-        private List<string> m_BuiltinVariableNames;
-
         public Compiler()
         {
             ResetStatus();
@@ -30,14 +27,13 @@ namespace ComputeDuck
 
         public Chunk Compile(List<Stmt> stmts)
         {
+            ResetStatus();
+
             foreach (var stmt in stmts)
                 CompileStmt(stmt);
-            Emit((int)OpCode.OP_RETURN);
-            Emit(0);
-
+           
             return new Chunk(CurOpCodes(), m_Constants);
         }
-
 
         public void ResetStatus()
         {
@@ -47,20 +43,7 @@ namespace ComputeDuck
 
             m_SymbolTable = new SymbolTable();
 
-            m_BuiltinFunctionNames = new List<string>();
-            m_BuiltinVariableNames = new List<string>();
-
-            for (int i = 0; i < BuiltinManager.GetInstance().m_BuiltinFunctionNames.Count; ++i)
-            {
-                m_BuiltinFunctionNames.Add(BuiltinManager.GetInstance().m_BuiltinFunctionNames[i]);
-                m_SymbolTable.DefineBuiltinFunction(BuiltinManager.GetInstance().m_BuiltinFunctionNames[i], i);
-            }
-
-            for (int i = 0; i < BuiltinManager.GetInstance().m_BuiltinVariableNames.Count; ++i)
-            {
-                m_BuiltinVariableNames.Add(BuiltinManager.GetInstance().m_BuiltinVariableNames[i]);
-                m_SymbolTable.DefineBuiltinVariable(BuiltinManager.GetInstance().m_BuiltinVariableNames[i], i);
-            }
+            RegisterBuiltins();
         }
 
 
@@ -163,22 +146,19 @@ namespace ComputeDuck
         void CompileStructStmt(StructStmt stmt)
         {
             var symbol = m_SymbolTable.Define(stmt.name, true);
-            EnterScope();
 
             m_Scopes.Add(new OpCodes());
 
             for (int i = stmt.members.Count - 1; i >= 0; --i)
             {
                 CompileExpr(stmt.members[i].Value);
-                EmitConstant(AddConstant(new StrObject(stmt.members[i].Key.literal)));
+                EmitConstant(new StrObject(stmt.members[i].Key.literal));
             }
 
             var localVarCount = m_SymbolTable.definitionCount;
 
             Emit((int)OpCode.OP_STRUCT);
             Emit((int)stmt.members.Count);
-
-            ExitScope();
 
             var opCodes = m_Scopes[m_Scopes.Count - 1];
             m_Scopes.RemoveAt(m_Scopes.Count - 1);
@@ -188,17 +168,9 @@ namespace ComputeDuck
 
             var fn = new FunctionObject(opCodes, localVarCount);
 
-            EmitConstant(AddConstant(fn));
+            EmitConstant(fn);
 
-            if (symbol.scope == SymbolScope.GLOBAL)
-                Emit((int)OpCode.OP_SET_GLOBAL);
-            else
-            {
-                Emit((int)OpCode.OP_SET_LOCAL);
-                Emit(symbol.isInUpScope);
-                Emit(symbol.scopeDepth);
-            }
-            Emit(symbol.index);
+            StoreSymbol(symbol);
         }
         void CompileExpr(Expr expr, RWState state = RWState.READ)
         {
@@ -246,8 +218,8 @@ namespace ComputeDuck
                 case AstType.FUNCTION:
                     CompileFunctionExpr((FunctionExpr)expr);
                     break;
-                case AstType.ANONY_STRUCT:
-                    CompileAnonyStructExpr((AnonyStructExpr)expr);
+                case AstType.STRUCT:
+                    CompileStructExpr((StructExpr)expr);
                     break;
                 case AstType.DLL_IMPORT:
                     CompileDllImportExpr((DllImportExpr)expr);
@@ -282,6 +254,12 @@ namespace ComputeDuck
                     Emit((int)OpCode.OP_GREATER);
                 else if (expr.op == "<")
                     Emit((int)OpCode.OP_LESS);
+                else if (expr.op == "&")
+                    Emit((int)OpCode.OP_BIT_AND);
+                else if (expr.op == "|")
+                    Emit((int)OpCode.OP_BIT_OR);
+                else if (expr.op == "^")
+                    Emit((int)OpCode.OP_BIT_XOR);
                 else if (expr.op == ">=")
                 {
                     Emit((int)OpCode.OP_LESS);
@@ -308,15 +286,14 @@ namespace ComputeDuck
         void CompileNumExpr(NumExpr expr)
         {
             var obj = new NumObject(expr.value);
-            var pos = AddConstant(obj);
-            EmitConstant(pos);
+            EmitConstant(obj);
         }
         void CompileBoolExpr(BoolExpr expr)
         {
             if (expr.value)
-                EmitConstant(AddConstant(new BoolObject(true)));
+                EmitConstant(new BoolObject(true));
             else
-                EmitConstant(AddConstant(new BoolObject(false)));
+                EmitConstant(new BoolObject(false));
         }
         void CompilePrefixExpr(PrefixExpr expr)
         {
@@ -325,18 +302,19 @@ namespace ComputeDuck
                 Emit((int)OpCode.OP_MINUS);
             else if (expr.op == "not")
                 Emit((int)OpCode.OP_NOT);
+            else if (expr.op == "~")
+                Emit((int)OpCode.OP_BIT_NOT);
             else
                 Utils.Assert("Unrecognized prefix op");
         }
         void CompileStrExpr(StrExpr expr)
         {
             var obj = new StrObject(expr.value);
-            var pos = AddConstant(obj);
-            EmitConstant(pos);
+            EmitConstant(obj);
         }
         void CompileNilExpr(NilExpr expr)
         {
-            EmitConstant(AddConstant(new NilObject()));
+            EmitConstant(new NilObject());
         }
         void CompileGroupExpr(GroupExpr expr)
         {
@@ -357,8 +335,7 @@ namespace ComputeDuck
         }
         void CompileIdentifierExpr(IdentifierExpr expr, RWState state)
         {
-            Symbol symbol = new Symbol();
-            bool isFound = m_SymbolTable.Resolve(expr.literal, out symbol);
+            var (isFound,symbol) = m_SymbolTable.Resolve(expr.literal);
             if (state == RWState.READ)
             {
                 if (!isFound)
@@ -369,21 +346,7 @@ namespace ComputeDuck
             {
                 if (!isFound)
                     symbol = m_SymbolTable.Define(expr.literal);
-                switch (symbol.scope)
-                {
-                    case SymbolScope.GLOBAL:
-                        Emit((int)OpCode.OP_SET_GLOBAL);
-                        Emit(symbol.index);
-                        break;
-                    case SymbolScope.LOCAL:
-                        Emit((int)OpCode.OP_SET_LOCAL);
-                        Emit(symbol.isInUpScope);
-                        Emit(symbol.scopeDepth);
-                        Emit(symbol.index);
-                        break;
-                    default:
-                        break;
-                }
+                StoreSymbol(symbol);
             }
         }
         void CompileFunctionExpr(FunctionExpr expr)
@@ -411,8 +374,7 @@ namespace ComputeDuck
             }
 
             var fn = new FunctionObject(opCodes, localVarCount, expr.parameters.Count);
-
-            EmitConstant(AddConstant(fn));
+            EmitConstant(fn);
         }
         void CompileFunctionCallExpr(FunctionCallExpr expr)
         {
@@ -431,9 +393,9 @@ namespace ComputeDuck
             CompileExpr(expr.callee);
 
             if (expr.callMember.type == AstType.IDENTIFIER)
-                EmitConstant(AddConstant(new StrObject(((IdentifierExpr)expr.callMember).literal)));
+                EmitConstant(new StrObject(((IdentifierExpr)expr.callMember).literal));
             else if (expr.callMember.type == AstType.FUNCTION_CALL)
-                EmitConstant(AddConstant(new StrObject(((IdentifierExpr)expr.callMember).literal)));
+                EmitConstant(new StrObject(((IdentifierExpr)expr.callMember).literal));
 
             if (state == RWState.READ)
             {
@@ -453,17 +415,15 @@ namespace ComputeDuck
         }
         void CompileRefExpr(RefExpr expr)
         {
-            Symbol symbol = new Symbol();
-
             if (expr.refExpr.type == AstType.INDEX)
             {
                 CompileExpr(((IndexExpr)expr.refExpr).index);
-                bool isFound = m_SymbolTable.Resolve(((IndexExpr)expr.refExpr).ds.Stringify(), out symbol);
+                var (isFound,symbol) = m_SymbolTable.Resolve(((IndexExpr)expr.refExpr).ds.Stringify());
 
                 if (!isFound)
                     Utils.Assert("Undefined variable:" + expr.Stringify());
 
-                switch (symbol.scope)
+                switch (symbol?.scope)
                 {
                     case SymbolScope.GLOBAL:
                         Emit((int)OpCode.OP_REF_INDEX_GLOBAL);
@@ -471,7 +431,6 @@ namespace ComputeDuck
                         break;
                     case SymbolScope.LOCAL:
                         Emit((int)OpCode.OP_REF_INDEX_LOCAL);
-                        Emit(symbol.isInUpScope);
                         Emit(symbol.scopeDepth);
                         Emit(symbol.index);
                         break;
@@ -481,11 +440,11 @@ namespace ComputeDuck
             }
             else
             {
-                bool isFound = m_SymbolTable.Resolve(expr.refExpr.Stringify(), out symbol);
+                var (isFound, symbol) = m_SymbolTable.Resolve(expr.refExpr.Stringify());
                 if (!isFound)
                     Utils.Assert("Undefined variable:" + expr.Stringify());
 
-                switch (symbol.scope)
+                switch (symbol?.scope)
                 {
                     case SymbolScope.GLOBAL:
                         Emit((int)OpCode.OP_REF_GLOBAL);
@@ -493,7 +452,6 @@ namespace ComputeDuck
                         break;
                     case SymbolScope.LOCAL:
                         Emit((int)OpCode.OP_REF_LOCAL);
-                        Emit(symbol.isInUpScope);
                         Emit(symbol.scopeDepth);
                         Emit(symbol.index);
                         break;
@@ -502,25 +460,20 @@ namespace ComputeDuck
                 }
             }
         }
-        void CompileAnonyStructExpr(AnonyStructExpr expr)
+        void CompileStructExpr(StructExpr expr)
         {
-            EnterScope();
-
             foreach (var memberPair in expr.memberPairs)
             {
                 CompileExpr(memberPair.Value);
-                EmitConstant(AddConstant(new StrObject(memberPair.Key.literal)));
+                EmitConstant(new StrObject(memberPair.Key.literal));
             }
 
             Emit((int)OpCode.OP_STRUCT);
             Emit(expr.memberPairs.Count);
-
-            ExitScope();
         }
         void CompileDllImportExpr(DllImportExpr expr)
         {
             var dllPath = expr.dllPath;
-
 
             var loc = this.GetType().Assembly.Location;
             if (loc.Contains('\\'))//windows
@@ -546,58 +499,14 @@ namespace ComputeDuck
             MethodInfo meth = type.GetMethod("RegisterBuiltins");
             meth.Invoke(null, null);
 
-            List<string> newAddedBuiltinFunctionNames = new List<string>();
-            List<string> newAddedBuiltinVariableNames = new List<string>();
-
-            foreach (var name in BuiltinManager.GetInstance().m_BuiltinFunctionNames)
-            {
-                bool found = false;
-                foreach (var recName in m_BuiltinFunctionNames)
-                {
-                    if (name == recName)
-                    {
-                        found = true;
-                        break;
-                    }
-                }
-                if (found == false)
-                    newAddedBuiltinFunctionNames.Add(name);
-            }
-
-            foreach (var name in BuiltinManager.GetInstance().m_BuiltinVariableNames)
-            {
-                bool found = false;
-                foreach (var recName in m_BuiltinVariableNames)
-                {
-                    if (name == recName)
-                    {
-                        found = true;
-                        break;
-                    }
-                }
-                if (found == false)
-                    newAddedBuiltinVariableNames.Add(name);
-            }
-
-            var legacyBuiltinFuncCount = m_BuiltinFunctionNames.Count;
-            for (int i = 0; i < newAddedBuiltinFunctionNames.Count; ++i)
-            {
-                m_BuiltinFunctionNames.Add(newAddedBuiltinFunctionNames[i]);
-                m_SymbolTable.DefineBuiltinFunction(newAddedBuiltinFunctionNames[i], legacyBuiltinFuncCount + i);
-            }
-
-            var legacyVariableCount = m_BuiltinVariableNames.Count;
-            for (int i = 0; i < newAddedBuiltinVariableNames.Count; ++i)
-            {
-                m_BuiltinFunctionNames.Add(newAddedBuiltinVariableNames[i]);
-                m_SymbolTable.DefineBuiltinVariable(newAddedBuiltinVariableNames[i], legacyVariableCount + i);
-            }
+            RegisterBuiltins();
         }
 
         void EnterScope()
         {
             m_SymbolTable = new SymbolTable(m_SymbolTable);
         }
+
         void ExitScope()
         {
             m_SymbolTable = m_SymbolTable.enclosing;
@@ -613,8 +522,10 @@ namespace ComputeDuck
             CurOpCodes().Add(opcode);
             return (uint)CurOpCodes().Count - 1;
         }
-        uint EmitConstant(uint pos)
+        uint EmitConstant(Object obj)
         {
+            m_Constants.Add(obj);
+            var pos= (uint)m_Constants.Count - 1;
             Emit((int)OpCode.OP_CONSTANT);
             Emit((int)pos);
             return (uint)CurOpCodes().Count - 1;
@@ -625,12 +536,12 @@ namespace ComputeDuck
             CurOpCodes()[(int)pos] = opcode;
         }
 
-        uint AddConstant(Object obj)
+        void RegisterBuiltins()
         {
-            m_Constants.Add(obj);
-            return (uint)m_Constants.Count - 1;
+            foreach (var k in BuiltinManager.GetInstance().m_Builtins.Keys)
+                m_SymbolTable.DefineBuiltin(k);
         }
-
+        
         void LoadSymbol(Symbol symbol)
         {
             switch (symbol.scope)
@@ -641,17 +552,12 @@ namespace ComputeDuck
                     break;
                 case SymbolScope.LOCAL:
                     Emit((int)OpCode.OP_GET_LOCAL);
-                    Emit(symbol.isInUpScope);
                     Emit(symbol.scopeDepth);
                     Emit(symbol.index);
                     break;
-                case SymbolScope.BUILTIN_FUNCTION:
-                    Emit((int)OpCode.OP_GET_BUILTIN_FUNCTION);
-                    Emit(symbol.index);
-                    break;
-                case SymbolScope.BUILTIN_VARIABLE:
-                    Emit((int)OpCode.OP_GET_BUILTIN_VARIABLE);
-                    Emit(symbol.index);
+                case SymbolScope.BUILTIN:
+                    EmitConstant(new StrObject(symbol.name));
+                    Emit((int)OpCode.OP_GET_BUILTIN);
                     break;
                 default:
                     break;
@@ -661,6 +567,24 @@ namespace ComputeDuck
             {
                 Emit((int)OpCode.OP_FUNCTION_CALL);
                 Emit(0);
+            }
+        }
+
+        void StoreSymbol(Symbol symbol)
+        {
+            switch (symbol.scope)
+            {
+                case SymbolScope.GLOBAL:
+                    Emit((int)OpCode.OP_SET_GLOBAL);
+                    Emit(symbol.index);
+                    break;
+                case SymbolScope.LOCAL:
+                    Emit((int)OpCode.OP_SET_LOCAL);
+                    Emit(symbol.scopeDepth);
+                    Emit(symbol.index);
+                    break;
+                default:
+                    break;
             }
         }
     }

@@ -109,8 +109,8 @@ namespace ComputeDuck
                     return FoldRefExpr((RefExpr)expr);
                 case AstType.FUNCTION:
                     return FoldFunctionExpr((FunctionExpr)expr);
-                case AstType.ANONY_STRUCT:
-                    return FoldAnonyStructExpr((AnonyStructExpr)expr);
+                case AstType.STRUCT:
+                    return FoldStructExpr((StructExpr)expr);
                 default:
                     return expr;
             }
@@ -189,7 +189,7 @@ namespace ComputeDuck
             expr.refExpr = FoldExpr(expr.refExpr);
             return expr;
         }
-        Expr FoldAnonyStructExpr(AnonyStructExpr expr)
+        Expr FoldStructExpr(StructExpr expr)
         {
             for (int i = 0; i < expr.memberPairs.Count; ++i)
                 expr.memberPairs[i] = new KeyValuePair<IdentifierExpr, Expr?>(expr.memberPairs[i].Key, FoldExpr(expr.memberPairs[i].Value));
