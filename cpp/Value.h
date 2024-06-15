@@ -64,8 +64,3 @@ struct COMPUTE_DUCK_API Value
 
 bool operator==(const Value &left, const Value &right);
 bool operator!=(const Value &left, const Value &right);
-
-extern "C" COMPUTE_DUCK_API void ValueAdd(Value &left, Value &right, Value &result);
-extern "C" COMPUTE_DUCK_API void ValueSub(Value &left, Value &right, Value &result);
-extern "C" COMPUTE_DUCK_API void ValueMul(Value &left, Value &right, Value &result);
-extern "C" COMPUTE_DUCK_API void ValueDiv(Value &left, Value &right, Value &result);

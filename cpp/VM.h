@@ -41,7 +41,7 @@ public:
 
 	void ResetStatus();
 
-	void Run(Chunk *chunk);
+	void Run(const Chunk *chunk);
 
 private:
 	void Execute();
@@ -59,6 +59,10 @@ private:
 	void PushCallFrame(const CallFrame &callFrame);
 	CallFrame *PopCallFrame();
 	CallFrame *PeekCallFrame(int32_t distance);
+
+	Value FindActualValue(const Value &v);
+	Value *GetEndOfRefValue(Value *v);
+	Value GetEndOfRefValue(const Value &v);
 
 	const Chunk *m_Chunk{nullptr};
 
