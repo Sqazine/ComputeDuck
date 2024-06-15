@@ -7,7 +7,7 @@ LLVMCompilerImpl::LLVMCompilerImpl()
 
 LLVMCompilerImpl::~LLVMCompilerImpl()
 {
-    SAFE_DELETE(m_SymbolTable);
+	SAFE_DELETE(m_SymbolTable);
 }
 
 void LLVMCompilerImpl::Compile(const std::vector<Stmt *> &stmts)
@@ -57,7 +57,7 @@ void LLVMCompilerImpl::ResetStatus()
 	llvm::InitializeNativeTargetAsmParser();
 
 	SAFE_DELETE(m_SymbolTable);
-	
+
 	m_SymbolTable = new SymbolTable();
 
 	m_Jit = LLVMJit::Create();
@@ -204,54 +204,17 @@ void LLVMCompilerImpl::CompileInfixExpr(InfixExpr *expr)
 		auto rValue = Pop();
 
 		if (expr->op == "+")
-		{
-			auto result = m_Builder->CreateAlloca(m_ValueType, nullptr);
-
-			auto fn = FindLlvmFn("ValueAdd");
-
-			AddValueFnParamAttributes(m_Builder->CreateCall(fn, {lValue, rValue, result }));
-
-			Push(result);
-		}
+			Push(m_Builder->CreateFAdd(lValue, rValue));
 		else if (expr->op == "-")
-		{
-			auto result = m_Builder->CreateAlloca(m_ValueType, nullptr);
-
-			auto fn = FindLlvmFn("ValueSub");
-
-			auto callInst = m_Builder->CreateCall(fn, {lValue, rValue, result });
-
-			Push(result);
-		}
+			Push(m_Builder->CreateFSub(lValue, rValue));
 		else if (expr->op == "*")
-		{
-			auto result = m_Builder->CreateAlloca(m_ValueType, nullptr);
-
-			auto fn = FindLlvmFn("ValueMul");
-
-			auto callInst = m_Builder->CreateCall(fn, {lValue, rValue, result });
-			Push(result);
-		}
+			Push(m_Builder->CreateFMul(lValue, rValue));
 		else if (expr->op == "/")
-		{
-			auto result = m_Builder->CreateAlloca(m_ValueType, nullptr);
-
-			auto fn = FindLlvmFn("ValueDiv");
-
-			auto callInst = AddValueFnParamAttributes(m_Builder->CreateCall(fn, {lValue, rValue, result }));
-
-			Push(result);
-		}
+			Push(m_Builder->CreateFDiv(lValue, rValue));
 		else if (expr->op == ">")
 			Push(m_Builder->CreateFCmpUGT(lValue, rValue));
 		else if (expr->op == "<")
 			Push(m_Builder->CreateFCmpULT(lValue, rValue));
-		else if (expr->op == "&")
-			Push(m_Builder->CreateBinOp(llvm::Instruction::And, lValue, rValue));
-		else if (expr->op == "|")
-			Push(m_Builder->CreateBinOp(llvm::Instruction::Or, lValue, rValue));
-		else if (expr->op == "^")
-			Push(m_Builder->CreateBinOp(llvm::Instruction::Xor, lValue, rValue));
 		else if (expr->op == ">=")
 			Push(m_Builder->CreateFCmpUGE(lValue, rValue));
 		else if (expr->op == "<=")
@@ -264,104 +227,66 @@ void LLVMCompilerImpl::CompileInfixExpr(InfixExpr *expr)
 			Push(m_Builder->CreateLogicalAnd(lValue, rValue));
 		else if (expr->op == "or")
 			Push(m_Builder->CreateLogicalOr(lValue, rValue));
+		else if (expr->op == "&")
+		{
+			auto lCast = m_Builder->CreateFPToSI(lValue, m_Int64Type);
+			auto rCast = m_Builder->CreateFPToSI(rValue, m_Int64Type);
+			auto result = m_Builder->CreateAnd(lCast, rCast);
+			Push(result);
+		}
+		else if (expr->op == "|")
+		{
+			auto lCast = m_Builder->CreateFPToSI(lValue, m_Int64Type);
+			auto rCast = m_Builder->CreateFPToSI(rValue, m_Int64Type);
+			auto result = m_Builder->CreateOr(lCast, rCast);
+			Push(result);
+		}
+		else if (expr->op == "^")
+		{
+			auto lCast = m_Builder->CreateFPToSI(lValue, m_Int64Type);
+			auto rCast = m_Builder->CreateFPToSI(rValue, m_Int64Type);
+			auto result = m_Builder->CreateXor(lCast, rCast);
+			Push(result);
+		}
 	}
 }
 void LLVMCompilerImpl::CompileNumExpr(NumExpr *expr)
 {
-	auto vT = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::NUM));
-	auto d = llvm::ConstantFP::get(*m_Context, llvm::APFloat(expr->value));
-
-	auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr);
-
-	llvm::Value *memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, {m_Builder->getInt32(0), m_Builder->getInt32(0)});
-	m_Builder->CreateStore(vT, memberAddr);
-	memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
-	memberAddr = m_Builder->CreateBitCast(memberAddr, m_DoublePtrType);
-	m_Builder->CreateStore(d, memberAddr);
-
+	auto alloc = llvm::ConstantFP::get(*m_Context, llvm::APFloat(expr->value));
 	Push(alloc);
 }
 void LLVMCompilerImpl::CompileBoolExpr(BoolExpr *expr)
 {
-	auto vT = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::BOOL));
-	auto b = llvm::ConstantFP::get(*m_Context, llvm::APFloat(expr->value ? 1.0 : 0.0));
-
-	auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr);
-
-	llvm::Value *memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, {m_Builder->getInt32(0), m_Builder->getInt32(0)});
-	m_Builder->CreateStore(vT, memberAddr);
-	memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, {m_Builder->getInt32(0), m_Builder->getInt32(1)});
-	memberAddr = m_Builder->CreateBitCast(memberAddr, m_DoublePtrType);
-	m_Builder->CreateStore(b, memberAddr);
-
-	Push(alloc);
+    auto alloc = llvm::ConstantInt::get(m_BoolType,expr->value);
+    Push(alloc);
 }
 void LLVMCompilerImpl::CompilePrefixExpr(PrefixExpr *expr)
 {
 	CompileExpr(expr->right);
 	auto rValue = Pop();
 	if (expr->op == "-")
-		Push(m_Builder->CreateUnOp(llvm::Instruction::UnaryOps::FNeg, rValue));
+		Push(m_Builder->CreateNeg(rValue));
 	else if (expr->op == "not")
 		Push(m_Builder->CreateNot(rValue));
 	else if (expr->op == "~")
 	{
-		rValue = m_Builder->CreateFPToUI(rValue, llvm::Type::getInt64Ty(*m_Context));
-		Push(m_Builder->CreateUnOp(llvm::Instruction::UnaryOps::FNeg, rValue));
+		rValue = m_Builder->CreateFPToSI(rValue, m_Int64Type);
+		Push(m_Builder->CreateXor (rValue,-1));
 	}
 	else
 		ASSERT("Unrecognized prefix op");
 }
 void LLVMCompilerImpl::CompileStrExpr(StrExpr *expr)
 {
-	auto arrayType= llvm::ArrayType::get(m_Int8Type, expr->value.size() + 1);
-	auto globalChars = m_Builder->CreateGlobalString(expr->value);
-	auto globalCharsPtr= m_Builder->CreateInBoundsGEP(arrayType, globalChars, {m_Builder->getInt64(0), m_Builder->getInt64(0)});
-
-	//create str object
-	auto strObject = m_Builder->CreateAlloca(m_StrObjectType, nullptr);
+	// create str object
+	auto strObject = CreateCDObject(expr->value);
 	auto base = m_Builder->CreateBitCast(strObject, m_ObjectPtrType);
 
-	auto objctTypeVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
-    m_Builder->CreateStore(m_Builder->getInt32(std::underlying_type<ObjectType>::type(ObjectType::STR)), objctTypeVar);
-
-	auto markedVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
-    m_Builder->CreateStore(m_Builder->getInt1(0), markedVar);
-    
-	auto nextVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, { m_Builder->getInt32(0), m_Builder->getInt32(2) });
-    m_Builder->CreateStore(llvm::ConstantPointerNull::get(m_ObjectPtrType), nextVar);
-    
-
-	auto strPtr = m_Builder->CreateInBoundsGEP(m_StrObjectType, strObject, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
-    m_Builder->CreateStore(globalCharsPtr, strPtr);
-
-	//create value
-    auto vT = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::OBJECT));
-    auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr);
-
-    llvm::Value* memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
-    m_Builder->CreateStore(vT, memberAddr);
-
-    memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
-    memberAddr = m_Builder->CreateBitCast(memberAddr, m_ObjectPtrPtrType);
-    m_Builder->CreateStore(base, memberAddr);
-	
-	Push(alloc);
+	Push(base);
 }
 void LLVMCompilerImpl::CompileNilExpr(NilExpr *expr)
 {
-	auto vT = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::NIL));
-	auto d = llvm::ConstantFP::get(*m_Context, llvm::APFloat(0.0));
-
-	auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr);
-
-	llvm::Value *memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, {m_Builder->getInt32(0), m_Builder->getInt32(0)});
-	m_Builder->CreateStore(vT, memberAddr);
-	memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, {m_Builder->getInt32(0), m_Builder->getInt32(1)});
-	memberAddr = m_Builder->CreateBitCast(memberAddr, m_DoublePtrType);
-	m_Builder->CreateStore(d, memberAddr);
-
-	Push(alloc);
+	Push(llvm::ConstantPointerNull::get(m_Int8PtrType));
 }
 void LLVMCompilerImpl::CompileGroupExpr(GroupExpr *expr)
 {
@@ -502,7 +427,8 @@ void LLVMCompilerImpl::CompileFunctionCallExpr(FunctionCallExpr *expr)
 		for (unsigned i = 0; i < expr->arguments.size(); ++i)
 		{
 			CompileExpr(expr->arguments[i]);
-			argsV.push_back(Pop());
+			auto cdValue = CreateCDValue(Pop());
+			argsV.push_back(cdValue);
 			if (!argsV.back())
 				return;
 		}
@@ -529,7 +455,7 @@ void LLVMCompilerImpl::CompileFunctionCallExpr(FunctionCallExpr *expr)
 
 		auto result = m_Builder->CreateAlloca(m_ValueType, nullptr);
 
-		auto callInst = AddBuiltinFnOrCallParamAttributes( m_Builder->CreateCall(fn, { arg0MemberAddr, arg1, result}));
+		auto callInst = AddBuiltinFnOrCallParamAttributes(m_Builder->CreateCall(fn, {arg0MemberAddr, arg1, result}));
 
 		Push(callInst);
 	}
@@ -627,7 +553,7 @@ void LLVMCompilerImpl::InitModuleAndPassManager()
 
 		m_ObjectType = llvm::StructType::create(*m_Context, "struct.Object");
 		m_ObjectPtrType = llvm::PointerType::get(m_ObjectType, 0);
-		m_ObjectType->setBody({ m_Int8Type, m_BoolType, m_ObjectPtrType });
+		m_ObjectType->setBody({m_Int8Type, m_BoolType, m_ObjectPtrType});
 		m_ObjectPtrPtrType = llvm::PointerType::get(m_ObjectPtrType, 0);
 
 		m_StrObjectType = llvm::StructType::create(*m_Context, {m_ObjectType, m_Int8PtrType}, "struct.StrObject");
@@ -643,11 +569,6 @@ void LLVMCompilerImpl::InitModuleAndPassManager()
 		m_ValueFunctionType = llvm::FunctionType::get(m_VoidType, {m_ValuePtrType, m_ValuePtrType, m_ValuePtrType}, false);
 	}
 
-	auto valueAddFn = AddValueFnParamAttributes(llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "ValueAdd", m_Module.get()));
-	auto valueSubFn = AddValueFnParamAttributes(llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "ValueSub", m_Module.get()));
-	auto valueMulFn = AddValueFnParamAttributes(llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "ValueMul", m_Module.get()));
-	auto valueDivFn = AddValueFnParamAttributes(llvm::Function::Create(m_ValueFunctionType, llvm::Function::ExternalLinkage, "ValueDiv", m_Module.get()));
-
 	auto printFn = AddBuiltinFnOrCallParamAttributes(llvm::Function::Create(m_BuiltinFunctionType, llvm::Function::ExternalLinkage, "Print", m_Module.get()));
 	auto printlnFn = AddBuiltinFnOrCallParamAttributes(llvm::Function::Create(m_BuiltinFunctionType, llvm::Function::ExternalLinkage, "Println", m_Module.get()));
 	auto sizeofFn = AddBuiltinFnOrCallParamAttributes(llvm::Function::Create(m_BuiltinFunctionType, llvm::Function::ExternalLinkage, "Sizeof", m_Module.get()));
@@ -655,10 +576,6 @@ void LLVMCompilerImpl::InitModuleAndPassManager()
 	auto eraseFn = AddBuiltinFnOrCallParamAttributes(llvm::Function::Create(m_BuiltinFunctionType, llvm::Function::ExternalLinkage, "Erase", m_Module.get()));
 	auto clockFn = AddBuiltinFnOrCallParamAttributes(llvm::Function::Create(m_BuiltinFunctionType, llvm::Function::ExternalLinkage, "Clock", m_Module.get()));
 
-	RegisterLlvmFn("ValueAdd", valueAddFn);
-	RegisterLlvmFn("ValueSub", valueSubFn);
-	RegisterLlvmFn("ValueMul", valueMulFn);
-	RegisterLlvmFn("ValueDiv", valueDivFn);
 	RegisterLlvmFn("print", printFn);
 	RegisterLlvmFn("println", printlnFn);
 	RegisterLlvmFn("sizeof", sizeofFn);
@@ -666,10 +583,6 @@ void LLVMCompilerImpl::InitModuleAndPassManager()
 	RegisterLlvmFn("erase", eraseFn);
 	RegisterLlvmFn("clock", clockFn);
 
-	m_SymbolTable->DefineBuiltin("ValueAdd");
-	m_SymbolTable->DefineBuiltin("ValueSub");
-	m_SymbolTable->DefineBuiltin("ValueMul");
-	m_SymbolTable->DefineBuiltin("ValueDiv");
 	m_SymbolTable->DefineBuiltin("print");
 	m_SymbolTable->DefineBuiltin("println");
 	m_SymbolTable->DefineBuiltin("sizeof");
@@ -690,10 +603,78 @@ void LLVMCompilerImpl::RegisterLlvmFn(std::string_view name, llvm::Function *fn)
 	m_LlvmBuiltins[name] = fn;
 }
 
-llvm::Function* LLVMCompilerImpl::FindLlvmFn(std::string_view name)
+llvm::Function *LLVMCompilerImpl::FindLlvmFn(std::string_view name)
 {
 	auto iter = m_LlvmBuiltins.find(name);
 	if (iter == m_LlvmBuiltins.end())
 		ASSERT("No llvm fn:%s", name.data());
 	return iter->second;
+}
+
+llvm::Value *LLVMCompilerImpl::CreateCDValue(llvm::Value *v)
+{
+	llvm::Value *vt = nullptr;
+	llvm::Value *storedV = nullptr;
+	llvm::Type* type = m_DoublePtrType;
+	if (v->getType() == m_DoubleType)
+	{
+		vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::NUM));
+		storedV = v;
+	}
+	else if (v->getType() == m_Int64Type)
+	{
+		vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::NUM));
+		storedV = m_Builder->CreateSIToFP(v, m_DoubleType);
+	}
+	else if (v->getType() == m_BoolType)
+	{
+		vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::BOOL));
+		storedV = m_Builder->CreateUIToFP(v, m_DoubleType);
+	}
+	else if (v->getType() == m_Int8PtrType)
+	{
+        vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::NIL));
+        storedV = llvm::ConstantFP::get(*m_Context, llvm::APFloat(0.0));
+	}
+	else if (v->getType() == m_ObjectPtrType)
+	{
+        vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::OBJECT));
+		type = m_ObjectPtrPtrType;
+		storedV = v;
+	}
+
+	auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr);
+
+	llvm::Value *memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, {m_Builder->getInt32(0), m_Builder->getInt32(0)});
+	m_Builder->CreateStore(vt, memberAddr);
+	memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, {m_Builder->getInt32(0), m_Builder->getInt32(1)});
+	memberAddr = m_Builder->CreateBitCast(memberAddr, type);
+	m_Builder->CreateStore(storedV, memberAddr);
+
+	return alloc;
+}
+
+llvm::Value* LLVMCompilerImpl::CreateCDObject(const std::string& str)
+{
+    auto arrayType = llvm::ArrayType::get(m_Int8Type, str.size() + 1);
+    auto globalChars = m_Builder->CreateGlobalString(str);
+
+    auto globalCharsPtr = m_Builder->CreateInBoundsGEP(arrayType, globalChars, { m_Builder->getInt64(0), m_Builder->getInt64(0) });
+
+    //create str object
+    auto strObject = m_Builder->CreateAlloca(m_StrObjectType, nullptr);
+    auto base = m_Builder->CreateBitCast(strObject, m_ObjectPtrType);
+
+    auto objctTypeVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
+    m_Builder->CreateStore(m_Builder->getInt8(std::underlying_type<ObjectType>::type(ObjectType::STR)), objctTypeVar);
+
+    auto markedVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
+    m_Builder->CreateStore(m_Builder->getInt1(0), markedVar);
+
+    auto nextVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, { m_Builder->getInt32(0), m_Builder->getInt32(2) });
+    m_Builder->CreateStore(llvm::ConstantPointerNull::get(m_ObjectPtrType), nextVar);
+
+    auto strPtr = m_Builder->CreateInBoundsGEP(m_StrObjectType, strObject, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
+    m_Builder->CreateStore(globalCharsPtr, strPtr);
+	return strObject;
 }

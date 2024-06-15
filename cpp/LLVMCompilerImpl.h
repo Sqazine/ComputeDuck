@@ -37,6 +37,7 @@ public:
     void Compile(const std::vector<Stmt *> &stmts);
 
     void Run();
+
 private:
     void ResetStatus();
 
@@ -66,33 +67,19 @@ private:
     void CompileStructExpr(StructExpr *expr);
     void CompileDllImportExpr(DllImportExpr *expr);
 
-	template <typename T>
-		requires(std::is_same_v<T,llvm::CallInst> || std::is_same_v<T,llvm::Function>)
-    T* AddBuiltinFnOrCallParamAttributes(T* fnOrCallInst)
+    template <typename T>
+        requires(std::is_same_v<T, llvm::CallInst> || std::is_same_v<T, llvm::Function>)
+    T *AddBuiltinFnOrCallParamAttributes(T *fnOrCallInst)
     {
-		fnOrCallInst->addRetAttr(llvm::Attribute::ZExt);
-		fnOrCallInst->addParamAttr(0, llvm::Attribute::NoUndef);
-		fnOrCallInst->addParamAttr(1, llvm::Attribute::NoUndef);
-		fnOrCallInst->addParamAttr(1, llvm::Attribute::ZExt);
-		fnOrCallInst->addParamAttr(2, llvm::Attribute::NoUndef);
-		fnOrCallInst->addParamAttr(2, llvm::Attribute::NonNull);
+        fnOrCallInst->addRetAttr(llvm::Attribute::ZExt);
+        fnOrCallInst->addParamAttr(0, llvm::Attribute::NoUndef);
+        fnOrCallInst->addParamAttr(1, llvm::Attribute::NoUndef);
+        fnOrCallInst->addParamAttr(1, llvm::Attribute::ZExt);
+        fnOrCallInst->addParamAttr(2, llvm::Attribute::NoUndef);
+        fnOrCallInst->addParamAttr(2, llvm::Attribute::NonNull);
 
         return fnOrCallInst;
     }
-
-	template <typename T>
-		requires(std::is_same_v<T, llvm::CallInst> || std::is_same_v<T, llvm::Function>)
-	T* AddValueFnParamAttributes(T* fnOrCallInst)
-	{
-		fnOrCallInst->addParamAttr(0, llvm::Attribute::NoUndef);
-		fnOrCallInst->addParamAttr(0, llvm::Attribute::NonNull);
-		fnOrCallInst->addParamAttr(1, llvm::Attribute::NoUndef);
-		fnOrCallInst->addParamAttr(1, llvm::Attribute::NonNull);
-		fnOrCallInst->addParamAttr(2, llvm::Attribute::NoUndef);
-		fnOrCallInst->addParamAttr(2, llvm::Attribute::NonNull);
-
-		return fnOrCallInst;
-	}
 
     void Push(llvm::Value *v);
     llvm::Value *Peek(int32_t distance);
@@ -111,38 +98,42 @@ private:
     void RegisterLlvmFn(std::string_view name, llvm::Function *fn);
     llvm::Function *FindLlvmFn(std::string_view name);
 
+    llvm::Value* CreateCDValue(llvm::Value* v);
+    llvm::Value* CreateCDObject(const std::string& str);
+
     std::unordered_map<std::string_view, llvm::Function *> m_LlvmBuiltins;
 
-    llvm::StructType* m_ValueType{nullptr};
-    llvm::PointerType *m_ValuePtrType{ nullptr };
+    llvm::StructType *m_ValueType{nullptr};
+    llvm::PointerType *m_ValuePtrType{nullptr};
 
-    llvm::StructType *mUnionType{ nullptr };
+    llvm::StructType *mUnionType{nullptr};
 
-    llvm::StructType *m_ObjectType{ nullptr };
-    llvm::PointerType *m_ObjectPtrType{ nullptr };
-    llvm::PointerType *m_ObjectPtrPtrType{ nullptr };
-    llvm::StructType *m_StrObjectType{ nullptr };
-    llvm::PointerType *m_StrObjectPtrType{ nullptr };
+    llvm::StructType *m_ObjectType{nullptr};
+    llvm::StructType *m_StrObjectType{nullptr};
 
-    llvm::FunctionType *m_BuiltinFunctionType{ nullptr };
-    llvm::FunctionType *m_ValueFunctionType{ nullptr };
+    llvm::PointerType *m_ObjectPtrType{nullptr};
+    llvm::PointerType *m_ObjectPtrPtrType{nullptr};
+    llvm::PointerType *m_StrObjectPtrType{nullptr};
 
-    llvm::Type *m_Int8Type{ nullptr };
-    llvm::Type *m_BoolType{ nullptr };
-    llvm::Type *m_DoubleType{ nullptr };
-    llvm::Type *m_Int64Type{ nullptr };
-    llvm::Type *m_Int32Type{ nullptr };
-    llvm::Type *m_VoidType{ nullptr };
-    llvm::Type *m_Int64PtrType{ nullptr };
-    llvm::Type *m_Int32PtrType{ nullptr };
-    llvm::Type *m_Int8PtrType{ nullptr };
-    llvm::Type *m_BoolPtrType{ nullptr };
-    llvm::Type *m_DoublePtrType{ nullptr };
+    llvm::FunctionType *m_BuiltinFunctionType{nullptr};
+    llvm::FunctionType *m_ValueFunctionType{nullptr};
+
+    llvm::Type *m_Int8Type{nullptr};
+    llvm::Type *m_BoolType{nullptr};
+    llvm::Type *m_DoubleType{nullptr};
+    llvm::Type *m_Int64Type{nullptr};
+    llvm::Type *m_Int32Type{nullptr};
+    llvm::Type *m_VoidType{nullptr};
+    llvm::PointerType *m_Int64PtrType{nullptr};
+    llvm::PointerType *m_Int32PtrType{nullptr};
+    llvm::PointerType *m_Int8PtrType{nullptr};
+    llvm::PointerType *m_BoolPtrType{nullptr};
+    llvm::PointerType *m_DoublePtrType{nullptr};
 
     std::vector<llvm::Value *> m_ValueStack;
     std::vector<llvm::Function *> m_FunctionStack;
 
-    SymbolTable *m_SymbolTable{ nullptr };
+    SymbolTable *m_SymbolTable{nullptr};
 
     std::unique_ptr<llvm::LLVMContext> m_Context;
     std::unique_ptr<llvm::Module> m_Module;

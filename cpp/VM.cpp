@@ -10,7 +10,7 @@ VM::~VM()
 	Gc(true);
 }
 
-void VM::Run(Chunk *chunk)
+void VM::Run(const Chunk *chunk)
 {
 	ResetStatus();
 
@@ -26,20 +26,24 @@ void VM::Run(Chunk *chunk)
 
 void VM::Execute()
 {
-	// > >= < <=
+//  - * /
+#define COMMON_BINARY(op)                                                                                     \
+	do                                                                                                        \
+	{                                                                                                         \
+		auto left = FindActualValue(Pop());                                                                   \
+		auto right = FindActualValue(Pop());                                                                  \
+		if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                                        \
+			Push(Value(TO_NUM_VALUE(left) op TO_NUM_VALUE(right)));                                           \
+		else                                                                                                  \
+			ASSERT("Invalid binary op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
+	} while (0);
+
+// > >= < <=
 #define COMPARE_BINARY(op)                                                                \
 	do                                                                                    \
 	{                                                                                     \
-		Value left = Pop();                                                               \
-		Value right = Pop();                                                              \
-		while (IS_REF_VALUE(left))                                                        \
-			left = *TO_REF_VALUE(left)->pointer;                                          \
-		while (IS_REF_VALUE(right))                                                       \
-			right = *TO_REF_VALUE(right)->pointer;                                        \
-		if (IS_BUILTIN_VALUE(left) && TO_BUILTIN_VALUE(left)->Is<Value>())                \
-			left = TO_BUILTIN_VALUE(left)->Get<Value>();                                  \
-		if (IS_BUILTIN_VALUE(right) && TO_BUILTIN_VALUE(right)->Is<Value>())              \
-			right = TO_BUILTIN_VALUE(right)->Get<Value>();                                \
+		Value left = FindActualValue(Pop());                                              \
+		Value right = FindActualValue(Pop());                                             \
 		if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                    \
 			Push(TO_NUM_VALUE(left) op TO_NUM_VALUE(right) ? Value(true) : Value(false)); \
 		else                                                                              \
@@ -50,16 +54,8 @@ void VM::Execute()
 #define LOGIC_BINARY(op)                                                                               \
 	do                                                                                                 \
 	{                                                                                                  \
-		Value left = Pop();                                                                            \
-		Value right = Pop();                                                                           \
-		while (IS_REF_VALUE(left))                                                                     \
-			left = *TO_REF_VALUE(left)->pointer;                                                       \
-		while (IS_REF_VALUE(right))                                                                    \
-			right = *TO_REF_VALUE(right)->pointer;                                                     \
-		if (IS_BUILTIN_VALUE(left) && TO_BUILTIN_VALUE(left)->Is<Value>())                             \
-			left = TO_BUILTIN_VALUE(left)->Get<Value>();                                               \
-		if (IS_BUILTIN_VALUE(right) && TO_BUILTIN_VALUE(right)->Is<Value>())                           \
-			right = TO_BUILTIN_VALUE(right)->Get<Value>();                                             \
+		Value left = FindActualValue(Pop());                                                           \
+		Value right = FindActualValue(Pop());                                                          \
 		if (IS_BOOL_VALUE(right) && IS_BOOL_VALUE(left))                                               \
 			Push(TO_BOOL_VALUE(left) op TO_BOOL_VALUE(right) ? Value(true) : Value(false));            \
 		else                                                                                           \
@@ -69,33 +65,13 @@ void VM::Execute()
 #define BIT_BINARY(op)                                                                                 \
 	do                                                                                                 \
 	{                                                                                                  \
-		Value left = Pop();                                                                            \
-		Value right = Pop();                                                                           \
-		while (IS_REF_VALUE(left))                                                                     \
-			left = *TO_REF_VALUE(left)->pointer;                                                       \
-		while (IS_REF_VALUE(right))                                                                    \
-			right = *TO_REF_VALUE(right)->pointer;                                                     \
-		if (IS_BUILTIN_VALUE(left))                                                                    \
-			left = TO_BUILTIN_VALUE(left)->Get<Value>();                                               \
-		if (IS_BUILTIN_VALUE(right))                                                                   \
-			right = TO_BUILTIN_VALUE(right)->Get<Value>();                                             \
+		Value left = FindActualValue(Pop());                                                           \
+		Value right = FindActualValue(Pop());                                                          \
 		if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                                 \
 			Push((uint64_t)TO_NUM_VALUE(left) op(uint64_t) TO_NUM_VALUE(right));                       \
 		else                                                                                           \
 			ASSERT("Invalid op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
 	} while (0);
-
-#define ARITHMETIC(op, fn)              \
-	case op:                            \
-	{                                   \
-		Value left = Pop();             \
-		Value right = Pop();            \
-		Value value;                    \
-		fn(left, right, value);         \
-		RegisterToGCRecordChain(value); \
-		Push(value);                    \
-		break;                          \
-	}
 
 	while (1)
 	{
@@ -134,10 +110,30 @@ void VM::Execute()
 			Push(value);
 			break;
 		}
-			ARITHMETIC(OP_ADD, ValueAdd);
-			ARITHMETIC(OP_SUB, ValueSub);
-			ARITHMETIC(OP_MUL, ValueMul);
-			ARITHMETIC(OP_DIV, ValueDiv);
+		case OP_ADD:
+		{
+			Value left = FindActualValue(Pop());
+			Value right = FindActualValue(Pop());
+			if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))
+				Push(Value(TO_NUM_VALUE(left) + TO_NUM_VALUE(right)));
+			else if (IS_STR_VALUE(right) && IS_STR_VALUE(left))
+				Push(Value(new StrObject(TO_STR_VALUE(left)->value + TO_STR_VALUE(right)->value)));
+			else
+				ASSERT("Invalid binary op:%s+%s", left.Stringify().c_str(), right.Stringify().c_str());
+		}
+		case OP_SUB:
+		{
+			COMMON_BINARY(-);
+			break;
+		}
+		case OP_MUL:
+		{
+			COMMON_BINARY(*);
+		}
+		case OP_DIV:
+		{
+			COMMON_BINARY(/);
+		}
 		case OP_GREATER:
 		{
 			COMPARE_BINARY(>);
@@ -150,26 +146,14 @@ void VM::Execute()
 		}
 		case OP_EQUAL:
 		{
-			Value left = Pop();
-			Value right = Pop();
-			while (IS_REF_VALUE(left))
-				left = *(TO_REF_VALUE(left)->pointer);
-			while (IS_REF_VALUE(right))
-				right = *(TO_REF_VALUE(right)->pointer);
-			if (IS_BUILTIN_VALUE(left) && TO_BUILTIN_VALUE(left)->Is<Value>())
-				left = (TO_BUILTIN_VALUE(left)->Get<Value>());
-			if (IS_BUILTIN_VALUE(right) && TO_BUILTIN_VALUE(right)->Is<Value>())
-				right = (TO_BUILTIN_VALUE(right)->Get<Value>());
+			Value left = FindActualValue(Pop());
+			Value right = FindActualValue(Pop());
 			Push(left == right);
 			break;
 		}
 		case OP_NOT:
 		{
-			auto value = Pop();
-			while (IS_REF_VALUE(value))
-				value = *(TO_REF_VALUE(value)->pointer);
-			if (IS_BUILTIN_VALUE(value) && TO_BUILTIN_VALUE(value)->Is<Value>())
-				value = TO_BUILTIN_VALUE(value)->Get<Value>();
+			auto value = FindActualValue(Pop());
 			if (!IS_BOOL_VALUE(value))
 				ASSERT("Invalid op:'!' %s", value.Stringify().c_str());
 			Push(!TO_BOOL_VALUE(value));
@@ -177,11 +161,7 @@ void VM::Execute()
 		}
 		case OP_MINUS:
 		{
-			auto value = Pop();
-			while (IS_REF_VALUE(value))
-				value = *TO_REF_VALUE(value)->pointer;
-			if (IS_BUILTIN_VALUE(value) && TO_BUILTIN_VALUE(value)->Is<Value>())
-				value = TO_BUILTIN_VALUE(value)->Get<Value>();
+			auto value = FindActualValue(Pop());
 			if (!IS_NUM_VALUE(value))
 				ASSERT("Invalid op:'-' %s", value.Stringify().c_str());
 			Push(-TO_NUM_VALUE(value));
@@ -214,12 +194,7 @@ void VM::Execute()
 		}
 		case OP_BIT_NOT:
 		{
-			Value value = Pop();
-
-			while (IS_REF_VALUE(value))
-				value = *TO_REF_VALUE(value)->pointer;
-			if (IS_BUILTIN_VALUE(value) && TO_BUILTIN_VALUE(value)->Is<Value>())
-				value = TO_BUILTIN_VALUE(value)->Get<Value>();
+			Value value = FindActualValue(Pop());
 			if (!IS_NUM_VALUE(value))
 				ASSERT("Invalid op:~ %s", value.Stringify().c_str());
 			Push(~(uint64_t)TO_NUM_VALUE(value));
@@ -282,10 +257,9 @@ void VM::Execute()
 
 			auto ptr = &m_GlobalVariables[index];
 
-			if (IS_REF_VALUE((*ptr))) // if is a reference object,then set the actual value which the reference object points
+			if (IS_REF_VALUE(*ptr)) // if is a reference object,then set the actual value which the reference object points
 			{
-				while (IS_REF_VALUE((*ptr)))
-					ptr = TO_REF_VALUE((*ptr))->pointer;
+				ptr = GetEndOfRefValue(ptr);
 				*ptr = value;
 			}
 			else
@@ -346,11 +320,8 @@ void VM::Execute()
 			auto index = *frame->ip++;
 			auto value = Pop();
 
-			Value *slot = PeekCallFrame(scopeDepth)->slot + index;
+			Value *slot = GetEndOfRefValue(PeekCallFrame(scopeDepth)->slot + index);
 
-			if (IS_REF_VALUE((*slot)))
-				while (IS_REF_VALUE((*slot)))
-					slot = TO_REF_VALUE((*slot))->pointer;
 			*slot = value;
 			break;
 		}
@@ -386,7 +357,7 @@ void VM::Execute()
 
 			for (int i = 0; i < memberCount; ++i)
 			{
-				auto name = TO_STR_VALUE((*--tmpPtr))->value;
+				auto name = TO_STR_VALUE(*--tmpPtr)->value;
 				auto value = *--tmpPtr;
 				members[name] = value;
 			}
@@ -399,9 +370,7 @@ void VM::Execute()
 		case OP_GET_STRUCT:
 		{
 			auto memberName = Pop();
-			auto instance = Pop();
-			while (IS_REF_VALUE(instance))
-				instance = *TO_REF_VALUE(instance)->pointer;
+			auto instance = GetEndOfRefValue(Pop());
 			auto structInstance = TO_STRUCT_VALUE(instance);
 			if (IS_STR_VALUE(memberName))
 			{
@@ -415,9 +384,7 @@ void VM::Execute()
 		case OP_SET_STRUCT:
 		{
 			auto memberName = Pop();
-			auto instance = Pop();
-			while (IS_REF_VALUE(instance))
-				instance = *TO_REF_VALUE(instance)->pointer;
+			auto instance = GetEndOfRefValue(Pop());
 			auto structInstance = TO_STRUCT_VALUE(instance);
 			auto value = Pop();
 			if (IS_STR_VALUE(memberName))
@@ -450,19 +417,16 @@ void VM::Execute()
 			auto index = *frame->ip++;
 			auto idxValue = Pop();
 
-			auto ptr = &m_GlobalVariables[index];
+			auto ptr = GetEndOfRefValue(&m_GlobalVariables[index]);
 
-			while (IS_REF_VALUE((*ptr)))
-				ptr = TO_REF_VALUE((*ptr))->pointer;
-
-			if (IS_ARRAY_VALUE((*ptr)))
+			if (IS_ARRAY_VALUE(*ptr))
 			{
 				if (!IS_NUM_VALUE(idxValue))
 					ASSERT("Invalid idx for array,only integer is available.");
 				auto intIdx = TO_NUM_VALUE(idxValue);
-				if (intIdx < 0 || intIdx >= TO_ARRAY_VALUE((*ptr))->elements.size())
+				if (intIdx < 0 || intIdx >= TO_ARRAY_VALUE(*ptr)->elements.size())
 					ASSERT("Idx out of range.");
-				Push(CreateObject<RefObject>(&(TO_ARRAY_VALUE((*ptr))->elements[(uint64_t)intIdx])));
+				Push(CreateObject<RefObject>(&(TO_ARRAY_VALUE(*ptr)->elements[(uint64_t)intIdx])));
 			}
 			else
 				ASSERT("Invalid indexed reference type: %s not a array value.", ptr->Stringify().c_str());
@@ -475,19 +439,16 @@ void VM::Execute()
 
 			auto idxValue = Pop();
 
-			Value *slot = PeekCallFrame(scopeDepth)->slot + index;
+			Value *slot = GetEndOfRefValue(PeekCallFrame(scopeDepth)->slot + index);
 
-			while (IS_REF_VALUE((*slot)))
-				slot = TO_REF_VALUE((*slot))->pointer;
-
-			if (IS_ARRAY_VALUE((*slot)))
+			if (IS_ARRAY_VALUE(*slot))
 			{
 				if (!IS_NUM_VALUE(idxValue))
 					ASSERT("Invalid idx for array,only integer is available.");
 				auto intIdx = TO_NUM_VALUE(idxValue);
-				if (intIdx < 0 || intIdx >= TO_ARRAY_VALUE((*slot))->elements.size())
+				if (intIdx < 0 || intIdx >= TO_ARRAY_VALUE(*slot)->elements.size())
 					ASSERT("Idx out of range.");
-				Push(CreateObject<RefObject>(&(TO_ARRAY_VALUE((*slot))->elements[(uint64_t)intIdx])));
+				Push(CreateObject<RefObject>(&(TO_ARRAY_VALUE(*slot)->elements[(uint64_t)intIdx])));
 			}
 			else
 				ASSERT("Invalid indexed reference type: %s not a array value.", slot->Stringify().c_str());
@@ -555,6 +516,30 @@ CallFrame *VM::PopCallFrame()
 CallFrame *VM::PeekCallFrame(int32_t distance)
 {
 	return m_CallFrameTop - distance;
+}
+
+Value VM::FindActualValue(const Value &v)
+{
+	auto value = GetEndOfRefValue(v);
+	if (IS_BUILTIN_VALUE(value) && TO_BUILTIN_VALUE(value)->Is<Value>())
+		value = TO_BUILTIN_VALUE(value)->Get<Value>();
+	return value;
+}
+
+Value *VM::GetEndOfRefValue(Value *v)
+{
+	auto result = v;
+	while (IS_REF_VALUE(*result))
+		result = TO_REF_VALUE(*result)->pointer;
+	return result;
+}
+
+Value VM::GetEndOfRefValue(const Value &v)
+{
+	auto value = v;
+	while (IS_REF_VALUE(value))
+		value = *TO_REF_VALUE(value)->pointer;
+	return value;
 }
 
 void VM::Gc(bool isExitingVM)

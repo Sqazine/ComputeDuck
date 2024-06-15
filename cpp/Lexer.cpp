@@ -23,6 +23,7 @@ Lexer::Lexer()
 {
     ResetStatus();
 }
+
 Lexer::~Lexer()
 {
 }
@@ -40,6 +41,7 @@ const std::vector<Token> &Lexer::GenerateTokens(std::string_view src, std::strin
 
     return m_Tokens;
 }
+
 void Lexer::GenerateToken()
 {
     char c = GetCurCharAndStepOnce();
@@ -120,6 +122,8 @@ void Lexer::GenerateToken()
     case '!':
         if (IsMatchCurCharAndStepOnce('='))
             AddToken(TokenType::BANG_EQUAL);
+        else
+            ASSERT("[line %u]: Unknown character '!'", m_Line);
         break;
     case '<':
         if (IsMatchCurCharAndStepOnce('='))
