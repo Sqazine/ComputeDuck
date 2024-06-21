@@ -44,8 +44,7 @@ endif()
 
 set(ROOT_SRC Ast.h
              Chunk.cpp Chunk.h
-             Compiler.h 
-             OpCodeCompilerImpl.cpp OpCodeCompilerImpl.h 
+             Compiler.h Compiler.cpp
              ConstantFolder.h ConstantFolder.cpp 
              Lexer.cpp Lexer.h
              Object.h 
@@ -55,7 +54,8 @@ set(ROOT_SRC Ast.h
              Utils.h Utils.cpp
              Value.cpp Value.h
              BuiltinManager.cpp BuiltinManager.h
-             VM.cpp VM.h
+             OpCodeVM.h OpCodeVM.cpp
+             VM.h
              PreProcessor.h)
 
 add_executable(${EXE_NAME} main.cpp ${EXAMPLES})
@@ -72,7 +72,7 @@ if(COMPUTEDUCK_BUILD_WITH_LLVM)
         message(STATUS "LLVM_LIBS=${LLVM_LIBS}")
         message(STATUS "LLVM_GENERATE_DIR=${LLVM_GENERATE_DIR}")
 
-        list(APPEND ROOT_SRC LLVMCompilerImpl.cpp LLVMCompilerImpl.h LLVMJit.h LLVMJit.cpp)
+        list(APPEND ROOT_SRC LLVMJitVM.h LLVMJitVM.cpp)
 
         source_group("src" FILES ${ROOT_SRC})
         add_library(${LIB_NAME} SHARED ${ROOT_SRC})

@@ -1,61 +1,63 @@
 #pragma once
-#include "Utils.h"
-#include "OpCodeCompilerImpl.h"
-#ifdef BUILD_WITH_LLVM
-#include "LLVMCompilerImpl.h"
-#endif
-
-enum class CompileFlag
-{
-	OPCODE,
-	LLVM,
-};
+#include <vector>
+#include "Chunk.h"
+#include "Ast.h"
+#include "Value.h"
+#include "Object.h"
+#include "SymbolTable.h"
 
 class COMPUTE_DUCK_API Compiler
 {
-public:
-	Compiler(CompileFlag flag)
-		: m_CompileFlag(flag)
-	{
-		m_OpcodeCompilerImpl = new OpCodeCompilerImpl();
-#ifdef BUILD_WITH_LLVM
-		m_LLVMCompilerImpl = new LLVMCompilerImpl();
-#endif
-	}
-	~Compiler()
-	{
-		SAFE_DELETE(m_OpcodeCompilerImpl);
-#ifdef BUILD_WITH_LLVM
-		SAFE_DELETE(m_LLVMCompilerImpl);
-#endif
-	}
 
-	Chunk *Compile(const std::vector<Stmt *> &stmts)
-	{
-		switch (m_CompileFlag)
-		{
-		case CompileFlag::OPCODE:
-			return m_OpcodeCompilerImpl->Compile(stmts);
-			break;
-		case CompileFlag::LLVM:
-		{
-#ifdef BUILD_WITH_LLVM
-			m_LLVMCompilerImpl->Compile(stmts);
-			m_LLVMCompilerImpl->Run();
-#endif
-			break;
-		}
-		default:
-			break;
-		}
-		return nullptr;
-	}
+public:
+    Compiler();
+    ~Compiler();
+
+    FunctionObject *Compile(const std::vector<Stmt *> &stmts);
 
 private:
-	CompileFlag m_CompileFlag;
+    void ResetStatus();
 
-	OpCodeCompilerImpl *m_OpcodeCompilerImpl;
-#ifdef BUILD_WITH_LLVM
-	LLVMCompilerImpl *m_LLVMCompilerImpl;
-#endif
+    void CompileStmt(Stmt *stmt);
+    void CompileExprStmt(ExprStmt *stmt);
+    void CompileIfStmt(IfStmt *stmt);
+    void CompileScopeStmt(ScopeStmt *stmt);
+    void CompileWhileStmt(WhileStmt *stmt);
+    void CompileReturnStmt(ReturnStmt *stmt);
+    void CompileStructStmt(StructStmt *stmt);
+
+    void CompileExpr(Expr *expr, const RWState &state = RWState::READ);
+    void CompileInfixExpr(InfixExpr *expr);
+    void CompileNumExpr(NumExpr *expr);
+    void CompileBoolExpr(BoolExpr *expr);
+    void CompilePrefixExpr(PrefixExpr *expr);
+    void CompileStrExpr(StrExpr *expr);
+    void CompileNilExpr(NilExpr *expr);
+    void CompileGroupExpr(GroupExpr *expr);
+    void CompileArrayExpr(ArrayExpr *expr);
+    void CompileIndexExpr(IndexExpr *expr);
+    void CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state);
+    void CompileFunctionExpr(FunctionExpr *expr);
+    void CompileFunctionCallExpr(FunctionCallExpr *expr);
+    void CompileStructCallExpr(StructCallExpr *expr, const RWState &state = RWState::READ);
+    void CompileRefExpr(RefExpr *expr);
+    void CompileStructExpr(StructExpr *expr);
+    void CompileDllImportExpr(DllImportExpr *expr);
+
+    void EnterScope();
+    void ExitScope();
+
+    Chunk &CurChunk();
+
+    uint32_t Emit(int16_t opcode);
+    uint32_t EmitConstant(const Value &value);
+
+    void ModifyOpCode(uint32_t pos, int16_t opcode);
+
+    void LoadSymbol(const Symbol &symbol);
+    void StoreSymbol(const Symbol &symbol);
+
+    std::vector<Chunk> m_ScopeChunks;
+
+    SymbolTable *m_SymbolTable{nullptr};
 };

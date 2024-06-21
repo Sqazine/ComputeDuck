@@ -5,8 +5,9 @@
 #include "PreProcessor.h"
 #include "Parser.h"
 #include "Compiler.h"
-#include "VM.h"
 #include "BuiltinManager.h"
+#include "VM.h"
+#include "OpCodeVM.h"
 
 PreProcessor *g_PreProcessor = nullptr;
 Parser *g_Parser = nullptr;
@@ -38,15 +39,13 @@ void Run(std::string_view content)
 		std::cout << stmt->Stringify() << std::endl;
 #endif
 
-	auto chunk = g_Compiler->Compile(stmts);
+	auto fn = g_Compiler->Compile(stmts);
 
-	if (chunk)
-	{
 #ifndef NDEBUG
-		chunk->Stringify();
+	fn->chunk.Stringify();
 #endif
-		g_Vm->Run(chunk);
-	}
+
+	g_Vm->Run(fn);
 
 	for (auto stmt : stmts)
 		SAFE_DELETE(stmt);
@@ -66,6 +65,10 @@ void Repl(std::string_view exePath)
 			return;
 		else if (line == "clear")
 			allLines.clear();
+		else if (line == "-l" || line == "--llvm")
+			g_Vm->SetInterpretFlag(InterpretFlag::LLVM);
+		else if (line == "-op" || line == "--opcode")
+			g_Vm->SetInterpretFlag(InterpretFlag::OPCODE);
 		else
 		{
 			allLines += line;
@@ -88,6 +91,7 @@ int32_t PrintUsage()
 	std::cout << "Usage: ComputeDuck [option]:" << std::endl;
 	std::cout << "-h or --help:show usage info." << std::endl;
 	std::cout << "-l or --llvm:run source with llvm jit,like : ComputeDuck -l." << std::endl;
+	std::cout << "-op or --opcode:run source with opcode jit(SET AS DEFAULT!!!),like : ComputeDuck -op." << std::endl;
 	std::cout << "-f or --file:run source file with a valid file path,like : ComputeDuck -f examples/array.cd." << std::endl;
 	return EXIT_FAILURE;
 }
@@ -96,11 +100,14 @@ int32_t PrintUsage()
 int32_t main(int argc, const char **argv)
 {
 	std::string_view sourceFilePath;
-	CompileFlag compileFlag = CompileFlag::OPCODE;
+	InterpretFlag flag = InterpretFlag::OPCODE;
 	for (size_t i = 0; i < argc; ++i)
 	{
 		if (strcmp(argv[i], "-l") == 0 || strcmp(argv[i], "--llvm") == 0)
-			compileFlag = CompileFlag::LLVM;
+			flag = InterpretFlag::LLVM;
+
+		if (strcmp(argv[i], "-op") == 0 || strcmp(argv[i], "--opcode") == 0)
+			flag = InterpretFlag::OPCODE;
 
 		if (strcmp(argv[i], "-f") == 0 || strcmp(argv[i], "--file") == 0)
 		{
@@ -116,8 +123,9 @@ int32_t main(int argc, const char **argv)
 
 	g_PreProcessor = new PreProcessor();
 	g_Parser = new Parser();
-	g_Compiler = new Compiler(compileFlag);
+	g_Compiler = new Compiler();
 	g_Vm = new VM();
+	g_Vm->SetInterpretFlag(flag);
 
 	if (!sourceFilePath.empty())
 		RunFile(sourceFilePath);

@@ -1,30 +1,27 @@
-#include "VM.h"
+#include "OpCodeVM.h"
 #include <iostream>
 #include "BuiltinManager.h"
-VM::VM()
+OpCodeVM::OpCodeVM()
 {
-	ResetStatus();
 }
-VM::~VM()
+
+OpCodeVM::~OpCodeVM()
 {
 	Gc(true);
 }
 
-void VM::Run(const Chunk *chunk)
+void OpCodeVM::Run(FunctionObject* mainFn)
 {
 	ResetStatus();
 
-	m_Chunk = chunk;
-
-	auto mainFn = CreateObject<FunctionObject>(chunk->opCodes);
 	auto mainCallFrame = CallFrame(mainFn, m_StackTop);
-
+	RegisterToGCRecordChain(mainFn);
 	PushCallFrame(mainCallFrame);
 
 	Execute();
 }
 
-void VM::Execute()
+void OpCodeVM::Execute()
 {
 //  - * /
 #define COMMON_BINARY(op)                                                                                     \
@@ -33,7 +30,7 @@ void VM::Execute()
 		auto left = FindActualValue(Pop());                                                                   \
 		auto right = FindActualValue(Pop());                                                                  \
 		if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                                        \
-			Push(Value(TO_NUM_VALUE(left) op TO_NUM_VALUE(right)));                                           \
+			Push(TO_NUM_VALUE(left) op TO_NUM_VALUE(right));                                           \
 		else                                                                                                  \
 			ASSERT("Invalid binary op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
 	} while (0);
@@ -103,7 +100,7 @@ void VM::Execute()
 		case OP_CONSTANT:
 		{
 			auto idx = *frame->ip++;
-			auto value = m_Chunk->constants[idx];
+			auto value = frame->fn->chunk.constants[idx];
 
 			RegisterToGCRecordChain(value);
 
@@ -115,11 +112,12 @@ void VM::Execute()
 			Value left = FindActualValue(Pop());
 			Value right = FindActualValue(Pop());
 			if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))
-				Push(Value(TO_NUM_VALUE(left) + TO_NUM_VALUE(right)));
-			else if (IS_STR_VALUE(right) && IS_STR_VALUE(left))
-				Push(Value(new StrObject(TO_STR_VALUE(left)->value + TO_STR_VALUE(right)->value)));
+				Push(TO_NUM_VALUE(left) + TO_NUM_VALUE(right));
+            else if (IS_STR_VALUE(right) && IS_STR_VALUE(left))
+                Push(StrAdd(TO_STR_VALUE(left),TO_STR_VALUE(right)));
 			else
 				ASSERT("Invalid binary op:%s+%s", left.Stringify().c_str(), right.Stringify().c_str());
+			break;
 		}
 		case OP_SUB:
 		{
@@ -129,10 +127,12 @@ void VM::Execute()
 		case OP_MUL:
 		{
 			COMMON_BINARY(*);
+			break;
 		}
 		case OP_DIV:
 		{
 			COMMON_BINARY(/);
+			break;
 		}
 		case OP_GREATER:
 		{
@@ -241,13 +241,13 @@ void VM::Execute()
 			if (!IS_BOOL_VALUE(value))
 				ASSERT("The if condition not a boolean value");
 			if (!TO_BOOL_VALUE(value))
-				frame->ip = frame->fn->opCodes.data() + address + 1;
+				frame->ip = frame->fn->chunk.opCodes.data() + address + 1;
 			break;
 		}
 		case OP_JUMP:
 		{
 			auto address = *frame->ip++;
-			frame->ip = frame->fn->opCodes.data() + address + 1;
+			frame->ip = frame->fn->chunk.opCodes.data() + address + 1;
 			break;
 		}
 		case OP_SET_GLOBAL:
@@ -376,7 +376,7 @@ void VM::Execute()
 			{
 				auto iter = structInstance->members.find(TO_STR_VALUE(memberName)->value);
 				if (iter == structInstance->members.end())
-					ASSERT("no member named:(%s) in struct instance:%s", memberName.Stringify().c_str(), structInstance->Stringify().c_str());
+					ASSERT("no member named:(%s) in struct instance:%s", memberName.Stringify().c_str(), Stringify(structInstance).c_str());
 				Push(iter->second);
 			}
 			break;
@@ -460,7 +460,7 @@ void VM::Execute()
 	}
 }
 
-void VM::RegisterToGCRecordChain(const Value &value)
+void OpCodeVM::RegisterToGCRecordChain(const Value &value)
 {
 	if (IS_OBJECT_VALUE(value) && TO_OBJECT_VALUE(value)->next == nullptr) // check is null to avoid cross-reference in vm's object record chain
 	{
@@ -468,7 +468,7 @@ void VM::RegisterToGCRecordChain(const Value &value)
 		if (m_CurObjCount >= m_MaxObjCount)
 			Gc();
 
-		object->marked = false;
+		UnMark(object);
 		object->next = m_FirstObject;
 		m_FirstObject = object;
 
@@ -476,15 +476,8 @@ void VM::RegisterToGCRecordChain(const Value &value)
 	}
 }
 
-void VM::ResetStatus()
+void OpCodeVM::ResetStatus()
 {
-	for (int32_t i = 0; i < STACK_MAX; ++i)
-	{
-		m_ValueStack[i] = Value();
-		m_GlobalVariables[i] = Value();
-		m_CallFrameStack[i] = CallFrame();
-	}
-
 	m_CallFrameTop = m_CallFrameStack;
 	m_StackTop = m_ValueStack;
 
@@ -493,32 +486,32 @@ void VM::ResetStatus()
 	m_MaxObjCount = STACK_MAX;
 }
 
-void VM::Push(const Value &value)
+void OpCodeVM::Push(const Value &value)
 {
 	*m_StackTop++ = value;
 }
 
-Value VM::Pop()
+Value OpCodeVM::Pop()
 {
 	return *(--m_StackTop);
 }
 
-void VM::PushCallFrame(const CallFrame &callFrame)
+void OpCodeVM::PushCallFrame(const CallFrame &callFrame)
 {
 	*m_CallFrameTop++ = callFrame;
 }
 
-CallFrame *VM::PopCallFrame()
+OpCodeVM::CallFrame *OpCodeVM::PopCallFrame()
 {
 	return --m_CallFrameTop;
 }
 
-CallFrame *VM::PeekCallFrame(int32_t distance)
+OpCodeVM::CallFrame *OpCodeVM::PeekCallFrame(int32_t distance)
 {
 	return m_CallFrameTop - distance;
 }
 
-Value VM::FindActualValue(const Value &v)
+Value OpCodeVM::FindActualValue(const Value &v)
 {
 	auto value = GetEndOfRefValue(v);
 	if (IS_BUILTIN_VALUE(value) && TO_BUILTIN_VALUE(value)->Is<Value>())
@@ -526,7 +519,7 @@ Value VM::FindActualValue(const Value &v)
 	return value;
 }
 
-Value *VM::GetEndOfRefValue(Value *v)
+Value *OpCodeVM::GetEndOfRefValue(Value *v)
 {
 	auto result = v;
 	while (IS_REF_VALUE(*result))
@@ -534,7 +527,7 @@ Value *VM::GetEndOfRefValue(Value *v)
 	return result;
 }
 
-Value VM::GetEndOfRefValue(const Value &v)
+Value OpCodeVM::GetEndOfRefValue(const Value &v)
 {
 	auto value = v;
 	while (IS_REF_VALUE(value))
@@ -542,7 +535,7 @@ Value VM::GetEndOfRefValue(const Value &v)
 	return value;
 }
 
-void VM::Gc(bool isExitingVM)
+void OpCodeVM::Gc(bool isExitingVM)
 {
 	auto objNum = m_CurObjCount;
 	if (!isExitingVM)
@@ -550,30 +543,20 @@ void VM::Gc(bool isExitingVM)
 		// mark all object which in stack and in context
 		for (Value *slot = m_ValueStack; slot < m_StackTop; ++slot)
 			slot->Mark();
-		if (m_Chunk)
-		{
-			for (const auto &c : m_Chunk->constants)
-				c.Mark();
-		}
 		for (auto &g : m_GlobalVariables)
 			g.Mark();
 		for (CallFrame *slot = m_CallFrameStack; slot < m_CallFrameTop; ++slot)
-			slot->fn->Mark();
+			Mark(slot->fn);
 	}
 	else
 	{
 		// unMark all objects while exiting vm
 		for (Value *slot = m_ValueStack; slot < m_StackTop; ++slot)
 			slot->UnMark();
-		if (m_Chunk)
-		{
-			for (const auto &c : m_Chunk->constants)
-				c.UnMark();
-		}
 		for (auto &g : m_GlobalVariables)
 			g.UnMark();
 		for (CallFrame *slot = m_CallFrameStack; slot < m_CallFrameTop; ++slot)
-			slot->fn->UnMark();
+			UnMark(slot->fn);
 	}
 
 	// sweep objects which is not reachable
