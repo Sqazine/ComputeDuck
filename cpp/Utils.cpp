@@ -30,7 +30,7 @@ std::string PointerAddressToString(void *pointer)
     return address;
 }
 
-void RegisterBuiltinFunctions(std::string rawDllPath)
+void RegisterDLLs(std::string rawDllPath)
 {
     using RegFn = void (*)();
 

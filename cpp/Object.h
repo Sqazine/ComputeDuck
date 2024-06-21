@@ -35,18 +35,8 @@ enum class ObjectType:uint8_t
 
 struct Object
 {
-	Object(ObjectType type)
-		: marked(false), next(nullptr), type(type)
-	{
-	}
-	virtual ~Object()
-	{
-	}
-
-	virtual std::string Stringify() = 0;
-	virtual void Mark() = 0;
-	virtual void UnMark() = 0;
-	virtual bool IsEqualTo(Object *other) = 0;
+	Object(ObjectType type): marked(false), next(nullptr), type(type){}
+	~Object() {}
 
 	ObjectType type;
 	bool marked;
@@ -55,223 +45,73 @@ struct Object
 
 struct StrObject : public Object
 {
-	StrObject(std::string_view value)
-		: Object(ObjectType::STR), value(value)
-	{
-	}
+	StrObject(const char* value): Object(ObjectType::STR), value(value),len(strlen(value)){}
+	~StrObject()
+    {
+        SAFE_DELETE(value);
+    }
 
-	~StrObject() override
-	{
-	}
-
-	std::string Stringify() override { return value; }
-	void Mark() override { marked = true; }
-	void UnMark() override { marked = false; }
-	bool IsEqualTo(Object *other) override
-	{
-		if (!IS_STR_OBJ(other))
-			return false;
-		return value == TO_STR_OBJ(other)->value;
-	}
-
-	std::string value;
+	const char* value;
+    uint32_t len;
 };
 
 struct ArrayObject : public Object
 {
-	ArrayObject(const std::vector<Value> &elements)
-		: Object(ObjectType::ARRAY), elements(elements)
-	{
-	}
-
-	~ArrayObject() override
-	{
-		// std::vector<Value>().swap(elements);
-	}
-
-	std::string Stringify() override
-	{
-		std::string result = "[";
-		if (!elements.empty())
-		{
-			for (const auto &e : elements)
-				result += e.Stringify() + ",";
-			result = result.substr(0, result.size() - 1);
-		}
-		result += "]";
-		return result;
-	}
-	void Mark() override
-	{
-		marked = true;
-		for (const auto &e : elements)
-			e.Mark();
-	}
-	void UnMark() override
-	{
-		marked = false;
-		for (const auto &e : elements)
-			e.UnMark();
-	}
-
-	bool IsEqualTo(Object *other) override
-	{
-		if (!IS_ARRAY_OBJ(other))
-			return false;
-
-		ArrayObject *arrayOther = TO_ARRAY_OBJ(other);
-
-		if (arrayOther->elements.size() != elements.size())
-			return false;
-
-		for (size_t i = 0; i < elements.size(); ++i)
-			if (elements[i] != arrayOther->elements[i])
-				return false;
-
-		return true;
-	}
+	ArrayObject(const std::vector<Value> &elements): Object(ObjectType::ARRAY), elements(elements){}
+	~ArrayObject(){}
 
 	std::vector<Value> elements;
 };
 
 struct RefObject : public Object
 {
-	RefObject(Value *pointer)
-		: Object(ObjectType::REF), pointer(pointer)
-	{
-	}
-	~RefObject() override
-	{
-	}
-
-	std::string Stringify() override { return pointer->Stringify(); }
-	void Mark() override
-	{
-		marked = true;
-		pointer->Mark();
-	}
-	void UnMark() override
-	{
-		marked = false;
-		pointer->UnMark();
-	}
-	bool IsEqualTo(Object *other) override
-	{
-		if (!IS_REF_OBJ(other))
-			return false;
-		return *pointer == *TO_REF_OBJ(other)->pointer;
-	}
+	RefObject(Value *pointer)	: Object(ObjectType::REF), pointer(pointer){}
+	~RefObject(){}
 
 	Value *pointer;
 };
 
 struct FunctionObject : public Object
 {
-	FunctionObject(const OpCodes &opCodes, uint8_t localVarCount = 0, uint8_t parameterCount = 0)
-		: Object(ObjectType::FUNCTION), opCodes(opCodes), localVarCount(localVarCount), parameterCount(parameterCount)
-	{
-	}
+	FunctionObject(Chunk chunk, uint8_t localVarCount = 0, uint8_t parameterCount = 0)
+		: Object(ObjectType::FUNCTION), chunk(chunk), localVarCount(localVarCount), parameterCount(parameterCount){}
+	~FunctionObject(){}
 
-	~FunctionObject() override
-	{
-		OpCodes().swap(opCodes);
-	}
-
-	std::string Stringify() override { return "function:(0x" + PointerAddressToString(this) + ")"; }
-	void Mark() override { marked = true; }
-	void UnMark() override { marked = false; }
-	bool IsEqualTo(Object *other) override
-	{
-		if (!IS_FUNCTION_OBJ(other))
-			return false;
-
-		auto otherOpCodes = TO_FUNCTION_OBJ(other)->opCodes;
-
-		if (opCodes.size() != otherOpCodes.size())
-			return false;
-
-		for (int32_t i = 0; i < opCodes.size(); ++i)
-			if (opCodes[i] != otherOpCodes[i])
-				return false;
-		return true;
-	}
-
-	OpCodes opCodes;
+	Chunk chunk;
 	uint8_t localVarCount;
 	uint8_t parameterCount;
 };
 
 struct StructObject : public Object
 {
-	StructObject(const std::unordered_map<std::string, Value> &members)
-		: Object(ObjectType::STRUCT), members(members)
-	{
-	}
+	StructObject(const std::unordered_map<std::string, Value> &members)	: Object(ObjectType::STRUCT), members(members){}
+	~StructObject() {}
 
-	~StructObject() override
-	{
-	}
-
-	std::string Stringify() override
-	{
-		std::string result = "struct instance(0x" + PointerAddressToString(this) + "):\n{\n";
-		for (const auto &[k, v] : members)
-			result += k + ":" + v.Stringify() + "\n";
-		result = result.substr(0, result.size() - 1);
-		result += "\n}\n";
-		return result;
-	}
-
-	void Mark() override
-	{
-		marked = true;
-		for (const auto &[k, v] : members)
-			v.Mark();
-	}
-	void UnMark() override
-	{
-		marked = false;
-		for (const auto &[k, v] : members)
-			v.UnMark();
-	}
-	bool IsEqualTo(Object *other) override
-	{
-		if (!IS_STRUCT_OBJ(other))
-			return false;
-
-		for (const auto &[k1, v1] : members)
-		{
-			auto iter = TO_STRUCT_OBJ(other)->members.find(k1);
-			if (iter == TO_STRUCT_OBJ(other)->members.end())
-				return false;
-		}
-		return true;
-	}
 	std::unordered_map<std::string, Value> members;
 };
 
 using BuiltinFn = std::function<bool(Value *, uint8_t, Value &)>;
 
+struct NativeData
+{
+    void* nativeData{ nullptr };
+    std::function<void(void* nativeData)> destroyFunc;
+
+    template <typename T>
+    T* As()
+    {
+        return (T*)nativeData;
+    }
+
+    template <typename T>
+    bool IsSameTypeAs()
+    {
+        return std::is_same<T, typename std::remove_reference<decltype(nativeData)>::type>::value == 1;
+    }
+};
+
 struct BuiltinObject : public Object
 {
-	struct NativeData
-	{
-		void* nativeData{nullptr};
-		std::function<void(void *nativeData)> destroyFunc;
-
-		template <typename T>
-		T *As()
-		{
-			return (T *)nativeData;
-		}
-
-		template <typename T>
-		bool IsSameTypeAs()
-		{
-			return std::is_same<T, typename std::remove_reference<decltype(nativeData)>::type>::value == 1;
-		}
-	};
-
 	BuiltinObject(void *nativeData, std::function<void(void *nativeData)> destroyFunc)
 		: Object(ObjectType::BUILTIN)
 	{
@@ -289,39 +129,10 @@ struct BuiltinObject : public Object
 		data = v;
 	}
 
-	~BuiltinObject() override
+	~BuiltinObject()
 	{
 		if (Is<NativeData>())
 			Get<NativeData>().destroyFunc(Get<NativeData>().nativeData);
-	}
-
-	std::string Stringify() override
-	{
-		std::string vStr;
-		if (Is<BuiltinFn>())
-			vStr = "(0x" + PointerAddressToString(this) + ")";
-		else if (Is<NativeData>())
-			vStr = "(0x" + PointerAddressToString(Get<NativeData>().nativeData) + ")";
-		else
-			vStr = Get<Value>().Stringify();
-
-		return "Builtin :" + vStr;
-	}
-	void Mark() override { marked = true; }
-	void UnMark() override { marked = false; }
-	bool IsEqualTo(Object *other) override
-	{
-		if (!IS_BUILTIN_OBJ(other))
-			return false;
-
-		if (Is<NativeData>())
-		{
-			auto thisNd = Get<NativeData>();
-			auto otherNd = TO_BUILTIN_OBJ(other)->Get<NativeData>();
-			return PointerAddressToString(thisNd.nativeData) == PointerAddressToString(otherNd.nativeData);
-		}
-		else
-			return data.index() == TO_BUILTIN_OBJ(other)->data.index();
 	}
 
 	template<typename T>
@@ -340,3 +151,219 @@ struct BuiltinObject : public Object
 
 	std::variant<NativeData, BuiltinFn, Value> data;
 };
+
+inline std::string Stringify(Object* object)
+{
+	switch (object->type)
+	{
+	case ObjectType::STR:
+	{
+        auto strObj = TO_STR_OBJ(object);
+		return TO_STR_OBJ(object)->value;
+	}
+	case ObjectType::ARRAY:
+    {
+        std::string result = "[";
+        if (!TO_ARRAY_OBJ(object)->elements.empty())
+        {
+            for (const auto& e : TO_ARRAY_OBJ(object)->elements)
+                result += e.Stringify() + ",";
+            result = result.substr(0, result.size() - 1);
+        }
+        result += "]";
+        return result;
+    }
+	case ObjectType::STRUCT:
+	{
+        std::string result = "struct instance(0x" + PointerAddressToString(object) + "):\n{\n";
+        for (const auto& [k, v] : TO_STRUCT_OBJ(object)->members)
+            result += k + ":" + v.Stringify() + "\n";
+        result = result.substr(0, result.size() - 1);
+        result += "\n}\n";
+        return result;
+	}
+    case ObjectType::REF:
+    {
+        return TO_REF_OBJ(object)->pointer->Stringify();
+    }
+    case ObjectType::FUNCTION:
+    {
+		return "function:(0x" + PointerAddressToString(object) + ")";
+    }
+    case ObjectType::BUILTIN:
+    {
+        std::string vStr;
+        if (TO_BUILTIN_OBJ(object)->Is<BuiltinFn>())
+            vStr = "(0x" + PointerAddressToString(object) + ")";
+        else if (TO_BUILTIN_OBJ(object)->Is<NativeData>())
+            vStr = "(0x" + PointerAddressToString(TO_BUILTIN_OBJ(object)->Get<NativeData>().nativeData) + ")";
+        else
+            vStr = TO_BUILTIN_OBJ(object)->Get<Value>().Stringify();
+
+        return "Builtin :" + vStr;
+    }
+	default:
+		ASSERT("Unknown object type");
+		return nullptr;
+	}
+}
+
+inline void Mark(Object* object)
+{
+	object->marked = true;
+    switch (object->type)
+    {
+    case ObjectType::STR:
+    {
+		break;
+    }
+    case ObjectType::ARRAY:
+    {
+        for (const auto& e : TO_ARRAY_OBJ(object)->elements)
+            e.Mark();
+        break;
+    }
+    case ObjectType::STRUCT:
+    {
+        for (const auto& [k, v] : TO_STRUCT_OBJ(object)->members)
+            v.Mark();
+		break;
+    }
+    case ObjectType::REF:
+    {
+		TO_REF_OBJ(object)->pointer->Mark();
+        break;
+    }
+    case ObjectType::FUNCTION:
+    {
+        for (const auto& v : TO_FUNCTION_OBJ(object)->chunk.constants)
+            v.Mark();
+        break;
+    }
+    case ObjectType::BUILTIN:
+    {
+        if (TO_BUILTIN_OBJ(object)->Is<Value>())
+            TO_BUILTIN_OBJ(object)->Get<Value>().Mark();
+        break;
+    }
+    default:
+		break;
+    }
+}
+
+inline void UnMark(Object* object)
+{
+	object->marked = false;
+    object->marked = true;
+    switch (object->type)
+    {
+    case ObjectType::STR:
+    {
+        break;
+    }
+    case ObjectType::ARRAY:
+    {
+        for (const auto& e : TO_ARRAY_OBJ(object)->elements)
+            e.Mark();
+        break;
+    }
+    case ObjectType::STRUCT:
+    {
+        for (const auto& [k, v] : TO_STRUCT_OBJ(object)->members)
+            v.UnMark();
+        break;
+    }
+    case ObjectType::REF:
+    {
+		TO_REF_OBJ(object)->pointer->UnMark();
+        break;
+    }
+    case ObjectType::FUNCTION:
+    {
+        for (const auto& v : TO_FUNCTION_OBJ(object)->chunk.constants)
+            v.UnMark();
+        break;
+    }
+    case ObjectType::BUILTIN:
+    {
+        if (TO_BUILTIN_OBJ(object)->Is<Value>())
+            TO_BUILTIN_OBJ(object)->Get<Value>().UnMark();
+        break;
+    }
+    default:
+        break;
+    }
+}
+
+inline bool IsEqualTo(Object* left, Object* right)
+{
+	if (left->type != right->type)
+		return false;
+    switch (left->type)
+    {
+    case ObjectType::STR:
+    {
+		return TO_STR_OBJ(left)->value == TO_STR_OBJ(right)->value;
+    }
+    case ObjectType::ARRAY:
+    {
+        if (TO_ARRAY_OBJ(left)->elements.size() != TO_ARRAY_OBJ(right)->elements.size())
+            return false;
+        for (size_t i = 0; i < TO_ARRAY_OBJ(left)->elements.size(); ++i)
+            if (TO_ARRAY_OBJ(left)->elements[i] != TO_ARRAY_OBJ(right)->elements[i])
+                return false;
+        return true;
+    }
+    case ObjectType::STRUCT:
+    {
+        for (const auto& [k1, v1] : TO_STRUCT_OBJ(left)->members)
+        {
+            auto iter = TO_STRUCT_OBJ(right)->members.find(k1);
+            if (iter == TO_STRUCT_OBJ(right)->members.end())
+                return false;
+        }
+        return true;
+    }
+    case ObjectType::REF:
+    {
+		return *TO_REF_OBJ(left)->pointer == *TO_REF_OBJ(right)->pointer;
+    }
+    case ObjectType::FUNCTION:
+    {
+        if (TO_FUNCTION_OBJ(left)-> chunk.opCodes.size() != TO_FUNCTION_OBJ(right)->chunk.opCodes.size())
+            return false;
+        if (TO_FUNCTION_OBJ(left)->parameterCount != TO_FUNCTION_OBJ(right)->parameterCount)
+            return false;
+        if (TO_FUNCTION_OBJ(left)->localVarCount != TO_FUNCTION_OBJ(right)->localVarCount)
+            return false;
+        for (int32_t i = 0; i < TO_FUNCTION_OBJ(left)->chunk.opCodes.size(); ++i)
+            if (TO_FUNCTION_OBJ(left)->chunk.opCodes[i] != TO_FUNCTION_OBJ(right)->chunk.opCodes[i])
+                return false;
+        return true;
+    }
+    case ObjectType::BUILTIN:
+    {
+        if (TO_BUILTIN_OBJ(left)->Is<NativeData>())
+        {
+            auto thisNd = TO_BUILTIN_OBJ(left)->Get<NativeData>();
+            auto otherNd = TO_BUILTIN_OBJ(right)->Get<NativeData>();
+            return PointerAddressToString(thisNd.nativeData) == PointerAddressToString(otherNd.nativeData);
+        }
+        else
+            return TO_BUILTIN_OBJ(left)->data.index() == TO_BUILTIN_OBJ(right)->data.index();
+    }
+    default:
+        ASSERT("Unknown object type");
+        return false;
+    }
+}
+
+COMPUTE_DUCK_API inline StrObject* StrAdd(StrObject* left, StrObject* right)
+{
+    int length = left->len + right->len;
+    char* newStr = new char[length + 1];
+    memcpy(newStr, left->value, left->len);
+    memcpy(newStr + left->len, right->value, right->len);
+    newStr[length] = '\0';
+    return new StrObject(newStr);
+}

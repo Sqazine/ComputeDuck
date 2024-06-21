@@ -13,8 +13,8 @@ void Chunk::Stringify()
         auto constant = constants[i];
         if (IS_FUNCTION_VALUE(constant))
         {
-            std::cout << TO_FUNCTION_VALUE(constant)->Stringify() << ":" << std::endl;
-            OpCodeStringify(TO_FUNCTION_VALUE(constant)->opCodes);
+            std::cout << ::Stringify(TO_FUNCTION_VALUE(constant)) << ":" << std::endl;
+            OpCodeStringify(TO_FUNCTION_VALUE(constant)->chunk.opCodes);
             std::cout << std::endl;
         }
     }

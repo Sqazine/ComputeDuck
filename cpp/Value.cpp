@@ -34,7 +34,7 @@ std::string Value::Stringify() const
 	case ValueType::BOOL:
 		return stored == 1.0 ? "true" : "false";
 	case ValueType::OBJECT:
-		return object->Stringify();
+		return ::Stringify(object);
 	default:
 		return "nil";
 	}
@@ -44,12 +44,12 @@ std::string Value::Stringify() const
 void Value::Mark() const
 {
 	if (type == ValueType::OBJECT)
-		object->Mark();
+		::Mark(object);
 }
 void Value::UnMark() const
 {
 	if (type == ValueType::OBJECT)
-		object->UnMark();
+		::UnMark(object);
 }
 
 bool operator==(const Value &left, const Value &right)
@@ -63,27 +63,19 @@ bool operator==(const Value &left, const Value &right)
 		return IS_NIL_VALUE(right);
 	case ValueType::NUM:
 	{
-		if (IS_NUM_VALUE(right))
-			return left.stored == TO_NUM_VALUE(right);
-		else
-			return false;
+		return left.stored == TO_NUM_VALUE(right);
 	}
 	case ValueType::BOOL:
 	{
-		if (IS_BOOL_VALUE(right))
-			return left.stored == TO_BOOL_VALUE(right);
-		return false;
+		return left.stored == TO_BOOL_VALUE(right);
 	}
 	case ValueType::OBJECT:
 	{
-		if (IS_OBJECT_VALUE(right))
-			return left.object->IsEqualTo(TO_OBJECT_VALUE(right));
-		return false;
+		return IsEqualTo(left.object,TO_OBJECT_VALUE(right));
 	}
 	default:
-		return IS_NIL_VALUE(right);
+		return false;
 	}
-	return false;
 }
 
 bool operator!=(const Value &left, const Value &right)

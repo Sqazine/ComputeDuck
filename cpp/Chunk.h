@@ -48,6 +48,7 @@ using OpCodes = std::vector<int16_t>;
 class COMPUTE_DUCK_API Chunk
 {
 public:
+    Chunk() = default;
     Chunk(OpCodes opCodes, const std::vector<Value> &constants);
     ~Chunk()
     {

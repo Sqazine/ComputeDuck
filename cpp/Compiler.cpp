@@ -1,44 +1,43 @@
-#include "OpCodeCompilerImpl.h"
+#include "Compiler.h"
 #include "Object.h"
 #include "BuiltinManager.h"
 #include <limits>
 
 constexpr int16_t INVALID_OPCODE = std::numeric_limits<int16_t>::max();
 
-OpCodeCompilerImpl::OpCodeCompilerImpl()
+Compiler::Compiler()
 {
 }
 
-OpCodeCompilerImpl::~OpCodeCompilerImpl()
+Compiler::~Compiler()
 {
     SAFE_DELETE(m_SymbolTable);
 }
 
-Chunk *OpCodeCompilerImpl::Compile(const std::vector<Stmt *> &stmts)
+FunctionObject* Compiler::Compile(const std::vector<Stmt *> &stmts)
 {
     ResetStatus();
 
     for (const auto &stmt : stmts)
         CompileStmt(stmt);
 
-    return new Chunk(CurOpCodes(), m_Constants);
+    return new FunctionObject(CurChunk());
 }
 
-void OpCodeCompilerImpl::ResetStatus()
+void Compiler::ResetStatus()
 {
-    std::vector<Value>().swap(m_Constants);
-    std::vector<OpCodes>().swap(m_Scopes);
-    m_Scopes.emplace_back(OpCodes()); // set a default opcodes
+    std::vector<Chunk>().swap(m_ScopeChunks);
+    m_ScopeChunks.emplace_back(Chunk()); // set a default opcodes
 
     SAFE_DELETE(m_SymbolTable);
-    
+
     m_SymbolTable = new SymbolTable();
 
-    for (const auto& [k,v]:BuiltinManager::GetInstance()->GetBuiltinObjectList())
+    for (const auto &[k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
         m_SymbolTable->DefineBuiltin(k);
 }
 
-void OpCodeCompilerImpl::CompileStmt(Stmt *stmt)
+void Compiler::CompileStmt(Stmt *stmt)
 {
     switch (stmt->type)
     {
@@ -65,12 +64,12 @@ void OpCodeCompilerImpl::CompileStmt(Stmt *stmt)
     }
 }
 
-void OpCodeCompilerImpl::CompileExprStmt(ExprStmt *stmt)
+void Compiler::CompileExprStmt(ExprStmt *stmt)
 {
     CompileExpr(stmt->expr);
 }
 
-void OpCodeCompilerImpl::CompileIfStmt(IfStmt *stmt)
+void Compiler::CompileIfStmt(IfStmt *stmt)
 {
     CompileExpr(stmt->condition);
     Emit(OP_JUMP_IF_FALSE);
@@ -81,15 +80,15 @@ void OpCodeCompilerImpl::CompileIfStmt(IfStmt *stmt)
     Emit(OP_JUMP);
     auto jumpAddress = Emit(INVALID_OPCODE);
 
-    ModifyOpCode(jumpIfFalseAddress, (int16_t)CurOpCodes().size() - 1);
+    ModifyOpCode(jumpIfFalseAddress, (int16_t)CurChunk().opCodes.size() - 1);
 
     if (stmt->elseBranch)
         CompileStmt(stmt->elseBranch);
 
-    ModifyOpCode(jumpAddress, (int16_t)CurOpCodes().size() - 1);
+    ModifyOpCode(jumpAddress, (int16_t)CurChunk().opCodes.size() - 1);
 }
 
-void OpCodeCompilerImpl::CompileScopeStmt(ScopeStmt *stmt)
+void Compiler::CompileScopeStmt(ScopeStmt *stmt)
 {
     EnterScope();
     Emit(OP_SP_OFFSET);
@@ -102,12 +101,12 @@ void OpCodeCompilerImpl::CompileScopeStmt(ScopeStmt *stmt)
 
     if (localVarCount == 0)
     {
-        m_Scopes.back().erase(m_Scopes.back().begin() + idx);
-        m_Scopes.back().erase(m_Scopes.back().begin() + (idx - 1));
+        CurChunk().opCodes.erase(CurChunk().opCodes.begin() + idx);
+        CurChunk().opCodes.erase(CurChunk().opCodes.begin() + (idx - 1));
     }
     else
     {
-        CurOpCodes()[idx] = localVarCount;
+        CurChunk().opCodes[idx] = localVarCount;
         Emit(OP_SP_OFFSET);
         Emit(-localVarCount);
     }
@@ -115,9 +114,9 @@ void OpCodeCompilerImpl::CompileScopeStmt(ScopeStmt *stmt)
     ExitScope();
 }
 
-void OpCodeCompilerImpl::CompileWhileStmt(WhileStmt *stmt)
+void Compiler::CompileWhileStmt(WhileStmt *stmt)
 {
-    auto jumpAddress = (int32_t)CurOpCodes().size() - 1;
+    auto jumpAddress = (int32_t)CurChunk().opCodes.size() - 1;
     CompileExpr(stmt->condition);
 
     Emit(OP_JUMP_IF_FALSE);
@@ -128,10 +127,10 @@ void OpCodeCompilerImpl::CompileWhileStmt(WhileStmt *stmt)
     Emit(OP_JUMP);
     Emit(jumpAddress);
 
-    ModifyOpCode(jumpIfFalseAddress, (int16_t)CurOpCodes().size() - 1);
+    ModifyOpCode(jumpIfFalseAddress, (int16_t)CurChunk().opCodes.size() - 1);
 }
 
-void OpCodeCompilerImpl::CompileReturnStmt(ReturnStmt *stmt)
+void Compiler::CompileReturnStmt(ReturnStmt *stmt)
 {
     if (stmt->expr)
     {
@@ -146,28 +145,28 @@ void OpCodeCompilerImpl::CompileReturnStmt(ReturnStmt *stmt)
     }
 }
 
-void OpCodeCompilerImpl::CompileStructStmt(StructStmt *stmt)
+void Compiler::CompileStructStmt(StructStmt *stmt)
 {
     auto symbol = m_SymbolTable->Define(stmt->name, true);
 
-    m_Scopes.emplace_back(OpCodes());
+    m_ScopeChunks.emplace_back(Chunk());
 
     CompileStructExpr(stmt->body);
 
-    auto opCodes = m_Scopes.back();
-    m_Scopes.pop_back();
+    auto chunk = m_ScopeChunks.back();
+    m_ScopeChunks.pop_back();
 
-    opCodes.emplace_back(OP_RETURN);
-    opCodes.emplace_back(1);
+    chunk.opCodes.emplace_back(OP_RETURN);
+    chunk.opCodes.emplace_back(1);
 
-    auto fn = new FunctionObject(opCodes);
+    auto fn = new FunctionObject(chunk);
 
     EmitConstant(fn);
 
     StoreSymbol(symbol);
 }
 
-void OpCodeCompilerImpl::CompileExpr(Expr *expr, const RWState &state)
+void Compiler::CompileExpr(Expr *expr, const RWState &state)
 {
     switch (expr->type)
     {
@@ -224,7 +223,7 @@ void OpCodeCompilerImpl::CompileExpr(Expr *expr, const RWState &state)
     }
 }
 
-void OpCodeCompilerImpl::CompileInfixExpr(InfixExpr *expr)
+void Compiler::CompileInfixExpr(InfixExpr *expr)
 {
     if (expr->op == "=")
     {
@@ -280,12 +279,12 @@ void OpCodeCompilerImpl::CompileInfixExpr(InfixExpr *expr)
     }
 }
 
-void OpCodeCompilerImpl::CompileNumExpr(NumExpr *expr)
+void Compiler::CompileNumExpr(NumExpr *expr)
 {
     EmitConstant(expr->value);
 }
 
-void OpCodeCompilerImpl::CompileBoolExpr(BoolExpr *expr)
+void Compiler::CompileBoolExpr(BoolExpr *expr)
 {
     if (expr->value)
         EmitConstant(true);
@@ -293,7 +292,7 @@ void OpCodeCompilerImpl::CompileBoolExpr(BoolExpr *expr)
         EmitConstant(false);
 }
 
-void OpCodeCompilerImpl::CompilePrefixExpr(PrefixExpr *expr)
+void Compiler::CompilePrefixExpr(PrefixExpr *expr)
 {
     CompileExpr(expr->right);
     if (expr->op == "-")
@@ -306,22 +305,22 @@ void OpCodeCompilerImpl::CompilePrefixExpr(PrefixExpr *expr)
         ASSERT("Unrecognized prefix op");
 }
 
-void OpCodeCompilerImpl::CompileStrExpr(StrExpr *expr)
+void Compiler::CompileStrExpr(StrExpr *expr)
 {
-    EmitConstant(new StrObject(expr->value));
+    EmitConstant(new StrObject(expr->value.c_str()));
 }
 
-void OpCodeCompilerImpl::CompileNilExpr(NilExpr *expr)
+void Compiler::CompileNilExpr(NilExpr *expr)
 {
     EmitConstant(Value());
 }
 
-void OpCodeCompilerImpl::CompileGroupExpr(GroupExpr *expr)
+void Compiler::CompileGroupExpr(GroupExpr *expr)
 {
     CompileExpr(expr->expr);
 }
 
-void OpCodeCompilerImpl::CompileArrayExpr(ArrayExpr *expr)
+void Compiler::CompileArrayExpr(ArrayExpr *expr)
 {
     for (const auto &e : expr->elements)
         CompileExpr(e);
@@ -330,14 +329,14 @@ void OpCodeCompilerImpl::CompileArrayExpr(ArrayExpr *expr)
     Emit(static_cast<int16_t>(expr->elements.size()));
 }
 
-void OpCodeCompilerImpl::CompileIndexExpr(IndexExpr *expr)
+void Compiler::CompileIndexExpr(IndexExpr *expr)
 {
     CompileExpr(expr->ds);
     CompileExpr(expr->index);
     Emit(OP_INDEX);
 }
 
-void OpCodeCompilerImpl::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state)
+void Compiler::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state)
 {
     Symbol symbol;
     bool isFound = m_SymbolTable->Resolve(expr->literal, symbol);
@@ -355,11 +354,11 @@ void OpCodeCompilerImpl::CompileIdentifierExpr(IdentifierExpr *expr, const RWSta
     }
 }
 
-void OpCodeCompilerImpl::CompileFunctionExpr(FunctionExpr *expr)
+void Compiler::CompileFunctionExpr(FunctionExpr *expr)
 {
     EnterScope();
 
-    m_Scopes.emplace_back(OpCodes());
+    m_ScopeChunks.emplace_back(Chunk());
 
     for (const auto &param : expr->parameters)
         m_SymbolTable->Define(param->literal);
@@ -369,24 +368,24 @@ void OpCodeCompilerImpl::CompileFunctionExpr(FunctionExpr *expr)
 
     auto localVarCount = m_SymbolTable->definitionCount;
 
-    auto opCodes = m_Scopes.back();
-    m_Scopes.pop_back();
+    auto chunk = m_ScopeChunks.back();
+    m_ScopeChunks.pop_back();
 
     ExitScope();
 
     // for non return  or empty stmt in function scope:add a return to return nothing
-    if (opCodes.empty() || opCodes[opCodes.size() - 2] != OP_RETURN)
+    if (chunk.opCodes.empty() || chunk.opCodes[chunk.opCodes.size() - 2] != OP_RETURN)
     {
-        opCodes.emplace_back(OP_RETURN);
-        opCodes.emplace_back(0);
+        chunk.opCodes.emplace_back(OP_RETURN);
+        chunk.opCodes.emplace_back(0);
     }
 
-    auto fn = new FunctionObject(opCodes, localVarCount,static_cast<uint8_t>(expr->parameters.size()));
+    auto fn = new FunctionObject(chunk, localVarCount, static_cast<uint8_t>(expr->parameters.size()));
 
     EmitConstant(fn);
 }
 
-void OpCodeCompilerImpl::CompileFunctionCallExpr(FunctionCallExpr *expr)
+void Compiler::CompileFunctionCallExpr(FunctionCallExpr *expr)
 {
     CompileExpr(expr->name);
 
@@ -397,7 +396,7 @@ void OpCodeCompilerImpl::CompileFunctionCallExpr(FunctionCallExpr *expr)
     Emit(static_cast<int16_t>(expr->arguments.size()));
 }
 
-void OpCodeCompilerImpl::CompileStructCallExpr(StructCallExpr *expr, const RWState &state)
+void Compiler::CompileStructCallExpr(StructCallExpr *expr, const RWState &state)
 {
     if (expr->callMember->type == AstType::FUNCTION_CALL && state == RWState::WRITE)
         ASSERT("Cannot assign to a struct's function call expr");
@@ -405,9 +404,9 @@ void OpCodeCompilerImpl::CompileStructCallExpr(StructCallExpr *expr, const RWSta
     CompileExpr(expr->callee);
 
     if (expr->callMember->type == AstType::IDENTIFIER)
-        EmitConstant(new StrObject(((IdentifierExpr *)expr->callMember)->literal));
+        EmitConstant(new StrObject(((IdentifierExpr *)expr->callMember)->literal.c_str()));
     else if (expr->callMember->type == AstType::FUNCTION_CALL)
-        EmitConstant(new StrObject(((IdentifierExpr *)((FunctionCallExpr *)expr->callMember)->name)->literal));
+        EmitConstant(new StrObject(((IdentifierExpr *)((FunctionCallExpr *)expr->callMember)->name)->literal.data()));
 
     if (state == RWState::READ)
     {
@@ -427,7 +426,7 @@ void OpCodeCompilerImpl::CompileStructCallExpr(StructCallExpr *expr, const RWSta
         Emit(OP_SET_STRUCT);
 }
 
-void OpCodeCompilerImpl::CompileRefExpr(RefExpr *expr)
+void Compiler::CompileRefExpr(RefExpr *expr)
 {
     Symbol symbol;
     if (expr->refExpr->type == AstType::INDEX)
@@ -475,64 +474,64 @@ void OpCodeCompilerImpl::CompileRefExpr(RefExpr *expr)
     }
 }
 
-void OpCodeCompilerImpl::CompileStructExpr(StructExpr *expr)
+void Compiler::CompileStructExpr(StructExpr *expr)
 {
     for (const auto &[k, v] : expr->members)
     {
         CompileExpr(v);
-        EmitConstant(new StrObject(k->literal));
+        EmitConstant(new StrObject(k->literal.c_str()));
     }
 
     Emit(OP_STRUCT);
     Emit(static_cast<int16_t>(expr->members.size()));
 }
 
-void OpCodeCompilerImpl::CompileDllImportExpr(DllImportExpr *expr)
+void Compiler::CompileDllImportExpr(DllImportExpr *expr)
 {
     auto dllpath = expr->dllPath;
 
-    RegisterBuiltinFunctions(dllpath);
+    RegisterDLLs(dllpath);
 
-    for (const auto& [k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
+    for (const auto &[k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
         m_SymbolTable->DefineBuiltin(k);
 }
 
-void OpCodeCompilerImpl::EnterScope()
+void Compiler::EnterScope()
 {
     m_SymbolTable = new SymbolTable(m_SymbolTable);
 }
-void OpCodeCompilerImpl::ExitScope()
+void Compiler::ExitScope()
 {
     m_SymbolTable = m_SymbolTable->enclosing;
 }
 
-OpCodes &OpCodeCompilerImpl::CurOpCodes()
+Chunk &Compiler::CurChunk()
 {
-    return m_Scopes.back();
+    return m_ScopeChunks.back();
 }
 
-uint32_t OpCodeCompilerImpl::Emit(int16_t opcode)
+uint32_t Compiler::Emit(int16_t opcode)
 {
-    CurOpCodes().emplace_back(opcode);
-    return static_cast<uint32_t>(CurOpCodes().size() - 1);
+    CurChunk().opCodes.emplace_back(opcode);
+    return static_cast<uint32_t>(CurChunk().opCodes.size() - 1);
 }
 
-uint32_t OpCodeCompilerImpl::EmitConstant(const Value& value)
+uint32_t Compiler::EmitConstant(const Value &value)
 {
-    m_Constants.emplace_back(value);
-    auto pos= static_cast<int16_t>(m_Constants.size() - 1);
+    CurChunk().constants.emplace_back(value);
+    auto pos = static_cast<int16_t>(CurChunk().constants.size() - 1);
 
     Emit(OP_CONSTANT);
     Emit(pos);
-    return static_cast<uint32_t>(CurOpCodes().size() - 1);
+    return static_cast<uint32_t>(CurChunk().opCodes.size() - 1);
 }
 
-void OpCodeCompilerImpl::ModifyOpCode(uint32_t pos, int16_t opcode)
+void Compiler::ModifyOpCode(uint32_t pos, int16_t opcode)
 {
-    CurOpCodes()[pos] = opcode;
+    CurChunk().opCodes[pos] = opcode;
 }
 
-void OpCodeCompilerImpl::LoadSymbol(const Symbol &symbol)
+void Compiler::LoadSymbol(const Symbol &symbol)
 {
     switch (symbol.scope)
     {
@@ -546,7 +545,7 @@ void OpCodeCompilerImpl::LoadSymbol(const Symbol &symbol)
         Emit(symbol.index);
         break;
     case SymbolScope::BUILTIN:
-        EmitConstant(new StrObject(symbol.name));
+        EmitConstant(new StrObject(symbol.name.data()));
         Emit(OP_GET_BUILTIN);
         break;
     default:
@@ -560,7 +559,7 @@ void OpCodeCompilerImpl::LoadSymbol(const Symbol &symbol)
     }
 }
 
-void OpCodeCompilerImpl::StoreSymbol(const Symbol &symbol)
+void Compiler::StoreSymbol(const Symbol &symbol)
 {
     switch (symbol.scope)
     {

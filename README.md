@@ -456,7 +456,7 @@ while(isRunning)
 SDL_Quit();
 ```
 
-![](screenshots/image.png)
+![](screenshots/Image.png)
 
 #### OpenGL example
 ```sh
