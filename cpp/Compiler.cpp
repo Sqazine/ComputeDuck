@@ -494,6 +494,9 @@ void Compiler::CompileDllImportExpr(DllImportExpr *expr)
 
     for (const auto &[k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
         m_SymbolTable->DefineBuiltin(k);
+
+    EmitConstant(new StrObject(dllpath.c_str()));
+    Emit(OP_DLL_IMPORT);
 }
 
 void Compiler::EnterScope()

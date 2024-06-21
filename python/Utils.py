@@ -1,4 +1,5 @@
-
+import importlib
+import sys
 def error(msg):
     print(msg)
     exit(1)
@@ -8,3 +9,10 @@ def read_file(path):
     contents = file.read()
     file.close()
     return contents
+
+def register_dlls(dllPath):
+    modules=sys.modules.keys()
+    if dllPath in modules:
+        return True
+    mod = importlib.import_module(dllPath)
+    mod.register_builtins()

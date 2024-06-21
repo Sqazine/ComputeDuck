@@ -446,6 +446,9 @@ class VM:
                     self.__push(RefObject(id(self.__objectStack[slot].elements[idxValue])))
                 else:
                     error("Invalid indexed reference type:" + self.__objectStack[slot].__str__()+" not a array value.")
+            elif instruction==OpCode.OP_DLL_IMPORT:
+                name=self.__pop().value
+                register_dlls(name)
 
     def __push(self, obj: Object) -> None:
         self.__objectStack[self.__stackTop] = obj

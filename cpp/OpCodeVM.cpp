@@ -454,6 +454,11 @@ void OpCodeVM::Execute()
 				ASSERT("Invalid indexed reference type: %s not a array value.", slot->Stringify().c_str());
 			break;
 		}
+		case OP_DLL_IMPORT:
+		{
+			auto name = TO_STR_VALUE(Pop())->value;
+			RegisterDLLs(name);
+		}
 		default:
 			return;
 		}

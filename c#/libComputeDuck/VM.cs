@@ -547,6 +547,14 @@ namespace ComputeDuck
 
                             break;
                         }
+                    case (int)OpCode.OP_DLL_IMPORT:
+                        {
+                            var name = ((StrObject)Pop()).value;
+                            Utils.RegisterDLLs(name);
+                            break;
+                        }
+                    default:
+                        return;
 
                 }
             }
