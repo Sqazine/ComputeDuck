@@ -475,29 +475,10 @@ namespace ComputeDuck
         {
             var dllPath = expr.dllPath;
 
-            var loc = this.GetType().Assembly.Location;
-            if (loc.Contains('\\'))//windows
-                loc = loc.Substring(0, loc.LastIndexOf('\\') + 1);
-            else
-                loc = loc.Substring(0, loc.LastIndexOf('/') + 1);
+            Utils.RegisterDLLs(dllPath);
 
-            var fullPath = loc + dllPath;
-
-            Assembly asm = Assembly.LoadFrom(fullPath);
-            string str = asm.GetName().ToString();
-            var className = str.Split(",")[0];
-            className = className.Remove(0, 8);//remove prefix "library-";
-
-            AssemblyName[] names = asm.GetReferencedAssemblies();
-            Utils.LoadAssembly(names, loc);
-
-            Type type = asm.GetType(className);
-
-            if (type == null)
-                Utils.Assert("Failed to load dll library:" + dllPath);
-
-            MethodInfo meth = type.GetMethod("RegisterBuiltins");
-            meth.Invoke(null, null);
+            EmitConstant(new StrObject(dllPath));
+            Emit((int)OpCode.OP_DLL_IMPORT);
 
             RegisterBuiltins();
         }

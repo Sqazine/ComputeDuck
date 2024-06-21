@@ -41,6 +41,7 @@ enum OpCode
     OP_REF_INDEX_GLOBAL,
     OP_REF_INDEX_LOCAL,
     OP_SP_OFFSET,
+    OP_DLL_IMPORT,
 };
 
 using OpCodes = std::vector<int16_t>;

@@ -49,5 +49,36 @@ namespace ComputeDuck
                 }
             }
         }
+
+        public static void RegisterDLLs(string name)
+        {
+            
+                var assms = AppDomain.CurrentDomain.GetAssemblies();
+                foreach (Assembly assembly in assms)
+                {
+                    var asmName = assembly.GetName().Name + ".dll";
+                    if (asmName == name)
+                        return;
+                }
+            
+            var loc = System.Environment.CurrentDirectory + "/";
+            var fullPath = loc + name;
+
+            Assembly asm = Assembly.LoadFrom(fullPath);
+            string str = asm.GetName().ToString();
+            var className = str.Split(",")[0];
+            className = className.Remove(0, 8);//remove prefix "library-";
+
+            AssemblyName[] names = asm.GetReferencedAssemblies();
+            LoadAssembly(names, loc);
+
+            Type type = asm.GetType(className);
+
+            if (type == null)
+                Assert("Failed to load dll library:" + name);
+
+            MethodInfo meth = type.GetMethod("RegisterBuiltins");
+            meth.Invoke(null, null);
+        }
     }
 }

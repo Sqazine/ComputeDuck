@@ -220,6 +220,11 @@ void Chunk::OpCodeStringify(const OpCodes &opcodes)
             ++i;
             break;
         }
+        case OP_DLL_IMPORT:
+        {
+            std::cout << std::setfill('0') << std::setw(8) << i << "\OP_DLL_IMPORT" << std::endl;
+            break;
+        }
         default:
             break;
         }

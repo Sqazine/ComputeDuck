@@ -5,7 +5,7 @@ from SymbolTable import *
 from Object import *
 from Chunk import *
 from BuiltinManager import *
-import importlib
+
 
 class RWState(IntEnum):
     READ = 0,
@@ -366,8 +366,11 @@ class Compiler:
 
     def __compile_dll_import_expr(self, expr: DllImportExpr) -> None:
         dllPath = "library-" + expr.dllPath
-        mod = importlib.import_module(dllPath)
-        mod.register_builtins()
+        
+        register_dlls(dllPath)
+
+        self.__emit_constant(StrObject(dllPath))
+        self.__emit(OpCode.OP_DLL_IMPORT)
 
         self.__register_builtins()
 

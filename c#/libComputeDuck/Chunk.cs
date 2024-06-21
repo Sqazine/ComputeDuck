@@ -41,6 +41,7 @@ namespace ComputeDuck
         OP_REF_INDEX_GLOBAL,
         OP_REF_INDEX_LOCAL,
         OP_SP_OFFSET,
+        OP_DLL_IMPORT,
     };
 
     public class Chunk
@@ -284,6 +285,11 @@ namespace ComputeDuck
                             var offset = opCodes[i + 1];
                             Console.WriteLine("{0}    OP_SP_OFFSET    {1}", i.ToString().PadLeft(8), offset);
                             ++i;
+                            break;
+                        }
+                    case (int)OpCode.OP_DLL_IMPORT:
+                        {
+                            Console.WriteLine("{0}    OP_DLL_IMPORT", i.ToString().PadLeft(8));
                             break;
                         }
                     default:
