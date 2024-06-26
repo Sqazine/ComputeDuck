@@ -67,19 +67,18 @@ namespace
 
 			array->elements.insert(array->elements.begin() + iIndex, 1, args[2]);
 		}
-        /*	else if (IS_STR_VALUE(args[0]))
-            {
-                StrObject *string = TO_STR_VALUE(args[0]);
-                if (!IS_NUM_VALUE(args[1]))
-                    ASSERT("[Native function 'insert']:Arg1 must be integer type while insert to a string");
+        else if (IS_STR_VALUE(args[0]))
+        {
+            if (!IS_NUM_VALUE(args[1]))
+                ASSERT("[Native function 'insert']:Arg1 must be integer type while insert to a string");
 
-                size_t iIndex = (size_t)TO_NUM_VALUE(args[1]);
+            size_t iIndex = (size_t)TO_NUM_VALUE(args[1]);
 
-                if (iIndex < 0 || iIndex >= string->value.size())
-                    ASSERT("[Native function 'insert']:Index out of array's range");
+            if (iIndex < 0 || iIndex > TO_STR_VALUE(args[0])->len)
+                ASSERT("[Native function 'insert']:Index out of array's range");
 
-                string->value.insert(iIndex, args[2].Stringify());
-            }*/
+			StrInsert(TO_STR_VALUE(args[0]),iIndex,TO_STR_VALUE(args[2]));
+        }
 		else
 			ASSERT("[Native function 'insert']:Expect a array or string argument.");
 
@@ -104,19 +103,18 @@ namespace
 
 			array->elements.erase(array->elements.begin() + iIndex);
 		}
-        /*else if (IS_STR_VALUE(args[0]))
+        else if (IS_STR_VALUE(args[0]))
         {
-            StrObject *string = TO_STR_VALUE(args[0]);
             if (!IS_NUM_VALUE(args[1]))
                 ASSERT("[Native function 'erase']:Arg1 must be integer type while deleting string element");
 
             size_t iIndex = (size_t)TO_NUM_VALUE(args[1]);
 
-            if (iIndex < 0 || iIndex >= string->value.size())
+            if (iIndex < 0 || iIndex >= TO_STR_VALUE(args[0])->len)
                 ASSERT("[Native function 'erase']:Index out of array's range");
 
-            string->value.erase(string->value.begin() + iIndex);
-        }*/
+			StrErase(TO_STR_VALUE(args[0]), iIndex);
+        }
 		else
 			ASSERT("[Native function 'erase']:Expect a array or string argument.");
 

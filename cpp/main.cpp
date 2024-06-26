@@ -42,13 +42,13 @@ void Run(std::string_view content)
 	auto fn = g_Compiler->Compile(stmts);
 
 #ifndef NDEBUG
-	fn->chunk.Stringify();
+	std::cout << Stringify(fn,true) << std::endl;
 #endif
-
-	g_Vm->Run(fn);
 
 	for (auto stmt : stmts)
 		SAFE_DELETE(stmt);
+
+	g_Vm->Run(fn);
 }
 
 void Repl(std::string_view exePath)

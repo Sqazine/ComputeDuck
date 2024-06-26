@@ -45,13 +45,19 @@ struct Object
 
 struct StrObject : public Object
 {
-	StrObject(const char* value): Object(ObjectType::STR), value(value),len(strlen(value)){}
+	StrObject(char* v): Object(ObjectType::STR), value(v),len(strlen(value)){}
+	StrObject(const char* v): Object(ObjectType::STR),len(strlen(v))
+    {
+        value = new char[len+1];
+        strcpy(value, v);
+        value[len] = '\0';
+    }
 	~StrObject()
     {
-        SAFE_DELETE(value);
+       SAFE_DELETE_ARRAY(value);
     }
 
-	const char* value;
+	char* value;
     uint32_t len;
 };
 
@@ -152,7 +158,11 @@ struct BuiltinObject : public Object
 	std::variant<NativeData, BuiltinFn, Value> data;
 };
 
-inline std::string Stringify(Object* object)
+inline std::string Stringify(Object* object
+#ifndef NDEBUG
+    ,bool printChunkIfIsFunctionObject=false
+#endif
+)
 {
 	switch (object->type)
 	{
@@ -188,7 +198,15 @@ inline std::string Stringify(Object* object)
     }
     case ObjectType::FUNCTION:
     {
-		return "function:(0x" + PointerAddressToString(object) + ")";
+        std::string result= "function(0x" + PointerAddressToString(object) + ")";
+#ifndef NDEBUG
+        if (printChunkIfIsFunctionObject) 
+        {
+            result += ":\n";
+            result += TO_FUNCTION_OBJ(object)->chunk.Stringify();
+        }
+#endif
+        return result;
     }
     case ObjectType::BUILTIN:
     {
@@ -366,4 +384,28 @@ COMPUTE_DUCK_API inline StrObject* StrAdd(StrObject* left, StrObject* right)
     memcpy(newStr + left->len, right->value, right->len);
     newStr[length] = '\0';
     return new StrObject(newStr);
+}
+
+COMPUTE_DUCK_API inline void StrInsert(StrObject* left,uint32_t idx,StrObject* right)
+{
+    int length = left->len + right->len;
+    char* newStr = new char[length+1];
+    memset(newStr, '\0', sizeof(newStr));
+    strncpy(newStr, left->value, idx);
+    newStr = strcat(newStr, right->value);
+    newStr=strcat(newStr,left->value+idx);
+  
+    left->value = newStr;
+    left->len = length;
+}
+
+COMPUTE_DUCK_API inline void StrErase(StrObject* left, uint32_t idx)
+{
+    int32_t i=0, j=0;
+    for (; left->value[i] != '\0'; ++i)
+        if (i != idx)
+            left->value[j++] = left->value[i];
+
+    left->value[j] = '\0';
+    left->len--;
 }
