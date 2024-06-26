@@ -59,6 +59,7 @@ private:
     void PushCallFrame(const CallFrame &callFrame);
     CallFrame *PopCallFrame();
     CallFrame *PeekCallFrame(int32_t distance);
+    CallFrame* GetCurCallFrame();
 
     Value FindActualValue(const Value &v);
     Value *GetEndOfRefValue(Value *v);

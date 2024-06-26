@@ -72,7 +72,7 @@ void OpCodeVM::Execute()
 
 	while (1)
 	{
-		auto frame = PeekCallFrame(1);
+		auto frame = GetCurCallFrame();
 
 		if (frame->IsEnd())
 			return;
@@ -513,7 +513,12 @@ OpCodeVM::CallFrame *OpCodeVM::PopCallFrame()
 
 OpCodeVM::CallFrame *OpCodeVM::PeekCallFrame(int32_t distance)
 {
-	return m_CallFrameTop - distance;
+	return &m_CallFrameStack[distance];
+}
+
+OpCodeVM::CallFrame* OpCodeVM::GetCurCallFrame()
+{
+	return m_CallFrameTop - 1;
 }
 
 Value OpCodeVM::FindActualValue(const Value &v)

@@ -56,12 +56,12 @@ public:
         OpCodes().swap(opCodes);
     }
 
-    void Stringify();
+    std::string Stringify();
 
     OpCodes opCodes;
 
     std::vector<Value> constants;
 
 private:
-    void OpCodeStringify(const OpCodes &opcodes);
+    std::string OpCodeStringify(const OpCodes &opcodes);
 };

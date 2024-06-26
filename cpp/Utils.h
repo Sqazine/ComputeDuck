@@ -46,6 +46,16 @@ enum class RWState
         }                \
     } while (false);
 
+#define SAFE_DELETE_ARRAY(x)   \
+    do                   \
+    {                    \
+        if (x)           \
+        {                \
+            delete[] x;    \
+            x = nullptr; \
+        }                \
+    } while (false);
+
 #define ASSERT(...)                                                                 \
     do                                                                              \
     {                                                                               \

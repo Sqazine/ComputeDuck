@@ -1,0 +1,12 @@
+upvalue=function(x)
+{
+    b=10;
+    add=function(a)
+    {
+        return a+b;
+    };
+
+    return add(x);
+};
+
+println(upvalue(100));
