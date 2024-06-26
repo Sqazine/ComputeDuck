@@ -238,9 +238,9 @@ namespace ComputeDuck
 
     public class FunctionObject : Object
     {
-        public FunctionObject(OpCodes opCodes, int localVarCount = 0, int parameterCount = 0) : base(ObjectType.FUNCTION)
+        public FunctionObject(Chunk chunk, int localVarCount = 0, int parameterCount = 0) : base(ObjectType.FUNCTION)
         {
-            this.opCodes = opCodes;
+            this.chunk = chunk;
             this.localVarCount = localVarCount;
             this.parameterCount = parameterCount;
         }
@@ -250,22 +250,29 @@ namespace ComputeDuck
             return "function:(0x" + GetAddress() + ")";
         }
 
+        public string ToStringWithChunk()
+        {
+            string result=this.ToString();
+            result += ":\n" + chunk.ToString();
+            return result; 
+        }
+
         public override bool IsEqualTo(Object other)
         {
             if (base.IsEqualTo(other) == false)
                 return false;
 
-            var otherOpCodes = ((FunctionObject)other).opCodes;
-            if (opCodes.Count != otherOpCodes.Count)
+            var otherOpCodes = ((FunctionObject)other).chunk.opCodes;
+            if (chunk.opCodes.Count != otherOpCodes.Count)
                 return false;
 
-            for (int i = 0; i < opCodes.Count; ++i)
-                if (opCodes[i] != otherOpCodes[i])
+            for (int i = 0; i < chunk.opCodes.Count; ++i)
+                if (chunk.opCodes[i] != otherOpCodes[i])
                     return false;
             return true;
         }
 
-        public OpCodes opCodes;
+        public Chunk chunk;
         public int localVarCount;
         public int parameterCount;
     }

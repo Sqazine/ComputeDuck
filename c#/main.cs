@@ -26,17 +26,17 @@ class Execute
         foreach (var stmt in stmts)
             Console.WriteLine(stmt.Stringify());
 
-        var chunk = mCompiler.Compile(stmts);
+        var fn = mCompiler.Compile(stmts);
 
-        chunk.Stringify();
+       Console.WriteLine(fn.ToStringWithChunk());
 
-        mVm.Run(chunk);
+        mVm.Run(fn);
     }
     static void Repl(string path)
     {
         SetBasePath(path);
 
-        string line = "";
+        string line;
         string allLines = "";
 
         Console.Write("> ");

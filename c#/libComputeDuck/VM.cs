@@ -3,38 +3,38 @@ using System.Runtime.InteropServices;
 
 namespace ComputeDuck
 {
-    public class CallFrame
-    {
-        public FunctionObject fn;
-        public int ip;
-        public int slot;
-
-        public CallFrame()
-        {
-            this.fn = null;
-            this.ip = -1;
-            this.slot = -1;
-        }
-
-        public CallFrame(FunctionObject fn, int slot)
-        {
-            this.fn = fn;
-            this.ip = 0;
-            this.slot = slot;
-        }
-
-        public bool IsAtEnd()
-        {
-            if (ip < fn.opCodes.Count)
-                return false;
-            return true;
-        }
-    }
     public class VM
     {
+        public class CallFrame
+        {
+            public FunctionObject fn;
+            public int ip;
+            public int slot;
+
+            public CallFrame()
+            {
+                this.fn = null;
+                this.ip = -1;
+                this.slot = -1;
+            }
+
+            public CallFrame(FunctionObject fn, int slot)
+            {
+                this.fn = fn;
+                this.ip = 0;
+                this.slot = slot;
+            }
+
+            public bool IsAtEnd()
+            {
+                if (ip < fn.chunk.opCodes.Count)
+                    return false;
+                return true;
+            }
+        }
+
         const int STACK_MAX = 512;
 
-        private Chunk m_Chunk;
         private Object[] m_GlobalVariables = new Object[STACK_MAX];
 
         private int m_StackTop;
@@ -56,13 +56,10 @@ namespace ComputeDuck
                 m_CallFrames[i] = new CallFrame();
         }
 
-        public void Run(Chunk chunk)
+        public void Run(FunctionObject mainFn)
         {
             ResetStatus();
 
-            m_Chunk = chunk;
-
-            var mainFn = new FunctionObject(chunk.opCodes);
             var mainCallFrame = new CallFrame(mainFn, m_StackTop);
             
             PushCallFrame(mainCallFrame);
@@ -74,17 +71,17 @@ namespace ComputeDuck
         {
             while (true)
             {
-                CallFrame frame = PeekCallFrame(1);
+                CallFrame frame = GetCurCallFrame();
 
                 if (frame.IsAtEnd())
                     return;
 
-                int instruction = frame.fn.opCodes[frame.ip++];
+                int instruction = frame.fn.chunk.opCodes[frame.ip++];
                 switch (instruction)
                 {
                     case (int)OpCode.OP_RETURN:
                         {
-                            var returnCounnt = frame.fn.opCodes[frame.ip++];
+                            var returnCounnt = frame.fn.chunk.opCodes[frame.ip++];
                             Object obj = null;
                             if (returnCounnt == 1)
                                 obj = Pop();
@@ -101,8 +98,8 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_CONSTANT:
                         {
-                            var idx = frame.fn.opCodes[frame.ip++];
-                            var value = m_Chunk.constants[idx];
+                            var idx = frame.fn.chunk.opCodes[frame.ip++];
+                            var value = frame.fn.chunk.constants[idx];
 
                             Push(value);
                             break;
@@ -271,7 +268,7 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_ARRAY:
                         {
-                            var numElements = frame.fn.opCodes[frame.ip++];
+                            var numElements = frame.fn.chunk.opCodes[frame.ip++];
                             List<Object> elements = new List<Object>(m_ObjectStack[(m_StackTop - numElements)..m_StackTop]);
                             
                             m_StackTop -= numElements;
@@ -299,7 +296,7 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_JUMP_IF_FALSE:
                         {
-                            var address = frame.fn.opCodes[frame.ip++];
+                            var address = frame.fn.chunk.opCodes[frame.ip++];
                             var obj = Pop();
                             if (obj.type != ObjectType.BOOL)
                                 Utils.Assert("The if condition not a boolean value:" + obj.ToString());
@@ -309,13 +306,13 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_JUMP:
                         {
-                            var address = frame.fn.opCodes[frame.ip++];
+                            var address = frame.fn.chunk.opCodes[frame.ip++];
                             frame.ip = address + 1;
                             break;
                         }
                     case (int)OpCode.OP_SET_GLOBAL:
                         {
-                            var index = frame.fn.opCodes[frame.ip++];
+                            var index = frame.fn.chunk.opCodes[frame.ip++];
                             var obj = Pop();
 
                             if (m_GlobalVariables[index].type == ObjectType.REF)
@@ -342,13 +339,13 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_GET_GLOBAL:
                         {
-                            var index = frame.fn.opCodes[frame.ip++];
+                            var index = frame.fn.chunk.opCodes[frame.ip++];
                             Push(m_GlobalVariables[index]);
                             break;
                         }
                     case (int)OpCode.OP_FUNCTION_CALL:
                         {
-                            var argCount = frame.fn.opCodes[frame.ip++];
+                            var argCount = frame.fn.chunk.opCodes[frame.ip++];
                             var obj = m_ObjectStack[m_StackTop - 1 - argCount];
                             if (obj.type == ObjectType.FUNCTION)
                             {
@@ -376,8 +373,8 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_SET_LOCAL:
                         {
-                            var scopeDepth = frame.fn.opCodes[frame.ip++];
-                            var index = frame.fn.opCodes[frame.ip++];
+                            var scopeDepth = frame.fn.chunk.opCodes[frame.ip++];
+                            var index = frame.fn.chunk.opCodes[frame.ip++];
 
                             var obj = Pop();
 
@@ -408,8 +405,8 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_GET_LOCAL:
                         {
-                            var scopeDepth = frame.fn.opCodes[frame.ip++];
-                            var index = frame.fn.opCodes[frame.ip++];
+                            var scopeDepth = frame.fn.chunk.opCodes[frame.ip++];
+                            var index = frame.fn.chunk.opCodes[frame.ip++];
 
                             int slot =  PeekCallFrame(scopeDepth).slot + index;
 
@@ -419,7 +416,7 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_SP_OFFSET:
                         {
-                            var offset = frame.fn.opCodes[frame.ip++];
+                            var offset = frame.fn.chunk.opCodes[frame.ip++];
                             m_StackTop += offset;
                             break;
                         }
@@ -433,7 +430,7 @@ namespace ComputeDuck
                     case (int)OpCode.OP_STRUCT:
                         {
                             var members = new Dictionary<string, Object>();
-                            var memberCount = frame.fn.opCodes[frame.ip++];
+                            var memberCount = frame.fn.chunk.opCodes[frame.ip++];
 
                             var tmpPtr = m_StackTop;
 
@@ -486,14 +483,14 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_REF_GLOBAL:
                         {
-                            var index = frame.fn.opCodes[frame.ip++];
+                            var index = frame.fn.chunk.opCodes[frame.ip++];
                             Push(new RefObject(m_GlobalVariables[index].GetAddress()));
                             break;
                         }
                     case (int)OpCode.OP_REF_LOCAL:
                         {
-                            var scopeDepth = frame.fn.opCodes[frame.ip++];
-                            var index = frame.fn.opCodes[frame.ip++];
+                            var scopeDepth = frame.fn.chunk.opCodes[frame.ip++];
+                            var index = frame.fn.chunk.opCodes[frame.ip++];
 
                             int slot =  PeekCallFrame(scopeDepth).slot + index;
 
@@ -503,7 +500,7 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_REF_INDEX_GLOBAL:
                         {
-                            var index = frame.fn.opCodes[frame.ip++];
+                            var index = frame.fn.chunk.opCodes[frame.ip++];
                             var idxValue = Pop();
 
                             var obj = m_GlobalVariables[index];
@@ -523,8 +520,8 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_REF_INDEX_LOCAL:
                         {
-                            var scopeDepth = frame.fn.opCodes[frame.ip++];
-                            var index = frame.fn.opCodes[frame.ip++];
+                            var scopeDepth = frame.fn.chunk.opCodes[frame.ip++];
+                            var index = frame.fn.chunk.opCodes[frame.ip++];
 
                             var idxValue = Pop();
 
@@ -582,7 +579,12 @@ namespace ComputeDuck
 
         private CallFrame PeekCallFrame(int distance)
         {
-            return m_CallFrames[m_CallFrameTop - distance];
+            return m_CallFrames[distance];
+        }
+
+        private CallFrame GetCurCallFrame()
+        {
+            return m_CallFrames[m_CallFrameTop - 1];
         }
 
         private Object FindActualObject(Object obj)
