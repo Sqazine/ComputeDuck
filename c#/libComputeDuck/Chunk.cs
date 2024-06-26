@@ -80,7 +80,7 @@ namespace ComputeDuck
                     case (int)OpCode.OP_CONSTANT:
                         {
                             var pos = opCodes[i + 1];
-                            result+=string.Format("{0}\tOP_CONSTANT\t{1}    '{2}'\n", i.ToString().PadLeft(8), pos, constants[pos].ToString());
+                            result+=string.Format("{0}\tOP_CONSTANT\t{1}\t'{2}'\n", i.ToString().PadLeft(8), pos, constants[pos].ToString());
                             ++i;
                             break;
                         }

@@ -5,14 +5,15 @@ from Utils import error
 from Ast import *
 from ConstantFolder import *
 
+
 class Precedence(IntEnum):
     LOWEST = 0,  # ,
     ASSIGN = 1,		# =
     OR = 2,			# or
     AND = 3,		# and
     BIT_OR = 3,		# |
-    BIT_XOR = 4,	# ^
-    BIT_AND = 5,	# &
+    BIT_XOR = 4,  # ^
+    BIT_AND = 5,  # &
     EQUAL = 6,		# == !=
     COMPARE = 7,  # < <= > >=
     ADD_PLUS = 8,  # + -
@@ -52,7 +53,7 @@ class Parser:
             TokenType.LBRACE: self.__parse_struct_expr,
             TokenType.FUNCTION: self.__parse_function_expr,
             TokenType.DLLIMPORT: self.__parse_dll_import_expr,
-            TokenType.TILDE:self.__parse_prefix_expr,
+            TokenType.TILDE: self.__parse_prefix_expr,
         }
 
         self.__infixFunctions = {
@@ -72,31 +73,31 @@ class Parser:
             TokenType.AND: self.__parse_infix_expr,
             TokenType.OR: self.__parse_infix_expr,
             TokenType.DOT: self.__parse_struct_call_expr,
-            TokenType.AMPERSAND:self.__parse_infix_expr,
-            TokenType.VBAR:self.__parse_infix_expr,
-            TokenType.CARET:self.__parse_infix_expr
+            TokenType.AMPERSAND: self.__parse_infix_expr,
+            TokenType.VBAR: self.__parse_infix_expr,
+            TokenType.CARET: self.__parse_infix_expr
         }
 
         self.__precedence = {
             TokenType.EQUAL: Precedence.ASSIGN,
-          	TokenType.EQUAL_EQUAL: Precedence.EQUAL,
-          	TokenType.BANG_EQUAL: Precedence.EQUAL,
-          	TokenType.LESS: Precedence.COMPARE,
-          	TokenType.LESS_EQUAL: Precedence.COMPARE,
-          	TokenType.GREATER: Precedence.COMPARE,
-          	TokenType.GREATER_EQUAL: Precedence.COMPARE,
-          	TokenType.PLUS: Precedence.ADD_PLUS,
-          	TokenType.MINUS: Precedence.ADD_PLUS,
-          	TokenType.ASTERISK: Precedence.MUL_DIV,
-          	TokenType.SLASH: Precedence.MUL_DIV,
-          	TokenType.LBRACKET: Precedence.INFIX,
-          	TokenType.LPAREN: Precedence.INFIX,
-          	TokenType.AND: Precedence.AND,
-          	TokenType.OR: Precedence.OR,
-          	TokenType.DOT: Precedence.INFIX,
-          	TokenType.AMPERSAND: Precedence.BIT_AND,
-          	TokenType.VBAR: Precedence.BIT_OR,
-          	TokenType.CARET: Precedence.BIT_XOR,
+           	TokenType.EQUAL_EQUAL: Precedence.EQUAL,
+           	TokenType.BANG_EQUAL: Precedence.EQUAL,
+           	TokenType.LESS: Precedence.COMPARE,
+           	TokenType.LESS_EQUAL: Precedence.COMPARE,
+           	TokenType.GREATER: Precedence.COMPARE,
+           	TokenType.GREATER_EQUAL: Precedence.COMPARE,
+           	TokenType.PLUS: Precedence.ADD_PLUS,
+           	TokenType.MINUS: Precedence.ADD_PLUS,
+           	TokenType.ASTERISK: Precedence.MUL_DIV,
+           	TokenType.SLASH: Precedence.MUL_DIV,
+           	TokenType.LBRACKET: Precedence.INFIX,
+           	TokenType.LPAREN: Precedence.INFIX,
+           	TokenType.AND: Precedence.AND,
+           	TokenType.OR: Precedence.OR,
+           	TokenType.DOT: Precedence.INFIX,
+           	TokenType.AMPERSAND: Precedence.BIT_AND,
+           	TokenType.VBAR: Precedence.BIT_OR,
+           	TokenType.CARET: Precedence.BIT_XOR,
         }
 
     def parse(self, tokens: list[Token]) -> list[Stmt]:
@@ -136,7 +137,7 @@ class Parser:
         if self.__precedence.get(self.__get_cur_token().type) == None:
             return Precedence.LOWEST
         return self.__precedence.get(self.__get_cur_token().type)
-    
+
     def __is_match_cur_token(self, type) -> bool:
         return self.__get_cur_token().type == type
 
@@ -205,7 +206,8 @@ class Parser:
 
         condition = self.__parse_expr()
 
-        self.__consume(TokenType.RPAREN,"Expect ')' after while stmt's condition")
+        self.__consume(TokenType.RPAREN,
+                       "Expect ')' after while stmt's condition")
 
         body = self.__parse_stmt()
 
@@ -327,7 +329,8 @@ class Parser:
             while self.__is_match_cur_token_and_step_once(TokenType.COMMA):
                 idenExpr = self.__parse_identifier_expr()
                 funcExpr.parameters.append(idenExpr)
-        self.__consume(TokenType.RPAREN, "Expect ')' after function expr's '('")
+        self.__consume(TokenType.RPAREN,
+                       "Expect ')' after function expr's '('")
         funcExpr.body = self.__parse_scope_stmt()
 
         self.__functionScopeDepth -= 1
@@ -367,7 +370,8 @@ class Parser:
 
     def __parse_dll_import_expr(self) -> Expr:
         self.__consume(TokenType.DLLIMPORT, "Expect 'dllimport' keyword")
-        self.__consume(TokenType.LPAREN, "Expect '(' after 'dllimport' keyword")
+        self.__consume(TokenType.LPAREN,
+                       "Expect '(' after 'dllimport' keyword")
 
         path = self.__consume(TokenType.STRING, "Expect dll path").literal
 

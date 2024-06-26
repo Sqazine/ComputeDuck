@@ -13,25 +13,23 @@ class RWState(IntEnum):
 
 
 class Compiler:
-    __constants: list[Object] = []
-    __scopes: list[list[int]] = []
+    __scope_chunk:list[Chunk]=[]
     __symbolTable: SymbolTable
 
     def __init__(self) -> None:
         self.__symbolTable = None
         self.reset_status()
 
-    def compile(self, stmts: list[Stmt]) -> Chunk:
+    def compile(self, stmts: list[Stmt]) -> FunctionObject:
 
         self.reset_status()
 
         for stmt in stmts:
             self.__compile_stmt(stmt)
-        return Chunk(self.__cur_opcodes(), self.__constants)
+        return FunctionObject(self.__scope_chunk.pop())
 
     def reset_status(self) -> None:
-        self.__scopes = []
-        self.__scopes.append([])
+        self.__scope_chunk = [Chunk()]
 
         self.__symbolTable = SymbolTable()
 
@@ -62,12 +60,12 @@ class Compiler:
         self.__emit(OpCode.OP_JUMP)
         jumpAddress = self.__emit(65536)
 
-        self.__modify_opcode(jumpIfFalseAddress, len(self.__cur_opcodes())-1)
+        self.__modify_opcode(jumpIfFalseAddress, len(self.__cur_chunk().opCodes)-1)
 
         if stmt.elseBranch:
             self.__compile_stmt(stmt.elseBranch)
 
-        self.__modify_opcode(jumpAddress, len(self.__cur_opcodes())-1)
+        self.__modify_opcode(jumpAddress, len(self.__cur_chunk().opCodes)-1)
 
     def __compile_scope_stmt(self, stmt: ScopeStmt) -> None:
         self.__enter_scope()
@@ -79,7 +77,7 @@ class Compiler:
             self.__compile_stmt(s)
 
         localVarCount = self.__symbolTable.definitionCount
-        self.__cur_opcodes()[idx] = localVarCount
+        self.__cur_chunk().opCodes[idx] = localVarCount
 
         self.__emit(OpCode.OP_SP_OFFSET)
         self.__emit(-localVarCount)
@@ -87,7 +85,7 @@ class Compiler:
         self.__exit_scope()
 
     def __compile_while_stmt(self, stmt: WhileStmt) -> None:
-        jumpAddress = len(self.__cur_opcodes())-1
+        jumpAddress = len(self.__cur_chunk().opCodes)-1
         self.__compile_expr(stmt.condition)
 
         self.__emit(OpCode.OP_JUMP_IF_FALSE)
@@ -98,7 +96,7 @@ class Compiler:
         self.__emit(OpCode.OP_JUMP)
         self.__emit(jumpAddress)
 
-        self.__modify_opcode(jumpIfFalseAddress, len(self.__cur_opcodes())-1)
+        self.__modify_opcode(jumpIfFalseAddress, len(self.__cur_chunk().opCodes)-1)
 
     def __compile_return_stmt(self, stmt: ReturnStmt) -> None:
         if stmt.expr != None:
@@ -112,7 +110,7 @@ class Compiler:
     def __compile_struct_stmt(self, stmt: StructStmt) -> None:
         symbol = self.__symbolTable.Define(stmt.name, True)
 
-        self.__scopes.append([])
+        self.__scope_chunk.append(Chunk())
 
         for k, v in stmt.members.items():
             self.__compile_expr(v)
@@ -123,12 +121,12 @@ class Compiler:
         self.__emit(OpCode.OP_STRUCT)
         self.__emit(len(stmt.members))
 
-        opCodes = self.__scopes.pop()
+        chunk = self.__scope_chunk.pop()
 
-        opCodes.append(OpCode.OP_RETURN)
-        opCodes.append(1)
+        chunk.opCodes.append(OpCode.OP_RETURN)
+        chunk.opCodes.append(1)
 
-        fn = FunctionObject(opCodes, localVarCount)
+        fn = FunctionObject(chunk, localVarCount)
 
         self.__emit_constant(fn)
 
@@ -190,11 +188,11 @@ class Compiler:
                 self.__emit(OpCode.OP_GREATER)
             elif expr.op == "<":
                 self.__emit(OpCode.OP_LESS)
-            elif expr.op=="&":
+            elif expr.op == "&":
                 self.__emit(OpCode.OP_BIT_AND)
-            elif expr.op=="|":
+            elif expr.op == "|":
                 self.__emit(OpCode.OP_BIT_OR)
-            elif expr.op=="^":
+            elif expr.op == "^":
                 self.__emit(OpCode.OP_BIT_XOR)
             elif expr.op == ">=":
                 self.__emit(OpCode.OP_LESS)
@@ -228,7 +226,7 @@ class Compiler:
             self.__emit(OpCode.OP_MINUS)
         elif expr.op == "not":
             self.__emit(OpCode.OP_NOT)
-        elif expr.op=="~":
+        elif expr.op == "~":
             self.__emit(OpCode.OP_BIT_NOT)
         else:
             error("Unrecognized prefix op")
@@ -270,7 +268,7 @@ class Compiler:
     def __compile_function_expr(self, stmt: FunctionExpr) -> None:
         self.__enter_scope()
 
-        self.__scopes.append([])
+        self.__scope_chunk.append(Chunk())
 
         for param in stmt.parameters:
             self.__symbolTable.Define(param.literal)
@@ -282,15 +280,15 @@ class Compiler:
 
         self.__exit_scope()
 
-        opCodes = self.__scopes.pop()
+        chunk = self.__scope_chunk.pop()
 
         # for non return  or empty stmt in function scope:add a return to return nothing
-        opCodesLen = len(opCodes)
-        if opCodesLen == 0 or opCodes[opCodesLen-2] != OpCode.OP_RETURN:
-            opCodes.append(OpCode.OP_RETURN)
-            opCodes.append(0)
+        opCodesLen = len(chunk.opCodes)
+        if opCodesLen == 0 or chunk.opCodes[opCodesLen-2] != OpCode.OP_RETURN:
+            chunk.opCodes.append(OpCode.OP_RETURN)
+            chunk.opCodes.append(0)
 
-        fn = FunctionObject(opCodes, localVarCount, len(stmt.parameters))
+        fn = FunctionObject(chunk, localVarCount, len(stmt.parameters))
         self.__emit_constant(fn)
 
     def __compile_function_call_expr(self, expr: FunctionCallExpr) -> None:
@@ -366,7 +364,7 @@ class Compiler:
 
     def __compile_dll_import_expr(self, expr: DllImportExpr) -> None:
         dllPath = "library-" + expr.dllPath
-        
+
         register_dlls(dllPath)
 
         self.__emit_constant(StrObject(dllPath))
@@ -380,23 +378,23 @@ class Compiler:
     def __exit_scope(self) -> list[int]:
         self.__symbolTable = self.__symbolTable.enclosing
 
-    def __cur_opcodes(self) -> list[int]:
-        return self.__scopes[-1]
+    def __cur_chunk(self) -> Chunk:
+        return self.__scope_chunk[-1]
 
     def __emit(self, opcode: int) -> int:
-        self.__cur_opcodes().append(opcode)
-        return len(self.__cur_opcodes())-1
+        self.__cur_chunk().opCodes.append(opcode)
+        return len(self.__cur_chunk().opCodes)-1
 
     def __emit_constant(self, object: Object) -> int:
-        self.__constants.append(object)
-        pos = len(self.__constants)-1
+        self.__cur_chunk().constants.append(object)
+        pos = len(self.__cur_chunk().constants)-1
 
         self.__emit(OpCode.OP_CONSTANT)
         self.__emit(pos)
-        return len(self.__cur_opcodes())-1
+        return len(self.__cur_chunk().opCodes)-1
 
     def __modify_opcode(self, pos: int, opcode: int) -> None:
-        self.__cur_opcodes()[pos] = opcode
+        self.__cur_chunk().opCodes[pos] = opcode
 
     def __load_symbol(self, symbol: Symbol) -> None:
         if symbol.scope == SymbolScope.GLOBAL:
@@ -414,7 +412,7 @@ class Compiler:
             self.__emit(OpCode.OP_FUNCTION_CALL)
             self.__emit(0)
 
-    def __store_symbol(self,symbol:Symbol)->None:
+    def __store_symbol(self, symbol: Symbol) -> None:
         if symbol.scope == SymbolScope.GLOBAL:
             self.__emit(OpCode.OP_SET_GLOBAL)
             self.__emit(symbol.index)

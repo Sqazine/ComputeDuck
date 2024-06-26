@@ -1,7 +1,5 @@
-import abc
 import ctypes
 from enum import IntEnum
-from typing import Union
 
 
 class ObjectType(IntEnum):
@@ -127,27 +125,32 @@ class RefObject(Object):
 
 
 class FunctionObject(Object):
-    opCodes: list[int]
+    chunk:object
     localVarCount: int
     parameterCount: int
 
-    def __init__(self, opCodes: list[int], localVarCount: int = 0, parameterCount: int = 0) -> None:
+    def __init__(self, chunk:object, localVarCount: int = 0, parameterCount: int = 0) -> None:
         super().__init__(ObjectType.FUNCTION)
-        self.opCodes = opCodes
+        self.chunk = chunk
         self.localVarCount = localVarCount
         self.parameterCount = parameterCount
 
     def __str__(self) -> str:
         return "function:(0x"+str(id(self))+")"
+    
+    def str_with_chunk(self)->str:
+        result:str=self.__str__()
+        result+= ":\n"+self.chunk.__str__()
+        return result
 
     def __eq__(self, other) -> bool:
         if super().__eq__(other) == False:
             return False
 
-        if len(self.opCodes) != len(other.opCodes):
+        if len(self.chunk.opCodes) != len(other.chunk.opCodes):
             return False
-        for i in range(0, len(self.opCodes)):
-            if self.opCodes[i] != other.opCodes[i]:
+        for i in range(0, len(self.chunk.opCodes)):
+            if self.chunk.opCodes[i] != other.chunk.opCodes[i]:
                 return False
         return True
     

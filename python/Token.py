@@ -23,9 +23,9 @@ class TokenType(Enum):
    LESS = 18,		   # <
    GREATER = 19,	   # >
    VBAR = 20,		  # |
-   CARET =21,		  # ^
-   AMPERSAND=22,	  # &
-   TILDE=23,		  # ~
+   CARET = 21,		  # ^
+   AMPERSAND = 22,	  # &
+   TILDE = 23,		  # ~
    EQUAL_EQUAL = 24,   # ==
    LESS_EQUAL = 25,	   # <=
    GREATER_EQUAL = 26,  # >=
@@ -52,13 +52,13 @@ class Token:
     type: TokenType
     literal: str
     line: int
-    filePath:str
+    filePath: str
 
-    def __init__(self, type: TokenType, literal: str, line: int,filePath="") -> None:
+    def __init__(self, type: TokenType, literal: str, line: int, filePath="") -> None:
         self.type = type
         self.literal = literal
         self.line = line
-        self.filePath=filePath
+        self.filePath = filePath
 
     def __str__(self):
         return "\""+self.literal+"," + str(self.line)+"\""

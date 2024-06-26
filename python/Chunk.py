@@ -1,6 +1,5 @@
 from enum import IntEnum
 from Object import *
-
 class OpCode(IntEnum):
     OP_CONSTANT=0,
     OP_ADD=1,
@@ -43,129 +42,136 @@ class Chunk:
     opCodes:list[int]
     constants:list[Object]
 
+    def __init__(self,opCodes:list[int]=[],constants:list[Object]=[]) -> None:
+        if opCodes!=[]:
+            self.opCodes=opCodes
+        else:
+            self.opCodes=[]
+            
+        if constants!=[]:
+            self.constants=constants
+        else:
+            self.constants=[]
 
-    def __init__(self,opCodes:list[int],constants:list[Object]) -> None:
-        self.constants=constants
-        self.opCodes=opCodes
-
-    def stringify(self)->None:
+    def __str__(self)->str:
+        result = self.__opcode_stringify(self.opCodes)
         for i in range(0,len(self.constants)):
             if self.constants[i].type==ObjectType.FUNCTION:
-                print(self.constants[i])
-                self.__opcode_stringify(self.constants[i].opCodes)
-                print()
+                result+=self.constants[i].str_with_chunk()
 
-        self.__opcode_stringify(self.opCodes)
+        return result
 
-    def __opcode_stringify(self,opcodes:list[int])->None:
+    def __opcode_stringify(self,opcodes:list[int])->str:
+        result=""
         i = 0
         while i < (len(opcodes)):
             if opcodes[i]==OpCode.OP_CONSTANT:
                 pos=opcodes[i+1]
-                print("%8d\tOP_CONSTANT\t%d    '%s'" % (i,pos,self.constants[pos]))
+                result+=("%8d\tOP_CONSTANT\t%d\t'%s'\n" % (i,pos,self.constants[pos]))
                 i=i+1
             elif opcodes[i]==OpCode.OP_ADD:
-                print("%8d\tOP_ADD" % (i))
+                result+=("%8d\tOP_ADD\n" % (i))
             elif opcodes[i]==OpCode.OP_SUB:
-                print("%8d\tOP_SUB" % (i))
+                result+=("%8d\tOP_SUB\n" % (i))
             elif opcodes[i]==OpCode.OP_MUL:
-                print("%8d\tOP_MUL" % (i))
+                result+=("%8d\tOP_MUL\n" % (i))
             elif opcodes[i]==OpCode.OP_DIV:
-                print("%8d\tOP_DIV" % (i))
+                result+=("%8d\tOP_DIV\n" % (i))
             elif opcodes[i]==OpCode.OP_LESS:
-                print("%8d\tOP_LESS" % (i))
+                result+=("%8d\tOP_LESS\n" % (i))
             elif opcodes[i]==OpCode.OP_GREATER:
-                print("%8d\tOP_GREATER" % (i))
+                result+=("%8d\tOP_GREATER\n" % (i))
             elif opcodes[i]==OpCode.OP_MINUS:
-                print("%8d\tOP_MINUS" % (i))
+                result+=("%8d\tOP_MINUS\n" % (i))
             elif opcodes[i]==OpCode.OP_EQUAL:
-                print("%8d\tOP_EQUAL" % (i))
+                result+=("%8d\tOP_EQUAL\n" % (i))
             elif opcodes[i]==OpCode.OP_AND:
-                print("%8d\tOP_AND" % (i))
+                result+=("%8d\tOP_AND\n" % (i))
             elif opcodes[i]==OpCode.OP_OR:
-                print("%8d\tOP_OR" % (i))
+                result+=("%8d\tOP_OR\n" % (i))
             elif opcodes[i]==OpCode.OP_NOT:
-                print("%8d\tOP_NOT" % (i))
+                result+=("%8d\tOP_NOT\n" % (i))
             elif opcodes[i]==OpCode.OP_BIT_AND:
-                print("%8d\tOP_BIT_AND" % (i))
+                result+=("%8d\tOP_BIT_AND\n" % (i))
             elif opcodes[i]==OpCode.OP_BIT_OR:
-                print("%8d\tOP_BIT_OR" % (i))
+                result+=("%8d\tOP_BIT_OR\n" % (i))
             elif opcodes[i]==OpCode.OP_BIT_XOR:
-                print("%8d\tOP_BIT_XOR" % (i))
+                result+=("%8d\tOP_BIT_XOR\n" % (i))
             elif opcodes[i]==OpCode.OP_BIT_NOT:
-                print("%8d\tOP_BIT_NOT" % (i))
+                result+=("%8d\tOP_BIT_NOT\n" % (i))
             elif opcodes[i]==OpCode.OP_ARRAY:
                 count=opcodes[i+1]
-                print("%8d\tOP_ARRAY\t%d" % (i,count))
+                result+=("%8d\tOP_ARRAY\t%d\n" % (i,count))
                 i=i+1
             elif opcodes[i]==OpCode.OP_INDEX:
-                print("%8d\tOP_INDEX" % (i))
+                result+=("%8d\tOP_INDEX\n" % (i))
             elif opcodes[i]==OpCode.OP_JUMP:
                 address=opcodes[i+1]
-                print("%8d\tOP_JUMP\t%d" % (i,address))
+                result+=("%8d\tOP_JUMP\t%d\n" % (i,address))
                 i=i+1
             elif opcodes[i]==OpCode.OP_JUMP_IF_FALSE:
                 address=opcodes[i+1]
-                print("%8d\tOP_JUMP_IF_FALSE\t%d" % (i,address))
+                result+=("%8d\tOP_JUMP_IF_FALSE\t%d\n" % (i,address))
                 i=i+1
             elif opcodes[i]==OpCode.OP_RETURN:
                 count=opcodes[i+1]
-                print("%8d\tOP_RETURN\t%d" % (i,count))
+                result+=("%8d\tOP_RETURN\t%d\n" % (i,count))
                 i=i+1
             elif opcodes[i]==OpCode.OP_SET_GLOBAL:
                 pos=opcodes[i+1]
-                print("%8d\tOP_SET_GLOBAL\t%d" % (i,pos))
+                result+=("%8d\tOP_SET_GLOBAL\t%d\n" % (i,pos))
                 i=i+1
             elif opcodes[i]==OpCode.OP_GET_GLOBAL:
                 pos=opcodes[i+1]
-                print("%8d\tOP_GET_GLOBAL\t%d" % (i,pos))
+                result+=("%8d\tOP_GET_GLOBAL\t%d\n" % (i,pos))
                 i=i+1
             elif opcodes[i]==OpCode.OP_SET_LOCAL:
                 scopeDepth=opcodes[i+1]
                 index=opcodes[i+2]
-                print("%8d\tOP_SET_LOCAL\t%d\t%d" % (i,scopeDepth,index))
+                result+=("%8d\tOP_SET_LOCAL\t%d\t%d\n" % (i,scopeDepth,index))
                 i=i+2
             elif opcodes[i]==OpCode.OP_GET_LOCAL:
                 scopeDepth=opcodes[i+1]
                 index=opcodes[i+2]
-                print("%8d\tOP_GET_LOCAL\t%d\t%d" % (i,scopeDepth,index))
+                result+=("%8d\tOP_GET_LOCAL\t%d\t%d\n" % (i,scopeDepth,index))
                 i=i+2
             elif opcodes[i]==OpCode.OP_FUNCTION_CALL:
                 argCount=opcodes[i+1]
-                print("%8d\tOP_FUNCTION_CALL\t%d" % (i,argCount))
+                result+=("%8d\tOP_FUNCTION_CALL\t%d\n" % (i,argCount))
                 i=i+1
             elif opcodes[i]==OpCode.OP_GET_BUILTIN:
-                print("%8d\tOP_GET_BUILTIN" % i)
+                result+=("%8d\tOP_GET_BUILTIN\n" % i)
             elif opcodes[i]==OpCode.OP_STRUCT:
                 memberCount=opcodes[i+1]
-                print("%8d\tOP_STRUCT\t%d" % (i,memberCount))
+                result+=("%8d\tOP_STRUCT\t%d\n" % (i,memberCount))
                 i+=1
             elif opcodes[i]==OpCode.OP_GET_STRUCT:
-                print("%8d\tOP_GET_STRUCT" % (i))
+                result+=("%8d\tOP_GET_STRUCT\n" % (i))
             elif opcodes[i]==OpCode.OP_SET_STRUCT:
-                print("%8d\tOP_SET_STRUCT" % (i))
+                result+=("%8d\tOP_SET_STRUCT\n" % (i))
             elif opcodes[i]==OpCode.OP_REF_GLOBAL:
                 idx=opcodes[i+1]
-                print("%8d\tOP_REF_GLOBAL\t%d" % (i,idx))
+                result+=("%8d\tOP_REF_GLOBAL\t%d\n" % (i,idx))
                 i=i+1
             elif opcodes[i]==OpCode.OP_REF_LOCAL:
                 scopeDepth=opcodes[i+1]
                 index=opcodes[i+2]
-                print("%8d\tOP_REF_LOCAL\t%d\t%d" % (i,scopeDepth,index))
+                result+=("%8d\tOP_REF_LOCAL\t%d\t%d\n" % (i,scopeDepth,index))
                 i=i+2
             elif opcodes[i]==OpCode.OP_REF_INDEX_GLOBAL:
                 pos=opcodes[i+1]
-                print("%8d\tOP_REF_INDEX_GLOBAL\t%d" % (i,pos))
+                result+=("%8d\tOP_REF_INDEX_GLOBAL\t%d\n" % (i,pos))
                 i=i+1
             elif opcodes[i]==OpCode.OP_REF_INDEX_LOCAL:
                 scopeDepth=opcodes[i+1]
                 index=opcodes[i+2]
-                print("%8d\tOP_REF_INDEX_LOCAL\t%d\t%d" % (i,scopeDepth,index))
+                result+=("%8d\tOP_REF_INDEX_LOCAL\t%d\t%d\n" % (i,scopeDepth,index))
                 i=i+2
             elif opcodes[i]==OpCode.OP_SP_OFFSET:
                 offset=opcodes[i+1]
-                print("%8d\tOP_SP_OFFSET\t%d" % (i,offset))
+                result+=("%8d\tOP_SP_OFFSET\t%d\n" % (i,offset))
                 i=i+1
             elif opcodes[i]==OpCode.OP_DLL_IMPORT:
-                print("%8d\tOP_DLL_IMPORT" % (i))
+                result+=("%8d\tOP_DLL_IMPORT\n" % (i))
             i=i+1
+        return result

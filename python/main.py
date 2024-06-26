@@ -22,9 +22,11 @@ def run(content:str):
     stmts = parser.parse(tokens)
     for stmt in stmts:
         print(stmt)
-    chunk = compiler.compile(stmts)
-    chunk.stringify()
-    vm.run(chunk)
+    fn = compiler.compile(stmts)
+
+    print(fn.str_with_chunk())
+    
+    vm.run(fn)
 
 def repl(path:str):
     set_base_path(path)
