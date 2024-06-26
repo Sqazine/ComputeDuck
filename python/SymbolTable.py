@@ -7,6 +7,7 @@ class SymbolScope(IntEnum):
     LOCAL = 1,
     BUILTIN = 2,
 
+
 class Symbol:
     name: str
     isStructSymbol: bool
@@ -20,6 +21,7 @@ class Symbol:
         self.scope = scope
         self.index = index
         self.scopeDepth = scopeDepth
+
 
 class SymbolTable:
     enclosing = None
@@ -36,7 +38,8 @@ class SymbolTable:
             self.scopeDepth = self.enclosing.scopeDepth+1
 
     def Define(self, name: str, isStructSymbol: bool = False) -> Symbol:
-        symbol = Symbol(name, SymbolScope.GLOBAL,self.definitionCount, self.scopeDepth, isStructSymbol)
+        symbol = Symbol(name, SymbolScope.GLOBAL,
+                        self.definitionCount, self.scopeDepth, isStructSymbol)
         if self.enclosing == None:
             symbol.scope = SymbolScope.GLOBAL
         else:
@@ -50,7 +53,7 @@ class SymbolTable:
         return symbol
 
     def DefineBuiltin(self, name: str) -> Symbol:
-        symbol = Symbol(name, SymbolScope.BUILTIN,-1, self.scopeDepth)
+        symbol = Symbol(name, SymbolScope.BUILTIN, -1, self.scopeDepth)
         self.symbolMaps[name] = symbol
         return symbol
 

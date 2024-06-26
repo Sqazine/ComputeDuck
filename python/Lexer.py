@@ -19,6 +19,7 @@ keywords: dict = {
     "import": TokenType.IMPORT,
 }
 
+
 class Lexer:
     __startPos: int = 0
     __curPos: int = 0
@@ -113,7 +114,7 @@ class Lexer:
         self.__get_cur_char_and_step_once()  # eat the second '\"'
 
         self.__add_token(TokenType.STRING,
-                      self.__source[self.__startPos+1:self.__curPos-1])
+                         self.__source[self.__startPos+1:self.__curPos-1])
 
     def __generate_token(self):
         c = self.__get_cur_char_and_step_once()
@@ -189,11 +190,11 @@ class Lexer:
         else:
             self.__add_token(TokenType.END)
 
-    def __is_number(self,c) -> bool:
+    def __is_number(self, c) -> bool:
         return c >= '0' and c <= '9'
 
-    def __is_letter(self,c) -> bool:
+    def __is_letter(self, c) -> bool:
         return (c >= 'A' and c <= 'Z') or (c >= 'a' and c <= 'z') or c == '_'
 
-    def __is_letter_or_number(self,c) -> bool:
+    def __is_letter_or_number(self, c) -> bool:
         return self.__is_letter(c) or self.__is_number(c)

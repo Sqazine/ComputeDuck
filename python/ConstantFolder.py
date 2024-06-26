@@ -1,5 +1,6 @@
 from Ast import *
 
+
 class ConstantFolder:
 
     def fold(self, stmts: list[Stmt]) -> None:
@@ -128,7 +129,8 @@ class ConstantFolder:
 
     def __fold_function_expr(self, expr: FunctionExpr) -> Expr:
         for i in range(0, len(expr.parameters)):
-            expr.parameters[i] = self.__fold_identifier_expr(expr.parameters[i])
+            expr.parameters[i] = self.__fold_identifier_expr(
+                expr.parameters[i])
         expr.body = self.__fold_scope_stmt(expr.body)
         return expr
 

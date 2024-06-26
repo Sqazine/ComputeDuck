@@ -1,8 +1,11 @@
 import importlib
 import sys
+
+
 def error(msg):
     print(msg)
     exit(1)
+
 
 def read_file(path):
     file = open(path, "r")
@@ -10,8 +13,9 @@ def read_file(path):
     file.close()
     return contents
 
+
 def register_dlls(dllPath):
-    modules=sys.modules.keys()
+    modules = sys.modules.keys()
     if dllPath in modules:
         return True
     mod = importlib.import_module(dllPath)

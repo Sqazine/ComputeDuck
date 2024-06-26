@@ -4,8 +4,6 @@ using System.Runtime.InteropServices;
 
 namespace ComputeDuck
 {
-    using OpCodes = List<int>;
-
     public delegate (bool, Object?) BuiltinFn(List<Object> args);
 
     public delegate void DestroyFunc(object nativeData);
