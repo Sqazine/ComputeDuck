@@ -175,10 +175,32 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame& callFrame)
         }
         case OP_ADD:
         {
-            auto left = Pop().Get<llvm::Value *>();
-            auto right = Pop().Get<llvm::Value *>();
-            auto result = m_Builder->CreateFAdd(left, right);
-            Push(result);
+            auto left = Pop();
+            auto right = Pop();
+            llvm::Value* result = nullptr;
+            if (left.Is<llvm::Value*>() && right.Is<llvm::Value*>())
+            {
+                auto leftValue = left.Get<llvm::Value*>();
+                auto rightValue = right.Get<llvm::Value*>();
+                if (leftValue->getType() == m_DoubleType && rightValue->getType() == m_DoubleType)
+                {
+                    result = m_Builder->CreateFAdd(leftValue, rightValue);
+                    Push(result);
+                }
+                else
+                    ASSERT("Invalid binary op:(Type)+(Type),Only (double)+(double) or (string)+(string) is available.");
+            }
+            else if (left.Is<Value>() && right.Is<Value>())
+            {
+                auto leftValue = left.Get<Value>();
+                auto rightValue = right.Get<Value>();
+                if (IS_STR_VALUE(leftValue) && IS_STR_VALUE(rightValue))
+                    Push(Value(StrAdd(TO_STR_VALUE(leftValue), TO_STR_VALUE(rightValue))));
+                else
+                    ASSERT("Invalid binary op:(Type)+(Type),Only (double)+(double) or (string)+(string) is available.");
+            }
+            else
+                ASSERT("Invalid binary op:(Type)+(Type),Only (double)+(double) or (string)+(string) is available.");
             break;
         }
         case OP_SUB:
