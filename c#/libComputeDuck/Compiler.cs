@@ -95,7 +95,6 @@ namespace ComputeDuck
         }
         void CompileScopeStmt(ScopeStmt stmt)
         {
-            EnterScope();
             Emit((int)OpCode.OP_SP_OFFSET);
 
             var idx = Emit(0);
@@ -108,8 +107,6 @@ namespace ComputeDuck
 
             Emit((int)OpCode.OP_SP_OFFSET);
             Emit(-localVarCount);
-
-            ExitScope();
         }
         void CompileWhileStmt(WhileStmt stmt)
         {
@@ -430,6 +427,7 @@ namespace ComputeDuck
                         Emit((int)OpCode.OP_REF_INDEX_LOCAL);
                         Emit(symbol.scopeDepth);
                         Emit(symbol.index);
+                        Emit(symbol.isUpValue);
                         break;
                     default:
                         break;
@@ -451,6 +449,7 @@ namespace ComputeDuck
                         Emit((int)OpCode.OP_REF_LOCAL);
                         Emit(symbol.scopeDepth);
                         Emit(symbol.index);
+                        Emit(symbol.isUpValue);
                         break;
                     default:
                         break;
@@ -532,6 +531,7 @@ namespace ComputeDuck
                     Emit((int)OpCode.OP_GET_LOCAL);
                     Emit(symbol.scopeDepth);
                     Emit(symbol.index);
+                    Emit(symbol.isUpValue);
                     break;
                 case SymbolScope.BUILTIN:
                     EmitConstant(new StrObject(symbol.name));
@@ -560,6 +560,7 @@ namespace ComputeDuck
                     Emit((int)OpCode.OP_SET_LOCAL);
                     Emit(symbol.scopeDepth);
                     Emit(symbol.index);
+                    Emit(symbol.isUpValue);
                     break;
                 default:
                     break;

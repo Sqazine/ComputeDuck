@@ -17,6 +17,7 @@ namespace ComputeDuck
             this.index = 0;
             this.scopeDepth = 0;
             this.name = "";
+            this.isUpValue = 0;
         }
 
         public Symbol(string name,
@@ -30,6 +31,7 @@ namespace ComputeDuck
             this.scope = scope;
             this.index = index;
             this.scopeDepth = scopeDepth;
+            this.isUpValue = 0;
         }
 
         public string name;
@@ -37,6 +39,7 @@ namespace ComputeDuck
         public SymbolScope scope;
         public int index;
         public int scopeDepth;
+        public int isUpValue;
     }
 
     public class SymbolTable
@@ -96,6 +99,8 @@ namespace ComputeDuck
                     return (false,null);
                 if (symbol.scope == SymbolScope.GLOBAL || symbol.scope == SymbolScope.BUILTIN)
                     return (true,symbol);
+
+                symbol.isUpValue = 1;
 
                 symbolMaps[symbol.name] = symbol;
                 return (true,symbol);

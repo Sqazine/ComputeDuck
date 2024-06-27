@@ -128,13 +128,15 @@ class Chunk:
             elif opcodes[i]==OpCode.OP_SET_LOCAL:
                 scopeDepth=opcodes[i+1]
                 index=opcodes[i+2]
-                result+=("%8d\tOP_SET_LOCAL\t%d\t%d\n" % (i,scopeDepth,index))
-                i=i+2
+                isUpValue=opcodes[i+3]
+                result+=("%8d\tOP_SET_LOCAL\t%d\t%d\t%d\n" % (i,scopeDepth,index,isUpValue))
+                i=i+3
             elif opcodes[i]==OpCode.OP_GET_LOCAL:
                 scopeDepth=opcodes[i+1]
                 index=opcodes[i+2]
-                result+=("%8d\tOP_GET_LOCAL\t%d\t%d\n" % (i,scopeDepth,index))
-                i=i+2
+                isUpValue=opcodes[i+3]
+                result+=("%8d\tOP_GET_LOCAL\t%d\t%d\t%d\n" % (i,scopeDepth,index,isUpValue))
+                i=i+3
             elif opcodes[i]==OpCode.OP_FUNCTION_CALL:
                 argCount=opcodes[i+1]
                 result+=("%8d\tOP_FUNCTION_CALL\t%d\n" % (i,argCount))
@@ -156,8 +158,9 @@ class Chunk:
             elif opcodes[i]==OpCode.OP_REF_LOCAL:
                 scopeDepth=opcodes[i+1]
                 index=opcodes[i+2]
-                result+=("%8d\tOP_REF_LOCAL\t%d\t%d\n" % (i,scopeDepth,index))
-                i=i+2
+                isUpValue=opcodes[i+3]
+                result+=("%8d\tOP_REF_LOCAL\t%d\t%d\t%d\n" % (i,scopeDepth,index,isUpValue))
+                i=i+3
             elif opcodes[i]==OpCode.OP_REF_INDEX_GLOBAL:
                 pos=opcodes[i+1]
                 result+=("%8d\tOP_REF_INDEX_GLOBAL\t%d\n" % (i,pos))
@@ -165,8 +168,9 @@ class Chunk:
             elif opcodes[i]==OpCode.OP_REF_INDEX_LOCAL:
                 scopeDepth=opcodes[i+1]
                 index=opcodes[i+2]
-                result+=("%8d\tOP_REF_INDEX_LOCAL\t%d\t%d\n" % (i,scopeDepth,index))
-                i=i+2
+                isUpValue=opcodes[i+3]
+                result+=("%8d\tOP_REF_INDEX_LOCAL\t%d\t%d\t%d\n" % (i,scopeDepth,index,isUpValue))
+                i=i+3
             elif opcodes[i]==OpCode.OP_SP_OFFSET:
                 offset=opcodes[i+1]
                 result+=("%8d\tOP_SP_OFFSET\t%d\n" % (i,offset))

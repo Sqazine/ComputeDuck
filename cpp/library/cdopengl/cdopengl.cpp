@@ -5,6 +5,24 @@
 #include "Value.h"
 #include <cassert>
 
+#undef glGenVertexArrays
+#undef glBindVertexArray
+#undef glVertexAttribPointer
+#undef glEnableVertexAttribArray
+#undef glGenBuffers
+#undef glBindBuffer
+#undef glBufferData
+#undef glCreateShader
+#undef glShaderSource
+#undef glCompileShader
+#undef glCreateProgram
+#undef glUseProgram
+#undef glAttachShader
+#undef glLinkProgram
+#undef glClearColor
+#undef glClear
+#undef glDrawElements
+
 extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(gladLoadGL)(Value *args, uint8_t argCount, Value &result)
 {
     result = Value(gladLoadGL());
@@ -23,7 +41,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glGenVertexArrays)(Value *args, uint
     {
         auto &array = TO_ARRAY_VALUE((*ref))->elements;
         std::vector<GLuint> vaos(count);
-        glGenVertexArrays(count, vaos.data());
+        glad_glGenVertexArrays(count, vaos.data());
         array.resize(vaos.size());
         for (int32_t i = 0; i < array.size(); ++i)
             array[i] = (double)vaos[i];
@@ -32,7 +50,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glGenVertexArrays)(Value *args, uint
     else if (IS_NUM_VALUE((*ref)))
     {
         GLuint id = -1;
-        glGenVertexArrays(count, &id);
+        glad_glGenVertexArrays(count, &id);
         ref->stored = id;
         assert(glGetError() == 0);
     }
@@ -44,10 +62,10 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glGenVertexArrays)(Value *args, uint
 extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glBindVertexArray)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_NUM_VALUE(args[0]))
-        ASSERT("Invalid value of glGenVertexArrays(args[0],args[1]).");
+        ASSERT("Invalid value of glBindVertexArray(args[0],args[1]).");
 
     auto vao = (GLuint)TO_NUM_VALUE(args[0]);
-    glBindVertexArray(vao);
+    glad_glBindVertexArray(vao);
     assert(glGetError() == 0);
     return false;
 }
@@ -64,7 +82,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glVertexAttribPointer)(Value *args, 
     auto arg4 = (GLuint)TO_NUM_VALUE(args[4]);
 
     if (IS_NIL_VALUE(args[5]))
-        glVertexAttribPointer(arg0, arg1, (GLenum)arg2.stored, (GLboolean)arg3.stored, arg4, (void *)0);
+        glad_glVertexAttribPointer(arg0, arg1, (GLenum)arg2.stored, (GLboolean)arg3.stored, arg4, (void *)0);
     else
     {
         if (arg2.stored == GL_FLOAT)
@@ -76,7 +94,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glVertexAttribPointer)(Value *args, 
             for (int32_t i = 0; i < rawArg5.size(); ++i)
                 rawArg5[i] = (float)arrArg5->elements[i].stored;
 
-            glVertexAttribPointer(arg0, arg1, (GLenum)arg2.stored, (GLboolean)arg3.stored, arg4, (void *)rawArg5.data());
+            glad_glVertexAttribPointer(arg0, arg1, (GLenum)arg2.stored, (GLboolean)arg3.stored, arg4, (void *)rawArg5.data());
         }
         else if (arg2.stored == GL_UNSIGNED_INT)
         {
@@ -87,7 +105,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glVertexAttribPointer)(Value *args, 
             for (int32_t i = 0; i < rawArg5.size(); ++i)
                 rawArg5[i] = (uint32_t)arrArg5->elements[i].stored;
 
-            glVertexAttribPointer(arg0, arg1, (GLenum)arg2.stored, (GLboolean)arg3.stored, arg4, (void *)rawArg5.data());
+            glad_glVertexAttribPointer(arg0, arg1, (GLenum)arg2.stored, (GLboolean)arg3.stored, arg4, (void *)rawArg5.data());
         }
         else if (arg2.stored == GL_INT)
         {
@@ -98,7 +116,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glVertexAttribPointer)(Value *args, 
             for (int32_t i = 0; i < rawArg5.size(); ++i)
                 rawArg5[i] = (uint32_t)arrArg5->elements[i].stored;
 
-            glVertexAttribPointer(arg0, arg1, (GLenum)arg2.stored, (GLboolean)arg3.stored, arg4, (void *)rawArg5.data());
+            glad_glVertexAttribPointer(arg0, arg1, (GLenum)arg2.stored, (GLboolean)arg3.stored, arg4, (void *)rawArg5.data());
         }
     }
     assert(glGetError() == 0);
@@ -111,7 +129,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glEnableVertexAttribArray)(Value *ar
         ASSERT("Invalid value of glEnableVertexAttribArray(args[0]).");
 
     auto arg0 = (GLuint)TO_NUM_VALUE(args[0]);
-    glEnableVertexAttribArray(arg0);
+    glad_glEnableVertexAttribArray(arg0);
     assert(glGetError() == 0);
     return false;
 }
@@ -128,7 +146,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glGenBuffers)(Value *args, uint8_t a
     {
         auto &array = TO_ARRAY_VALUE((*ref))->elements;
         std::vector<GLuint> vaos(count);
-        glGenBuffers(count, vaos.data());
+        glad_glGenBuffers(count, vaos.data());
         array.resize(vaos.size());
         for (int32_t i = 0; i < array.size(); ++i)
             array[i] = (double)vaos[i];
@@ -137,7 +155,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glGenBuffers)(Value *args, uint8_t a
     else if (IS_NUM_VALUE((*ref)))
     {
         GLuint id = -1;
-        glGenBuffers(count, &id);
+        glad_glGenBuffers(count, &id);
         ref->stored = id;
         assert(glGetError() == 0);
     }
@@ -153,7 +171,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glBindBuffer)(Value *args, uint8_t a
 
     auto flag = (GLuint)(TO_BUILTIN_VALUE(args[0])->Get<Value>()).stored;
     auto obj = (GLuint)TO_NUM_VALUE(args[1]);
-    glBindBuffer(flag, obj);
+    glad_glBindBuffer(flag, obj);
     assert(glGetError() == 0);
     return false;
 }
@@ -173,7 +191,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glBufferData)(Value *args, uint8_t a
         for (int32_t i = 0; i < rawArg2.size(); ++i)
             rawArg2[i] = (uint32_t)arg2->elements[i].stored;
 
-        glBufferData(arg0, arg1, (const void *)rawArg2.data(), arg3);
+        glad_glBufferData(arg0, arg1, (const void *)rawArg2.data(), arg3);
     }
     else
     {
@@ -181,7 +199,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glBufferData)(Value *args, uint8_t a
         for (int32_t i = 0; i < rawArg2.size(); ++i)
             rawArg2[i] = (float)arg2->elements[i].stored;
 
-        glBufferData(arg0, arg1, (const void *)rawArg2.data(), arg3);
+        glad_glBufferData(arg0, arg1, (const void *)rawArg2.data(), arg3);
     }
     assert(glGetError() == 0);
     return false;
@@ -193,7 +211,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glCreateShader)(Value *args, uint8_t
         ASSERT("Invalid value of glCreateShader(args[0]).");
 
     auto arg0 = (GLuint)(TO_BUILTIN_VALUE(args[0])->Get<Value>()).stored;
-    result = (double)glCreateShader(arg0);
+    result = (double)glad_glCreateShader(arg0);
     assert(glGetError() == 0);
     return true;
 }
@@ -206,7 +224,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glShaderSource)(Value *args, uint8_t
     auto arg1 = (GLuint)TO_NUM_VALUE(args[1]);
     auto arg2 = TO_STR_VALUE(*(TO_REF_VALUE(args[2])->pointer))->value;
 
-    glShaderSource(arg0, 1, &arg2, nullptr);
+    glad_glShaderSource(arg0, 1, &arg2, nullptr);
     assert(glGetError() == 0);
     return false;
 }
@@ -216,7 +234,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glCompileShader)(Value *args, uint8_
         ASSERT("Invalid value of glCompileShader(args[0]).");
 
     auto arg0 = (GLuint)TO_NUM_VALUE(args[0]);
-    glCompileShader(arg0);
+    glad_glCompileShader(arg0);
 
     int isSuccess;
     char infoLog[512];
@@ -233,7 +251,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glCompileShader)(Value *args, uint8_
 }
 extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glCreateProgram)(Value *args, uint8_t argCount, Value &result)
 {
-    result = (double)glCreateProgram();
+    result = (double)glad_glCreateProgram();
     assert(glGetError() == 0);
     return true;
 }
@@ -245,7 +263,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glAttachShader)(Value *args, uint8_t
     auto arg0 = (GLuint)TO_NUM_VALUE(args[0]);
     auto arg1 = (GLuint)TO_NUM_VALUE(args[1]);
 
-    glAttachShader(arg0, arg1);
+    glad_glAttachShader(arg0, arg1);
     assert(glGetError() == 0);
     return false;
 }
@@ -256,7 +274,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glLinkProgram)(Value *args, uint8_t 
 
     auto arg0 = (GLuint)TO_NUM_VALUE(args[0]);
 
-    glLinkProgram(arg0);
+    glad_glLinkProgram(arg0);
 
     int success;
     char infoLog[512];
@@ -281,7 +299,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glClearColor)(Value *args, uint8_t a
     auto arg2 = (float)TO_NUM_VALUE(args[2]);
     auto arg3 = (float)TO_NUM_VALUE(args[3]);
 
-    glClearColor(arg0, arg1, arg2, arg3);
+    glad_glClearColor(arg0, arg1, arg2, arg3);
     assert(glGetError() == 0);
     return false;
 }
@@ -290,12 +308,12 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glClear)(Value *args, uint8_t argCou
     if (IS_BUILTIN_VALUE(args[0]))
     {
         auto arg0 = (GLuint)(TO_BUILTIN_VALUE(args[0])->Get<Value>().stored);
-        glClear(arg0);
+        glad_glClear(arg0);
     }
     else if (IS_NUM_VALUE(args[0]))
     {
         auto arg0 = (GLuint)(TO_NUM_VALUE(args[0]));
-        glClear(arg0);
+        glad_glClear(arg0);
     }
     else
         ASSERT("Invalid value of glClear(args[0]).");
@@ -309,7 +327,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glUseProgram)(Value *args, uint8_t a
         ASSERT("Invalid value of glUseProgram(args[0]).");
 
     auto arg0 = (GLuint)TO_NUM_VALUE(args[0]);
-    glUseProgram(arg0);
+    glad_glUseProgram(arg0);
     assert(glGetError() == 0);
     return false;
 }
@@ -324,7 +342,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glDrawElements)(Value *args, uint8_t
     auto arg2 = (GLenum)TO_BUILTIN_VALUE(args[2])->Get<Value>().stored;
 
     if (IS_NIL_VALUE(args[3]))
-        glDrawElements(arg0, arg1, arg2, nullptr);
+        glad_glDrawElements(arg0, arg1, arg2, nullptr);
     else
     {
         auto arg3 = TO_REF_VALUE(args[3])->pointer;
@@ -334,7 +352,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glDrawElements)(Value *args, uint8_t
         for (int32_t i = 0; i < rawArg3.size(); ++i)
             rawArg3[i] = (uint32_t)arrArg3->elements[i].stored;
 
-        glDrawElements(arg0, arg1, arg2, rawArg3.data());
+        glad_glDrawElements(arg0, arg1, arg2, rawArg3.data());
     }
 
     assert(glGetError() == 0);

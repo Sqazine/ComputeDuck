@@ -71,7 +71,7 @@ namespace ComputeDuck
         {
             while (true)
             {
-                CallFrame frame = GetCurCallFrame();
+                CallFrame frame = PeekCallFrameFromBack(1);
 
                 if (frame.IsAtEnd())
                     return;
@@ -375,10 +375,15 @@ namespace ComputeDuck
                         {
                             var scopeDepth = frame.fn.chunk.opCodes[frame.ip++];
                             var index = frame.fn.chunk.opCodes[frame.ip++];
+                            var isUpValue = frame.fn.chunk.opCodes[frame.ip++];
 
                             var obj = Pop();
 
-                            var slot = PeekCallFrame(scopeDepth).slot + index;
+                            int slot;
+                            if (isUpValue == 1)
+                                slot = PeekCallFrameFromFront(scopeDepth).slot + index;
+                            else
+                                slot = PeekCallFrameFromBack(scopeDepth).slot + index;
 
                             if (m_ObjectStack[slot].type == ObjectType.REF)
                             {
@@ -407,11 +412,15 @@ namespace ComputeDuck
                         {
                             var scopeDepth = frame.fn.chunk.opCodes[frame.ip++];
                             var index = frame.fn.chunk.opCodes[frame.ip++];
+                            var isUpValue = frame.fn.chunk.opCodes[frame.ip++];
 
-                            int slot =  PeekCallFrame(scopeDepth).slot + index;
+                            int slot;
+                            if(isUpValue == 1)
+                                slot=PeekCallFrameFromFront(scopeDepth).slot + index;
+                            else
+                                slot=PeekCallFrameFromBack(scopeDepth).slot + index;
 
                             Push(m_ObjectStack[slot]);
-
                             break;
                         }
                     case (int)OpCode.OP_SP_OFFSET:
@@ -491,8 +500,13 @@ namespace ComputeDuck
                         {
                             var scopeDepth = frame.fn.chunk.opCodes[frame.ip++];
                             var index = frame.fn.chunk.opCodes[frame.ip++];
+                            var isUpValue = frame.fn.chunk.opCodes[frame.ip++];
 
-                            int slot =  PeekCallFrame(scopeDepth).slot + index;
+                            int slot;
+                            if(isUpValue==1)
+                                slot=  PeekCallFrameFromFront(scopeDepth).slot + index;
+                            else
+                                slot=PeekCallFrameFromBack(scopeDepth).slot + index;
 
                             Push(new RefObject(m_ObjectStack[slot].GetAddress()));
 
@@ -522,14 +536,18 @@ namespace ComputeDuck
                         {
                             var scopeDepth = frame.fn.chunk.opCodes[frame.ip++];
                             var index = frame.fn.chunk.opCodes[frame.ip++];
+                            var isUpValue = frame.fn.chunk.opCodes[frame.ip++];
 
                             var idxValue = Pop();
 
-                            int slot = PeekCallFrame(scopeDepth).slot + index;
+                            int slot;
+                            if(isUpValue==1) 
+                                slot = PeekCallFrameFromFront(scopeDepth).slot + index;
+                            else
+                                slot = PeekCallFrameFromBack(scopeDepth).slot + index;
 
                             while (m_ObjectStack[slot].type == ObjectType.REF)
                                 m_ObjectStack[slot] = SearchObjectByAddress(((RefObject)m_ObjectStack[slot]).pointer);
-
 
                             if (m_ObjectStack[slot].type == ObjectType.ARRAY)
                             {
@@ -577,14 +595,14 @@ namespace ComputeDuck
             return m_CallFrames[--m_CallFrameTop];
         }
 
-        private CallFrame PeekCallFrame(int distance)
+        private CallFrame PeekCallFrameFromFront(int distance)
         {
             return m_CallFrames[distance];
         }
 
-        private CallFrame GetCurCallFrame()
+        private CallFrame PeekCallFrameFromBack(int distance)
         {
-            return m_CallFrames[m_CallFrameTop - 1];
+            return m_CallFrames[m_CallFrameTop - distance];
         }
 
         private Object FindActualObject(Object obj)

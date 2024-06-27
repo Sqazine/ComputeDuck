@@ -72,10 +72,10 @@ void OpCodeVM::Execute()
 
 	while (1)
 	{
-		auto frame = GetCurCallFrame();
+		auto frame = PeekCallFrameFromBack(1);
 
 		if (frame->IsEnd())
-			return;
+			return;	
 
 		int32_t instruction = *frame->ip++;
 		switch (instruction)
@@ -318,9 +318,15 @@ void OpCodeVM::Execute()
 		{
 			auto scopeDepth = *frame->ip++;
 			auto index = *frame->ip++;
+			auto isUpValue = *frame->ip++;
 			auto value = Pop();
 
-			Value *slot = GetEndOfRefValue(PeekCallFrame(scopeDepth)->slot + index);
+			Value* slot = nullptr;
+			if (isUpValue)
+				slot = PeekCallFrameFromFront(scopeDepth)->slot + index;
+			else
+				slot = PeekCallFrameFromBack(scopeDepth)->slot + index;
+			slot=GetEndOfRefValue(slot);
 
 			*slot = value;
 			break;
@@ -329,8 +335,13 @@ void OpCodeVM::Execute()
 		{
 			auto scopeDepth = *frame->ip++;
 			auto index = *frame->ip++;
+			auto isUpValue = *frame->ip++;
 
-			Value *slot = PeekCallFrame(scopeDepth)->slot + index;
+			Value* slot = nullptr;
+			if (isUpValue)
+				slot = PeekCallFrameFromFront(scopeDepth)->slot + index;
+			else
+				slot = PeekCallFrameFromBack(scopeDepth)->slot + index;
 
 			Push(*slot);
 			break;
@@ -406,8 +417,12 @@ void OpCodeVM::Execute()
 		{
 			auto scopeDepth = *frame->ip++;
 			auto index = *frame->ip++;
-
-			Value *slot = PeekCallFrame(scopeDepth)->slot + index;
+			auto isUpValue = *frame->ip++;
+			Value* slot = nullptr;
+			if (isUpValue)
+				slot = PeekCallFrameFromFront(scopeDepth)->slot + index;
+			else
+				slot = PeekCallFrameFromBack(scopeDepth)->slot + index;
 
 			Push(CreateObject<RefObject>(slot));
 			break;
@@ -436,10 +451,17 @@ void OpCodeVM::Execute()
 		{
 			auto scopeDepth = *frame->ip++;
 			auto index = *frame->ip++;
+			auto isUpValue = *frame->ip++;
 
 			auto idxValue = Pop();
 
-			Value *slot = GetEndOfRefValue(PeekCallFrame(scopeDepth)->slot + index);
+			Value* slot = nullptr;
+			if (isUpValue)
+				slot = PeekCallFrameFromFront(scopeDepth)->slot + index;
+			else
+				slot = PeekCallFrameFromBack(scopeDepth)->slot + index;
+
+			slot = GetEndOfRefValue(slot);
 
 			if (IS_ARRAY_VALUE(*slot))
 			{
@@ -458,6 +480,7 @@ void OpCodeVM::Execute()
 		{
 			auto name = TO_STR_VALUE(Pop())->value;
 			RegisterDLLs(name);
+			break;
 		}
 		default:
 			return;
@@ -511,14 +534,14 @@ OpCodeVM::CallFrame *OpCodeVM::PopCallFrame()
 	return --m_CallFrameTop;
 }
 
-OpCodeVM::CallFrame *OpCodeVM::PeekCallFrame(int32_t distance)
+OpCodeVM::CallFrame *OpCodeVM::PeekCallFrameFromFront(int32_t distance)
 {
 	return &m_CallFrameStack[distance];
 }
 
-OpCodeVM::CallFrame* OpCodeVM::GetCurCallFrame()
+OpCodeVM::CallFrame* OpCodeVM::PeekCallFrameFromBack(int32_t distance)
 {
-	return m_CallFrameTop - 1;
+    return m_CallFrameTop-distance;
 }
 
 Value OpCodeVM::FindActualValue(const Value &v)

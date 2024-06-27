@@ -140,16 +140,18 @@ std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
         {
             auto scopeDepth = opcodes[i + 1];
             auto index = opcodes[i + 2];
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_SET_LOCAL\t" << scopeDepth << "\t" << index << std::endl;
-            i += 2;
+            auto isUpValue = opcodes[i + 3];
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_SET_LOCAL\t" << scopeDepth << "\t" << index<<"\t"<<isUpValue << std::endl;
+            i += 3;
             break;
         }
         case OP_GET_LOCAL:
         {
             auto scopeDepth = opcodes[i + 1];
             auto index = opcodes[i + 2];
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_GET_LOCAL\t" << scopeDepth << "\t" << index << std::endl;
-            i += 2;
+            auto isUpValue = opcodes[i + 3];
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_GET_LOCAL\t" << scopeDepth << "\t" << index << "\t" << isUpValue << std::endl;
+            i += 3;
             break;
         }
         case OP_FUNCTION_CALL:
@@ -192,8 +194,9 @@ std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
         {
             auto scopeDepth = opcodes[i + 1];
             auto index = opcodes[i + 2];
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_LOCAL\t" << scopeDepth << "\t" << index << std::endl;
-            i += 2;
+            auto isUpValue = opcodes[i + 3];
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_LOCAL\t" << scopeDepth << "\t" << index << "\t" << isUpValue << std::endl;
+            i += 3;
             break;
         }
         case OP_REF_INDEX_GLOBAL:
@@ -207,8 +210,9 @@ std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
         {
             auto scopeDepth = opcodes[i + 1];
             auto index = opcodes[i + 2];
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_INDEX_LOCAL\t" << scopeDepth << "\t" << index << std::endl;
-            i += 2;
+            auto isUpValue = opcodes[i + 3];
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_INDEX_LOCAL\t" << scopeDepth << "\t" << index << "\t" << isUpValue << std::endl;
+            i += 3;
             break;
         }
         case OP_SP_OFFSET:
@@ -220,7 +224,7 @@ std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
         }
         case OP_DLL_IMPORT:
         {
-            cout << std::setfill('0') << std::setw(8) << i << "\OP_DLL_IMPORT" << std::endl;
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_DLL_IMPORT" << std::endl;
             break;
         }
         default:

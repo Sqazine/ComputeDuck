@@ -51,7 +51,7 @@ class VM:
 
     def __execute(self) -> None:
         while True:
-            frame = self.__get_cur_call_frame()
+            frame = self.__peek_call_frame_from_back(1)
 
             if frame.is_at_end():
                 return
@@ -318,10 +318,17 @@ class VM:
                 frame.ip += 1
                 index = frame.fn.chunk.opCodes[frame.ip]
                 frame.ip += 1
+                isUpValue = frame.fn.chunk.opCodes[frame.ip]
+                frame.ip += 1
 
                 obj = self.__pop()
 
-                slot = self.__peek_call_frame(scopeDepth).slot+index
+                if isUpValue:
+                    slot = self.__peek_call_frame_from_front(
+                        scopeDepth).slot+index
+                else:
+                    slot = self.__peek_call_frame_from_back(
+                        scopeDepth).slot+index
 
                 if self.__objectStack[slot].type == ObjectType.REF:
                     lRefObj = self.__objectStack[slot]
@@ -348,8 +355,15 @@ class VM:
                 frame.ip += 1
                 index = frame.fn.chunk.opCodes[frame.ip]
                 frame.ip += 1
+                isUpValue = frame.fn.chunk.opCodes[frame.ip]
+                frame.ip += 1
 
-                slot = self.__peek_call_frame(scopeDepth).slot+index
+                if isUpValue:
+                    slot = self.__peek_call_frame_from_front(
+                        scopeDepth).slot+index
+                else:
+                    slot = self.__peek_call_frame_from_back(
+                        scopeDepth).slot+index
                 self.__push(self.__objectStack[slot])
 
             elif instruction == OpCode.OP_SP_OFFSET:
@@ -418,8 +432,16 @@ class VM:
                 frame.ip += 1
                 index = frame.fn.chunk.opCodes[frame.ip]
                 frame.ip += 1
+                isUpValue = frame.fn.chunk.opCodes[frame.ip]
+                frame.ip += 1
 
-                slot = self.__peek_call_frame(scopeDepth).slot+index
+                if isUpValue:
+                    slot = self.__peek_call_frame_from_front(
+                        scopeDepth).slot+index
+                else:
+                    slot = self.__peek_call_frame_from_back(
+                        scopeDepth).slot+index
+
                 self.__push(RefObject(id(self.__objectStack[slot])))
 
             elif instruction == OpCode.OP_REF_INDEX_GLOBAL:
@@ -444,10 +466,17 @@ class VM:
                 frame.ip += 1
                 index = frame.fn.chunk.opCodes[frame.ip]
                 frame.ip += 1
+                isUpValue = frame.fn.chunk.opCode[frame.ip]
+                frame.ip += 1
 
                 idxValue = self.__pop()
 
-                slot = self.__peek_call_frame(scopeDepth).slot+index
+                if isUpValue:
+                    slot = self.__peek_call_frame_from_front(
+                        scopeDepth).slot+index
+                else:
+                    slot = self.__peek_call_frame_from_back(
+                        scopeDepth).slot+index
 
                 while self.__objectStack[slot].type == ObjectType.REF:
                     self.__objectStack[slot] = self.__search_object_by_address(
@@ -483,11 +512,11 @@ class VM:
         self.__callFrameTop -= 1
         return self.__callFrameStack[self.__callFrameTop]
 
-    def __peek_call_frame(self, distance: int) -> CallFrame:
+    def __peek_call_frame_from_front(self, distance: int) -> CallFrame:
         return self.__callFrameStack[distance]
 
-    def __get_cur_call_frame(self) -> CallFrame:
-        return self.__callFrameStack[self.__callFrameTop - 1]
+    def __peek_call_frame_from_back(self, distance: int) -> CallFrame:
+        return self.__callFrameStack[self.__callFrameTop - distance]
 
     def __find_actual_object(self, obj):
         # find actual object of RefObject or BuiltinVariable
