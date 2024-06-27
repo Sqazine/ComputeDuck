@@ -10,7 +10,7 @@ OpCodeVM::~OpCodeVM()
 	Gc(true);
 }
 
-void OpCodeVM::Run(FunctionObject* mainFn)
+void OpCodeVM::Run(FunctionObject *mainFn)
 {
 	ResetStatus();
 
@@ -30,7 +30,7 @@ void OpCodeVM::Execute()
 		auto left = FindActualValue(Pop());                                                                   \
 		auto right = FindActualValue(Pop());                                                                  \
 		if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                                        \
-			Push(TO_NUM_VALUE(left) op TO_NUM_VALUE(right));                                           \
+			Push(TO_NUM_VALUE(left) op TO_NUM_VALUE(right));                                                  \
 		else                                                                                                  \
 			ASSERT("Invalid binary op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
 	} while (0);
@@ -75,7 +75,7 @@ void OpCodeVM::Execute()
 		auto frame = PeekCallFrameFromBack(1);
 
 		if (frame->IsEnd())
-			return;	
+			return;
 
 		int32_t instruction = *frame->ip++;
 		switch (instruction)
@@ -113,8 +113,8 @@ void OpCodeVM::Execute()
 			Value right = FindActualValue(Pop());
 			if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))
 				Push(TO_NUM_VALUE(left) + TO_NUM_VALUE(right));
-            else if (IS_STR_VALUE(right) && IS_STR_VALUE(left))
-                Push(StrAdd(TO_STR_VALUE(left),TO_STR_VALUE(right)));
+			else if (IS_STR_VALUE(right) && IS_STR_VALUE(left))
+				Push(StrAdd(TO_STR_VALUE(left), TO_STR_VALUE(right)));
 			else
 				ASSERT("Invalid binary op:%s+%s", left.Stringify().c_str(), right.Stringify().c_str());
 			break;
@@ -321,12 +321,12 @@ void OpCodeVM::Execute()
 			auto isUpValue = *frame->ip++;
 			auto value = Pop();
 
-			Value* slot = nullptr;
+			Value *slot = nullptr;
 			if (isUpValue)
 				slot = PeekCallFrameFromFront(scopeDepth)->slot + index;
 			else
 				slot = PeekCallFrameFromBack(scopeDepth)->slot + index;
-			slot=GetEndOfRefValue(slot);
+			slot = GetEndOfRefValue(slot);
 
 			*slot = value;
 			break;
@@ -337,7 +337,7 @@ void OpCodeVM::Execute()
 			auto index = *frame->ip++;
 			auto isUpValue = *frame->ip++;
 
-			Value* slot = nullptr;
+			Value *slot = nullptr;
 			if (isUpValue)
 				slot = PeekCallFrameFromFront(scopeDepth)->slot + index;
 			else
@@ -354,8 +354,12 @@ void OpCodeVM::Execute()
 		}
 		case OP_GET_BUILTIN:
 		{
-			auto name = TO_STR_VALUE(Pop())->value;
-			auto builtinObj = BuiltinManager::GetInstance()->FindBuiltinObject(name);
+			auto idx = *frame->ip++;
+			auto value = frame->fn->chunk.constants[idx];
+
+			RegisterToGCRecordChain(value);
+
+			auto builtinObj = BuiltinManager::GetInstance()->FindBuiltinObject(TO_STR_VALUE(value)->value);
 			Push(builtinObj);
 			break;
 		}
@@ -418,7 +422,7 @@ void OpCodeVM::Execute()
 			auto scopeDepth = *frame->ip++;
 			auto index = *frame->ip++;
 			auto isUpValue = *frame->ip++;
-			Value* slot = nullptr;
+			Value *slot = nullptr;
 			if (isUpValue)
 				slot = PeekCallFrameFromFront(scopeDepth)->slot + index;
 			else
@@ -455,7 +459,7 @@ void OpCodeVM::Execute()
 
 			auto idxValue = Pop();
 
-			Value* slot = nullptr;
+			Value *slot = nullptr;
 			if (isUpValue)
 				slot = PeekCallFrameFromFront(scopeDepth)->slot + index;
 			else
@@ -539,9 +543,9 @@ OpCodeVM::CallFrame *OpCodeVM::PeekCallFrameFromFront(int32_t distance)
 	return &m_CallFrameStack[distance];
 }
 
-OpCodeVM::CallFrame* OpCodeVM::PeekCallFrameFromBack(int32_t distance)
+OpCodeVM::CallFrame *OpCodeVM::PeekCallFrameFromBack(int32_t distance)
 {
-    return m_CallFrameTop-distance;
+	return m_CallFrameTop - distance;
 }
 
 Value OpCodeVM::FindActualValue(const Value &v)

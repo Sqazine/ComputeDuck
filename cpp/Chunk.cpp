@@ -8,16 +8,16 @@ Chunk::Chunk(OpCodes opCodes, const std::vector<Value> &constants)
 
 std::string Chunk::Stringify()
 {
-    std::string result=OpCodeStringify(opCodes);
-    for (const auto& c : constants)
+    std::string result = OpCodeStringify(opCodes);
+    for (const auto &c : constants)
         if (IS_FUNCTION_VALUE(c))
             result += ::Stringify(TO_FUNCTION_VALUE(c)
 #ifndef NDEBUG
-                ,true
+                                      ,
+                                  true
 #endif
             );
     return result;
-
 }
 
 std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
@@ -141,7 +141,7 @@ std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
             auto scopeDepth = opcodes[i + 1];
             auto index = opcodes[i + 2];
             auto isUpValue = opcodes[i + 3];
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_SET_LOCAL\t" << scopeDepth << "\t" << index<<"\t"<<isUpValue << std::endl;
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_SET_LOCAL\t" << scopeDepth << "\t" << index << "\t" << isUpValue << std::endl;
             i += 3;
             break;
         }
@@ -163,7 +163,9 @@ std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
         }
         case OP_GET_BUILTIN:
         {
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_GET_BUILTIN" << std::endl;
+            auto idx = opcodes[i + 1];
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_GET_BUILTIN\t" << constants[idx].Stringify() << std::endl;
+            ++i;
             break;
         }
         case OP_STRUCT:
