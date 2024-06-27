@@ -539,10 +539,14 @@ void Compiler::LoadSymbol(const Symbol &symbol)
         Emit(symbol.index);
         Emit(symbol.isUpValue);
         break;
-    case SymbolScope::BUILTIN:
-        EmitConstant(new StrObject(symbol.name.data()));
+    case SymbolScope::BUILTIN: 
+       {
+        CurChunk().constants.emplace_back(new StrObject(symbol.name.data()));
+        auto pos = static_cast<int16_t>(CurChunk().constants.size() - 1);
         Emit(OP_GET_BUILTIN);
+        Emit(pos);
         break;
+       }
     default:
         break;
     }

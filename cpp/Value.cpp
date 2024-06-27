@@ -71,7 +71,7 @@ bool operator==(const Value &left, const Value &right)
 	}
 	case ValueType::OBJECT:
 	{
-		return IsEqualTo(left.object,TO_OBJECT_VALUE(right));
+		return IsEqualTo(left.object, TO_OBJECT_VALUE(right));
 	}
 	default:
 		return false;

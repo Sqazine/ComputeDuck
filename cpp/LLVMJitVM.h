@@ -44,43 +44,12 @@ public:
     void Run(FunctionObject *mainFn);
 
 protected:
-    class JitValue
-    {
-    public:
-        JitValue() = default;
-        JitValue(const Value& v)
-        {
-            unionV = v;
-        }
-        JitValue(llvm::Value *v)
-        {
-            unionV = v;
-        }
-
-        template <typename T>
-            requires(std::is_same_v<T, llvm::Value *> || std::is_same_v<T, Value>)
-        T Get()
-        {
-            return std::get<T>(unionV);
-        }
-
-        template <typename T>
-            requires(std::is_same_v<T, llvm::Value*> || std::is_same_v<T, Value>)
-        bool Is()
-        {
-            return std::holds_alternative<T>(unionV);
-        }
-
-    private:
-        std::variant<Value, llvm::Value *> unionV;
-    };
-
     struct CallFrame
     {
         CallFrame() = default;
         ~CallFrame() = default;
 
-        CallFrame(FunctionObject *fn, llvm::Function *llvmFn, JitValue *slot)
+        CallFrame(FunctionObject *fn, llvm::Function *llvmFn, llvm::Value **slot)
             : fn(fn), ip(fn->chunk.opCodes.data()), llvmFn(llvmFn), slot(slot)
         {
         }
@@ -95,7 +64,7 @@ protected:
         std::shared_ptr<FunctionObject> fn{nullptr};
         llvm::Function *llvmFn;
         int16_t *ip{nullptr};
-        JitValue *slot{nullptr};
+        llvm::Value **slot{nullptr};
     };
 
     class OrcJit
@@ -126,23 +95,22 @@ protected:
 private:
     void ResetStatus();
 
-    void CompileToLLVMIR(const CallFrame& callFrame);
+    void CompileToLLVMIR(const CallFrame &callFrame);
 
     void InitModuleAndPassManager();
 
     llvm::Value *CreateCDValue(llvm::Value *v);
-    llvm::Value *CreateCDObject(const std::string &str);
 
-    void Push(const JitValue &v);
-    JitValue Pop();
+    void Push(llvm::Value *v);
+    llvm::Value *Pop();
 
     void PushCallFrame(const CallFrame &callFrame);
     CallFrame *PopCallFrame();
     CallFrame *PeekCallFrame(int32_t distance);
 
     template <typename T>
-        requires(std::is_same_v<T, llvm::CallInst> || std::is_same_v<T, llvm::Function>)
-    T *AddBuiltinFnOrCallParamAttributes(T *fnOrCallInst)
+    requires(std::is_same_v<T, llvm::CallInst> || std::is_same_v<T, llvm::Function>)
+        T *AddBuiltinFnOrCallParamAttributes(T *fnOrCallInst)
     {
         fnOrCallInst->addRetAttr(llvm::Attribute::ZExt);
         fnOrCallInst->addParamAttr(0, llvm::Attribute::NoUndef);
@@ -167,7 +135,6 @@ private:
     llvm::PointerType *m_StrObjectPtrType{nullptr};
 
     llvm::FunctionType *m_BuiltinFunctionType{nullptr};
-    llvm::FunctionType *m_ValueFunctionType{nullptr};
 
     llvm::Type *m_Int8Type{nullptr};
     llvm::Type *m_BoolType{nullptr};
@@ -181,10 +148,12 @@ private:
     llvm::PointerType *m_BoolPtrType{nullptr};
     llvm::PointerType *m_DoublePtrType{nullptr};
 
-    JitValue m_GlobalVariables[STACK_MAX];
+    llvm::PointerType *m_Int8PtrPtrType{nullptr};
 
-    JitValue *m_StackTop;
-    JitValue m_ValueStack[STACK_MAX];
+    llvm::Value *m_GlobalVariables[STACK_MAX];
+
+    llvm::Value **m_StackTop;
+    llvm::Value *m_ValueStack[STACK_MAX];
 
     CallFrame *m_CallFrameTop;
     CallFrame m_CallFrameStack[STACK_MAX];
