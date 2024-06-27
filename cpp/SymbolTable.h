@@ -36,6 +36,7 @@ struct Symbol
     SymbolScope scope{ SymbolScope::GLOBAL };
     int32_t index{0};
     int32_t scopeDepth{0};
+    int32_t isUpValue{ 0 };
 };
 
 struct SymbolTable
@@ -108,6 +109,8 @@ struct SymbolTable
                 return false;
             if (symbol.scope == SymbolScope::GLOBAL || symbol.scope == SymbolScope::BUILTIN)
                 return true;
+
+            symbol.isUpValue = 1;
 
             symbolMaps[symbol.name] = symbol;
             return true;

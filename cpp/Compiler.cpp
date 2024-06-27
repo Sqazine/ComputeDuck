@@ -90,7 +90,6 @@ void Compiler::CompileIfStmt(IfStmt *stmt)
 
 void Compiler::CompileScopeStmt(ScopeStmt *stmt)
 {
-    EnterScope();
     Emit(OP_SP_OFFSET);
     auto idx = Emit(0);
 
@@ -99,19 +98,9 @@ void Compiler::CompileScopeStmt(ScopeStmt *stmt)
 
     auto localVarCount = m_SymbolTable->definitionCount;
 
-    if (localVarCount == 0)
-    {
-        CurChunk().opCodes.erase(CurChunk().opCodes.begin() + idx);
-        CurChunk().opCodes.erase(CurChunk().opCodes.begin() + (idx - 1));
-    }
-    else
-    {
-        CurChunk().opCodes[idx] = localVarCount;
-        Emit(OP_SP_OFFSET);
-        Emit(-localVarCount);
-    }
-
-    ExitScope();
+    CurChunk().opCodes[idx] = localVarCount;
+    Emit(OP_SP_OFFSET);
+    Emit(-localVarCount);
 }
 
 void Compiler::CompileWhileStmt(WhileStmt *stmt)
@@ -446,6 +435,7 @@ void Compiler::CompileRefExpr(RefExpr *expr)
             Emit(OP_REF_INDEX_LOCAL);
             Emit(symbol.scopeDepth);
             Emit(symbol.index);
+            Emit(symbol.isUpValue);
             break;
         default:
             break;
@@ -467,6 +457,7 @@ void Compiler::CompileRefExpr(RefExpr *expr)
             Emit(OP_REF_LOCAL);
             Emit(symbol.scopeDepth);
             Emit(symbol.index);
+            Emit(symbol.isUpValue);
             break;
         default:
             break;
@@ -546,6 +537,7 @@ void Compiler::LoadSymbol(const Symbol &symbol)
         Emit(OP_GET_LOCAL);
         Emit(symbol.scopeDepth);
         Emit(symbol.index);
+        Emit(symbol.isUpValue);
         break;
     case SymbolScope::BUILTIN:
         EmitConstant(new StrObject(symbol.name.data()));
@@ -574,6 +566,7 @@ void Compiler::StoreSymbol(const Symbol &symbol)
         Emit(OP_SET_LOCAL);
         Emit(symbol.scopeDepth);
         Emit(symbol.index);
+        Emit(symbol.isUpValue);
         break;
     default:
         break;

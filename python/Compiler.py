@@ -68,7 +68,6 @@ class Compiler:
         self.__modify_opcode(jumpAddress, len(self.__cur_chunk().opCodes)-1)
 
     def __compile_scope_stmt(self, stmt: ScopeStmt) -> None:
-        self.__enter_scope()
         self.__emit(OpCode.OP_SP_OFFSET)
 
         idx = self.__emit(0)
@@ -81,8 +80,6 @@ class Compiler:
 
         self.__emit(OpCode.OP_SP_OFFSET)
         self.__emit(-localVarCount)
-
-        self.__exit_scope()
 
     def __compile_while_stmt(self, stmt: WhileStmt) -> None:
         jumpAddress = len(self.__cur_chunk().opCodes)-1
@@ -340,6 +337,7 @@ class Compiler:
                 self.__emit(OpCode.OP_REF_INDEX_LOCAL)
                 self.__emit(symbol.scopeDepth)
                 self.__emit(symbol.index)
+                self.__emit(symbol.isUpValue)
         else:
             isFound, symbol = self.__symbolTable.Resolve(
                 expr.refExpr.__str__())
@@ -353,6 +351,7 @@ class Compiler:
                 self.__emit(OpCode.OP_REF_LOCAL)
                 self.__emit(symbol.scopeDepth)
                 self.__emit(symbol.index)
+                self.__emit(symbol.isUpValue)
 
     def __compile_struct_expr(self, expr: StructExpr) -> None:
         for k, v in expr.memberPairs.items():
@@ -404,6 +403,7 @@ class Compiler:
             self.__emit(OpCode.OP_GET_LOCAL)
             self.__emit(symbol.scopeDepth)
             self.__emit(symbol.index)
+            self.__emit(symbol.isUpValue)
         elif symbol.scope == SymbolScope.BUILTIN:
             self.__emit_constant(StrObject(symbol.name))
             self.__emit(OpCode.OP_GET_BUILTIN)
@@ -420,6 +420,7 @@ class Compiler:
             self.__emit(OpCode.OP_SET_LOCAL)
             self.__emit(symbol.scopeDepth)
             self.__emit(symbol.index)
+            self.__emit(symbol.isUpValue)
 
     def __register_builtins(self):
         for k in gBuiltinManager.builtinObjects.keys():

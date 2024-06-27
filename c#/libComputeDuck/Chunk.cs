@@ -210,16 +210,18 @@ namespace ComputeDuck
                         {
                             var scopeDepth = opCodes[i + 1];
                             var index = opCodes[i + 2];
-                            result+=string.Format("{0}\tOP_SET_LOCAL\t{1}\t{2}\n", i.ToString().PadLeft(8), scopeDepth, index);
-                            i += 2;
+                            var isUpValue = opCodes[i + 3];
+                            result+=string.Format("{0}\tOP_SET_LOCAL\t{1}\t{2}\t{3}\n", i.ToString().PadLeft(8), scopeDepth, index, isUpValue);
+                            i += 3;
                             break;
                         }
                     case (int)OpCode.OP_GET_LOCAL:
                         {
                             var scopeDepth = opCodes[i + 1];
                             var index = opCodes[i + 2];
-                            result+=string.Format("{0}\tOP_GET_LOCAL\t{1}\t{2}\n", i.ToString().PadLeft(8), scopeDepth, index);
-                            i += 2;
+                            var isUpValue = opCodes[i + 3];
+                            result += string.Format("{0}\tOP_GET_LOCAL\t{1}\t{2}\t{3}\n", i.ToString().PadLeft(8), scopeDepth, index, isUpValue);
+                            i += 3;
                             break;
                         }
                     case (int)OpCode.OP_FUNCTION_CALL:
@@ -262,8 +264,9 @@ namespace ComputeDuck
                         {
                             var scopeDepth = opCodes[i + 1];
                             var index = opCodes[i + 2];
-                            result+=string.Format("{0}\tOP_REF_LOCAL\t{1}\t{2}\n", i.ToString().PadLeft(8), scopeDepth, index);
-                            i += 2;
+                            var isUpValue = opCodes[i + 3];
+                            result += string.Format("{0}\tOP_REF_LOCAL\t{1}\t{2}\t{3}\n", i.ToString().PadLeft(8), scopeDepth, index, isUpValue);
+                            i += 3;
                             break;
                         }
                     case (int)OpCode.OP_REF_INDEX_GLOBAL:
@@ -277,8 +280,9 @@ namespace ComputeDuck
                         {
                             var scopeDepth = opCodes[i + 1];
                             var index = opCodes[i + 2];
-                            result+=string.Format("{0}\tOP_REF_INDEX_LOCAL\t{1}\t{2}\n", i.ToString().PadLeft(8), scopeDepth, index);
-                            i += 2;
+                            var isUpValue = opCodes[i + 3];
+                            result += string.Format("{0}\tOP_REF_INDEX_LOCAL\t{1}\t{2}\t{3}\n", i.ToString().PadLeft(8), scopeDepth, index, isUpValue);
+                            i += 3;
                             break;
                         }
                     case (int)OpCode.OP_SP_OFFSET:

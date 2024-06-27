@@ -7,4 +7,8 @@
     <BaseOutputPath>$(SolutionDir)bin</BaseOutputPath>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="VM.cs~RF5f810b1.TMP" />
+  </ItemGroup>
+
 </Project>

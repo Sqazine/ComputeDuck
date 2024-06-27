@@ -14,6 +14,7 @@ class Symbol:
     scope: SymbolScope = SymbolScope.GLOBAL
     index: int
     scopeDepth: int
+    isUpValue:int
 
     def __init__(self, name="", scope: SymbolScope = SymbolScope.GLOBAL, index: int = 0, scopeDepth: int = 0, isStructSymbol: bool = False) -> None:
         self.name = name
@@ -21,6 +22,7 @@ class Symbol:
         self.scope = scope
         self.index = index
         self.scopeDepth = scopeDepth
+        self.isUpValue=0
 
 
 class SymbolTable:
@@ -68,6 +70,7 @@ class SymbolTable:
             if symbol.scope == SymbolScope.GLOBAL or symbol.scope == SymbolScope.BUILTIN:
                 return True, symbol
 
+            symbol.isUpValue=1
             self.symbolMaps[symbol.name] = symbol
             return True, symbol
 
