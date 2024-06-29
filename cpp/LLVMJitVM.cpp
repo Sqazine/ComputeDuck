@@ -153,7 +153,7 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
 
             if (IS_NUM_VALUE(value))
             {
-                llvm::Value *alloc = llvm::ConstantFP::get(m_DoubleType, llvm::APFloat(TO_NUM_VALUE(value)));
+                llvm::Value *alloc = llvm::ConstantFP::get(m_DoubleType, TO_NUM_VALUE(value));
                 Push(alloc);
             }
             else if (IS_BOOL_VALUE(value))
@@ -182,10 +182,7 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
             llvm::Value *result = nullptr;
 
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
-            {
-                result = m_Builder->CreateFAdd(left, right);
-                Push(result);
-            }
+                Push(m_Builder->CreateFAdd(left, right));
             else if (left->getType()->isPointerTy() && right->getType()->isPointerTy())
             {
                 auto leftPtrType = static_cast<llvm::PointerType *>(left->getType());
@@ -222,7 +219,7 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
                 }
             }
             else
-                ASSERT("Invalid binary op:(Type)+(Type),Only (double)+(double) or (string)+(string) is available.");
+                ASSERT("Invalid binary op:%s + %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
 
             break;
         }
@@ -230,62 +227,107 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
         {
             auto left = Pop();
             auto right = Pop();
-            auto result = m_Builder->CreateFSub(left, right);
-            Push(result);
+            if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
+                Push(m_Builder->CreateFSub(left, right));
+            else
+                ASSERT("Invalid binary op:%s - %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
             break;
         }
         case OP_MUL:
         {
             auto left = Pop();
             auto right = Pop();
-            auto result = m_Builder->CreateFMul(left, right);
-            Push(result);
+            if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
+                Push(m_Builder->CreateFMul(left, right));
+            else
+                ASSERT("Invalid binary op:%s * %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
             break;
         }
         case OP_DIV:
         {
             auto left = Pop();
             auto right = Pop();
-            auto result = m_Builder->CreateFDiv(left, right);
-            Push(result);
+            if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
+                Push(m_Builder->CreateFDiv(left, right));
+            else
+                ASSERT("Invalid binary op:%s / %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
             break;
         }
         case OP_LESS:
         {
             auto left = Pop();
             auto right = Pop();
-            auto result = m_Builder->CreateFCmpULT(left, right);
-            Push(result);
+            if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
+                Push(m_Builder->CreateFCmpULT(left, right));
+            else
+                ASSERT("Invalid binary op:%s < %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
             break;
         }
         case OP_GREATER:
         {
             auto left = Pop();
             auto right = Pop();
-            auto result = m_Builder->CreateFCmpUGT(left, right);
-            Push(result);
+            if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
+                Push(m_Builder->CreateFCmpUGT(left, right));
+            else
+                ASSERT("Invalid binary op:%s > %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
             break;
         }
         case OP_NOT:
         {
             auto value = Pop();
-            auto result = m_Builder->CreateNot(value);
-            Push(result);
+            if (value->getType() == m_BoolType)
+                Push(m_Builder->CreateNot(value));
+            else
+                ASSERT("Invalid binary op:not %s.", GetTypeName(value->getType()).c_str());
             break;
         }
         case OP_MINUS:
         {
             auto value = Pop();
-            auto result = m_Builder->CreateNeg(value);
-            Push(result);
+            if (value->getType() == m_DoubleType)
+                Push(m_Builder->CreateNeg(value));
+            else
+                ASSERT("Invalid binary op:- %s.", GetTypeName(value->getType()).c_str());
             break;
         }
         case OP_EQUAL:
         {
             auto left = Pop();
             auto right = Pop();
-            auto result = m_Builder->CreateFCmpUEQ(left, right);
-            Push(result);
+            if (left->getType() == right->getType()) 
+            {
+                if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
+                    Push(m_Builder->CreateFCmpUEQ(left, right));
+                else if (left->getType()->isPointerTy() && right->getType()->isPointerTy())
+                {
+                    auto leftPtrType = static_cast<llvm::PointerType*>(left->getType());
+                    auto rightPtrType = static_cast<llvm::PointerType*>(right->getType());
+
+                    if (leftPtrType->getElementType()->isArrayTy() && rightPtrType->getElementType()->isArrayTy())
+                    {
+                        auto leftArrayType = static_cast<llvm::ArrayType*>(leftPtrType->getElementType());
+                        auto rightArrayType = static_cast<llvm::ArrayType*>(rightPtrType->getElementType());
+                        if (leftArrayType->getElementType() == m_Int8Type && rightArrayType->getElementType() == m_Int8Type)
+                        {
+                            // convert chars[] to i8*
+                            auto leftCharsPtr = m_Builder->CreateInBoundsGEP(leftArrayType, left, { m_Builder->getInt64(0), m_Builder->getInt64(0) });
+                            auto rightCharsPtr = m_Builder->CreateInBoundsGEP(rightArrayType, right, { m_Builder->getInt64(0), m_Builder->getInt64(0) });
+
+                            auto fnType = llvm::FunctionType::get(m_Int32Type, { m_Int8PtrType, m_Int8PtrType }, false);
+                            auto fn = AddBuiltinFnOrCallParamAttributes(llvm::Function::Create(fnType, llvm::Function::ExternalLinkage,"strcmp", m_Module.get()));
+
+                            auto result = m_Builder->CreateCall(fn, {leftCharsPtr,rightCharsPtr});
+
+                            auto resultCast = m_Builder->CreateSIToFP(result, m_DoubleType);
+
+                            Push(m_Builder->CreateFCmpUEQ(resultCast, llvm::ConstantFP::get(m_DoubleType,0.0)));
+                        }
+                    }
+                }
+            }
+            else
+                ASSERT("Invalid binary op:%s == %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
             break;
         }
         case OP_ARRAY:
@@ -296,53 +338,77 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
         {
             auto left = Pop();
             auto right = Pop();
-            auto result = m_Builder->CreateLogicalAnd(left, right);
-            Push(result);
+            if (left->getType() == m_BoolType && right->getType() == m_BoolType)
+                Push(m_Builder->CreateLogicalAnd(left, right));
+            else
+                ASSERT("Invalid binary op:%s and %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
             break;
         }
         case OP_OR:
         {
             auto left = Pop();
             auto right = Pop();
-            auto result = m_Builder->CreateLogicalAnd(left, right);
-            Push(result);
+            if (left->getType() == m_BoolType && right->getType() == m_BoolType)
+                Push(m_Builder->CreateLogicalAnd(left, right));
+            else
+                ASSERT("Invalid binary op:%s or %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
             break;
         }
         case OP_BIT_AND:
         {
             auto left = Pop();
             auto right = Pop();
-            auto lCast = m_Builder->CreateFPToSI(left, m_Int64Type);
-            auto rCast = m_Builder->CreateFPToSI(right, m_Int64Type);
-            auto result = m_Builder->CreateAnd(lCast, rCast);
-            Push(result);
+            if (left->getType() == m_BoolType && right->getType() == m_BoolType)
+            {
+                auto lCast = m_Builder->CreateFPToSI(left, m_Int64Type);
+                auto rCast = m_Builder->CreateFPToSI(right, m_Int64Type);
+                auto result = m_Builder->CreateAnd(lCast, rCast);
+                Push(result);
+            }
+            else
+                ASSERT("Invalid binary op:%s & %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
             break;
         }
         case OP_BIT_OR:
         {
             auto left = Pop();
             auto right = Pop();
-            auto lCast = m_Builder->CreateFPToSI(left, m_Int64Type);
-            auto rCast = m_Builder->CreateFPToSI(right, m_Int64Type);
-            auto result = m_Builder->CreateOr(lCast, rCast);
-            Push(result);
+            if (left->getType() == m_BoolType && right->getType() == m_BoolType)
+            {
+                auto lCast = m_Builder->CreateFPToSI(left, m_Int64Type);
+                auto rCast = m_Builder->CreateFPToSI(right, m_Int64Type);
+                auto result = m_Builder->CreateOr(lCast, rCast);
+                Push(result);
+            }
+            else
+                ASSERT("Invalid binary op:%s | %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
             break;
         }
         case OP_BIT_NOT:
         {
             auto value = Pop();
-            value = m_Builder->CreateFPToSI(value, m_Int64Type);
-            Push(m_Builder->CreateXor(value, -1));
+            if (value->getType() == m_BoolType)
+            {
+                value = m_Builder->CreateFPToSI(value, m_Int64Type);
+                Push(m_Builder->CreateXor(value, -1));
+            }
+            else
+                ASSERT("Invalid binary op:~ %s.", GetTypeName(value->getType()).c_str());
             break;
         }
         case OP_BIT_XOR:
         {
             auto left = Pop();
             auto right = Pop();
-            auto lCast = m_Builder->CreateFPToSI(left, m_Int64Type);
-            auto rCast = m_Builder->CreateFPToSI(right, m_Int64Type);
-            auto result = m_Builder->CreateXor(lCast, rCast);
-            Push(result);
+            if (left->getType() == m_DoubleType && right->getType() == m_BoolType)
+            {
+                auto lCast = m_Builder->CreateFPToSI(left, m_Int64Type);
+                auto rCast = m_Builder->CreateFPToSI(right, m_Int64Type);
+                auto result = m_Builder->CreateXor(lCast, rCast);
+                Push(result);
+            }
+            else
+                ASSERT("Invalid binary op:%s ^ %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
             break;
         }
         case OP_INDEX:
@@ -393,8 +459,14 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
             std::vector<llvm::Value *> argsV;
             for (auto slot = m_StackTop - argCount; slot != m_StackTop; ++slot)
             {
-                llvm::Value *arg = CreateCDValue(*slot);
-                argsV.emplace_back(arg);
+                if ((*slot)->getType() != m_ValueType)
+                {
+                    llvm::Value *arg = CreateCDValue(*slot);
+                    argsV.emplace_back(arg);
+                }
+                else
+                    argsV.emplace_back(*slot);
+
             }
 
             auto valueArrayType = llvm::ArrayType::get(m_ValueType, argsV.size());
@@ -553,7 +625,7 @@ llvm::Value *LLVMJitVM::CreateCDValue(llvm::Value *v)
     else if (v->getType() == m_BoolPtrType)
     {
         vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::NIL));
-        storedV = llvm::ConstantFP::get(*m_Context, llvm::APFloat(0.0));
+        storedV = llvm::ConstantFP::get(m_DoubleType, 0.0);
     }
     else if (v->getType() == m_ObjectPtrType)
     {
@@ -635,4 +707,12 @@ LLVMJitVM::CallFrame *LLVMJitVM::PopCallFrame()
 LLVMJitVM::CallFrame *LLVMJitVM::PeekCallFrame(int32_t distance)
 {
     return m_CallFrameTop - distance;
+}
+
+std::string LLVMJitVM::GetTypeName(llvm::Type* type)
+{
+    std::string str = "";
+    llvm::raw_string_ostream typeStream(str);
+    type->print(typeStream);
+    return str;
 }
