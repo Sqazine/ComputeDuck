@@ -31,6 +31,7 @@
 #include <llvm/ExecutionEngine/SectionMemoryManager.h>
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/LLVMContext.h>
+#include <llvm-c/Core.h>
 
 #include "Chunk.h"
 #include "Value.h"
@@ -107,6 +108,8 @@ private:
     void PushCallFrame(const CallFrame &callFrame);
     CallFrame *PopCallFrame();
     CallFrame *PeekCallFrame(int32_t distance);
+
+    std::string GetTypeName(llvm::Type* type);
 
     template <typename T>
     requires(std::is_same_v<T, llvm::CallInst> || std::is_same_v<T, llvm::Function>)
