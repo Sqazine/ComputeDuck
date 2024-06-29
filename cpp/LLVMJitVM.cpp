@@ -299,6 +299,8 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
             {
                 if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                     Push(m_Builder->CreateFCmpUEQ(left, right));
+                else if (left->getType() == m_BoolType && right->getType() == m_BoolType)
+                    Push(m_Builder->CreateICmpEQ(left,right));
                 else if (left->getType()->isPointerTy() && right->getType()->isPointerTy())
                 {
                     auto leftPtrType = static_cast<llvm::PointerType*>(left->getType());
@@ -319,9 +321,7 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
 
                             auto result = m_Builder->CreateCall(fn, {leftCharsPtr,rightCharsPtr});
 
-                            auto resultCast = m_Builder->CreateSIToFP(result, m_DoubleType);
-
-                            Push(m_Builder->CreateFCmpUEQ(resultCast, llvm::ConstantFP::get(m_DoubleType,0.0)));
+                            Push(m_Builder->CreateICmpEQ(result, llvm::ConstantInt::get(m_Int32Type,0)));
                         }
                     }
                 }
