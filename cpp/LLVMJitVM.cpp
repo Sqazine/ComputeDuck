@@ -332,6 +332,43 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
         }
         case OP_ARRAY:
         {
+            auto numElements = *frame->ip++;
+
+            auto elements = std::vector<llvm::Value*>(numElements);
+
+            int32_t i = numElements - 1;
+            for (llvm::Value** p = m_StackTop - 1; p >= m_StackTop - numElements && i >= 0; --p, --i)
+            {
+                if ((*p)->getType() != m_ValuePtrType)
+                {
+                    llvm::Value* arg = CreateCDValue(*p);
+                    elements[i] = arg;
+                }
+                else
+                    elements[i] = *p;
+            }
+
+            auto arrayType = llvm::ArrayType::get(m_ValueType, numElements);
+            llvm::Value* alloc = m_Builder->CreateAlloca(arrayType);
+
+            llvm::Value* memberAddr = m_Builder->CreateInBoundsGEP(arrayType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
+
+            for (auto i = 0; i < elements.size(); ++i)
+            {
+                if (i == 0)
+                    m_Builder->CreateMemCpy(memberAddr, llvm::MaybeAlign(8), elements[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+                else
+                {
+                    llvm::Value* argIMemberAddr = m_Builder->CreateInBoundsGEP(arrayType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(i) });
+                    m_Builder->CreateMemCpy(argIMemberAddr, llvm::MaybeAlign(8), elements[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+                }
+            }
+
+            alloc = CreateCDValue(alloc);
+
+            m_StackTop -= numElements;
+
+            Push(alloc);
             break;
         }
         case OP_AND:
@@ -459,7 +496,7 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
             std::vector<llvm::Value *> argsV;
             for (auto slot = m_StackTop - argCount; slot != m_StackTop; ++slot)
             {
-                if ((*slot)->getType() != m_ValueType)
+                if ((*slot)->getType() != m_ValuePtrType)
                 {
                     llvm::Value *arg = CreateCDValue(*slot);
                     argsV.emplace_back(arg);
@@ -585,6 +622,11 @@ void LLVMJitVM::InitModuleAndPassManager()
 
         m_Int8PtrPtrType = llvm::PointerType::get(m_Int8PtrType, 0);
 
+        mUnionType = llvm::StructType::create(*m_Context, {m_DoubleType}, "union.anon");
+
+        m_ValueType = llvm::StructType::create(*m_Context, {m_Int8Type, mUnionType}, "struct.Value");
+        m_ValuePtrType = llvm::PointerType::get(m_ValueType, 0);
+
         m_ObjectType = llvm::StructType::create(*m_Context, "struct.Object");
         m_ObjectPtrType = llvm::PointerType::get(m_ObjectType, 0);
         m_ObjectType->setBody({m_Int8Type, m_BoolType, m_ObjectPtrType});
@@ -592,11 +634,9 @@ void LLVMJitVM::InitModuleAndPassManager()
 
         m_StrObjectType = llvm::StructType::create(*m_Context, {m_ObjectType, m_Int8PtrType, m_Int32Type}, "struct.StrObject");
         m_StrObjectPtrType = llvm::PointerType::get(m_StrObjectType, 0);
-
-        mUnionType = llvm::StructType::create(*m_Context, {m_DoubleType}, "union.anon");
-
-        m_ValueType = llvm::StructType::create(*m_Context, {m_Int8Type, mUnionType}, "struct.Value");
-        m_ValuePtrType = llvm::PointerType::get(m_ValueType, 0);
+       
+        m_ArrayObjectType = llvm::StructType::create(*m_Context,{m_ObjectType,m_ValuePtrType,m_Int32Type},"struct.ArrayObject");
+        m_ArrayObjectPtrType = llvm::PointerType::get(m_ArrayObjectType, 0);
 
         m_BuiltinFunctionType = llvm::FunctionType::get(m_BoolType, {m_ValuePtrType, m_Int8Type, m_ValuePtrType}, false);
     }
@@ -666,6 +706,39 @@ llvm::Value *LLVMJitVM::CreateCDValue(llvm::Value *v)
 
                     auto len = m_Builder->CreateInBoundsGEP(m_StrObjectType, strObject, {m_Builder->getInt32(0), m_Builder->getInt32(2)});
                     m_Builder->CreateStore(m_Builder->getInt32(vArrayType->getArrayNumElements() - 1), len); //-1 for ignoring the end char '\0'
+                }
+
+                storedV = base;
+            }
+            else if (vArrayType->getElementType() == m_ValueType)
+            {
+                auto numCount = vArrayType->getArrayNumElements();
+
+                vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::OBJECT));
+                type = m_ObjectPtrPtrType;
+
+                // convert Value[] to Value*
+                auto valuesPtr = m_Builder->CreateInBoundsGEP(vArrayType, v, { m_Builder->getInt64(0), m_Builder->getInt64(0) });
+
+                //create array object
+                auto arrayObject = m_Builder->CreateAlloca(m_ArrayObjectType, nullptr);
+                auto base = m_Builder->CreateBitCast(arrayObject, m_ObjectPtrType);
+
+                {
+                    auto objctTypeVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
+                    m_Builder->CreateStore(m_Builder->getInt8(std::underlying_type<ObjectType>::type(ObjectType::ARRAY)), objctTypeVar);
+
+                    auto markedVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
+                    m_Builder->CreateStore(m_Builder->getInt1(0), markedVar);
+
+                    auto nextVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, { m_Builder->getInt32(0), m_Builder->getInt32(2) });
+                    m_Builder->CreateStore(llvm::ConstantPointerNull::get(m_ObjectPtrType), nextVar);
+
+                    auto valuePtr = m_Builder->CreateInBoundsGEP(m_ArrayObjectType, arrayObject, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
+                    m_Builder->CreateStore(valuesPtr, valuePtr);
+
+                    auto len = m_Builder->CreateInBoundsGEP(m_ArrayObjectType, arrayObject, { m_Builder->getInt32(0), m_Builder->getInt32(2) });
+                    m_Builder->CreateStore(m_Builder->getInt32(numCount), len); 
                 }
 
                 storedV = base;
