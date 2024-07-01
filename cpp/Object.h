@@ -63,10 +63,12 @@ struct StrObject : public Object
 
 struct ArrayObject : public Object
 {
-	ArrayObject(const std::vector<Value> &elements): Object(ObjectType::ARRAY), elements(elements){}
-	~ArrayObject(){}
+	ArrayObject(Value* eles,uint32_t len): Object(ObjectType::ARRAY), elements(eles), len(len),capacity(len) {}
+    ~ArrayObject(){}
 
-	std::vector<Value> elements;
+	Value* elements;
+    uint32_t len;
+    uint32_t capacity;
 };
 
 struct RefObject : public Object
@@ -173,11 +175,12 @@ inline std::string Stringify(Object* object
 	}
 	case ObjectType::ARRAY:
     {
+        auto arrObj = TO_ARRAY_OBJ(object);
         std::string result = "[";
-        if (!TO_ARRAY_OBJ(object)->elements.empty())
+        if (arrObj->len!=0)
         {
-            for (const auto& e : TO_ARRAY_OBJ(object)->elements)
-                result += e.Stringify() + ",";
+            for(int32_t i=0;i< arrObj->len;++i)
+                result += arrObj->elements[i].Stringify() + ",";
             result = result.substr(0, result.size() - 1);
         }
         result += "]";
@@ -237,8 +240,8 @@ inline void Mark(Object* object)
     }
     case ObjectType::ARRAY:
     {
-        for (const auto& e : TO_ARRAY_OBJ(object)->elements)
-            e.Mark();
+        for (int32_t i = 0; i < TO_ARRAY_OBJ(object)->capacity; ++i)
+            TO_ARRAY_OBJ(object)->elements[i].Mark();
         break;
     }
     case ObjectType::STRUCT:
@@ -281,8 +284,8 @@ inline void UnMark(Object* object)
     }
     case ObjectType::ARRAY:
     {
-        for (const auto& e : TO_ARRAY_OBJ(object)->elements)
-            e.Mark();
+        for (int32_t i=0;i<TO_ARRAY_OBJ(object)->capacity;++i)
+            TO_ARRAY_OBJ(object)->elements[i].UnMark();
         break;
     }
     case ObjectType::STRUCT:
@@ -325,9 +328,9 @@ inline bool IsEqualTo(Object* left, Object* right)
     }
     case ObjectType::ARRAY:
     {
-        if (TO_ARRAY_OBJ(left)->elements.size() != TO_ARRAY_OBJ(right)->elements.size())
+        if (TO_ARRAY_OBJ(left)->len != TO_ARRAY_OBJ(right)->len)
             return false;
-        for (size_t i = 0; i < TO_ARRAY_OBJ(left)->elements.size(); ++i)
+        for (size_t i = 0; i < TO_ARRAY_OBJ(left)->len; ++i)
             if (TO_ARRAY_OBJ(left)->elements[i] != TO_ARRAY_OBJ(right)->elements[i])
                 return false;
         return true;
@@ -407,5 +410,20 @@ COMPUTE_DUCK_API inline void StrErase(StrObject* left, uint32_t idx)
             left->value[j++] = left->value[i];
 
     left->value[j] = '\0';
+    left->len--;
+}
+
+COMPUTE_DUCK_API inline void ArrayInsert(ArrayObject* left, uint32_t idx, const Value& element)
+{
+    //TODO:not implement yet
+}
+
+COMPUTE_DUCK_API inline void ArrayErase(ArrayObject* left, uint32_t idx)
+{
+    int32_t i = 0, j = 0;
+    for (;i<left->len;++i)
+        if (i != idx)
+            left->elements[j++] = left->elements[i];
+
     left->len--;
 }

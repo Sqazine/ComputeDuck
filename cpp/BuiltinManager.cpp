@@ -41,7 +41,7 @@ namespace
 			ASSERT("[Native function 'sizeof']:Expect a argument.");
 
 		if (IS_ARRAY_VALUE(args[0]))
-			result = Value(TO_ARRAY_VALUE(args[0])->elements.size());
+			result = Value(TO_ARRAY_VALUE(args[0])->len);
 		else if (IS_STR_VALUE(args[0]))
 			result = Value(TO_STR_VALUE(args[0])->len);
 		else
@@ -54,20 +54,20 @@ namespace
 		if (argCount == 0 || argCount != 3)
 			ASSERT("[Native function 'insert']:Expect 3 arguments,the arg0 must be array or string object.The arg1 is the index object.The arg2 is the value object.");
 
-		if (IS_ARRAY_VALUE(args[0]))
-		{
-			ArrayObject *array = TO_ARRAY_VALUE(args[0]);
-			if (!IS_NUM_VALUE(args[1]))
-				ASSERT("[Native function 'insert']:Arg1 must be integer type while insert to a array");
+        if (IS_ARRAY_VALUE(args[0]))
+        {
+            ArrayObject* array = TO_ARRAY_VALUE(args[0]);
+            if (!IS_NUM_VALUE(args[1]))
+                ASSERT("[Native function 'insert']:Arg1 must be integer type while insert to a array");
 
-			size_t iIndex = (size_t)TO_NUM_VALUE(args[1]);
+            size_t iIndex = (size_t)TO_NUM_VALUE(args[1]);
 
-			if (iIndex < 0 || iIndex >= array->elements.size())
-				ASSERT("[Native function 'insert']:Index out of array's range");
+            if (iIndex < 0 || iIndex >= array->len)
+                ASSERT("[Native function 'insert']:Index out of array's range");
 
-			array->elements.insert(array->elements.begin() + iIndex, 1, args[2]);
-		}
-		else if (IS_STR_VALUE(args[0]))
+			ArrayInsert(array, iIndex, args[2]);
+        }
+        else if (IS_STR_VALUE(args[0]))
 		{
 			if (!IS_NUM_VALUE(args[1]))
 				ASSERT("[Native function 'insert']:Arg1 must be integer type while insert to a string");
@@ -90,20 +90,20 @@ namespace
 		if (argCount == 0 || argCount != 2)
 			ASSERT("[Native function 'erase']:Expect 2 arguments,the arg0 must be array or string object.The arg1 is the corresponding index object.");
 
-		if (IS_ARRAY_VALUE(args[0]))
-		{
-			ArrayObject *array = TO_ARRAY_VALUE(args[0]);
-			if (!IS_NUM_VALUE(args[1]))
-				ASSERT("[Native function 'erase']:Arg1 must be integer type while deleting array element");
+        if (IS_ARRAY_VALUE(args[0]))
+        {
+            ArrayObject* array = TO_ARRAY_VALUE(args[0]);
+            if (!IS_NUM_VALUE(args[1]))
+                ASSERT("[Native function 'erase']:Arg1 must be integer type while deleting array element");
 
-			size_t iIndex = (size_t)TO_NUM_VALUE(args[1]);
+            size_t iIndex = (size_t)TO_NUM_VALUE(args[1]);
 
-			if (iIndex < 0 || iIndex >= array->elements.size())
-				ASSERT("[Native function 'erase']:Index out of array's range");
+            if (iIndex < 0 || iIndex >= array->len)
+                ASSERT("[Native function 'erase']:Index out of array's range");
 
-			array->elements.erase(array->elements.begin() + iIndex);
-		}
-		else if (IS_STR_VALUE(args[0]))
+			ArrayErase(array, iIndex);
+        }
+        else if (IS_STR_VALUE(args[0]))
 		{
 			if (!IS_NUM_VALUE(args[1]))
 				ASSERT("[Native function 'erase']:Arg1 must be integer type while deleting string element");

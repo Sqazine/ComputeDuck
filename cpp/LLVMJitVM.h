@@ -132,10 +132,12 @@ private:
 
     llvm::StructType *m_ObjectType{nullptr};
     llvm::StructType *m_StrObjectType{nullptr};
+    llvm::StructType *m_ArrayObjectType{nullptr};
 
     llvm::PointerType *m_ObjectPtrType{nullptr};
     llvm::PointerType *m_ObjectPtrPtrType{nullptr};
     llvm::PointerType *m_StrObjectPtrType{nullptr};
+    llvm::PointerType *m_ArrayObjectPtrType{nullptr};
 
     llvm::FunctionType *m_BuiltinFunctionType{nullptr};
 

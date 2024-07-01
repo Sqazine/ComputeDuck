@@ -203,13 +203,13 @@ void OpCodeVM::Execute()
 		case OP_ARRAY:
 		{
 			auto numElements = *frame->ip++;
-			auto elements = std::vector<Value>(numElements);
+			Value* elements = new Value[numElements];
 
 			int32_t i = numElements - 1;
 			for (Value *p = m_StackTop - 1; p >= m_StackTop - numElements && i >= 0; --p, --i)
 				elements[i] = *p;
 
-			auto array = CreateObject<ArrayObject>(elements);
+			auto array = CreateObject<ArrayObject>(elements,numElements);
 
 			m_StackTop -= numElements;
 
@@ -225,7 +225,7 @@ void OpCodeVM::Execute()
 			{
 				auto array = TO_ARRAY_VALUE(ds);
 				auto i = (size_t)TO_NUM_VALUE(index);
-				if (i < 0 || i >= array->elements.size())
+				if (i < 0 || i >= array->len)
 					Push(Value());
 				else
 					Push(array->elements[i]);
@@ -443,7 +443,7 @@ void OpCodeVM::Execute()
 				if (!IS_NUM_VALUE(idxValue))
 					ASSERT("Invalid idx for array,only integer is available.");
 				auto intIdx = TO_NUM_VALUE(idxValue);
-				if (intIdx < 0 || intIdx >= TO_ARRAY_VALUE(*ptr)->elements.size())
+				if (intIdx < 0 || intIdx >= TO_ARRAY_VALUE(*ptr)->len)
 					ASSERT("Idx out of range.");
 				Push(CreateObject<RefObject>(&(TO_ARRAY_VALUE(*ptr)->elements[(uint64_t)intIdx])));
 			}
@@ -472,7 +472,7 @@ void OpCodeVM::Execute()
 				if (!IS_NUM_VALUE(idxValue))
 					ASSERT("Invalid idx for array,only integer is available.");
 				auto intIdx = TO_NUM_VALUE(idxValue);
-				if (intIdx < 0 || intIdx >= TO_ARRAY_VALUE(*slot)->elements.size())
+				if (intIdx < 0 || intIdx >= TO_ARRAY_VALUE(*slot)->len)
 					ASSERT("Idx out of range.");
 				Push(CreateObject<RefObject>(&(TO_ARRAY_VALUE(*slot)->elements[(uint64_t)intIdx])));
 			}
