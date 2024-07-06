@@ -364,7 +364,7 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
                 }
             }
 
-            alloc = CreateCDValue(alloc);
+            //alloc = CreateCDValue(alloc);
 
             m_StackTop -= numElements;
 
@@ -450,6 +450,32 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
         }
         case OP_INDEX:
         {
+            auto index = Pop();
+            auto ds = Pop();
+
+            bool isSatis = false;
+
+            if (ds->getType()->isPointerTy())
+            {
+                auto vArrayType = static_cast<llvm::PointerType*>(ds->getType())->getElementType();
+                if (vArrayType->isArrayTy())
+                {
+                    if (index->getType() == m_DoubleType)
+                    {
+                        isSatis = true;
+
+                        auto iIndex = m_Builder->CreateFPToSI(index,m_Int64Type);
+
+                        llvm::Value* memberAddr = m_Builder->CreateInBoundsGEP(vArrayType, ds, { m_Builder->getInt32(0), iIndex });
+
+                        Push(memberAddr);
+                    }
+                }
+            }
+
+            if(!isSatis)
+                ASSERT("Invalid index op: %s[%s]", GetTypeName(ds->getType()), GetTypeName(index->getType()));
+
             break;
         }
         case OP_JUMP:
