@@ -192,7 +192,7 @@ namespace ComputeDuck
                     CompileArrayExpr((ArrayExpr)expr);
                     break;
                 case AstType.INDEX:
-                    CompileIndexExpr((IndexExpr)expr);
+                    CompileIndexExpr((IndexExpr)expr,state);
                     break;
                 case AstType.PREFIX:
                     CompilePrefixExpr((PrefixExpr)expr);
@@ -321,11 +321,14 @@ namespace ComputeDuck
             Emit((int)OpCode.OP_ARRAY);
             Emit(expr.elements.Count);
         }
-        void CompileIndexExpr(IndexExpr expr)
+        void CompileIndexExpr(IndexExpr expr,RWState state)
         {
             CompileExpr(expr.ds);
             CompileExpr(expr.index);
-            Emit((int)OpCode.OP_INDEX);
+            if(state==RWState.WRITE)
+                Emit((int)OpCode.OP_SET_INDEX);
+            else
+                Emit((int)OpCode.OP_GET_INDEX);
         }
         void CompileIdentifierExpr(IdentifierExpr expr, RWState state)
         {

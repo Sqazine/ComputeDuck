@@ -24,19 +24,20 @@ class OpCode(IntEnum):
     OP_SET_LOCAL=20,
     OP_GET_LOCAL=21,
     OP_ARRAY=22,
-    OP_INDEX=23,
-    OP_FUNCTION_CALL=24,
-    OP_RETURN=25,
-    OP_GET_BUILTIN=26,
-    OP_STRUCT=27,
-    OP_GET_STRUCT=28,
-    OP_SET_STRUCT=29,
-    OP_REF_GLOBAL=30,
-    OP_REF_LOCAL=31,
-    OP_REF_INDEX_GLOBAL=32,
-    OP_REF_INDEX_LOCAL=33,
-    OP_SP_OFFSET=34,
-    OP_DLL_IMPORT=35
+    OP_GET_INDEX=23,
+    OP_SET_INDEX=24,
+    OP_FUNCTION_CALL=25,
+    OP_RETURN=26,
+    OP_GET_BUILTIN=27,
+    OP_STRUCT=28,
+    OP_GET_STRUCT=29,
+    OP_SET_STRUCT=30,
+    OP_REF_GLOBAL=31,
+    OP_REF_LOCAL=32,
+    OP_REF_INDEX_GLOBAL=33,
+    OP_REF_INDEX_LOCAL=34,
+    OP_SP_OFFSET=35,
+    OP_DLL_IMPORT=36
 
 class Chunk:
     opCodes:list[int]
@@ -103,8 +104,10 @@ class Chunk:
                 count=opcodes[i+1]
                 result+=("%8d\tOP_ARRAY\t%d\n" % (i,count))
                 i=i+1
-            elif opcodes[i]==OpCode.OP_INDEX:
-                result+=("%8d\tOP_INDEX\n" % (i))
+            elif opcodes[i]==OpCode.OP_GET_INDEX:
+                result+=("%8d\tOP_GET_INDEX\n" % (i))
+            elif opcodes[i]==OpCode.OP_SET_INDEX:
+                result+=("%8d\tOP_SET_INDEX\n" % (i))
             elif opcodes[i]==OpCode.OP_JUMP:
                 address=opcodes[i+1]
                 result+=("%8d\tOP_JUMP\t%d\n" % (i,address))

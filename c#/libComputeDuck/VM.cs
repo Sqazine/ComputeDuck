@@ -277,7 +277,7 @@ namespace ComputeDuck
                             Push(array);
                             break;
                         }
-                    case (int)OpCode.OP_INDEX:
+                    case (int)OpCode.OP_GET_INDEX:
                         {
                             var index = Pop();
                             var ds = Pop();
@@ -289,6 +289,24 @@ namespace ComputeDuck
                                     Push(new NilObject());
                                 else
                                     Push(((ArrayObject)ds).elements[i]);
+                            }
+                            else
+                                Utils.Assert("Invalid index op:" + ds.ToString() + "[" + index.ToString() + "]");
+                            break;
+                        }
+                    case (int)OpCode.OP_SET_INDEX:
+                        {
+                            var index = Pop();
+                            var ds = Pop();
+                            var v = Pop();
+
+                            if (ds.type == ObjectType.ARRAY && index.type == ObjectType.NUM)
+                            {
+                                int i = (int)((NumObject)index).value;
+                                if (i < 0 || i >= ((ArrayObject)ds).elements.Count)
+                                    Utils.Assert("Invalid Index:" + i.ToString() + " outside of array's size:" + ((ArrayObject)ds).elements.Count.ToString());
+                                else
+                                    ((ArrayObject)ds).elements[i] = v;
                             }
                             else
                                 Utils.Assert("Invalid index op:" + ds.ToString() + "[" + index.ToString() + "]");

@@ -448,7 +448,7 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
                 ASSERT("Invalid binary op:%s ^ %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
             break;
         }
-        case OP_INDEX:
+        case OP_GET_INDEX:
         {
             auto index = Pop();
             auto ds = Pop();

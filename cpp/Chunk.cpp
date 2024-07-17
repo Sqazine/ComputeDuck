@@ -98,8 +98,11 @@ std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_BIT_XOR" << std::endl;
             break;
         }
-        case OP_INDEX:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_INDEX" << std::endl;
+        case OP_GET_INDEX:
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_GET_INDEX" << std::endl;
+            break;
+        case OP_SET_INDEX:
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_SET_INDEX" << std::endl;
             break;
         case OP_JUMP:
         {

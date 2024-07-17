@@ -35,11 +35,11 @@ private:
     void CompileNilExpr(NilExpr *expr);
     void CompileGroupExpr(GroupExpr *expr);
     void CompileArrayExpr(ArrayExpr *expr);
-    void CompileIndexExpr(IndexExpr *expr);
+    void CompileIndexExpr(IndexExpr *expr, const RWState& state);
     void CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state);
     void CompileFunctionExpr(FunctionExpr *expr);
     void CompileFunctionCallExpr(FunctionCallExpr *expr);
-    void CompileStructCallExpr(StructCallExpr *expr, const RWState &state = RWState::READ);
+    void CompileStructCallExpr(StructCallExpr *expr, const RWState &state);
     void CompileRefExpr(RefExpr *expr);
     void CompileStructExpr(StructExpr *expr);
     void CompileDllImportExpr(DllImportExpr *expr);

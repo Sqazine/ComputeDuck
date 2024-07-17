@@ -145,7 +145,7 @@ class Compiler:
         elif expr.type == AstType.ARRAY:
             self.__compile_array_expr(expr)
         elif expr.type == AstType.INDEX:
-            self.__compile_index_expr(expr)
+            self.__compile_index_expr(expr,state)
         elif expr.type == AstType.PREFIX:
             self.__compile_prefix_expr(expr)
         elif expr.type == AstType.INFIX:
@@ -245,10 +245,13 @@ class Compiler:
         self.__emit(OpCode.OP_ARRAY)
         self.__emit(len(expr.elements))
 
-    def __compile_index_expr(self, expr: IndexExpr) -> None:
+    def __compile_index_expr(self, expr: IndexExpr,state:RWState) -> None:
         self.__compile_expr(expr.ds)
         self.__compile_expr(expr.index)
-        self.__emit(OpCode.OP_INDEX)
+        if state==RWState.WRITE:
+            self.__emit(OpCode.OP_SET_INDEX)
+        else:
+            self.__emit(OpCode.OP_GET_INDEX)
 
     def __compile_identifier_expr(self, expr: IdentifierExpr, state: RWState) -> None:
         isFound, symbol = self.__symbolTable.Resolve(expr.literal)
