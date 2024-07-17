@@ -29,7 +29,8 @@ namespace ComputeDuck
         OP_SET_LOCAL,
         OP_GET_LOCAL,
         OP_ARRAY,
-        OP_INDEX,
+        OP_GET_INDEX,
+        OP_SET_INDEX,
         OP_FUNCTION_CALL,
         OP_RETURN,
         OP_GET_BUILTIN,
@@ -51,7 +52,7 @@ namespace ComputeDuck
 
         public Chunk()
         {
-            this.opCodes = new OpCodes(); 
+            this.opCodes = new OpCodes();
             this.constants = new List<Object>();
         }
         public Chunk(OpCodes opCodes, List<Object> constants)
@@ -72,7 +73,7 @@ namespace ComputeDuck
 
         private string OpCodeStringify(OpCodes opCodes)
         {
-            string result="";
+            string result = "";
             for (int i = 0; i < opCodes.Count; ++i)
             {
                 switch (opCodes[i])
@@ -80,129 +81,134 @@ namespace ComputeDuck
                     case (int)OpCode.OP_CONSTANT:
                         {
                             var pos = opCodes[i + 1];
-                            result+=string.Format("{0}\tOP_CONSTANT\t{1}\t'{2}'\n", i.ToString().PadLeft(8), pos, constants[pos].ToString());
+                            result += string.Format("{0}\tOP_CONSTANT\t{1}\t'{2}'\n", i.ToString().PadLeft(8), pos, constants[pos].ToString());
                             ++i;
                             break;
                         }
                     case (int)OpCode.OP_ADD:
                         {
-                            result+=string.Format("{0}\tOP_ADD\n", i.ToString().PadLeft(8));
+                            result += string.Format("{0}\tOP_ADD\n", i.ToString().PadLeft(8));
                             break;
                         }
                     case (int)OpCode.OP_SUB:
                         {
-                            result+=string.Format("{0}\tOP_SUB\n", i.ToString().PadLeft(8));
+                            result += string.Format("{0}\tOP_SUB\n", i.ToString().PadLeft(8));
                             break;
                         }
                     case (int)OpCode.OP_MUL:
                         {
-                            result+=string.Format("{0}\tOP_MUL\n", i.ToString().PadLeft(8));
+                            result += string.Format("{0}\tOP_MUL\n", i.ToString().PadLeft(8));
                             break;
                         }
                     case (int)OpCode.OP_DIV:
                         {
-                            result+=string.Format("{0}\tOP_DIV\n", i.ToString().PadLeft(8));
+                            result += string.Format("{0}\tOP_DIV\n", i.ToString().PadLeft(8));
                             break;
                         }
                     case (int)OpCode.OP_LESS:
                         {
-                            result+=string.Format("{0}\tOP_LESS\n", i.ToString().PadLeft(8));
+                            result += string.Format("{0}\tOP_LESS\n", i.ToString().PadLeft(8));
                             break;
                         }
                     case (int)OpCode.OP_GREATER:
                         {
-                            result+=string.Format("{0}\tOP_GREATER\n", i.ToString().PadLeft(8));
+                            result += string.Format("{0}\tOP_GREATER\n", i.ToString().PadLeft(8));
                             break;
                         }
                     case (int)OpCode.OP_NOT:
                         {
-                            result+=string.Format("{0}\tOP_NOT\n", i.ToString().PadLeft(8));
+                            result += string.Format("{0}\tOP_NOT\n", i.ToString().PadLeft(8));
                             break;
                         }
                     case (int)OpCode.OP_MINUS:
                         {
-                            result+=string.Format("{0}\tOP_MINUS\n", i.ToString().PadLeft(8));
+                            result += string.Format("{0}\tOP_MINUS\n", i.ToString().PadLeft(8));
                             break;
                         }
                     case (int)OpCode.OP_EQUAL:
                         {
-                            result+=string.Format("{0}\tOP_EQUAL\n", i.ToString().PadLeft(8));
+                            result += string.Format("{0}\tOP_EQUAL\n", i.ToString().PadLeft(8));
                             break;
                         }
                     case (int)OpCode.OP_AND:
                         {
-                            result+=string.Format("{0}\tOP_AND\n", i.ToString().PadLeft(8));
+                            result += string.Format("{0}\tOP_AND\n", i.ToString().PadLeft(8));
                             break;
                         }
                     case (int)OpCode.OP_OR:
                         {
-                            result+=string.Format("{0}\tOP_OR\n", i.ToString().PadLeft(8));
+                            result += string.Format("{0}\tOP_OR\n", i.ToString().PadLeft(8));
                             break;
                         }
                     case (int)OpCode.OP_BIT_AND:
                         {
-                            result+=string.Format("{0}\tOP_BIT_AND\n", i.ToString().PadLeft(8));
+                            result += string.Format("{0}\tOP_BIT_AND\n", i.ToString().PadLeft(8));
                             break;
                         }
                     case (int)OpCode.OP_BIT_OR:
                         {
-                            result+=string.Format("{0}\tOP_BIT_OR\n", i.ToString().PadLeft(8));
+                            result += string.Format("{0}\tOP_BIT_OR\n", i.ToString().PadLeft(8));
                             break;
                         }
                     case (int)OpCode.OP_BIT_XOR:
                         {
-                            result+=string.Format("{0}\tOP_BIT_XOR\n", i.ToString().PadLeft(8));
+                            result += string.Format("{0}\tOP_BIT_XOR\n", i.ToString().PadLeft(8));
                             break;
                         }
                     case (int)OpCode.OP_BIT_NOT:
                         {
-                            result+=string.Format("{0}\tOP_BIT_NOT\n", i.ToString().PadLeft(8));
+                            result += string.Format("{0}\tOP_BIT_NOT\n", i.ToString().PadLeft(8));
                             break;
                         }
                     case (int)OpCode.OP_ARRAY:
                         {
                             var count = opCodes[i + 1];
-                            result+=string.Format("{0}\tOP_ARRAY\t{1}\n", i.ToString().PadLeft(8), count);
+                            result += string.Format("{0}\tOP_ARRAY\t{1}\n", i.ToString().PadLeft(8), count);
                             ++i;
                             break;
                         }
-                    case (int)OpCode.OP_INDEX:
+                    case (int)OpCode.OP_GET_INDEX:
                         {
-                            result+=string.Format("{0}\tOP_INDEX\n", i.ToString().PadLeft(8));
+                            result += string.Format("{0}\tOP_GET_INDEX\n", i.ToString().PadLeft(8));
+                            break;
+                        }
+                    case (int)OpCode.OP_SET_INDEX:
+                        {
+                            result += string.Format("{0}\tOP_SET_INDEX\n", i.ToString().PadLeft(8));
                             break;
                         }
                     case (int)OpCode.OP_JUMP:
                         {
                             var address = opCodes[i + 1];
-                            result+=string.Format("{0}\tOP_JUMP\t{1}\n", i.ToString().PadLeft(8), address);
+                            result += string.Format("{0}\tOP_JUMP\t{1}\n", i.ToString().PadLeft(8), address);
                             ++i;
                             break;
                         }
                     case (int)OpCode.OP_JUMP_IF_FALSE:
                         {
                             var address = opCodes[i + 1];
-                            result+=string.Format("{0}\tOP_JUMP_IF_FALSE\t{1}\n", i.ToString().PadLeft(8), address);
+                            result += string.Format("{0}\tOP_JUMP_IF_FALSE\t{1}\n", i.ToString().PadLeft(8), address);
                             ++i;
                             break;
                         }
                     case (int)OpCode.OP_RETURN:
                         {
                             var count = opCodes[i + 1];
-                            result+=string.Format("{0}\tOP_RETURN\t{1}\n", i.ToString().PadLeft(8), count);
+                            result += string.Format("{0}\tOP_RETURN\t{1}\n", i.ToString().PadLeft(8), count);
                             ++i;
                             break;
                         }
                     case (int)OpCode.OP_SET_GLOBAL:
                         {
                             var pos = opCodes[i + 1];
-                            result+=string.Format("{0}\tOP_SET_GLOBAL\t{1}\n", i.ToString().PadLeft(8), pos);
+                            result += string.Format("{0}\tOP_SET_GLOBAL\t{1}\n", i.ToString().PadLeft(8), pos);
                             ++i;
                             break;
                         }
                     case (int)OpCode.OP_GET_GLOBAL:
                         {
                             var pos = opCodes[i + 1];
-                            result+=string.Format("{0}\tOP_GET_GLOBAL\t{1}\n", i.ToString().PadLeft(8), pos);
+                            result += string.Format("{0}\tOP_GET_GLOBAL\t{1}\n", i.ToString().PadLeft(8), pos);
                             ++i;
                             break;
                         }
@@ -211,7 +217,7 @@ namespace ComputeDuck
                             var scopeDepth = opCodes[i + 1];
                             var index = opCodes[i + 2];
                             var isUpValue = opCodes[i + 3];
-                            result+=string.Format("{0}\tOP_SET_LOCAL\t{1}\t{2}\t{3}\n", i.ToString().PadLeft(8), scopeDepth, index, isUpValue);
+                            result += string.Format("{0}\tOP_SET_LOCAL\t{1}\t{2}\t{3}\n", i.ToString().PadLeft(8), scopeDepth, index, isUpValue);
                             i += 3;
                             break;
                         }
@@ -227,36 +233,36 @@ namespace ComputeDuck
                     case (int)OpCode.OP_FUNCTION_CALL:
                         {
                             var argCount = opCodes[i + 1];
-                            result+=string.Format("{0}\tOP_FUNCTION_CALL\t{1}\n", i.ToString().PadLeft(8), argCount);
+                            result += string.Format("{0}\tOP_FUNCTION_CALL\t{1}\n", i.ToString().PadLeft(8), argCount);
                             ++i;
                             break;
                         }
                     case (int)OpCode.OP_GET_BUILTIN:
                         {
-                            result+=string.Format("{0}\tOP_GET_BUILTIN\n", i.ToString().PadLeft(8));
+                            result += string.Format("{0}\tOP_GET_BUILTIN\n", i.ToString().PadLeft(8));
                             break;
                         }
                     case (int)OpCode.OP_STRUCT:
                         {
                             var memberCount = opCodes[i + 1];
-                            result+=string.Format("{0}\tOP_STRUCT\t{1}\n", i.ToString().PadLeft(8), memberCount);
+                            result += string.Format("{0}\tOP_STRUCT\t{1}\n", i.ToString().PadLeft(8), memberCount);
                             ++i;
                             break;
                         }
                     case (int)OpCode.OP_GET_STRUCT:
                         {
-                            result+=string.Format("{0}\tOP_GET_STRUCT\n", i.ToString().PadLeft(8));
+                            result += string.Format("{0}\tOP_GET_STRUCT\n", i.ToString().PadLeft(8));
                             break;
                         }
                     case (int)OpCode.OP_SET_STRUCT:
                         {
-                            result+=string.Format("{0}\tOP_SET_STRUCT\n", i.ToString().PadLeft(8));
+                            result += string.Format("{0}\tOP_SET_STRUCT\n", i.ToString().PadLeft(8));
                             break;
                         }
                     case (int)OpCode.OP_REF_GLOBAL:
                         {
                             var idx = opCodes[i + 1];
-                            result+=string.Format("{0}\tOP_REF_GLOBAL\t{1}\n", i.ToString().PadLeft(8), idx);
+                            result += string.Format("{0}\tOP_REF_GLOBAL\t{1}\n", i.ToString().PadLeft(8), idx);
                             ++i;
                             break;
                         }
@@ -272,7 +278,7 @@ namespace ComputeDuck
                     case (int)OpCode.OP_REF_INDEX_GLOBAL:
                         {
                             var pos = opCodes[i + 1];
-                            result+=string.Format("{0}\tOP_REF_INDEX_GLOBAL\t{1}\n", i.ToString().PadLeft(8), pos);
+                            result += string.Format("{0}\tOP_REF_INDEX_GLOBAL\t{1}\n", i.ToString().PadLeft(8), pos);
                             ++i;
                             break;
                         }
@@ -288,13 +294,13 @@ namespace ComputeDuck
                     case (int)OpCode.OP_SP_OFFSET:
                         {
                             var offset = opCodes[i + 1];
-                            result+=string.Format("{0}\tOP_SP_OFFSET\t{1}\n", i.ToString().PadLeft(8), offset);
+                            result += string.Format("{0}\tOP_SP_OFFSET\t{1}\n", i.ToString().PadLeft(8), offset);
                             ++i;
                             break;
                         }
                     case (int)OpCode.OP_DLL_IMPORT:
                         {
-                            result+=string.Format("{0}\tOP_DLL_IMPORT\n", i.ToString().PadLeft(8));
+                            result += string.Format("{0}\tOP_DLL_IMPORT\n", i.ToString().PadLeft(8));
                             break;
                         }
                     default:

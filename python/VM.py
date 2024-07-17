@@ -233,7 +233,7 @@ class VM:
                 array = ArrayObject(elements)
                 self.__push(array)
 
-            elif instruction == OpCode.OP_INDEX:
+            elif instruction == OpCode.OP_GET_INDEX:
                 index = self.__pop()
                 ds = self.__pop()
                 if ds.type == ObjectType.ARRAY and index.type == ObjectType.NUM:
@@ -245,6 +245,19 @@ class VM:
                 else:
                     error("Invalid index op:" + ds.__str__() +
                           "[" + index.__str__() + "]")
+            
+            elif instruction == OpCode.OP_SET_INDEX:
+                index = self.__pop()
+                ds = self.__pop()
+                v=self.__pop()
+                if ds.type == ObjectType.ARRAY and index.type == ObjectType.NUM:
+                    i = int(index.value)
+                    if i < 0 or i >= len(ds.elements):
+                        error("Invalid index:"+str(i)+" outside of array's:"+str(len(ds.elements)))
+                    else:
+                        ds.elements[i]=v
+                else:
+                    error("Invalid index op:" + ds.__str__() + "[" + index.__str__() + "]")
 
             elif instruction == OpCode.OP_JUMP_IF_FALSE:
                 address = frame.fn.chunk.opCodes[frame.ip]

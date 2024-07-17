@@ -181,7 +181,7 @@ void Compiler::CompileExpr(Expr *expr, const RWState &state)
         CompileArrayExpr((ArrayExpr *)expr);
         break;
     case AstType::INDEX:
-        CompileIndexExpr((IndexExpr *)expr);
+        CompileIndexExpr((IndexExpr *)expr, state);
         break;
     case AstType::PREFIX:
         CompilePrefixExpr((PrefixExpr *)expr);
@@ -318,11 +318,15 @@ void Compiler::CompileArrayExpr(ArrayExpr *expr)
     Emit(static_cast<int16_t>(expr->elements.size()));
 }
 
-void Compiler::CompileIndexExpr(IndexExpr *expr)
+void Compiler::CompileIndexExpr(IndexExpr *expr, const RWState& state)
 {
     CompileExpr(expr->ds);
     CompileExpr(expr->index);
-    Emit(OP_INDEX);
+    if (state == RWState::WRITE)
+        Emit(OP_SET_INDEX);
+    else
+        Emit(OP_GET_INDEX);
+
 }
 
 void Compiler::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state)

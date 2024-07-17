@@ -216,7 +216,7 @@ void OpCodeVM::Execute()
 			Push(array);
 			break;
 		}
-		case OP_INDEX:
+		case OP_GET_INDEX:
 		{
 			auto index = Pop();
 			auto ds = Pop();
@@ -234,6 +234,24 @@ void OpCodeVM::Execute()
 				ASSERT("Invalid index op: %s[%s]", ds.Stringify().c_str(), index.Stringify().c_str());
 			break;
 		}
+        case OP_SET_INDEX:
+        {
+            auto index = Pop();
+            auto ds = Pop();
+			auto v = Pop();
+            if (IS_ARRAY_VALUE(ds) && IS_NUM_VALUE(index))
+            {
+                auto array = TO_ARRAY_VALUE(ds);
+                auto i = (size_t)TO_NUM_VALUE(index);
+				if (i < 0 || i >= array->len)
+					ASSERT("Invalid index:%d outside of array's size:%d", i, array->len)
+				else
+					array->elements[i] = v;
+            }
+            else
+                ASSERT("Invalid index op: %s[%s]", ds.Stringify().c_str(), index.Stringify().c_str());
+            break;
+        }
 		case OP_JUMP_IF_FALSE:
 		{
 			auto address = *frame->ip++;
