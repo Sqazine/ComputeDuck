@@ -275,7 +275,6 @@ inline void Mark(Object* object)
 inline void UnMark(Object* object)
 {
 	object->marked = false;
-    object->marked = true;
     switch (object->type)
     {
     case ObjectType::STR:

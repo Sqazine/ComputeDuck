@@ -39,12 +39,13 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glGenVertexArrays)(Value *args, uint
 
     if (IS_ARRAY_VALUE((*ref)))
     {
-        auto &array = TO_ARRAY_VALUE((*ref))->elements;
+        auto array = TO_ARRAY_VALUE((*ref));
         std::vector<GLuint> vaos(count);
         glad_glGenVertexArrays(count, vaos.data());
-        array.resize(vaos.size());
-        for (int32_t i = 0; i < array.size(); ++i)
-            array[i] = (double)vaos[i];
+        array->elements = new Value[vaos.size()];
+        array->len = vaos.size();
+        for (int32_t i = 0; i < array->len; ++i)
+            array->elements[i] = (double)vaos[i];
         assert(glGetError() == 0);
     }
     else if (IS_NUM_VALUE((*ref)))
@@ -90,7 +91,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glVertexAttribPointer)(Value *args, 
             auto arg5 = TO_REF_VALUE(args[5])->pointer;
             auto arrArg5 = TO_ARRAY_VALUE((*arg5));
 
-            std::vector<float> rawArg5(arrArg5->elements.size());
+            std::vector<float> rawArg5(arrArg5->len);
             for (int32_t i = 0; i < rawArg5.size(); ++i)
                 rawArg5[i] = (float)arrArg5->elements[i].stored;
 
@@ -101,7 +102,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glVertexAttribPointer)(Value *args, 
             auto arg5 = TO_REF_VALUE(args[5])->pointer;
             auto arrArg5 = TO_ARRAY_VALUE((*arg5));
 
-            std::vector<uint32_t> rawArg5(arrArg5->elements.size());
+            std::vector<uint32_t> rawArg5(arrArg5->len);
             for (int32_t i = 0; i < rawArg5.size(); ++i)
                 rawArg5[i] = (uint32_t)arrArg5->elements[i].stored;
 
@@ -112,7 +113,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glVertexAttribPointer)(Value *args, 
             auto arg5 = TO_REF_VALUE(args[5])->pointer;
             auto arrArg5 = TO_ARRAY_VALUE((*arg5));
 
-            std::vector<int32_t> rawArg5(arrArg5->elements.size());
+            std::vector<int32_t> rawArg5(arrArg5->len);
             for (int32_t i = 0; i < rawArg5.size(); ++i)
                 rawArg5[i] = (uint32_t)arrArg5->elements[i].stored;
 
@@ -144,12 +145,12 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glGenBuffers)(Value *args, uint8_t a
 
     if (IS_ARRAY_VALUE((*ref)))
     {
-        auto &array = TO_ARRAY_VALUE((*ref))->elements;
+        auto array = TO_ARRAY_VALUE((*ref));
         std::vector<GLuint> vaos(count);
         glad_glGenBuffers(count, vaos.data());
-        array.resize(vaos.size());
-        for (int32_t i = 0; i < array.size(); ++i)
-            array[i] = (double)vaos[i];
+        array->elements = new Value[vaos.size()];
+        for (int32_t i = 0; i < array->len; ++i)
+            array->elements[i] = (double)vaos[i];
         assert(glGetError() == 0);
     }
     else if (IS_NUM_VALUE((*ref)))
@@ -187,7 +188,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glBufferData)(Value *args, uint8_t a
 
     if (arg0 == GL_ELEMENT_ARRAY_BUFFER)
     {
-        std::vector<uint32_t> rawArg2(arg2->elements.size());
+        std::vector<uint32_t> rawArg2(arg2->len);
         for (int32_t i = 0; i < rawArg2.size(); ++i)
             rawArg2[i] = (uint32_t)arg2->elements[i].stored;
 
@@ -195,7 +196,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glBufferData)(Value *args, uint8_t a
     }
     else
     {
-        std::vector<float> rawArg2(arg2->elements.size());
+        std::vector<float> rawArg2(arg2->len);
         for (int32_t i = 0; i < rawArg2.size(); ++i)
             rawArg2[i] = (float)arg2->elements[i].stored;
 
@@ -348,7 +349,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glDrawElements)(Value *args, uint8_t
         auto arg3 = TO_REF_VALUE(args[3])->pointer;
         auto arrArg3 = TO_ARRAY_VALUE((*arg3));
 
-        std::vector<uint32_t> rawArg3(arrArg3->elements.size());
+        std::vector<uint32_t> rawArg3(arrArg3->len);
         for (int32_t i = 0; i < rawArg3.size(); ++i)
             rawArg3[i] = (uint32_t)arrArg3->elements[i].stored;
 
