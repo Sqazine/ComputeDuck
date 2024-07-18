@@ -99,6 +99,18 @@ protected:
     };
 
 private:
+    struct IfElseBranch
+    {
+        llvm::Value* condition;
+        llvm::BasicBlock* thenBranch{ nullptr };
+        llvm::BasicBlock* elseBranch{ nullptr };
+        llvm::BasicBlock* jumpOutBranch{ nullptr };
+
+        int16_t thenBranchAddr{ -1 };
+        int16_t elseBranchAddr{ -1 };
+        int16_t jumpOutAddr{ -1 };
+    };
+
     void ResetStatus();
 
     void CompileToLLVMIR(const CallFrame &callFrame);
@@ -129,6 +141,8 @@ private:
 
         return fnOrCallInst;
     }
+
+    void ExecuteJumpInstrBasicBlock(CallFrame* frame);
 
     llvm::StructType *m_ValueType{nullptr};
     llvm::PointerType *m_ValuePtrType{nullptr};
@@ -167,6 +181,8 @@ private:
 
     CallFrame *m_CallFrameTop;
     CallFrame m_CallFrameStack[STACK_MAX];
+
+    std::vector<IfElseBranch> m_IfElseBranchTable;
 
     std::unordered_map<std::string, llvm::Function *> m_BuiltinFnCache;
 
