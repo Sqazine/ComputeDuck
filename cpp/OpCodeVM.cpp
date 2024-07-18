@@ -259,13 +259,13 @@ void OpCodeVM::Execute()
 			if (!IS_BOOL_VALUE(value))
 				ASSERT("The if condition not a boolean value");
 			if (!TO_BOOL_VALUE(value))
-				frame->ip = frame->fn->chunk.opCodes.data() + address + 1;
+				frame->ip = frame->fn->chunk.opCodes.data() + address;
 			break;
 		}
 		case OP_JUMP:
 		{
 			auto address = *frame->ip++;
-			frame->ip = frame->fn->chunk.opCodes.data() + address + 1;
+			frame->ip = frame->fn->chunk.opCodes.data() + address;
 			break;
 		}
 		case OP_SET_GLOBAL:

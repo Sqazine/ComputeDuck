@@ -80,12 +80,12 @@ void Compiler::CompileIfStmt(IfStmt *stmt)
     Emit(OP_JUMP);
     auto jumpAddress = Emit(INVALID_OPCODE);
 
-    ModifyOpCode(jumpIfFalseAddress, (int16_t)CurChunk().opCodes.size() - 1);
+    ModifyOpCode(jumpIfFalseAddress, (int16_t)CurChunk().opCodes.size());
 
     if (stmt->elseBranch)
         CompileStmt(stmt->elseBranch);
 
-    ModifyOpCode(jumpAddress, (int16_t)CurChunk().opCodes.size() - 1);
+    ModifyOpCode(jumpAddress, (int16_t)CurChunk().opCodes.size());
 }
 
 void Compiler::CompileScopeStmt(ScopeStmt *stmt)
@@ -105,7 +105,7 @@ void Compiler::CompileScopeStmt(ScopeStmt *stmt)
 
 void Compiler::CompileWhileStmt(WhileStmt *stmt)
 {
-    auto jumpAddress = (int32_t)CurChunk().opCodes.size() - 1;
+    auto jumpAddress = (int32_t)CurChunk().opCodes.size();
     CompileExpr(stmt->condition);
 
     Emit(OP_JUMP_IF_FALSE);
@@ -116,7 +116,7 @@ void Compiler::CompileWhileStmt(WhileStmt *stmt)
     Emit(OP_JUMP);
     Emit(jumpAddress);
 
-    ModifyOpCode(jumpIfFalseAddress, (int16_t)CurChunk().opCodes.size() - 1);
+    ModifyOpCode(jumpIfFalseAddress, (int16_t)CurChunk().opCodes.size());
 }
 
 void Compiler::CompileReturnStmt(ReturnStmt *stmt)
