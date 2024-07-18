@@ -57,9 +57,14 @@ protected:
 
         bool IsEnd()
         {
-            if ((ip - fn->chunk.opCodes.data()) < fn->chunk.opCodes.size())
+            if (GetAddr() < fn->chunk.opCodes.size())
                 return false;
             return true;
+        }
+
+        int16_t GetAddr()
+        {
+            return ip - fn->chunk.opCodes.data();
         }
 
         std::shared_ptr<FunctionObject> fn{nullptr};
