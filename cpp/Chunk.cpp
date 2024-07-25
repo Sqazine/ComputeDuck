@@ -87,8 +87,15 @@ std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
         case OP_JUMP:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP\t" << opcodes[++i] << std::endl;
             break;
-        case OP_JUMP_IF_FALSE:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP_IF_FALSE\t" << opcodes[++i] << std::endl;
+        case OP_JUMP_COMPARE:
+            cout << std::setfill('0') << std::setw(8) << i << "\OP_JUMP_COMPARE\t" << opcodes[++i] << std::endl;
+            break;
+        case OP_JUMP_END:
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP_END" << std::endl;
+            break;
+#ifdef BUILD_WITH_LLVM
+        case OP_JUMP_START:
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP_START" << std::endl;
             break;
         case OP_LOOP_START:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_LOOP_START" << std::endl;
@@ -96,9 +103,10 @@ std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
         case OP_LOOP_END:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_LOOP_END\t" << opcodes[++i] << std::endl;
             break;
-        case OP_LOOP_CONDITION_COMPARE:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_LOOP_CONDITION_COMPARE\t" << opcodes[++i] << std::endl;
+        case OP_LOOP_COMPARE:
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_LOOP_COMPARE\t" << opcodes[++i] << std::endl;
             break;
+#endif
         case OP_RETURN:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_RETURN\t" << opcodes[++i] << std::endl;
             break;
