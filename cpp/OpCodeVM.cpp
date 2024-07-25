@@ -271,13 +271,10 @@ void OpCodeVM::Execute()
 #ifdef BUILD_WITH_LLVM
 		case OP_JUMP_START:
 		{
+			frame->ip++;
 			break;
 		}
 		case OP_JUMP_END:
-		{
-			break;
-		}
-		case OP_LOOP_START:
 		{
 			break;
 		}

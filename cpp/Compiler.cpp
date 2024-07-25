@@ -73,6 +73,7 @@ void Compiler::CompileIfStmt(IfStmt *stmt)
 {
 #ifdef BUILD_WITH_LLVM
     Emit(OP_JUMP_START);
+    Emit(JumpMode::IF);
 #endif
 
     CompileExpr(stmt->condition);
@@ -126,7 +127,8 @@ void Compiler::CompileWhileStmt(WhileStmt *stmt)
 
     ModifyOpCode(jumpIfFalseAddress, (int16_t)CurChunk().opCodes.size());
 #else
-    Emit(OP_LOOP_START);
+    Emit(OP_JUMP_START);
+    Emit(JumpMode::WHILE);
 
     auto jumpAddress = (int32_t)CurChunk().opCodes.size();
     CompileExpr(stmt->condition);

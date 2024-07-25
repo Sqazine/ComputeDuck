@@ -95,10 +95,7 @@ std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
             break;
 #ifdef BUILD_WITH_LLVM
         case OP_JUMP_START:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP_START" << std::endl;
-            break;
-        case OP_LOOP_START:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_LOOP_START" << std::endl;
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP_START\t"<<opcodes[++i] << std::endl;
             break;
         case OP_LOOP_END:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_LOOP_END\t" << opcodes[++i] << std::endl;
