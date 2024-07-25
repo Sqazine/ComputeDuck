@@ -137,16 +137,18 @@ void LLVMJitVM::ResetStatus()
 
 void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
 {
-
     enum class State
     {
-        CONDITION,
-        THEN,
-        ELSE,
-        END
+        IF_CONDITION,
+        IF_BODY,
+        IF_ELSE,
+        IF_END,
+        WHILE_CONDITION,
+        WHILE_BODY,
+        WHILE_END
     };
 
-    static State state = State::CONDITION;
+    State state = State::IF_CONDITION;
 
     PushCallFrame(callFrame);
 
@@ -496,21 +498,20 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
         {
             auto fn = m_Builder->GetInsertBlock()->getParent();
 
-            IfElse br;
-            br.conditionAddr = frame->GetAddr();
+            JumpInstrSet instrSet;
+            instrSet.conditionAddr = frame->GetAddr();
 
-            br.conditionBranch = llvm::BasicBlock::Create(*m_Context, "if.condition." + std::to_string(br.conditionAddr), fn);
-            br.thenBranch = llvm::BasicBlock::Create(*m_Context, "if.then." + std::to_string(br.conditionAddr), fn);
-            br.elseBranch = llvm::BasicBlock::Create(*m_Context, "if.else." + std::to_string(br.conditionAddr), fn);
-            br.endBranch = llvm::BasicBlock::Create(*m_Context, "if.end." + std::to_string(br.conditionAddr));
+            instrSet.conditionBranch = llvm::BasicBlock::Create(*m_Context, "jumpInstr.condition." + std::to_string(instrSet.conditionAddr), fn);
+            instrSet.bodyBranch = llvm::BasicBlock::Create(*m_Context, "jumpInstr.body." + std::to_string(instrSet.conditionAddr), fn);
+            instrSet.elseBranch = llvm::BasicBlock::Create(*m_Context, "jumpInstr.else." + std::to_string(instrSet.conditionAddr), fn);
+            instrSet.endBranch = llvm::BasicBlock::Create(*m_Context, "jumpInstr.end." + std::to_string(instrSet.conditionAddr));
 
-            m_IfElseTable.emplace_back(br);
+            m_JumpInstrSetTable.emplace_back(instrSet);
 
-            m_Builder->CreateBr(br.conditionBranch);
+            m_Builder->CreateBr(instrSet.conditionBranch);
 
-            m_Builder->SetInsertPoint(br.conditionBranch);
-
-            state = State::CONDITION;
+            m_Builder->SetInsertPoint(instrSet.conditionBranch);
+            state = State::IF_CONDITION;
             break;
         }
         case OP_JUMP_COMPARE:
@@ -520,60 +521,61 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
 
             auto conditionValue=m_Builder->CreateICmpEQ(condition, llvm::ConstantInt::get(m_BoolType, true));
 
-            auto& br = m_IfElseTable.back();
-            br.thenAddr = frame->GetAddr();
-            br.elseAddr = address;
+            auto& instrSet = m_JumpInstrSetTable.back();
+            instrSet.bodyAddr = frame->GetAddr();
+            instrSet.elseAddr = address;
 
-            m_Builder->CreateCondBr(conditionValue, br.thenBranch, br.elseBranch);
+            m_Builder->CreateCondBr(conditionValue, instrSet.bodyBranch, instrSet.elseBranch);
 
-            m_Builder->SetInsertPoint(br.thenBranch);
-            state = State::THEN;
+            m_Builder->SetInsertPoint(instrSet.bodyBranch);
+            state = State::IF_BODY;
             break;
         }
         case OP_JUMP:
         {
             auto address = *frame->ip++;
-            auto& br = m_IfElseTable.back();
-            br.endAddr = address;
+            
+            auto& instrSet = m_JumpInstrSetTable.back();
+            instrSet.endAddr = address;
 
-            if (br.endBranch->getParent() == nullptr)
+            if (instrSet.endBranch->getParent() == nullptr)
             {
                 // set endBranch parent
                 auto fn = m_Builder->GetInsertBlock()->getParent();
-                fn->getBasicBlockList().push_back(br.endBranch);
+                fn->getBasicBlockList().push_back(instrSet.endBranch);
             }
 
-            if(state==State::THEN)
-            m_Builder->CreateBr(br.endBranch);
+            if(state==State::IF_BODY)
+                m_Builder->CreateBr(instrSet.endBranch);
 
-            m_Builder->SetInsertPoint(br.elseBranch);
-            state = State::ELSE;
+            m_Builder->SetInsertPoint(instrSet.elseBranch);
+            state = State::IF_ELSE;
 
             break;
         }
         case OP_JUMP_END:
         {
-            auto& br = m_IfElseTable.back();
+            auto& br = m_JumpInstrSetTable.back();
+                // set endBranch parent
             if (br.endBranch->getParent() == nullptr)
             {
-                // set endBranch parent
                 auto fn = m_Builder->GetInsertBlock()->getParent();
                 fn->getBasicBlockList().push_back(br.endBranch);
             }
 
-            if (state == State::ELSE)
+            if (state == State::IF_ELSE)
                 m_Builder->CreateBr(br.endBranch);// create jump br for else branch;
 
             m_Builder->SetInsertPoint(br.endBranch);
-            state = State::END;
+            state = State::IF_END;
 
             {
-                auto offset = m_IfElseTable.size() - 1;
+                auto offset = m_JumpInstrSetTable.size() - 1;
                 if (offset > 0)
-                    m_Builder->CreateBr(m_IfElseTable[offset - 1].endBranch);
+                    m_Builder->CreateBr(m_JumpInstrSetTable[offset - 1].endBranch);
             }
 
-            m_IfElseTable.pop_back();
+            m_JumpInstrSetTable.pop_back();
 
             break;
         }
@@ -583,16 +585,19 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
 
             auto curAddress = frame->GetAddr();
 
-            WhileLoop br;
-            br.conditionBranch = llvm::BasicBlock::Create(*m_Context, "loop.condition." + std::to_string(curAddress), fn);
-            br.loopBodyBranch = llvm::BasicBlock::Create(*m_Context, "loop.body." + std::to_string(curAddress), fn);
-            br.endBranch = llvm::BasicBlock::Create(*m_Context, "loop.end." + std::to_string(curAddress));
+            JumpInstrSet instrSet;
+            instrSet.conditionAddr = curAddress;
 
-            m_LoopTable.emplace_back(br);
+            instrSet.conditionBranch = llvm::BasicBlock::Create(*m_Context, "jumpInstr.condition." + std::to_string(instrSet.conditionAddr), fn);
+            instrSet.bodyBranch = llvm::BasicBlock::Create(*m_Context, "jumpInstr.body." + std::to_string(instrSet.conditionAddr), fn);
+            instrSet.endBranch = llvm::BasicBlock::Create(*m_Context, "jumpInstr.end." + std::to_string(instrSet.conditionAddr));
 
-            m_Builder->CreateBr(br.conditionBranch);
+            m_JumpInstrSetTable.emplace_back(instrSet);
 
-            m_Builder->SetInsertPoint(br.conditionBranch);
+            m_Builder->CreateBr(instrSet.conditionBranch);
+
+            m_Builder->SetInsertPoint(instrSet.conditionBranch);
+            state = State::WHILE_CONDITION;
             break;
         }
         case OP_LOOP_COMPARE:
@@ -602,25 +607,32 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
 
             auto conditionValue = m_Builder->CreateICmpEQ(condition, llvm::ConstantInt::get(m_BoolType, true));
 
-            auto br = m_LoopTable.back();
+            auto br = m_JumpInstrSetTable.back();
 
-            m_Builder->CreateCondBr(conditionValue, br.loopBodyBranch, br.endBranch);
+            m_Builder->CreateCondBr(conditionValue, br.bodyBranch, br.endBranch);
 
-            m_Builder->SetInsertPoint(br.loopBodyBranch);
+            m_Builder->SetInsertPoint(br.bodyBranch);
+            state = State::WHILE_BODY;
             break;
         }
         case OP_LOOP_END:
         {
             auto address = *frame->ip++;
 
-            auto br = m_LoopTable.back();
+            auto& br = m_JumpInstrSetTable.back();
 
             // set endBranch parent
-            auto fn = m_Builder->GetInsertBlock()->getParent();
-            fn->getBasicBlockList().push_back(br.endBranch);
+            if (br.endBranch->getParent() == nullptr)
+            {
+                auto fn = m_Builder->GetInsertBlock()->getParent();
+                fn->getBasicBlockList().push_back(br.endBranch);
+            }
+
+            m_JumpInstrSetTable.pop_back();
 
             m_Builder->CreateBr(br.conditionBranch);
             m_Builder->SetInsertPoint(br.endBranch);
+            state = State::WHILE_END;
             break;
         }
         case OP_RETURN:

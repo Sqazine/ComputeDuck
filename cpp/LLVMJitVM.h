@@ -99,27 +99,16 @@ protected:
     };
 
 private:
-    struct IfElse
+    struct JumpInstrSet
     {
         llvm::BasicBlock* conditionBranch{ nullptr };
-        llvm::BasicBlock* thenBranch{ nullptr };
+        llvm::BasicBlock* bodyBranch{ nullptr };
         llvm::BasicBlock* elseBranch{ nullptr };
         llvm::BasicBlock* endBranch{ nullptr };
 
         int16_t conditionAddr{ -1 };
-        int16_t thenAddr{ -1 };
+        int16_t bodyAddr{ -1 };
         int16_t elseAddr{ -1 };
-        int16_t endAddr{ -1 };
-    };
-
-    struct WhileLoop
-    {
-        llvm::BasicBlock* conditionBranch{ nullptr };
-        llvm::BasicBlock* loopBodyBranch{ nullptr };
-        llvm::BasicBlock* endBranch{ nullptr };
-
-        int16_t conditionAddr{ -1 };
-        int16_t loopBodyAddr{ -1 };
         int16_t endAddr{ -1 };
     };
 
@@ -192,8 +181,7 @@ private:
     CallFrame *m_CallFrameTop;
     CallFrame m_CallFrameStack[STACK_MAX];
 
-    std::vector<IfElse> m_IfElseTable;
-    std::vector<WhileLoop> m_LoopTable;
+    std::vector<JumpInstrSet> m_JumpInstrSetTable;
 
     std::unordered_map<std::string, llvm::Function *> m_BuiltinFnCache;
 
