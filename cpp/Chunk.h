@@ -46,7 +46,6 @@ enum OpCode
 #ifdef BUILD_WITH_LLVM
     OP_JUMP_START,
     OP_JUMP_END,
-    OP_LOOP_START,
     OP_LOOP_COMPARE,
     OP_LOOP_END,
 #endif

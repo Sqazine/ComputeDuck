@@ -36,6 +36,12 @@ enum class RWState
     WRITE,
 };
 
+enum JumpMode
+{
+    IF=0,
+    WHILE=1,
+};
+
 #define SAFE_DELETE(x)   \
     do                   \
     {                    \
