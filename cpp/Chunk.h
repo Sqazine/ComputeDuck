@@ -22,7 +22,7 @@ enum OpCode
     OP_BIT_OR,
     OP_BIT_NOT,
     OP_BIT_XOR,
-    OP_JUMP_COMPARE,
+    OP_JUMP_IF_FALSE,
     OP_JUMP,
     OP_SET_GLOBAL,
     OP_GET_GLOBAL,
@@ -46,8 +46,6 @@ enum OpCode
 #ifdef BUILD_WITH_LLVM
     OP_JUMP_START,
     OP_JUMP_END,
-    OP_LOOP_COMPARE,
-    OP_LOOP_END,
 #endif
 };
 

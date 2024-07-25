@@ -252,9 +252,12 @@ void OpCodeVM::Execute()
                 ASSERT("Invalid index op: %s[%s]", ds.Stringify().c_str(), index.Stringify().c_str());
             break;
         }
-		case OP_JUMP_COMPARE:
+		case OP_JUMP_IF_FALSE:
 		{
 			auto address = *frame->ip++;
+#ifdef BUILD_WITH_LLVM
+            auto mode = *frame->ip++;
+#endif
 			auto value = Pop();
 			if (!IS_BOOL_VALUE(value))
 				ASSERT("The if condition not a boolean value");
@@ -265,6 +268,9 @@ void OpCodeVM::Execute()
 		case OP_JUMP:
 		{
 			auto address = *frame->ip++;
+#ifdef BUILD_WITH_LLVM
+			auto mode = *frame->ip++;
+#endif
 			frame->ip = frame->fn->chunk.opCodes.data() + address;
 			break;
 		}
@@ -277,22 +283,6 @@ void OpCodeVM::Execute()
 		case OP_JUMP_END:
 		{
 			break;
-		}
-		case OP_LOOP_COMPARE:
-		{
-            auto address = *frame->ip++;
-            auto value = Pop();
-            if (!IS_BOOL_VALUE(value))
-                ASSERT("The if condition not a boolean value");
-            if (!TO_BOOL_VALUE(value))
-                frame->ip = frame->fn->chunk.opCodes.data() + address;
-            break;
-		}
-		case OP_LOOP_END:
-		{
-            auto address = *frame->ip++;
-            frame->ip = frame->fn->chunk.opCodes.data() + address;
-            break;
 		}
 #endif
 		case OP_SET_GLOBAL:

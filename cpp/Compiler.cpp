@@ -77,13 +77,19 @@ void Compiler::CompileIfStmt(IfStmt *stmt)
 #endif
 
     CompileExpr(stmt->condition);
-    Emit(OP_JUMP_COMPARE);
+    Emit(OP_JUMP_IF_FALSE);
     auto jumpIfFalseAddress = Emit(INVALID_OPCODE);
+#ifdef BUILD_WITH_LLVM
+    Emit(JumpMode::IF);
+#endif
 
     CompileStmt(stmt->thenBranch);
 
     Emit(OP_JUMP);
     auto jumpAddress = Emit(INVALID_OPCODE);
+#ifdef BUILD_WITH_LLVM
+    Emit(JumpMode::IF);
+#endif
 
     ModifyOpCode(jumpIfFalseAddress, (int16_t)CurChunk().opCodes.size());
 
@@ -113,36 +119,29 @@ void Compiler::CompileScopeStmt(ScopeStmt *stmt)
 
 void Compiler::CompileWhileStmt(WhileStmt *stmt)
 {
-#ifndef BUILD_WITH_LLVM
+#ifdef BUILD_WITH_LLVM
+    Emit(OP_JUMP_START);
+    Emit(JumpMode::WHILE);
+#endif
+
     auto jumpAddress = (int32_t)CurChunk().opCodes.size();
     CompileExpr(stmt->condition);
 
     Emit(OP_JUMP_IF_FALSE);
     auto jumpIfFalseAddress = Emit(INVALID_OPCODE);
+#ifdef BUILD_WITH_LLVM
+    Emit(JumpMode::WHILE);
+#endif
 
     CompileStmt(stmt->body);
 
     Emit(OP_JUMP);
     Emit(jumpAddress);
-
-    ModifyOpCode(jumpIfFalseAddress, (int16_t)CurChunk().opCodes.size());
-#else
-    Emit(OP_JUMP_START);
+#ifdef BUILD_WITH_LLVM
     Emit(JumpMode::WHILE);
-
-    auto jumpAddress = (int32_t)CurChunk().opCodes.size();
-    CompileExpr(stmt->condition);
-
-    Emit(OP_LOOP_COMPARE);
-    auto jumpIfFalseAddress = Emit(INVALID_OPCODE);
-
-    CompileStmt(stmt->body);
-
-    Emit(OP_LOOP_END);
-    Emit(jumpAddress);
+#endif
 
     ModifyOpCode(jumpIfFalseAddress, (int16_t)CurChunk().opCodes.size());
-#endif
 }
 
 void Compiler::CompileReturnStmt(ReturnStmt *stmt)
