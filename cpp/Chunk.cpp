@@ -90,6 +90,15 @@ std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
         case OP_JUMP_IF_FALSE:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP_IF_FALSE\t" << opcodes[++i] << std::endl;
             break;
+        case OP_LOOP_START:
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_LOOP_START" << std::endl;
+            break;
+        case OP_LOOP_END:
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_LOOP_END\t" << opcodes[++i] << std::endl;
+            break;
+        case OP_LOOP_CONDITION_COMPARE:
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_LOOP_CONDITION_COMPARE\t" << opcodes[++i] << std::endl;
+            break;
         case OP_RETURN:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_RETURN\t" << opcodes[++i] << std::endl;
             break;

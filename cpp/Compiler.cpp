@@ -105,6 +105,7 @@ void Compiler::CompileScopeStmt(ScopeStmt *stmt)
 
 void Compiler::CompileWhileStmt(WhileStmt *stmt)
 {
+#ifndef BUILD_WITH_LLVM
     auto jumpAddress = (int32_t)CurChunk().opCodes.size();
     CompileExpr(stmt->condition);
 
@@ -117,6 +118,22 @@ void Compiler::CompileWhileStmt(WhileStmt *stmt)
     Emit(jumpAddress);
 
     ModifyOpCode(jumpIfFalseAddress, (int16_t)CurChunk().opCodes.size());
+#else
+    Emit(OP_LOOP_START);
+
+    auto jumpAddress = (int32_t)CurChunk().opCodes.size();
+    CompileExpr(stmt->condition);
+
+    Emit(OP_LOOP_CONDITION_COMPARE);
+    auto jumpIfFalseAddress = Emit(INVALID_OPCODE);
+
+    CompileStmt(stmt->body);
+
+    Emit(OP_LOOP_END);
+    Emit(jumpAddress);
+
+    ModifyOpCode(jumpIfFalseAddress, (int16_t)CurChunk().opCodes.size());
+#endif
 }
 
 void Compiler::CompileReturnStmt(ReturnStmt *stmt)
