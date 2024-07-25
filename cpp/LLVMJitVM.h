@@ -99,16 +99,27 @@ protected:
     };
 
 private:
-    struct IfElseBranch
+    struct IfElse
     {
         llvm::Value* condition;
         llvm::BasicBlock* thenBranch{ nullptr };
         llvm::BasicBlock* elseBranch{ nullptr };
-        llvm::BasicBlock* jumpOutBranch{ nullptr };
+        llvm::BasicBlock* endBranch{ nullptr };
 
-        int16_t thenBranchAddr{ -1 };
-        int16_t elseBranchAddr{ -1 };
-        int16_t jumpOutAddr{ -1 };
+        int16_t thenAddr{ -1 };
+        int16_t elseAddr{ -1 };
+        int16_t endAddr{ -1 };
+    };
+
+    struct WhileLoop
+    {
+        llvm::BasicBlock* conditionBranch{ nullptr };
+        llvm::BasicBlock* loopBodyBranch{ nullptr };
+        llvm::BasicBlock* endBranch{ nullptr };
+
+        int16_t conditionAddr{ -1 };
+        int16_t loopBodyAddr{ -1 };
+        int16_t endAddr{ -1 };
     };
 
     void ResetStatus();
@@ -143,6 +154,7 @@ private:
     }
 
     void ExecuteJumpInstrBasicBlock(CallFrame* frame);
+    void ExecuteLoopInstrBasicBlock(CallFrame* frame);
 
     llvm::StructType *m_ValueType{nullptr};
     llvm::PointerType *m_ValuePtrType{nullptr};
@@ -182,7 +194,8 @@ private:
     CallFrame *m_CallFrameTop;
     CallFrame m_CallFrameStack[STACK_MAX];
 
-    std::vector<IfElseBranch> m_IfElseBranchTable;
+    std::vector<IfElse> m_IfElseTable;
+    std::vector<WhileLoop> m_LoopTable;
 
     std::unordered_map<std::string, llvm::Function *> m_BuiltinFnCache;
 

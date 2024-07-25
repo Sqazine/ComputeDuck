@@ -43,6 +43,9 @@ enum OpCode
     OP_REF_INDEX_LOCAL,
     OP_SP_OFFSET,
     OP_DLL_IMPORT,
+    OP_LOOP_START,
+    OP_LOOP_CONDITION_COMPARE,
+    OP_LOOP_END,
 };
 
 using OpCodes = std::vector<int16_t>;

@@ -268,6 +268,26 @@ void OpCodeVM::Execute()
 			frame->ip = frame->fn->chunk.opCodes.data() + address;
 			break;
 		}
+		case OP_LOOP_START:
+		{
+			break;
+		}
+		case OP_LOOP_CONDITION_COMPARE:
+		{
+            auto address = *frame->ip++;
+            auto value = Pop();
+            if (!IS_BOOL_VALUE(value))
+                ASSERT("The if condition not a boolean value");
+            if (!TO_BOOL_VALUE(value))
+                frame->ip = frame->fn->chunk.opCodes.data() + address;
+            break;
+		}
+		case OP_LOOP_END:
+		{
+            auto address = *frame->ip++;
+            frame->ip = frame->fn->chunk.opCodes.data() + address;
+            break;
+		}
 		case OP_SET_GLOBAL:
 		{
 			auto index = *frame->ip++;
