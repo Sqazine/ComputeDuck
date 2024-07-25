@@ -105,11 +105,6 @@ private:
         llvm::BasicBlock* bodyBranch{ nullptr };
         llvm::BasicBlock* elseBranch{ nullptr };
         llvm::BasicBlock* endBranch{ nullptr };
-
-        int16_t conditionAddr{ -1 };
-        int16_t bodyAddr{ -1 };
-        int16_t elseAddr{ -1 };
-        int16_t endAddr{ -1 };
     };
 
     void ResetStatus();
