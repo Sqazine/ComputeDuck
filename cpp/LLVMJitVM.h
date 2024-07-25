@@ -101,11 +101,12 @@ protected:
 private:
     struct IfElse
     {
-        llvm::Value* condition;
+        llvm::BasicBlock* conditionBranch{ nullptr };
         llvm::BasicBlock* thenBranch{ nullptr };
         llvm::BasicBlock* elseBranch{ nullptr };
         llvm::BasicBlock* endBranch{ nullptr };
 
+        int16_t conditionAddr{ -1 };
         int16_t thenAddr{ -1 };
         int16_t elseAddr{ -1 };
         int16_t endAddr{ -1 };
@@ -152,9 +153,6 @@ private:
 
         return fnOrCallInst;
     }
-
-    void ExecuteJumpInstrBasicBlock(CallFrame* frame);
-    void ExecuteLoopInstrBasicBlock(CallFrame* frame);
 
     llvm::StructType *m_ValueType{nullptr};
     llvm::PointerType *m_ValuePtrType{nullptr};
