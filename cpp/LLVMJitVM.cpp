@@ -624,7 +624,7 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
 
             auto& ref = m_GlobalVariables[index];
 
-            if (ref == nullptr)
+            if (ref == nullptr || ref->getType() != v->getType())
             {
                 auto alloc = m_Builder->CreateAlloca(v->getType(), nullptr, "globalVar_" + std::to_string(index));
                 m_Builder->CreateStore(v, alloc);
@@ -632,9 +632,7 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
                 ref = alloc;
             }
             else
-            {
-                auto value = m_Builder->CreateStore(v,ref);
-            }
+                m_Builder->CreateStore(v,ref);
 
             break;
         }
