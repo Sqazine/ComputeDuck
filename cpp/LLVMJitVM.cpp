@@ -78,7 +78,7 @@ void LLVMJitVM::Run(FunctionObject *mainFn)
 
     llvm::FunctionType *fnType = llvm::FunctionType::get(llvm::Type::getVoidTy(*m_Context), false);
     llvm::Function *fn = llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, "main", m_Module.get());
-    llvm::BasicBlock *codeBlock = llvm::BasicBlock::Create(*m_Context, "", fn);
+    llvm::BasicBlock *codeBlock = llvm::BasicBlock::Create(*m_Context, "main.entry", fn);
     m_Builder->SetInsertPoint(codeBlock);
 
     m_CallFrameTop = m_CallFrameStack;
@@ -187,6 +187,29 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
                 auto str = TO_STR_VALUE(value)->value;
                 llvm::Value *chars = m_Builder->CreateGlobalString(str);
                 Push(chars);
+            }
+            else if (IS_FUNCTION_VALUE(value))
+            {
+                auto parenetFn = m_Builder->GetInsertBlock()->getParent();
+
+                auto fnObj = TO_FUNCTION_VALUE(value);
+
+                static int32_t idx = 0;
+
+                llvm::FunctionType* fnType = llvm::FunctionType::get(llvm::Type::getVoidTy(*m_Context), false);
+                llvm::Function* fn = llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, "fn."+std::to_string(idx++), m_Module.get());
+                llvm::BasicBlock* codeBlock = llvm::BasicBlock::Create(*m_Context, "", fn);
+                m_Builder->SetInsertPoint(codeBlock);
+
+                auto callFrame = CallFrame(fnObj, fn, m_StackTop);
+
+                CompileToLLVMIR(callFrame);
+                PopCallFrame();
+
+                Push(callFrame.llvmFn);
+
+                auto block = &parenetFn->getBasicBlockList().back();
+                m_Builder->SetInsertPoint(block);
             }
 
             break;
@@ -615,6 +638,14 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
         }
         case OP_RETURN:
         {
+            auto returnCount = *frame->ip++;
+            if (returnCount == 1)
+            {
+                auto value = Pop();
+                m_Builder->CreateRet(value);
+            }
+            else
+                m_Builder->CreateRetVoid();
             break;
         }
         case OP_SET_GLOBAL:
@@ -664,43 +695,49 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
             auto argCount = (uint8_t)*frame->ip++;
             auto fn = static_cast<llvm::Function *>(*(m_StackTop - argCount - 1));
 
-            // now only builtin fn
-            std::vector<llvm::Value *> argsV;
-            for (auto slot = m_StackTop - argCount; slot != m_StackTop; ++slot)
+            auto ptrType = fn->getType();
+            auto elemType = ptrType->getElementType();
+
+            // builtin function type
+            if (elemType == m_BuiltinFunctionType)
             {
-                if ((*slot)->getType() != m_ValuePtrType)
+                std::vector<llvm::Value*> argsV;
+                for (auto slot = m_StackTop - argCount; slot != m_StackTop; ++slot)
                 {
-                    llvm::Value *arg = CreateCDValue(*slot);
-                    argsV.emplace_back(arg);
+                    if ((*slot)->getType() != m_ValuePtrType)
+                    {
+                        llvm::Value* arg = CreateCDValue(*slot);
+                        argsV.emplace_back(arg);
+                    }
+                    else
+                        argsV.emplace_back(*slot);
+
                 }
-                else
-                    argsV.emplace_back(*slot);
 
-            }
+                auto valueArrayType = llvm::ArrayType::get(m_ValueType, argsV.size());
 
-            auto valueArrayType = llvm::ArrayType::get(m_ValueType, argsV.size());
+                auto arg0 = m_Builder->CreateAlloca(valueArrayType);
+                llvm::Value* arg0MemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
 
-            auto arg0 = m_Builder->CreateAlloca(valueArrayType);
-            llvm::Value *arg0MemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, {m_Builder->getInt32(0), m_Builder->getInt32(0)});
-
-            for (auto i = 0; i < argsV.size(); ++i)
-            {
-                if (i == 0)
-                    m_Builder->CreateMemCpy(arg0MemberAddr, llvm::MaybeAlign(8), argsV[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
-                else
+                for (auto i = 0; i < argsV.size(); ++i)
                 {
-                    llvm::Value *argIMemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, {m_Builder->getInt32(0), m_Builder->getInt32(i)});
-                    m_Builder->CreateMemCpy(argIMemberAddr, llvm::MaybeAlign(8), argsV[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+                    if (i == 0)
+                        m_Builder->CreateMemCpy(arg0MemberAddr, llvm::MaybeAlign(8), argsV[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+                    else
+                    {
+                        llvm::Value* argIMemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, { m_Builder->getInt32(0), m_Builder->getInt32(i) });
+                        m_Builder->CreateMemCpy(argIMemberAddr, llvm::MaybeAlign(8), argsV[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+                    }
                 }
+
+                llvm::Value* arg1 = m_Builder->getInt8(argsV.size());
+
+                auto result = m_Builder->CreateAlloca(m_ValueType, nullptr);
+
+                auto callInst = AddBuiltinFnOrCallParamAttributes(m_Builder->CreateCall(fn, { arg0MemberAddr, arg1, result }));
+
+                Push(result);
             }
-
-            llvm::Value *arg1 = m_Builder->getInt8(argsV.size());
-
-            auto result = m_Builder->CreateAlloca(m_ValueType, nullptr);
-
-            auto callInst = AddBuiltinFnOrCallParamAttributes(m_Builder->CreateCall(fn, {arg0MemberAddr, arg1, result}));
-
-            Push(result);
 
             break;
         }
