@@ -109,7 +109,7 @@ private:
     llvm::StructType *m_ValueType{nullptr};
     llvm::PointerType *m_ValuePtrType{nullptr};
 
-    llvm::StructType *mUnionType{nullptr};
+    llvm::StructType *m_UnionType{nullptr};
 
     llvm::StructType *m_ObjectType{nullptr};
     llvm::StructType *m_StrObjectType{nullptr};
