@@ -77,15 +77,7 @@ void LLVMJitVM::Run(FunctionObject *mainFn)
     ResetStatus();
 
     llvm::FunctionType *fnType = llvm::FunctionType::get(llvm::Type::getVoidTy(*m_Context), false);
-    llvm::Function *fn = llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, "main", m_Module.get());
-    llvm::BasicBlock *codeBlock = llvm::BasicBlock::Create(*m_Context, "main.entry", fn);
-    m_Builder->SetInsertPoint(codeBlock);
-
-    m_CallFrameTop = m_CallFrameStack;
-    m_StackTop = m_ValueStack;
-    auto mainCallFrame = CallFrame(mainFn, fn, m_StackTop);
-
-    CompileToLLVMIR(mainCallFrame);
+    auto fn=CompileToLLVMIR(mainFn,m_StackTop,fnType,"main");
 
 #ifndef NDEBUG
     m_Module->print(llvm::outs(), nullptr);
@@ -93,7 +85,6 @@ void LLVMJitVM::Run(FunctionObject *mainFn)
 
     // run function opt pass
     {
-        fn = PopCallFrame()->llvmFn;
         m_Builder->CreateRet(llvm::ConstantPointerNull::get(m_ValuePtrType));
 
         auto b = llvm::verifyFunction(*fn);
@@ -126,6 +117,8 @@ void LLVMJitVM::ResetStatus()
     for (auto& g : m_GlobalVariables)
         g = nullptr;
 
+    m_StackTop = m_ValueStack;
+
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();
     llvm::InitializeNativeTargetAsmParser();
@@ -135,7 +128,7 @@ void LLVMJitVM::ResetStatus()
     InitModuleAndPassManager();
 }
 
-void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
+llvm::Function* LLVMJitVM::CompileToLLVMIR(FunctionObject* fnObj, llvm::Value** stackTop, llvm::FunctionType* fnType,const std::string& fnName)
 {
     enum class State
     {
@@ -150,22 +143,21 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
 
     State state = State::IF_CONDITION;
 
-    PushCallFrame(callFrame);
+    llvm::Function* fn = llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, fnName.c_str(), m_Module.get());
+    llvm::BasicBlock* codeBlock = llvm::BasicBlock::Create(*m_Context, fnName+".entry", fn);
+    m_Builder->SetInsertPoint(codeBlock);
 
-    while (true)
+    auto ip =fnObj->chunk.opCodes.data();
+
+    while ((ip - fnObj->chunk.opCodes.data())<fnObj->chunk.opCodes.size())
     {
-        auto frame = PeekCallFrame(1);
-            
-        if (frame->IsEnd())
-            return;
-
-        int32_t instruction = *frame->ip++;
+        int32_t instruction = *ip++;
         switch (instruction)
         {
         case OP_CONSTANT:
         {
-            auto idx = *frame->ip++;
-            auto value = frame->fn->chunk.constants[idx];
+            auto idx = *ip++;
+            auto value = fnObj->chunk.constants[idx];
 
             if (IS_NUM_VALUE(value))
             {
@@ -192,21 +184,14 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
             {
                 auto parenetFn = m_Builder->GetInsertBlock()->getParent();
 
-                auto fnObj = TO_FUNCTION_VALUE(value);
+                auto newFnObj = TO_FUNCTION_VALUE(value);
 
                 static int32_t idx = 0;
 
-                llvm::FunctionType* fnType = llvm::FunctionType::get(llvm::Type::getVoidTy(*m_Context), false);
-                llvm::Function* fn = llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, "fn."+std::to_string(idx++), m_Module.get());
-                llvm::BasicBlock* codeBlock = llvm::BasicBlock::Create(*m_Context, "", fn);
-                m_Builder->SetInsertPoint(codeBlock);
+                llvm::FunctionType* newFnType = llvm::FunctionType::get(llvm::Type::getVoidTy(*m_Context), false);
 
-                auto callFrame = CallFrame(fnObj, fn, m_StackTop);
-
-                CompileToLLVMIR(callFrame);
-                PopCallFrame();
-
-                Push(callFrame.llvmFn);
+                auto newFn = CompileToLLVMIR(newFnObj, m_StackTop, newFnType,"fn." + std::to_string(idx));
+                Push(newFn);
 
                 auto block = &parenetFn->getBasicBlockList().back();
                 m_Builder->SetInsertPoint(block);
@@ -371,7 +356,7 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
         }
         case OP_ARRAY:
         {
-            auto numElements = *frame->ip++;
+            auto numElements = *ip++;
 
             auto elements = std::vector<llvm::Value*>(numElements);
 
@@ -517,12 +502,16 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
 
             break;
         }
+        case OP_SET_INDEX:
+        {
+            break;
+        }
         case OP_JUMP_START:
         {
-            auto mode=*frame->ip++;
+            auto mode=*ip++;
 
             auto fn = m_Builder->GetInsertBlock()->getParent();
-            auto curAddress = frame->GetAddr();
+            auto curAddress = ip - fnObj->chunk.opCodes.data();
             JumpInstrSet instrSet;
     
             if(mode == JumpMode::IF)
@@ -556,8 +545,8 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
         }
         case OP_JUMP_IF_FALSE:
         {
-            auto address = *frame->ip++;
-            auto mode = *frame->ip++;
+            auto address = *ip++;
+            auto mode = *ip++;
             
             auto condition = Pop();
             auto conditionValue = m_Builder->CreateICmpEQ(condition, llvm::ConstantInt::get(m_BoolType, true));
@@ -580,8 +569,8 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
         }
         case OP_JUMP:
         {
-            auto address = *frame->ip++;
-            auto mode = *frame->ip++;
+            auto address = *ip++;
+            auto mode = *ip++;
 
             auto& instrSet = m_JumpInstrSetTable.back();
             if (instrSet.endBranch->getParent() == nullptr)
@@ -638,7 +627,7 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
         }
         case OP_RETURN:
         {
-            auto returnCount = *frame->ip++;
+            auto returnCount = *ip++;
             if (returnCount == 1)
             {
                 auto value = Pop();
@@ -650,7 +639,7 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
         }
         case OP_SET_GLOBAL:
         {
-            auto index = *frame->ip++;
+            auto index = *ip++;
             auto v = Pop();
 
             auto& ref = m_GlobalVariables[index];
@@ -669,7 +658,7 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
         }
         case OP_GET_GLOBAL:
         {
-            auto index = *frame->ip++;
+            auto index = *ip++;
 
             auto stored = m_GlobalVariables[index];
 
@@ -692,7 +681,7 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
         }
         case OP_FUNCTION_CALL:
         {
-            auto argCount = (uint8_t)*frame->ip++;
+            auto argCount = (uint8_t)*ip++;
             auto fn = static_cast<llvm::Function *>(*(m_StackTop - argCount - 1));
 
             auto ptrType = fn->getType();
@@ -705,13 +694,9 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
                 for (auto slot = m_StackTop - argCount; slot != m_StackTop; ++slot)
                 {
                     if ((*slot)->getType() != m_ValuePtrType)
-                    {
-                        llvm::Value* arg = CreateCDValue(*slot);
-                        argsV.emplace_back(arg);
-                    }
+                        argsV.emplace_back(CreateCDValue(*slot));
                     else
                         argsV.emplace_back(*slot);
-
                 }
 
                 auto valueArrayType = llvm::ArrayType::get(m_ValueType, argsV.size());
@@ -743,8 +728,8 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
         }
         case OP_GET_BUILTIN:
         {
-            auto idx = *frame->ip++;
-            auto value = frame->fn->chunk.constants[idx];
+            auto idx = *ip++;
+            auto value = fnObj->chunk.constants[idx];
             auto name = TO_STR_VALUE(value)->value;
             std::string namrStr = name;
             auto iter = m_BuiltinFnCache.find(name);
@@ -791,7 +776,7 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
         }
         case OP_SP_OFFSET:
         {
-            auto offset = *frame->ip++;
+            auto offset = *ip++;
             m_StackTop += offset;
             break;
         }
@@ -799,6 +784,8 @@ void LLVMJitVM::CompileToLLVMIR(const CallFrame &callFrame)
             break;
         }
     }
+
+    return fn;
 }
 
 void LLVMJitVM::InitModuleAndPassManager()
@@ -833,9 +820,9 @@ void LLVMJitVM::InitModuleAndPassManager()
 
         m_Int8PtrPtrType = llvm::PointerType::get(m_Int8PtrType, 0);
 
-        mUnionType = llvm::StructType::create(*m_Context, {m_DoubleType}, "union.anon");
+        m_UnionType = llvm::StructType::create(*m_Context, {m_DoubleType}, "union.anon");
 
-        m_ValueType = llvm::StructType::create(*m_Context, {m_Int8Type, mUnionType}, "struct.Value");
+        m_ValueType = llvm::StructType::create(*m_Context, {m_Int8Type, m_UnionType}, "struct.Value");
         m_ValuePtrType = llvm::PointerType::get(m_ValueType, 0);
 
         m_ObjectType = llvm::StructType::create(*m_Context, "struct.Object");
@@ -976,21 +963,6 @@ void LLVMJitVM::Push(llvm::Value *v)
 llvm::Value *LLVMJitVM::Pop()
 {
     return *(--m_StackTop);
-}
-
-void LLVMJitVM::PushCallFrame(const CallFrame &callFrame)
-{
-    *m_CallFrameTop++ = callFrame;
-}
-
-LLVMJitVM::CallFrame *LLVMJitVM::PopCallFrame()
-{
-    return --m_CallFrameTop;
-}
-
-LLVMJitVM::CallFrame *LLVMJitVM::PeekCallFrame(int32_t distance)
-{
-    return m_CallFrameTop - distance;
 }
 
 std::string LLVMJitVM::GetTypeName(llvm::Type* type)

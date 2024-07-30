@@ -45,34 +45,6 @@ public:
     void Run(FunctionObject *mainFn);
 
 protected:
-    struct CallFrame
-    {
-        CallFrame() = default;
-        ~CallFrame() = default;
-
-        CallFrame(FunctionObject *fn, llvm::Function *llvmFn, llvm::Value **slot)
-            : fn(fn), ip(fn->chunk.opCodes.data()), llvmFn(llvmFn), slot(slot)
-        {
-        }
-
-        bool IsEnd()
-        {
-            if (GetAddr() < fn->chunk.opCodes.size())
-                return false;
-            return true;
-        }
-
-        int16_t GetAddr()
-        {
-            return ip - fn->chunk.opCodes.data();
-        }
-
-        std::shared_ptr<FunctionObject> fn{nullptr};
-        llvm::Function *llvmFn;
-        int16_t *ip{nullptr};
-        llvm::Value **slot{nullptr};
-    };
-
     class OrcJit
     {
     public:
@@ -109,7 +81,7 @@ private:
 
     void ResetStatus();
 
-    void CompileToLLVMIR(const CallFrame &callFrame);
+    llvm::Function* CompileToLLVMIR(FunctionObject* fnObj,llvm::Value** stackTop,llvm::FunctionType* fnType,const std::string& fnName);
 
     void InitModuleAndPassManager();
 
@@ -117,10 +89,6 @@ private:
 
     void Push(llvm::Value *v);
     llvm::Value *Pop();
-
-    void PushCallFrame(const CallFrame &callFrame);
-    CallFrame *PopCallFrame();
-    CallFrame *PeekCallFrame(int32_t distance);
 
     std::string GetTypeName(llvm::Type* type);
 
@@ -172,9 +140,6 @@ private:
 
     llvm::Value **m_StackTop;
     llvm::Value *m_ValueStack[STACK_MAX];
-
-    CallFrame *m_CallFrameTop;
-    CallFrame m_CallFrameStack[STACK_MAX];
 
     std::vector<JumpInstrSet> m_JumpInstrSetTable;
 
