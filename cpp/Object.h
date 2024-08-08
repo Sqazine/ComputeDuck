@@ -8,6 +8,9 @@
 #include "Chunk.h"
 #include <variant>
 #include <type_traits>
+#ifdef BUILD_WITH_LLVM
+#include <llvm/IR/Function.h>
+#endif
 
 #define TO_STR_OBJ(obj) ((StrObject *)obj)
 #define TO_ARRAY_OBJ(obj) ((ArrayObject *)obj)
@@ -82,12 +85,20 @@ struct RefObject : public Object
 struct FunctionObject : public Object
 {
 	FunctionObject(Chunk chunk, uint8_t localVarCount = 0, uint8_t parameterCount = 0)
-		: Object(ObjectType::FUNCTION), chunk(chunk), localVarCount(localVarCount), parameterCount(parameterCount){}
+		: Object(ObjectType::FUNCTION), chunk(chunk), localVarCount(localVarCount), parameterCount(parameterCount)
+#ifdef BUILD_WITH_LLVM
+        ,callCount(0)
+#endif
+    {}
 	~FunctionObject(){}
 
 	Chunk chunk;
 	uint8_t localVarCount;
 	uint8_t parameterCount;
+#ifdef BUILD_WITH_LLVM
+    uint32_t callCount;
+    std::unordered_map<uint32_t, std::string> m_FnJitCache;
+#endif
 };
 
 struct StructObject : public Object

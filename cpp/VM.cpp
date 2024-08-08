@@ -1,16 +1,17 @@
-#include "OpCodeVM.h"
+#include "VM.h"
 #include <iostream>
 #include "BuiltinManager.h"
-OpCodeVM::OpCodeVM()
+VM::VM()
 {
 }
 
-OpCodeVM::~OpCodeVM()
+VM::~VM()
 {
+	SAFE_DELETE(m_LLVMJit);
 	Gc(true);
 }
 
-void OpCodeVM::Run(FunctionObject *mainFn)
+void VM::Run(FunctionObject *mainFn)
 {
 	ResetStatus();
 
@@ -21,7 +22,7 @@ void OpCodeVM::Run(FunctionObject *mainFn)
 	Execute();
 }
 
-void OpCodeVM::Execute()
+void VM::Execute()
 {
 //  - * /
 #define COMMON_BINARY(op)                                                                                     \
@@ -318,12 +319,33 @@ void OpCodeVM::Execute()
 
 				if (argCount != fn->parameterCount)
 					ASSERT("Non matching function parameters for calling arguments,parameter count:%d,argument count:%d", fn->parameterCount, argCount);
+#ifdef BUILD_WITH_LLVM
+				if (fn->callCount >= JIT_TRIGGER_COUNT) 
+				{
+					size_t paramTypeHash=0;
+                    for (Value* slot = m_StackTop - fn->parameterCount; slot < m_StackTop; ++slot)
+						paramTypeHash ^= std::hash<ValueType>()(slot->type);
 
-				auto callFrame = CallFrame(fn, m_StackTop - argCount);
+					auto iter = fn->m_FnJitCache.find(paramTypeHash);
+					if (iter == fn->m_FnJitCache.end())
+					{
+						auto llvmFnName = m_LLVMJit->CompileToLLVMIR(fn, "function_" + std::to_string(paramTypeHash));
+						fn->m_FnJitCache[paramTypeHash] = llvmFnName;
+						m_LLVMJit->Run(llvmFnName);
+					}
+					else
+						m_LLVMJit->Run(iter->second);
+				}
+				else
+#endif
+				{
 
-				PushCallFrame(callFrame);
+					auto callFrame = CallFrame(fn, m_StackTop - argCount);
 
-				m_StackTop = callFrame.slot + fn->localVarCount;
+					PushCallFrame(callFrame);
+
+					m_StackTop = callFrame.slot + fn->localVarCount;
+				}
 			}
 			else if (IS_BUILTIN_VALUE(value))
 			{
@@ -527,7 +549,7 @@ void OpCodeVM::Execute()
 	}
 }
 
-void OpCodeVM::RegisterToGCRecordChain(const Value &value)
+void VM::RegisterToGCRecordChain(const Value &value)
 {
 	if (IS_OBJECT_VALUE(value) && TO_OBJECT_VALUE(value)->next == nullptr) // check is null to avoid cross-reference in vm's object record chain
 	{
@@ -543,7 +565,7 @@ void OpCodeVM::RegisterToGCRecordChain(const Value &value)
 	}
 }
 
-void OpCodeVM::ResetStatus()
+void VM::ResetStatus()
 {
 	m_CallFrameTop = m_CallFrameStack;
 	m_StackTop = m_ValueStack;
@@ -551,39 +573,41 @@ void OpCodeVM::ResetStatus()
 	m_FirstObject = nullptr;
 	m_CurObjCount = 0;
 	m_MaxObjCount = STACK_MAX;
+
+	m_LLVMJit = new LLVMJit(this);
 }
 
-void OpCodeVM::Push(const Value &value)
+void VM::Push(const Value &value)
 {
 	*m_StackTop++ = value;
 }
 
-Value OpCodeVM::Pop()
+Value VM::Pop()
 {
 	return *(--m_StackTop);
 }
 
-void OpCodeVM::PushCallFrame(const CallFrame &callFrame)
+void VM::PushCallFrame(const CallFrame &callFrame)
 {
 	*m_CallFrameTop++ = callFrame;
 }
 
-OpCodeVM::CallFrame *OpCodeVM::PopCallFrame()
+VM::CallFrame *VM::PopCallFrame()
 {
 	return --m_CallFrameTop;
 }
 
-OpCodeVM::CallFrame *OpCodeVM::PeekCallFrameFromFront(int32_t distance)
+VM::CallFrame *VM::PeekCallFrameFromFront(int32_t distance)
 {
 	return &m_CallFrameStack[distance];
 }
 
-OpCodeVM::CallFrame *OpCodeVM::PeekCallFrameFromBack(int32_t distance)
+VM::CallFrame *VM::PeekCallFrameFromBack(int32_t distance)
 {
 	return m_CallFrameTop - distance;
 }
 
-Value OpCodeVM::FindActualValue(const Value &v)
+Value VM::FindActualValue(const Value &v)
 {
 	auto value = GetEndOfRefValue(v);
 	if (IS_BUILTIN_VALUE(value) && TO_BUILTIN_VALUE(value)->Is<Value>())
@@ -591,7 +615,7 @@ Value OpCodeVM::FindActualValue(const Value &v)
 	return value;
 }
 
-Value *OpCodeVM::GetEndOfRefValue(Value *v)
+Value *VM::GetEndOfRefValue(Value *v)
 {
 	auto result = v;
 	while (IS_REF_VALUE(*result))
@@ -599,7 +623,7 @@ Value *OpCodeVM::GetEndOfRefValue(Value *v)
 	return result;
 }
 
-Value OpCodeVM::GetEndOfRefValue(const Value &v)
+Value VM::GetEndOfRefValue(const Value &v)
 {
 	auto value = v;
 	while (IS_REF_VALUE(value))
@@ -607,7 +631,7 @@ Value OpCodeVM::GetEndOfRefValue(const Value &v)
 	return value;
 }
 
-void OpCodeVM::Gc(bool isExitingVM)
+void VM::Gc(bool isExitingVM)
 {
 	auto objNum = m_CurObjCount;
 	if (!isExitingVM)
