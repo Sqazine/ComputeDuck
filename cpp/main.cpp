@@ -7,7 +7,7 @@
 #include "Compiler.h"
 #include "BuiltinManager.h"
 #include "VM.h"
-#include "OpCodeVM.h"
+#include "VM.h"
 
 PreProcessor *g_PreProcessor = nullptr;
 Parser *g_Parser = nullptr;
@@ -65,10 +65,6 @@ void Repl(std::string_view exePath)
 			return;
 		else if (line == "clear")
 			allLines.clear();
-		else if (line == "-l" || line == "--llvm")
-			g_Vm->SetInterpretFlag(InterpretFlag::LLVM);
-		else if (line == "-op" || line == "--opcode")
-			g_Vm->SetInterpretFlag(InterpretFlag::OPCODE);
 		else
 		{
 			allLines += line;
@@ -90,8 +86,6 @@ int32_t PrintUsage()
 {
 	std::cout << "Usage: ComputeDuck [option]:" << std::endl;
 	std::cout << "-h or --help:show usage info." << std::endl;
-	std::cout << "-l or --llvm:run source with llvm jit,like : ComputeDuck -l." << std::endl;
-	std::cout << "-op or --opcode:run source with opcode jit(SET AS DEFAULT!!!),like : ComputeDuck -op." << std::endl;
 	std::cout << "-f or --file:run source file with a valid file path,like : ComputeDuck -f examples/array.cd." << std::endl;
 	return EXIT_FAILURE;
 }
@@ -100,15 +94,8 @@ int32_t PrintUsage()
 int32_t main(int argc, const char **argv)
 {
 	std::string_view sourceFilePath;
-	InterpretFlag flag = InterpretFlag::OPCODE;
 	for (size_t i = 0; i < argc; ++i)
 	{
-		if (strcmp(argv[i], "-l") == 0 || strcmp(argv[i], "--llvm") == 0)
-			flag = InterpretFlag::LLVM;
-
-		if (strcmp(argv[i], "-op") == 0 || strcmp(argv[i], "--opcode") == 0)
-			flag = InterpretFlag::OPCODE;
-
 		if (strcmp(argv[i], "-f") == 0 || strcmp(argv[i], "--file") == 0)
 		{
 			if (i + 1 < argc)
@@ -125,7 +112,6 @@ int32_t main(int argc, const char **argv)
 	g_Parser = new Parser();
 	g_Compiler = new Compiler();
 	g_Vm = new VM();
-	g_Vm->SetInterpretFlag(flag);
 
 	if (!sourceFilePath.empty())
 		RunFile(sourceFilePath);

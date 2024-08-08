@@ -54,8 +54,7 @@ set(ROOT_SRC Ast.h
              Utils.h Utils.cpp
              Value.cpp Value.h
              BuiltinManager.cpp BuiltinManager.h
-             OpCodeVM.h OpCodeVM.cpp
-             VM.h
+             VM.h VM.cpp
              PreProcessor.h)
 
 add_executable(${EXE_NAME} main.cpp ${EXAMPLES})
@@ -72,7 +71,7 @@ if(COMPUTEDUCK_BUILD_WITH_LLVM)
         message(STATUS "LLVM_LIBS=${LLVM_LIBS}")
         message(STATUS "LLVM_GENERATE_DIR=${LLVM_GENERATE_DIR}")
 
-        list(APPEND ROOT_SRC LLVMJitVM.h LLVMJitVM.cpp)
+        list(APPEND ROOT_SRC LLVMJit.h LLVMJit.cpp)
 
         source_group("src" FILES ${ROOT_SRC})
         add_library(${LIB_NAME} SHARED ${ROOT_SRC})

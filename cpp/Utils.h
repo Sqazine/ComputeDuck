@@ -28,7 +28,8 @@
 #define REGISTER_BUILTIN_VALUE(x) BuiltinManager::GetInstance()->Register(#x, Value((uint64_t)x))
 #define REGISTER_BUILTIN_FN(x) BuiltinManager::GetInstance()->Register<BuiltinFn>(STR(x), BUILTIN_FN(x))
 
-#define STACK_MAX 512
+constexpr uint32_t STACK_MAX = 512;
+constexpr uint32_t JIT_TRIGGER_COUNT = 2;
 
 enum class RWState
 {
