@@ -55,39 +55,29 @@ set(ROOT_SRC Ast.h
              Value.cpp Value.h
              BuiltinManager.cpp BuiltinManager.h
              VM.h VM.cpp
-             PreProcessor.h)
+             PreProcessor.h
+             SetLLVM.cmake)
 
 add_executable(${EXE_NAME} main.cpp ${EXAMPLES})
 
 if(COMPUTEDUCK_BUILD_WITH_LLVM)
-    if(MSVC)
-        include(SetLLVM.cmake)
+    include(SetLLVM.cmake)
 
-        set(LLVM_DIR "${THIRD_PARTY_DIR}/llvm/llvm" CACHE PATH "")
-        set(LLVM_GENERATE_DIR "${CMAKE_BINARY_DIR}/3rd/llvm/llvm")
-
-        SetLLVM(${LLVM_DIR} LLVM_LIBS)
-
-        message(STATUS "LLVM_LIBS=${LLVM_LIBS}")
-        message(STATUS "LLVM_GENERATE_DIR=${LLVM_GENERATE_DIR}")
-
-        list(APPEND ROOT_SRC LLVMJit.h LLVMJit.cpp)
-
-        source_group("src" FILES ${ROOT_SRC})
-        add_library(${LIB_NAME} SHARED ${ROOT_SRC})
-
-        target_link_libraries(${LIB_NAME} PRIVATE ${LLVM_LIBS})
-        target_include_directories(${LIB_NAME} PRIVATE ${LLVM_DIR}/include ${LLVM_GENERATE_DIR}/include)
-        target_include_directories(${EXE_NAME} PRIVATE ${LLVM_DIR}/include ${LLVM_GENERATE_DIR}/include)
-
-        target_compile_definitions(${LIB_NAME} PUBLIC BUILD_WITH_LLVM)
-    elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
-        find_package(LLVM CONFIG REQUIRED)
-        target_link_libraries(${LIB_NAME} PRIVATE LLVM)
-        target_link_directories(${LIB_NAME} PUBLIC ${LLVM_LIBRARY_DIR})
-        target_include_directories(${LIB_NAME} PUBLIC ${LLVM_INCLUDE_DIRS})
-        target_compile_definitions(${LIB_NAME} PUBLIC ${LLVM_DEFINITIONS})
-    endif()
+    set(LLVM_DIR "${THIRD_PARTY_DIR}/llvm/llvm")
+    set(LLVM_GENERATE_DIR "${CMAKE_BINARY_DIR}/3rd/llvm/llvm")
+    
+    SetLLVM(${LLVM_DIR} LLVM_LIBS)
+    
+    message(STATUS "LLVM_LIBS=${LLVM_LIBS}")
+    message(STATUS "LLVM_GENERATE_DIR=${LLVM_GENERATE_DIR}")
+    
+    list(APPEND ROOT_SRC LLVMJit.h LLVMJit.cpp)
+    source_group("src" FILES ${ROOT_SRC})
+    add_library(${LIB_NAME} SHARED ${ROOT_SRC})
+    target_link_libraries(${LIB_NAME} PRIVATE ${LLVM_LIBS})
+    target_include_directories(${LIB_NAME} PRIVATE ${LLVM_DIR}/include ${LLVM_GENERATE_DIR}/include)
+    target_include_directories(${EXE_NAME} PRIVATE ${LLVM_DIR}/include ${LLVM_GENERATE_DIR}/include)
+    target_compile_definitions(${LIB_NAME} PUBLIC BUILD_WITH_LLVM)
 else()
     source_group("src" FILES ${ROOT_SRC})
     add_library(${LIB_NAME} SHARED ${ROOT_SRC})
