@@ -25,7 +25,7 @@
 #define BUILTIN_FN_PREFIX_STR STR2(BUILTIN_FN_PREFIX)
 #define BUILTIN_FN(name) STR3(BUILTIN_FN_PREFIX)##name
 
-#define REGISTER_BUILTIN_VALUE(x) BuiltinManager::GetInstance()->Register(#x, Value((uint64_t)x))
+#define REGISTER_BUILTIN_VALUE(x) BuiltinManager::GetInstance()->Register(STR(x), Value((uint64_t)x))
 #define REGISTER_BUILTIN_FN(x) BuiltinManager::GetInstance()->Register<BuiltinFn>(STR(x), BUILTIN_FN(x))
 
 constexpr uint32_t STACK_MAX = 512;
@@ -83,3 +83,5 @@ COMPUTE_DUCK_API std::string ReadFile(std::string_view path);
 COMPUTE_DUCK_API std::string PointerAddressToString(void *pointer);
 
 COMPUTE_DUCK_API void RegisterDLLs(std::string rawDllPath);
+
+std::string GenerateUUID();

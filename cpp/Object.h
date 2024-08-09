@@ -19,37 +19,28 @@
 #define TO_FUNCTION_OBJ(obj) ((FunctionObject *)obj)
 #define TO_BUILTIN_OBJ(obj) ((BuiltinObject *)obj)
 
-#define IS_STR_OBJ(obj) (obj->type == ObjectType::STR)
-#define IS_ARRAY_OBJ(obj) (obj->type == ObjectType::ARRAY)
-#define IS_STRUCT_OBJ(obj) (obj->type == ObjectType::STRUCT)
-#define IS_REF_OBJ(obj) (obj->type == ObjectType::REF)
-#define IS_FUNCTION_OBJ(obj) (obj->type == ObjectType::FUNCTION)
-#define IS_BUILTIN_OBJ(obj) (obj->type == ObjectType::BUILTIN)
+#define IS_STR_OBJ(obj) (obj->type == ValueType::STR)
+#define IS_ARRAY_OBJ(obj) (obj->type == ValueType::ARRAY)
+#define IS_STRUCT_OBJ(obj) (obj->type == ValueType::STRUCT)
+#define IS_REF_OBJ(obj) (obj->type == ValueType::REF)
+#define IS_FUNCTION_OBJ(obj) (obj->type == ValueType::FUNCTION)
+#define IS_BUILTIN_OBJ(obj) (obj->type == ValueType::BUILTIN)
 
-enum class ObjectType:uint8_t
-{
-	STR,
-	ARRAY,
-	STRUCT,
-	REF,
-	FUNCTION,
-	BUILTIN,
-};
 
 struct Object
 {
-	Object(ObjectType type): marked(false), next(nullptr), type(type){}
+	Object(ValueType type): marked(false), next(nullptr), type(type){}
 	~Object() {}
 
-	ObjectType type;
+	ValueType type;
 	bool marked;
     Object* next;
 };
 
 struct StrObject : public Object
 {
-	StrObject(char* v): Object(ObjectType::STR), value(v),len(strlen(value)){}
-	StrObject(const char* v): Object(ObjectType::STR),len(strlen(v))
+	StrObject(char* v): Object(ValueType::STR), value(v),len(strlen(value)){}
+	StrObject(const char* v): Object(ValueType::STR),len(strlen(v))
     {
         value = new char[len+1];
         strcpy(value, v);
@@ -66,7 +57,7 @@ struct StrObject : public Object
 
 struct ArrayObject : public Object
 {
-	ArrayObject(Value* eles,uint32_t len): Object(ObjectType::ARRAY), elements(eles), len(len),capacity(len) {}
+	ArrayObject(Value* eles,uint32_t len): Object(ValueType::ARRAY), elements(eles), len(len),capacity(len) {}
     ~ArrayObject(){}
 
 	Value* elements;
@@ -76,7 +67,7 @@ struct ArrayObject : public Object
 
 struct RefObject : public Object
 {
-	RefObject(Value *pointer)	: Object(ObjectType::REF), pointer(pointer){}
+	RefObject(Value *pointer)	: Object(ValueType::REF), pointer(pointer){}
 	~RefObject(){}
 
 	Value *pointer;
@@ -85,11 +76,22 @@ struct RefObject : public Object
 struct FunctionObject : public Object
 {
 	FunctionObject(Chunk chunk, uint8_t localVarCount = 0, uint8_t parameterCount = 0)
-		: Object(ObjectType::FUNCTION), chunk(chunk), localVarCount(localVarCount), parameterCount(parameterCount)
+		: Object(ValueType::FUNCTION), chunk(chunk), localVarCount(localVarCount), parameterCount(parameterCount)
 #ifdef BUILD_WITH_LLVM
-        ,callCount(0)
+        , callCount(0)
+        , uuid(GenerateUUID())
 #endif
     {}
+
+    FunctionObject()
+        : Object(ValueType::FUNCTION)
+#ifdef BUILD_WITH_LLVM
+        , callCount(0)
+        , uuid(GenerateUUID())
+#endif
+    {}
+
+
 	~FunctionObject(){}
 
 	Chunk chunk;
@@ -97,13 +99,15 @@ struct FunctionObject : public Object
 	uint8_t parameterCount;
 #ifdef BUILD_WITH_LLVM
     uint32_t callCount;
-    std::set<uint32_t> m_JitCache;
+    std::set<uint32_t> jitCache;
+    std::set<ValueType> returnTypeSet;//record function return types,some function with multiply return stmt may return mutiply types of value
+    std::string uuid;
 #endif
 };
 
 struct StructObject : public Object
 {
-	StructObject(const std::unordered_map<std::string, Value> &members)	: Object(ObjectType::STRUCT), members(members){}
+	StructObject(const std::unordered_map<std::string, Value> &members)	: Object(ValueType::STRUCT), members(members){}
 	~StructObject() {}
 
 	std::unordered_map<std::string, Value> members;
@@ -132,7 +136,7 @@ struct NativeData
 struct BuiltinObject : public Object
 {
 	BuiltinObject(void *nativeData, std::function<void(void *nativeData)> destroyFunc)
-		: Object(ObjectType::BUILTIN)
+		: Object(ValueType::BUILTIN)
 	{
 		NativeData nd;
 		nd.nativeData = nativeData;
@@ -143,7 +147,7 @@ struct BuiltinObject : public Object
 	template <typename T>
 		requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value>)
 	BuiltinObject(std::string_view name, const T &v)
-		: Object(ObjectType::BUILTIN)
+		: Object(ValueType::BUILTIN)
 	{
 		data = v;
 	}
@@ -179,12 +183,12 @@ inline std::string Stringify(Object* object
 {
 	switch (object->type)
 	{
-	case ObjectType::STR:
+	case ValueType::STR:
 	{
         auto strObj = TO_STR_OBJ(object);
 		return TO_STR_OBJ(object)->value;
 	}
-	case ObjectType::ARRAY:
+	case ValueType::ARRAY:
     {
         auto arrObj = TO_ARRAY_OBJ(object);
         std::string result = "[";
@@ -197,7 +201,7 @@ inline std::string Stringify(Object* object
         result += "]";
         return result;
     }
-	case ObjectType::STRUCT:
+	case ValueType::STRUCT:
 	{
         std::string result = "struct instance(0x" + PointerAddressToString(object) + "):\n{\n";
         for (const auto& [k, v] : TO_STRUCT_OBJ(object)->members)
@@ -206,11 +210,11 @@ inline std::string Stringify(Object* object
         result += "\n}\n";
         return result;
 	}
-    case ObjectType::REF:
+    case ValueType::REF:
     {
         return TO_REF_OBJ(object)->pointer->Stringify();
     }
-    case ObjectType::FUNCTION:
+    case ValueType::FUNCTION:
     {
         std::string result= "function(0x" + PointerAddressToString(object) + ")";
 #ifndef NDEBUG
@@ -222,7 +226,7 @@ inline std::string Stringify(Object* object
 #endif
         return result;
     }
-    case ObjectType::BUILTIN:
+    case ValueType::BUILTIN:
     {
         std::string vStr;
         if (TO_BUILTIN_OBJ(object)->Is<BuiltinFn>())
@@ -245,34 +249,34 @@ inline void Mark(Object* object)
 	object->marked = true;
     switch (object->type)
     {
-    case ObjectType::STR:
+    case ValueType::STR:
     {
 		break;
     }
-    case ObjectType::ARRAY:
+    case ValueType::ARRAY:
     {
         for (int32_t i = 0; i < TO_ARRAY_OBJ(object)->capacity; ++i)
             TO_ARRAY_OBJ(object)->elements[i].Mark();
         break;
     }
-    case ObjectType::STRUCT:
+    case ValueType::STRUCT:
     {
         for (const auto& [k, v] : TO_STRUCT_OBJ(object)->members)
             v.Mark();
 		break;
     }
-    case ObjectType::REF:
+    case ValueType::REF:
     {
 		TO_REF_OBJ(object)->pointer->Mark();
         break;
     }
-    case ObjectType::FUNCTION:
+    case ValueType::FUNCTION:
     {
         for (const auto& v : TO_FUNCTION_OBJ(object)->chunk.constants)
             v.Mark();
         break;
     }
-    case ObjectType::BUILTIN:
+    case ValueType::BUILTIN:
     {
         if (TO_BUILTIN_OBJ(object)->Is<Value>())
             TO_BUILTIN_OBJ(object)->Get<Value>().Mark();
@@ -288,34 +292,34 @@ inline void UnMark(Object* object)
 	object->marked = false;
     switch (object->type)
     {
-    case ObjectType::STR:
+    case ValueType::STR:
     {
         break;
     }
-    case ObjectType::ARRAY:
+    case ValueType::ARRAY:
     {
         for (int32_t i=0;i<TO_ARRAY_OBJ(object)->capacity;++i)
             TO_ARRAY_OBJ(object)->elements[i].UnMark();
         break;
     }
-    case ObjectType::STRUCT:
+    case ValueType::STRUCT:
     {
         for (const auto& [k, v] : TO_STRUCT_OBJ(object)->members)
             v.UnMark();
         break;
     }
-    case ObjectType::REF:
+    case ValueType::REF:
     {
 		TO_REF_OBJ(object)->pointer->UnMark();
         break;
     }
-    case ObjectType::FUNCTION:
+    case ValueType::FUNCTION:
     {
         for (const auto& v : TO_FUNCTION_OBJ(object)->chunk.constants)
             v.UnMark();
         break;
     }
-    case ObjectType::BUILTIN:
+    case ValueType::BUILTIN:
     {
         if (TO_BUILTIN_OBJ(object)->Is<Value>())
             TO_BUILTIN_OBJ(object)->Get<Value>().UnMark();
@@ -332,11 +336,11 @@ inline bool IsEqualTo(Object* left, Object* right)
 		return false;
     switch (left->type)
     {
-    case ObjectType::STR:
+    case ValueType::STR:
     {
 		return TO_STR_OBJ(left)->value == TO_STR_OBJ(right)->value;
     }
-    case ObjectType::ARRAY:
+    case ValueType::ARRAY:
     {
         if (TO_ARRAY_OBJ(left)->len != TO_ARRAY_OBJ(right)->len)
             return false;
@@ -345,7 +349,7 @@ inline bool IsEqualTo(Object* left, Object* right)
                 return false;
         return true;
     }
-    case ObjectType::STRUCT:
+    case ValueType::STRUCT:
     {
         for (const auto& [k1, v1] : TO_STRUCT_OBJ(left)->members)
         {
@@ -355,11 +359,11 @@ inline bool IsEqualTo(Object* left, Object* right)
         }
         return true;
     }
-    case ObjectType::REF:
+    case ValueType::REF:
     {
 		return *TO_REF_OBJ(left)->pointer == *TO_REF_OBJ(right)->pointer;
     }
-    case ObjectType::FUNCTION:
+    case ValueType::FUNCTION:
     {
         if (TO_FUNCTION_OBJ(left)-> chunk.opCodes.size() != TO_FUNCTION_OBJ(right)->chunk.opCodes.size())
             return false;
@@ -372,7 +376,7 @@ inline bool IsEqualTo(Object* left, Object* right)
                 return false;
         return true;
     }
-    case ObjectType::BUILTIN:
+    case ValueType::BUILTIN:
     {
         if (TO_BUILTIN_OBJ(left)->Is<NativeData>())
         {

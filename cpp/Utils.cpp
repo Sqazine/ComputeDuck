@@ -1,4 +1,7 @@
 #include "Utils.h"
+#include <random>
+#include <sstream>
+#include <iostream>
 #ifdef _WIN32
 #include <Windows.h>
 #elif __linux__
@@ -71,4 +74,18 @@ void RegisterDLLs(std::string rawDllPath)
 #elif __APPLE__
 #error "Apple platform not implement yet"
 #endif
+}
+
+std::string GenerateUUID()
+{
+    std::random_device rd;
+    std::mt19937_64 generator(rd());
+    std::uniform_int_distribution<uint64_t> dis;
+
+    uint64_t part1 = dis(generator);
+    uint64_t part2 = dis(generator);
+
+    std::ostringstream oss;
+    oss << std::hex << part1 << part2;
+    return oss.str();
 }

@@ -45,33 +45,45 @@ public:
     bool Compile(FunctionObject* fnObj,const std::string& fnName);
 
     template<typename T>
+        requires(!std::is_same_v<T, void>)
     T Run(const std::string& name)
     {
         auto rt = m_Jit->GetMainJITDylib().createResourceTracker();
+
         auto tsm = llvm::orc::ThreadSafeModule(std::move(m_Module), std::move(m_Context));
         m_ExitOnErr(m_Jit->AddModule(std::move(tsm), rt));
+        InitModuleAndPassManager();
+        
+        auto symbol = m_ExitOnErr(m_Jit->LookUp(name));
 
+        using JitFuncType = T(*)();
+        JitFuncType jitFn = reinterpret_cast<JitFuncType>(symbol.getAddress());
+
+        T v = jitFn();
+        m_ExitOnErr(rt->remove());
+        return v;
+    }
+
+    template<typename T>
+        requires(std::is_same_v<T, void>)
+    T Run(const std::string& name)
+    {
+        auto rt = m_Jit->GetMainJITDylib().createResourceTracker();
+      
+        auto tsm = llvm::orc::ThreadSafeModule(std::move(m_Module), std::move(m_Context));
+        m_ExitOnErr(m_Jit->AddModule(std::move(tsm), rt));
         InitModuleAndPassManager();
 
         auto symbol = m_ExitOnErr(m_Jit->LookUp(name));
 
-        using JitFuncType = T (*)();
+        using JitFuncType = void(*)();
         JitFuncType jitFn = reinterpret_cast<JitFuncType>(symbol.getAddress());
 
-        if (typeid(T).name() == "void")
-        {
-            jitFn();
-            m_ExitOnErr(rt->remove());
-        }
-        else
-        {
-            T v = jitFn();
-            m_ExitOnErr(rt->remove());
-            return v;
-        }
+        jitFn();
+        m_ExitOnErr(rt->remove());
     }
 
-protected:
+private:
     class OrcJit
     {
     public:
@@ -96,7 +108,6 @@ protected:
         llvm::orc::JITDylib &m_MainJD;
     };
 
-private:
     struct JumpInstrSet
     {
         llvm::BasicBlock* conditionBranch{ nullptr };

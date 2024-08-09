@@ -57,6 +57,13 @@ private:
     void LoadSymbol(const Symbol &symbol);
     void StoreSymbol(const Symbol &symbol);
 
+#ifdef BUILD_WITH_LLVM
+    void SetCurFunction(FunctionObject* fn);
+    FunctionObject* CurFunction();
+    void UnSetCurFunction();
+    FunctionObject* m_CurFunction{ nullptr };
+#endif
+
     std::vector<Chunk> m_ScopeChunks;
 
     SymbolTable *m_SymbolTable{nullptr};

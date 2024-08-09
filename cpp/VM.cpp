@@ -326,23 +326,51 @@ void VM::Execute()
                     for (Value* slot = m_StackTop - fn->parameterCount; slot < m_StackTop; ++slot)
 						paramTypeHash ^= std::hash<ValueType>()(slot->type);
 
-					auto fnName = "function_" + std::to_string(paramTypeHash);
+					auto fnName = "function_" + fn->uuid + "_" + std::to_string(paramTypeHash);
 
-					auto iter = fn->m_JitCache.find(paramTypeHash);
-					if (iter == fn->m_JitCache.end())
+					auto iter = fn->jitCache.find(paramTypeHash);
+					if (iter == fn->jitCache.end() && fn->returnTypeSet.size() < 2)
 					{
-						fn->m_JitCache.insert(paramTypeHash);
+						fn->jitCache.insert(paramTypeHash);
 						auto success=m_LLVMJit->Compile(fn, fnName);
 						if (!success)
 						{
                             auto callFrame = CallFrame(fn, m_StackTop - argCount);
                             PushCallFrame(callFrame);
                             m_StackTop = callFrame.slot + fn->localVarCount;
+							break;
 						}
 					}
-					auto v = m_LLVMJit->Run<double>(fnName);
-					m_StackTop -= argCount + 1;
-					Push(v);
+
+					if (fn->returnTypeSet.size() == 1 && fn->returnTypeSet.contains(ValueType::NUM))
+					{
+						auto v = m_LLVMJit->Run<double>(fnName);
+						m_StackTop -= argCount + 1;
+						Push(v);
+					}
+					else if (fn->returnTypeSet.size() == 1 && fn->returnTypeSet.contains(ValueType::NIL))
+					{
+                        auto v = m_LLVMJit->Run<bool*>(fnName);
+                        m_StackTop -= argCount + 1;
+						Push(Value());
+					}
+                    else if (fn->returnTypeSet.size() == 1 && fn->returnTypeSet.contains(ValueType::BOOL))
+                    {
+                        auto v = m_LLVMJit->Run<bool>(fnName);
+                        m_StackTop -= argCount + 1;
+                        Push(v);
+                    }
+                    else if (fn->returnTypeSet.size() == 1 && fn->returnTypeSet.contains(ValueType::STR))
+                    {
+                        auto v = m_LLVMJit->Run<char*>(fnName);
+                        m_StackTop -= argCount + 1;
+                        Push(CreateObject<StrObject>(v));
+                    }
+                    else
+                    {
+                        m_LLVMJit->Run<void>(fnName);
+                        m_StackTop -= argCount + 1;
+                    }
 				}
 				else
 #endif

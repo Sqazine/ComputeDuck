@@ -73,6 +73,8 @@ LLVMJit::LLVMJit(VM *vm)
     llvm::InitializeNativeTargetAsmParser();
 
     m_Jit = OrcJit::Create();
+
+    InitModuleAndPassManager();
 }
 
 LLVMJit::~LLVMJit()
@@ -89,7 +91,7 @@ void LLVMJit::ResetStatus()
 
     m_StackTop = m_ValueStack;
 
-    InitModuleAndPassManager();
+    //InitModuleAndPassManager();
 }
 
 bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
@@ -118,7 +120,18 @@ bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
             paramTypes.push_back(m_Int8PtrType);
     }
 
-    llvm::FunctionType *fnType = llvm::FunctionType::get(m_DoubleType, paramTypes, false);
+    llvm::FunctionType* fnType = nullptr;
+    if (fnObj->returnTypeSet.size() == 0)
+        fnType=llvm::FunctionType::get(m_VoidType, paramTypes, false);
+    else if(fnObj->returnTypeSet.contains(ValueType::NUM))
+        fnType=llvm::FunctionType::get(m_DoubleType, paramTypes, false);
+    else if (fnObj->returnTypeSet.contains(ValueType::NIL))
+        fnType = llvm::FunctionType::get(m_BoolPtrType, paramTypes, false);
+    else if (fnObj->returnTypeSet.contains(ValueType::BOOL))
+        fnType = llvm::FunctionType::get(m_BoolType, paramTypes, false);
+    else if (fnObj->returnTypeSet.contains(ValueType::STR))
+        fnType = llvm::FunctionType::get(m_Int8PtrType, paramTypes, false);
+
     llvm::Function *fn = llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, fnName.c_str(), m_Module.get());
     llvm::BasicBlock *codeBlock = llvm::BasicBlock::Create(*m_Context, fnName + ".entry", fn);
     m_Builder->SetInsertPoint(codeBlock);
@@ -137,41 +150,43 @@ bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
 
             if (IS_NUM_VALUE(value))
             {
-                llvm::Value *alloc = llvm::ConstantFP::get(m_DoubleType, TO_NUM_VALUE(value));
+                llvm::Value* alloc = llvm::ConstantFP::get(m_DoubleType, TO_NUM_VALUE(value));
                 Push(alloc);
             }
             else if (IS_BOOL_VALUE(value))
             {
-                llvm::Value *alloc = llvm::ConstantInt::get(m_BoolType, TO_BOOL_VALUE(value));
+                llvm::Value* alloc = llvm::ConstantInt::get(m_BoolType, TO_BOOL_VALUE(value));
                 Push(alloc);
             }
             else if (IS_NIL_VALUE(value))
             {
-                llvm::Value *alloc = llvm::ConstantPointerNull::get(m_BoolPtrType);
+                llvm::Value* alloc = llvm::ConstantPointerNull::get(m_BoolPtrType);
                 Push(alloc);
             }
             else if (IS_STR_VALUE(value))
             {
                 auto str = TO_STR_VALUE(value)->value;
-                llvm::Value *chars = m_Builder->CreateGlobalString(str);
+                llvm::Value* chars = m_Builder->CreateGlobalString(str);
                 Push(chars);
             }
-            // else if (IS_FUNCTION_VALUE(value))
-            //{
-            //     auto parenetFn = m_Builder->GetInsertBlock()->getParent();
+            else
+            {
+                ERROR("Unsupported value type:%d", value.type);
+                return false;
+            }
+            /*else if (IS_FUNCTION_VALUE(value))
+            {
+                auto parenetFn = m_Builder->GetInsertBlock()->getParent();
 
-            //    auto newFnObj = TO_FUNCTION_VALUE(value);
+                auto newFnObj = TO_FUNCTION_VALUE(value);
 
-            //    static int32_t idx = 0;
+                auto newFnName = "function_" + newFnObj->uuid + "_" + std::to_string(paramTypeHash);
 
-            //    llvm::FunctionType* newFnType = llvm::FunctionType::get(llvm::Type::getVoidTy(*m_Context), false);
+                auto newFn = Compile(newFnObj, "fn." + std::to_string(idx));
 
-            //    auto newFn = CompileToLLVMIR(newFnObj, newFnType,"fn." + std::to_string(idx));
-            //    Push(newFn);
-
-            //    auto block = &parenetFn->getBasicBlockList().back();
-            //    m_Builder->SetInsertPoint(block);
-            //}
+                auto block = &parenetFn->getBasicBlockList().back();
+                m_Builder->SetInsertPoint(block);
+            }*/
 
             break;
         }
@@ -824,7 +839,7 @@ void LLVMJit::InitModuleAndPassManager()
 {
     m_Context = std::make_unique<llvm::LLVMContext>();
 
-    m_Module = std::make_unique<llvm::Module>(BuiltinManager::GetInstance()->GetExecuteFilePath(), *m_Context);
+    m_Module = std::make_unique<llvm::Module>("ComputeDuck LLVM JIT", *m_Context);
     m_Module->setDataLayout(m_Jit->GetDataLayout());
 
     m_Builder = std::make_unique<llvm::IRBuilder<>>(*m_Context);
@@ -924,7 +939,7 @@ llvm::Value *LLVMJit::CreateCDValue(llvm::Value *v)
 
                 {
                     auto objctTypeVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, {m_Builder->getInt32(0), m_Builder->getInt32(0)});
-                    m_Builder->CreateStore(m_Builder->getInt8(std::underlying_type<ObjectType>::type(ObjectType::STR)), objctTypeVar);
+                    m_Builder->CreateStore(m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::STR)), objctTypeVar);
 
                     auto markedVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, {m_Builder->getInt32(0), m_Builder->getInt32(1)});
                     m_Builder->CreateStore(m_Builder->getInt1(0), markedVar);
@@ -957,7 +972,7 @@ llvm::Value *LLVMJit::CreateCDValue(llvm::Value *v)
 
                 {
                     auto objctTypeVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, {m_Builder->getInt32(0), m_Builder->getInt32(0)});
-                    m_Builder->CreateStore(m_Builder->getInt8(std::underlying_type<ObjectType>::type(ObjectType::ARRAY)), objctTypeVar);
+                    m_Builder->CreateStore(m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::ARRAY)), objctTypeVar);
 
                     auto markedVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, {m_Builder->getInt32(0), m_Builder->getInt32(1)});
                     m_Builder->CreateStore(m_Builder->getInt1(0), markedVar);
