@@ -7,7 +7,7 @@
 #define IS_NIL_VALUE(v) ((v).type == ValueType::NIL)
 #define IS_NUM_VALUE(v) ((v).type == ValueType::NUM)
 #define IS_BOOL_VALUE(v) ((v).type == ValueType::BOOL)
-#define IS_OBJECT_VALUE(v) ((v).type == ValueType::OBJECT)
+#define IS_OBJECT_VALUE(v) ((v).type >= ValueType::OBJECT)
 #define IS_STR_VALUE(v) (IS_OBJECT_VALUE(v) && IS_STR_OBJ((v).object))
 #define IS_ARRAY_VALUE(v) (IS_OBJECT_VALUE(v) && IS_ARRAY_OBJ((v).object))
 #define IS_STRUCT(v) (IS_OBJECT_VALUE(v) && IS_STRUCT_OBJ((v).object))
@@ -33,6 +33,12 @@ enum class ValueType : uint8_t
 	NUM,
 	BOOL,
 	OBJECT,
+    STR,
+    ARRAY,
+    STRUCT,
+    REF,
+    FUNCTION,
+    BUILTIN,
 };
 
 struct COMPUTE_DUCK_API Value

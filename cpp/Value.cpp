@@ -34,6 +34,12 @@ std::string Value::Stringify() const
 	case ValueType::BOOL:
 		return stored == 1.0 ? "true" : "false";
 	case ValueType::OBJECT:
+    case ValueType::STR:
+    case ValueType::ARRAY:
+    case ValueType::STRUCT:
+    case ValueType::REF:
+    case ValueType::FUNCTION:
+	case ValueType::BUILTIN:
 		return ::Stringify(object);
 	default:
 		return "nil";
