@@ -42,12 +42,6 @@ function(SetLLVM llvmDir llvmlibs)
         X86Desc
         X86Info
         X86TargetMCA
-        AArch64CodeGen
-        AArch64AsmParser
-        AArch64Disassembler
-        AArch64Desc
-        AArch64Info
-        AArch64Utils
     )
     
     llvm_map_components_to_libnames(llvm_libs ${LLVM_LINK_COMPONENTS})
