@@ -65,9 +65,14 @@ llvm::Expected<llvm::JITEvaluatedSymbol> LLVMJit::OrcJit::LookUp(llvm::StringRef
     return m_Es->lookup({&m_MainJD}, m_Mangle(name.str()));
 }
 
-LLVMJit::LLVMJit(VM* vm)
-    :m_VM(vm)
+LLVMJit::LLVMJit(VM *vm)
+    : m_VM(vm)
 {
+    llvm::InitializeNativeTarget();
+    llvm::InitializeNativeTargetAsmPrinter();
+    llvm::InitializeNativeTargetAsmParser();
+
+    m_Jit = OrcJit::Create();
 }
 
 LLVMJit::~LLVMJit()
@@ -75,47 +80,19 @@ LLVMJit::~LLVMJit()
     m_VM = nullptr;
 }
 
-void LLVMJit::Run(const std::string& name)
-{
-    // run jit
-    {
-        auto rt = m_Jit->GetMainJITDylib().createResourceTracker();
-        auto tsm = llvm::orc::ThreadSafeModule(std::move(m_Module), std::move(m_Context));
-        m_ExitOnErr(m_Jit->AddModule(std::move(tsm), rt));
-
-        InitModuleAndPassManager();
-
-
-        auto symbol = m_ExitOnErr(m_Jit->LookUp(name));
-
-        using JitFuncType = void (*)();
-
-        JitFuncType fp = reinterpret_cast<JitFuncType>(symbol.getAddress());
-        fp();
-        m_ExitOnErr(rt->remove());
-
-    }
-}
-
 void LLVMJit::ResetStatus()
 {
     m_BuiltinFnCache.clear();
 
-    for (auto& g : m_GlobalVariables)
+    for (auto &g : m_GlobalVariables)
         g = nullptr;
 
     m_StackTop = m_ValueStack;
 
-    llvm::InitializeNativeTarget();
-    llvm::InitializeNativeTargetAsmPrinter();
-    llvm::InitializeNativeTargetAsmParser();
-
-    m_Jit = OrcJit::Create();
-
     InitModuleAndPassManager();
 }
 
-std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fnName)
+bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
 {
     ResetStatus();
 
@@ -132,11 +109,8 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
 
     State state = State::IF_CONDITION;
 
-
-    auto stackTop = m_VM->m_StackTop - fnObj->parameterCount;
-
-    std::vector<llvm::Type*> paramTypes;
-    for (Value* slot = m_VM->m_StackTop - fnObj->parameterCount; slot < m_VM->m_StackTop; ++slot)
+    std::vector<llvm::Type *> paramTypes;
+    for (Value *slot = m_VM->m_StackTop - fnObj->parameterCount; slot < m_VM->m_StackTop; ++slot)
     {
         if (IS_NUM_VALUE(*slot))
             paramTypes.push_back(m_DoubleType);
@@ -144,14 +118,14 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
             paramTypes.push_back(m_Int8PtrType);
     }
 
-    llvm::FunctionType* fnType = llvm::FunctionType::get(m_Int32Type,paramTypes,false);
-    llvm::Function* fn = llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, fnName.c_str(), m_Module.get());
-    llvm::BasicBlock* codeBlock = llvm::BasicBlock::Create(*m_Context, fnName+".entry", fn);
+    llvm::FunctionType *fnType = llvm::FunctionType::get(m_DoubleType, paramTypes, false);
+    llvm::Function *fn = llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, fnName.c_str(), m_Module.get());
+    llvm::BasicBlock *codeBlock = llvm::BasicBlock::Create(*m_Context, fnName + ".entry", fn);
     m_Builder->SetInsertPoint(codeBlock);
 
-    auto ip =fnObj->chunk.opCodes.data();
+    auto ip = fnObj->chunk.opCodes.data();
 
-    while ((ip - fnObj->chunk.opCodes.data())<fnObj->chunk.opCodes.size())
+    while ((ip - fnObj->chunk.opCodes.data()) < fnObj->chunk.opCodes.size())
     {
         int32_t instruction = *ip++;
         switch (instruction)
@@ -182,9 +156,9 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
                 llvm::Value *chars = m_Builder->CreateGlobalString(str);
                 Push(chars);
             }
-            //else if (IS_FUNCTION_VALUE(value))
+            // else if (IS_FUNCTION_VALUE(value))
             //{
-            //    auto parenetFn = m_Builder->GetInsertBlock()->getParent();
+            //     auto parenetFn = m_Builder->GetInsertBlock()->getParent();
 
             //    auto newFnObj = TO_FUNCTION_VALUE(value);
 
@@ -245,7 +219,10 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
                 }
             }
             else
-                ASSERT("Invalid binary op:%s + %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                ERROR("Invalid binary op:%s + %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                return false;
+            }
 
             break;
         }
@@ -256,7 +233,10 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFSub(left, right));
             else
-                ASSERT("Invalid binary op:%s - %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                ERROR("Invalid binary op:%s - %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                return false;
+            }
             break;
         }
         case OP_MUL:
@@ -266,7 +246,10 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFMul(left, right));
             else
-                ASSERT("Invalid binary op:%s * %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                ERROR("Invalid binary op:%s * %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                return false;
+            }
             break;
         }
         case OP_DIV:
@@ -276,7 +259,10 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFDiv(left, right));
             else
-                ASSERT("Invalid binary op:%s / %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                ERROR("Invalid binary op:%s / %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                return false;
+            }
             break;
         }
         case OP_LESS:
@@ -286,7 +272,10 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFCmpULT(left, right));
             else
-                ASSERT("Invalid binary op:%s < %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                ERROR("Invalid binary op:%s < %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                return false;
+            }
             break;
         }
         case OP_GREATER:
@@ -296,7 +285,10 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFCmpUGT(left, right));
             else
-                ASSERT("Invalid binary op:%s > %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                ERROR("Invalid binary op:%s > %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                return false;
+            }
             break;
         }
         case OP_NOT:
@@ -305,7 +297,10 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
             if (value->getType() == m_BoolType)
                 Push(m_Builder->CreateNot(value));
             else
-                ASSERT("Invalid binary op:not %s.", GetTypeName(value->getType()).c_str());
+            {
+                ERROR("Invalid binary op:not %s.", GetTypeName(value->getType()).c_str());
+                return false;
+            }
             break;
         }
         case OP_MINUS:
@@ -314,60 +309,66 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
             if (value->getType() == m_DoubleType)
                 Push(m_Builder->CreateNeg(value));
             else
-                ASSERT("Invalid binary op:- %s.", GetTypeName(value->getType()).c_str());
+            {
+                ERROR("Invalid binary op:- %s.", GetTypeName(value->getType()).c_str());
+                return false;
+            }
             break;
         }
         case OP_EQUAL:
         {
             auto left = Pop();
             auto right = Pop();
-            if (left->getType() == right->getType()) 
+            if (left->getType() == right->getType())
             {
                 if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                     Push(m_Builder->CreateFCmpUEQ(left, right));
                 else if (left->getType() == m_BoolType && right->getType() == m_BoolType)
-                    Push(m_Builder->CreateICmpEQ(left,right));
+                    Push(m_Builder->CreateICmpEQ(left, right));
                 else if (left->getType()->isPointerTy() && right->getType()->isPointerTy())
                 {
-                    auto leftPtrType = static_cast<llvm::PointerType*>(left->getType());
-                    auto rightPtrType = static_cast<llvm::PointerType*>(right->getType());
+                    auto leftPtrType = static_cast<llvm::PointerType *>(left->getType());
+                    auto rightPtrType = static_cast<llvm::PointerType *>(right->getType());
 
                     if (leftPtrType->getElementType()->isArrayTy() && rightPtrType->getElementType()->isArrayTy())
                     {
-                        auto leftArrayType = static_cast<llvm::ArrayType*>(leftPtrType->getElementType());
-                        auto rightArrayType = static_cast<llvm::ArrayType*>(rightPtrType->getElementType());
+                        auto leftArrayType = static_cast<llvm::ArrayType *>(leftPtrType->getElementType());
+                        auto rightArrayType = static_cast<llvm::ArrayType *>(rightPtrType->getElementType());
                         if (leftArrayType->getElementType() == m_Int8Type && rightArrayType->getElementType() == m_Int8Type)
                         {
                             // convert chars[] to i8*
-                            auto leftCharsPtr = m_Builder->CreateInBoundsGEP(leftArrayType, left, { m_Builder->getInt64(0), m_Builder->getInt64(0) });
-                            auto rightCharsPtr = m_Builder->CreateInBoundsGEP(rightArrayType, right, { m_Builder->getInt64(0), m_Builder->getInt64(0) });
+                            auto leftCharsPtr = m_Builder->CreateInBoundsGEP(leftArrayType, left, {m_Builder->getInt64(0), m_Builder->getInt64(0)});
+                            auto rightCharsPtr = m_Builder->CreateInBoundsGEP(rightArrayType, right, {m_Builder->getInt64(0), m_Builder->getInt64(0)});
 
-                            auto fnType = llvm::FunctionType::get(m_Int32Type, { m_Int8PtrType, m_Int8PtrType }, false);
-                            auto fn = AddBuiltinFnOrCallParamAttributes(llvm::Function::Create(fnType, llvm::Function::ExternalLinkage,"strcmp", m_Module.get()));
+                            auto fnType = llvm::FunctionType::get(m_Int32Type, {m_Int8PtrType, m_Int8PtrType}, false);
+                            auto fn = AddBuiltinFnOrCallParamAttributes(llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, "strcmp", m_Module.get()));
 
-                            auto result = m_Builder->CreateCall(fn, {leftCharsPtr,rightCharsPtr});
+                            auto result = m_Builder->CreateCall(fn, {leftCharsPtr, rightCharsPtr});
 
-                            Push(m_Builder->CreateICmpEQ(result, llvm::ConstantInt::get(m_Int32Type,0)));
+                            Push(m_Builder->CreateICmpEQ(result, llvm::ConstantInt::get(m_Int32Type, 0)));
                         }
                     }
                 }
             }
             else
-                ASSERT("Invalid binary op:%s == %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                ERROR("Invalid binary op:%s == %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                return false;
+            }
             break;
         }
         case OP_ARRAY:
         {
             auto numElements = *ip++;
 
-            auto elements = std::vector<llvm::Value*>(numElements);
+            auto elements = std::vector<llvm::Value *>(numElements);
 
             int32_t i = numElements - 1;
-            for (llvm::Value** p = m_StackTop - 1; p >= m_StackTop - numElements && i >= 0; --p, --i)
+            for (llvm::Value **p = m_StackTop - 1; p >= m_StackTop - numElements && i >= 0; --p, --i)
             {
                 if ((*p)->getType() != m_ValuePtrType)
                 {
-                    llvm::Value* arg = CreateCDValue(*p);
+                    llvm::Value *arg = CreateCDValue(*p);
                     elements[i] = arg;
                 }
                 else
@@ -375,9 +376,9 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
             }
 
             auto arrayType = llvm::ArrayType::get(m_ValueType, numElements);
-            llvm::Value* alloc = m_Builder->CreateAlloca(arrayType);
+            llvm::Value *alloc = m_Builder->CreateAlloca(arrayType);
 
-            llvm::Value* memberAddr = m_Builder->CreateInBoundsGEP(arrayType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
+            llvm::Value *memberAddr = m_Builder->CreateInBoundsGEP(arrayType, alloc, {m_Builder->getInt32(0), m_Builder->getInt32(0)});
 
             for (auto i = 0; i < elements.size(); ++i)
             {
@@ -385,12 +386,12 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
                     m_Builder->CreateMemCpy(memberAddr, llvm::MaybeAlign(8), elements[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
                 else
                 {
-                    llvm::Value* argIMemberAddr = m_Builder->CreateInBoundsGEP(arrayType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(i) });
+                    llvm::Value *argIMemberAddr = m_Builder->CreateInBoundsGEP(arrayType, alloc, {m_Builder->getInt32(0), m_Builder->getInt32(i)});
                     m_Builder->CreateMemCpy(argIMemberAddr, llvm::MaybeAlign(8), elements[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
                 }
             }
 
-            //alloc = CreateCDValue(alloc);
+            // alloc = CreateCDValue(alloc);
 
             m_StackTop -= numElements;
 
@@ -404,7 +405,10 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
             if (left->getType() == m_BoolType && right->getType() == m_BoolType)
                 Push(m_Builder->CreateLogicalAnd(left, right));
             else
-                ASSERT("Invalid binary op:%s and %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                ERROR("Invalid binary op:%s and %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                return false;
+            }
             break;
         }
         case OP_OR:
@@ -414,7 +418,10 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
             if (left->getType() == m_BoolType && right->getType() == m_BoolType)
                 Push(m_Builder->CreateLogicalAnd(left, right));
             else
-                ASSERT("Invalid binary op:%s or %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                ERROR("Invalid binary op:%s or %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                return false;
+            }
             break;
         }
         case OP_BIT_AND:
@@ -429,7 +436,10 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
                 Push(result);
             }
             else
-                ASSERT("Invalid binary op:%s & %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                ERROR("Invalid binary op:%s & %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                return false;
+            }
             break;
         }
         case OP_BIT_OR:
@@ -444,7 +454,10 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
                 Push(result);
             }
             else
-                ASSERT("Invalid binary op:%s | %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                ERROR("Invalid binary op:%s | %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                return false;
+            }
             break;
         }
         case OP_BIT_NOT:
@@ -456,7 +469,10 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
                 Push(m_Builder->CreateXor(value, -1));
             }
             else
-                ASSERT("Invalid binary op:~ %s.", GetTypeName(value->getType()).c_str());
+            {
+                ERROR("Invalid binary op:~ %s.", GetTypeName(value->getType()).c_str());
+                return false;
+            }
             break;
         }
         case OP_BIT_XOR:
@@ -471,7 +487,10 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
                 Push(result);
             }
             else
-                ASSERT("Invalid binary op:%s ^ %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                ERROR("Invalid binary op:%s ^ %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                return false;
+            }
             break;
         }
         case OP_GET_INDEX:
@@ -483,24 +502,27 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
 
             if (ds->getType()->isPointerTy())
             {
-                auto vArrayType = static_cast<llvm::PointerType*>(ds->getType())->getElementType();
+                auto vArrayType = static_cast<llvm::PointerType *>(ds->getType())->getElementType();
                 if (vArrayType->isArrayTy())
                 {
                     if (index->getType() == m_DoubleType)
                     {
                         isSatis = true;
 
-                        auto iIndex = m_Builder->CreateFPToSI(index,m_Int64Type);
+                        auto iIndex = m_Builder->CreateFPToSI(index, m_Int64Type);
 
-                        llvm::Value* memberAddr = m_Builder->CreateInBoundsGEP(vArrayType, ds, { m_Builder->getInt32(0), iIndex });
+                        llvm::Value *memberAddr = m_Builder->CreateInBoundsGEP(vArrayType, ds, {m_Builder->getInt32(0), iIndex});
 
                         Push(memberAddr);
                     }
                 }
             }
 
-            if(!isSatis)
-                ASSERT("Invalid index op: %s[%s]", GetTypeName(ds->getType()), GetTypeName(index->getType()));
+            if (!isSatis)
+            {
+                ERROR("Invalid index op: %s[%s]", GetTypeName(ds->getType()), GetTypeName(index->getType()));
+                return false;
+            }
 
             break;
         }
@@ -510,13 +532,13 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
         }
         case OP_JUMP_START:
         {
-            auto mode=*ip++;
+            auto mode = *ip++;
 
             auto fn = m_Builder->GetInsertBlock()->getParent();
             auto curAddress = ip - fnObj->chunk.opCodes.data();
             JumpInstrSet instrSet;
-    
-            if(mode == JumpMode::IF)
+
+            if (mode == JumpMode::IF)
             {
                 instrSet.conditionBranch = llvm::BasicBlock::Create(*m_Context, "jumpInstr.condition." + std::to_string(curAddress), fn);
                 instrSet.bodyBranch = llvm::BasicBlock::Create(*m_Context, "jumpInstr.body." + std::to_string(curAddress), fn);
@@ -549,11 +571,11 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
         {
             auto address = *ip++;
             auto mode = *ip++;
-            
+
             auto condition = Pop();
             auto conditionValue = m_Builder->CreateICmpEQ(condition, llvm::ConstantInt::get(m_BoolType, true));
-            auto& instrSet = m_JumpInstrSetTable.back();
-            if (mode == JumpMode::IF) 
+            auto &instrSet = m_JumpInstrSetTable.back();
+            if (mode == JumpMode::IF)
             {
                 m_Builder->CreateCondBr(conditionValue, instrSet.bodyBranch, instrSet.elseBranch);
 
@@ -574,7 +596,7 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
             auto address = *ip++;
             auto mode = *ip++;
 
-            auto& instrSet = m_JumpInstrSetTable.back();
+            auto &instrSet = m_JumpInstrSetTable.back();
             if (instrSet.endBranch->getParent() == nullptr)
             {
                 // set endBranch parent
@@ -582,7 +604,7 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
                 fn->getBasicBlockList().push_back(instrSet.endBranch);
             }
 
-            if (mode == JumpMode::IF) 
+            if (mode == JumpMode::IF)
             {
                 if (state == State::IF_BODY)
                     m_Builder->CreateBr(instrSet.endBranch);
@@ -603,7 +625,7 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
         }
         case OP_JUMP_END:
         {
-            auto& br = m_JumpInstrSetTable.back();
+            auto &br = m_JumpInstrSetTable.back();
             // set endBranch parent
             if (br.endBranch->getParent() == nullptr)
             {
@@ -612,7 +634,7 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
             }
 
             if (state == State::IF_ELSE)
-                m_Builder->CreateBr(br.endBranch);// create jump br for else branch;
+                m_Builder->CreateBr(br.endBranch); // create jump br for else branch;
 
             m_Builder->SetInsertPoint(br.endBranch);
             state = State::IF_END;
@@ -644,7 +666,7 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
             auto index = *ip++;
             auto v = Pop();
 
-            auto& ref = m_GlobalVariables[index];
+            auto &ref = m_GlobalVariables[index];
 
             if (ref == nullptr || ref->getType() != v->getType())
             {
@@ -654,7 +676,7 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
                 ref = alloc;
             }
             else
-                m_Builder->CreateStore(v,ref);
+                m_Builder->CreateStore(v, ref);
 
             break;
         }
@@ -666,8 +688,8 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
 
             if (stored->getType()->isPointerTy())
             {
-                auto ptrType = static_cast<llvm::PointerType*>(stored->getType());
-                auto v = m_Builder->CreateLoad(ptrType->getElementType(),stored);
+                auto ptrType = static_cast<llvm::PointerType *>(stored->getType());
+                auto v = m_Builder->CreateLoad(ptrType->getElementType(), stored);
                 Push(v);
             }
 
@@ -692,7 +714,7 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
             // builtin function type
             if (elemType == m_BuiltinFunctionType)
             {
-                std::vector<llvm::Value*> argsV;
+                std::vector<llvm::Value *> argsV;
                 for (auto slot = m_StackTop - argCount; slot != m_StackTop; ++slot)
                 {
                     if ((*slot)->getType() != m_ValuePtrType)
@@ -704,7 +726,7 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
                 auto valueArrayType = llvm::ArrayType::get(m_ValueType, argsV.size());
 
                 auto arg0 = m_Builder->CreateAlloca(valueArrayType);
-                llvm::Value* arg0MemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
+                llvm::Value *arg0MemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, {m_Builder->getInt32(0), m_Builder->getInt32(0)});
 
                 for (auto i = 0; i < argsV.size(); ++i)
                 {
@@ -712,16 +734,16 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
                         m_Builder->CreateMemCpy(arg0MemberAddr, llvm::MaybeAlign(8), argsV[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
                     else
                     {
-                        llvm::Value* argIMemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, { m_Builder->getInt32(0), m_Builder->getInt32(i) });
+                        llvm::Value *argIMemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, {m_Builder->getInt32(0), m_Builder->getInt32(i)});
                         m_Builder->CreateMemCpy(argIMemberAddr, llvm::MaybeAlign(8), argsV[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
                     }
                 }
 
-                llvm::Value* arg1 = m_Builder->getInt8(argsV.size());
+                llvm::Value *arg1 = m_Builder->getInt8(argsV.size());
 
                 auto result = m_Builder->CreateAlloca(m_ValueType, nullptr);
 
-                auto callInst = AddBuiltinFnOrCallParamAttributes(m_Builder->CreateCall(fn, { arg0MemberAddr, arg1, result }));
+                auto callInst = AddBuiltinFnOrCallParamAttributes(m_Builder->CreateCall(fn, {arg0MemberAddr, arg1, result}));
 
                 Push(result);
             }
@@ -789,16 +811,13 @@ std::string LLVMJit::CompileToLLVMIR(FunctionObject* fnObj,const std::string& fn
 
     fn->print(llvm::errs());
 
-    // run function opt pass
-    {
-        auto b = llvm::verifyFunction(*fn);
-        m_FPM->run(*fn);
-    }
+    llvm::verifyFunction(*fn);
+    m_FPM->run(*fn);
 
     m_Jit->AddModule(llvm::orc::ThreadSafeModule(std::move(m_Module), std::move(m_Context)));
     InitModuleAndPassManager();
 
-    return fn->getName().str();
+    return true;
 }
 
 void LLVMJit::InitModuleAndPassManager()
@@ -846,8 +865,8 @@ void LLVMJit::InitModuleAndPassManager()
 
         m_StrObjectType = llvm::StructType::create(*m_Context, {m_ObjectType, m_Int8PtrType, m_Int32Type}, "struct.StrObject");
         m_StrObjectPtrType = llvm::PointerType::get(m_StrObjectType, 0);
-       
-        m_ArrayObjectType = llvm::StructType::create(*m_Context,{m_ObjectType,m_ValuePtrType,m_Int32Type},"struct.ArrayObject");
+
+        m_ArrayObjectType = llvm::StructType::create(*m_Context, {m_ObjectType, m_ValuePtrType, m_Int32Type}, "struct.ArrayObject");
         m_ArrayObjectPtrType = llvm::PointerType::get(m_ArrayObjectType, 0);
 
         m_BuiltinFunctionType = llvm::FunctionType::get(m_BoolType, {m_ValuePtrType, m_Int8Type, m_ValuePtrType}, false);
@@ -899,7 +918,7 @@ llvm::Value *LLVMJit::CreateCDValue(llvm::Value *v)
                 // convert chars[] to i8*
                 auto charsPtr = m_Builder->CreateInBoundsGEP(vArrayType, v, {m_Builder->getInt64(0), m_Builder->getInt64(0)});
 
-                //create str object
+                // create str object
                 auto strObject = m_Builder->CreateAlloca(m_StrObjectType, nullptr);
                 auto base = m_Builder->CreateBitCast(strObject, m_ObjectPtrType);
 
@@ -930,27 +949,27 @@ llvm::Value *LLVMJit::CreateCDValue(llvm::Value *v)
                 type = m_ObjectPtrPtrType;
 
                 // convert Value[] to Value*
-                auto valuesPtr = m_Builder->CreateInBoundsGEP(vArrayType, v, { m_Builder->getInt64(0), m_Builder->getInt64(0) });
+                auto valuesPtr = m_Builder->CreateInBoundsGEP(vArrayType, v, {m_Builder->getInt64(0), m_Builder->getInt64(0)});
 
-                //create array object
+                // create array object
                 auto arrayObject = m_Builder->CreateAlloca(m_ArrayObjectType, nullptr);
                 auto base = m_Builder->CreateBitCast(arrayObject, m_ObjectPtrType);
 
                 {
-                    auto objctTypeVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
+                    auto objctTypeVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, {m_Builder->getInt32(0), m_Builder->getInt32(0)});
                     m_Builder->CreateStore(m_Builder->getInt8(std::underlying_type<ObjectType>::type(ObjectType::ARRAY)), objctTypeVar);
 
-                    auto markedVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
+                    auto markedVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, {m_Builder->getInt32(0), m_Builder->getInt32(1)});
                     m_Builder->CreateStore(m_Builder->getInt1(0), markedVar);
 
-                    auto nextVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, { m_Builder->getInt32(0), m_Builder->getInt32(2) });
+                    auto nextVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, {m_Builder->getInt32(0), m_Builder->getInt32(2)});
                     m_Builder->CreateStore(llvm::ConstantPointerNull::get(m_ObjectPtrType), nextVar);
 
-                    auto valuePtr = m_Builder->CreateInBoundsGEP(m_ArrayObjectType, arrayObject, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
+                    auto valuePtr = m_Builder->CreateInBoundsGEP(m_ArrayObjectType, arrayObject, {m_Builder->getInt32(0), m_Builder->getInt32(1)});
                     m_Builder->CreateStore(valuesPtr, valuePtr);
 
-                    auto len = m_Builder->CreateInBoundsGEP(m_ArrayObjectType, arrayObject, { m_Builder->getInt32(0), m_Builder->getInt32(2) });
-                    m_Builder->CreateStore(m_Builder->getInt32(numCount), len); 
+                    auto len = m_Builder->CreateInBoundsGEP(m_ArrayObjectType, arrayObject, {m_Builder->getInt32(0), m_Builder->getInt32(2)});
+                    m_Builder->CreateStore(m_Builder->getInt32(numCount), len);
                 }
 
                 storedV = base;
@@ -979,7 +998,7 @@ llvm::Value *LLVMJit::Pop()
     return *(--m_StackTop);
 }
 
-std::string LLVMJit::GetTypeName(llvm::Type* type)
+std::string LLVMJit::GetTypeName(llvm::Type *type)
 {
     std::string str = "";
     llvm::raw_string_ostream typeStream(str);

@@ -42,8 +42,34 @@ public:
     LLVMJit(class VM* vm);
     ~LLVMJit();
 
-    std::string CompileToLLVMIR(FunctionObject* fnObj,const std::string& fnName);
-    void Run(const std::string& name);
+    bool Compile(FunctionObject* fnObj,const std::string& fnName);
+
+    template<typename T>
+    T Run(const std::string& name)
+    {
+        auto rt = m_Jit->GetMainJITDylib().createResourceTracker();
+        auto tsm = llvm::orc::ThreadSafeModule(std::move(m_Module), std::move(m_Context));
+        m_ExitOnErr(m_Jit->AddModule(std::move(tsm), rt));
+
+        InitModuleAndPassManager();
+
+        auto symbol = m_ExitOnErr(m_Jit->LookUp(name));
+
+        using JitFuncType = T (*)();
+        JitFuncType jitFn = reinterpret_cast<JitFuncType>(symbol.getAddress());
+
+        if (typeid(T).name() == "void")
+        {
+            jitFn();
+            m_ExitOnErr(rt->remove());
+        }
+        else
+        {
+            T v = jitFn();
+            m_ExitOnErr(rt->remove());
+            return v;
+        }
+    }
 
 protected:
     class OrcJit
@@ -61,7 +87,6 @@ protected:
         llvm::Error AddModule(llvm::orc::ThreadSafeModule tsm, llvm::orc::ResourceTrackerSP rt = nullptr);
 
         llvm::Expected<llvm::JITEvaluatedSymbol> LookUp(llvm::StringRef name);
-
     private:
         std::unique_ptr<llvm::orc::ExecutionSession> m_Es;
         llvm::DataLayout m_DataLayout;
@@ -82,7 +107,6 @@ private:
 
     void ResetStatus();
 
-
     void InitModuleAndPassManager();
 
     llvm::Value *CreateCDValue(llvm::Value *v);
@@ -93,8 +117,8 @@ private:
     std::string GetTypeName(llvm::Type* type);
 
     template <typename T>
-    requires(std::is_same_v<T, llvm::CallInst> || std::is_same_v<T, llvm::Function>)
-        T *AddBuiltinFnOrCallParamAttributes(T *fnOrCallInst)
+        requires(std::is_same_v<T, llvm::CallInst> || std::is_same_v<T, llvm::Function>)
+    T *AddBuiltinFnOrCallParamAttributes(T *fnOrCallInst)
     {
         fnOrCallInst->addRetAttr(llvm::Attribute::ZExt);
         fnOrCallInst->addParamAttr(0, llvm::Attribute::NoUndef);

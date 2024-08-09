@@ -326,24 +326,29 @@ void VM::Execute()
                     for (Value* slot = m_StackTop - fn->parameterCount; slot < m_StackTop; ++slot)
 						paramTypeHash ^= std::hash<ValueType>()(slot->type);
 
-					auto iter = fn->m_FnJitCache.find(paramTypeHash);
-					if (iter == fn->m_FnJitCache.end())
+					auto fnName = "function_" + std::to_string(paramTypeHash);
+
+					auto iter = fn->m_JitCache.find(paramTypeHash);
+					if (iter == fn->m_JitCache.end())
 					{
-						auto llvmFnName = m_LLVMJit->CompileToLLVMIR(fn, "function_" + std::to_string(paramTypeHash));
-						fn->m_FnJitCache[paramTypeHash] = llvmFnName;
-						m_LLVMJit->Run(llvmFnName);
+						fn->m_JitCache.insert(paramTypeHash);
+						auto success=m_LLVMJit->Compile(fn, fnName);
+						if (!success)
+						{
+                            auto callFrame = CallFrame(fn, m_StackTop - argCount);
+                            PushCallFrame(callFrame);
+                            m_StackTop = callFrame.slot + fn->localVarCount;
+						}
 					}
-					else
-						m_LLVMJit->Run(iter->second);
+					auto v = m_LLVMJit->Run<double>(fnName);
+					m_StackTop -= argCount + 1;
+					Push(v);
 				}
 				else
 #endif
 				{
-
 					auto callFrame = CallFrame(fn, m_StackTop - argCount);
-
 					PushCallFrame(callFrame);
-
 					m_StackTop = callFrame.slot + fn->localVarCount;
 				}
 			}

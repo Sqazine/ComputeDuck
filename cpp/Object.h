@@ -97,7 +97,7 @@ struct FunctionObject : public Object
 	uint8_t parameterCount;
 #ifdef BUILD_WITH_LLVM
     uint32_t callCount;
-    std::unordered_map<uint32_t, std::string> m_FnJitCache;
+    std::set<uint32_t> m_JitCache;
 #endif
 };
 
