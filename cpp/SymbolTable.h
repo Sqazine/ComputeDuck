@@ -1,11 +1,8 @@
 #pragma once
 #include <string>
 #include <unordered_map>
-
 #include "Utils.h"
-#ifdef BUILD_WITH_LLVM
-#include "llvm/IR/Instructions.h"
-#endif
+
 enum class SymbolScope
 {
     GLOBAL,

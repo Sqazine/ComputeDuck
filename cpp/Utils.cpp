@@ -76,6 +76,7 @@ void RegisterDLLs(std::string rawDllPath)
 #endif
 }
 
+#ifdef BUILD_WITH_LLVM
 std::string GenerateUUID()
 {
     std::random_device rd;
@@ -89,3 +90,4 @@ std::string GenerateUUID()
     oss << std::hex << part1 << part2;
     return oss.str();
 }
+#endif
