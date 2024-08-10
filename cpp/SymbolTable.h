@@ -15,21 +15,13 @@ enum class SymbolScope
 
 struct Symbol
 {
-    Symbol() {}
+    Symbol() = default;
+    ~Symbol() = default;
 
     Symbol(std::string_view name, const SymbolScope& scope, int32_t index, int32_t scopeDepth = 0, bool isStructSymbol = false)
         : name(name), scope(scope), index(index), isStructSymbol(isStructSymbol), scopeDepth(scopeDepth)
     {
     }
-
-#ifdef BUILD_WITH_LLVM
-    Symbol(std::string_view name, const SymbolScope& scope, llvm::AllocaInst* allocation, int32_t scopeDepth = 0)
-        : name(name), scope(scope), allocation(allocation), scopeDepth(scopeDepth)
-    {
-    }
-
-    llvm::AllocaInst* allocation{nullptr};
-#endif
 
     std::string_view name;
     bool isStructSymbol{false};
@@ -58,13 +50,6 @@ struct SymbolTable
             p = q;
         }
     }
-
-#ifdef BUILD_WITH_LLVM
-    void Set(std::string_view name, llvm::AllocaInst* a)
-    {
-        symbolMaps[name].allocation = a;
-    }
-#endif
 
     Symbol Define(const std::string& name, bool isStructSymbol = false)
     {

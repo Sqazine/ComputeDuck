@@ -62,7 +62,7 @@ struct COMPUTE_DUCK_API Value
 
 	std::string Stringify(
 #ifndef NDEBUG
-		bool printChunkIfIsFunctionObject = false
+		bool printChunkIfIsFunction = false
 #endif
 	) const;
 

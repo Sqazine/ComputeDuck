@@ -5,16 +5,12 @@
 
 constexpr int16_t INVALID_OPCODE = std::numeric_limits<int16_t>::max();
 
-Compiler::Compiler()
-{
-}
-
 Compiler::~Compiler()
 {
     SAFE_DELETE(m_SymbolTable);
 }
 
-FunctionObject* Compiler::Compile(const std::vector<Stmt *> &stmts)
+Value Compiler::Compile(const std::vector<Stmt *> &stmts)
 {
     ResetStatus();
 
@@ -149,27 +145,6 @@ void Compiler::CompileReturnStmt(ReturnStmt *stmt)
     if (stmt->expr)
     {
         CompileExpr(stmt->expr);
-#ifdef BUILD_WITH_LLVM
-        switch (stmt->expr->type)
-        {
-        case AstType::NUM:
-            CurFunction()->returnTypeSet.insert(ValueType::NUM);
-            break;
-        case AstType::NIL:
-            CurFunction()->returnTypeSet.insert(ValueType::NIL);
-            break;
-        case AstType::BOOL:
-            CurFunction()->returnTypeSet.insert(ValueType::BOOL);
-            break;
-        case AstType::STR:
-            CurFunction()->returnTypeSet.insert(ValueType::STR);
-            break;
-        default:
-            CurFunction()->returnTypeSet.insert(ValueType::NUM);
-            break;
-        }
-#endif
-
         Emit(OP_RETURN);
         Emit(1);
     }
@@ -395,9 +370,6 @@ void Compiler::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state)
 
 void Compiler::CompileFunctionExpr(FunctionExpr *expr)
 {
-    auto fn = new FunctionObject();
-    SetCurFunction(fn);
-
     EnterScope();
 
     m_ScopeChunks.emplace_back(Chunk());
@@ -422,13 +394,9 @@ void Compiler::CompileFunctionExpr(FunctionExpr *expr)
         chunk.opCodes.emplace_back(0);
     }
 
-    fn->chunk = chunk;
-    fn->localVarCount = localVarCount;
-    fn->parameterCount = static_cast<uint8_t>(expr->parameters.size());
+    auto fn = new FunctionObject(chunk, localVarCount, static_cast<uint8_t>(expr->parameters.size()));
 
     EmitConstant(fn);
-
-    UnSetCurFunction();
 }
 
 void Compiler::CompileFunctionCallExpr(FunctionCallExpr *expr)
@@ -632,19 +600,4 @@ void Compiler::StoreSymbol(const Symbol &symbol)
     default:
         break;
     }
-}
-
-void Compiler::SetCurFunction(FunctionObject* fn)
-{
-    m_CurFunction = fn;
-}
-
-FunctionObject* Compiler::CurFunction()
-{
-    return m_CurFunction;
-}
-
-void Compiler::UnSetCurFunction()
-{
-    m_CurFunction = nullptr;
 }

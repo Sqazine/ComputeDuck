@@ -119,16 +119,18 @@ bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
     }
 
     llvm::FunctionType* fnType = nullptr;
-    if (fnObj->returnTypeSet.size() == 0)
+    if (fnObj->probableReturnTypes.size() == 0)
         fnType=llvm::FunctionType::get(m_VoidType, paramTypes, false);
-    else if(fnObj->returnTypeSet.contains(ValueType::NUM))
+    else if(fnObj->probableReturnTypes.contains(ValueType::NUM))
         fnType=llvm::FunctionType::get(m_DoubleType, paramTypes, false);
-    else if (fnObj->returnTypeSet.contains(ValueType::NIL))
+    else if (fnObj->probableReturnTypes.contains(ValueType::NIL))
         fnType = llvm::FunctionType::get(m_BoolPtrType, paramTypes, false);
-    else if (fnObj->returnTypeSet.contains(ValueType::BOOL))
+    else if (fnObj->probableReturnTypes.contains(ValueType::BOOL))
         fnType = llvm::FunctionType::get(m_BoolType, paramTypes, false);
-    else if (fnObj->returnTypeSet.contains(ValueType::STR))
+    else if (fnObj->probableReturnTypes.contains(ValueType::STR))
         fnType = llvm::FunctionType::get(m_Int8PtrType, paramTypes, false);
+    else
+        fnType=llvm::FunctionType::get(m_DoubleType, paramTypes, false);
 
     llvm::Function *fn = llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, fnName.c_str(), m_Module.get());
     llvm::BasicBlock *codeBlock = llvm::BasicBlock::Create(*m_Context, fnName + ".entry", fn);
