@@ -84,4 +84,7 @@ COMPUTE_DUCK_API std::string PointerAddressToString(void *pointer);
 
 COMPUTE_DUCK_API void RegisterDLLs(std::string rawDllPath);
 
+
+#ifdef BUILD_WITH_LLVM
 std::string GenerateUUID();
+#endif
