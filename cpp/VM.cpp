@@ -476,12 +476,12 @@ void VM::Execute()
 		{
 			auto memberName = Pop();
 			auto instance = GetEndOfRefValue(Pop());
-			auto structInstance = TO_STRUCT_VALUE(instance);
 			if (IS_STR_VALUE(memberName))
 			{
+				auto structInstance = TO_STRUCT_VALUE(instance);
 				auto iter = structInstance->members.find(TO_STR_VALUE(memberName)->value);
 				if (iter == structInstance->members.end())
-					ASSERT("no member named:(%s) in struct instance:%s", memberName.Stringify().c_str(), Stringify(structInstance).c_str());
+					ASSERT("no member named:(%s) in struct instance:%s", memberName.Stringify().c_str(), instance.Stringify().c_str());
 				Push(iter->second);
 			}
 			break;
@@ -590,7 +590,8 @@ void VM::RegisterToGCRecordChain(const Value &value)
 		if (m_CurObjCount >= m_MaxObjCount)
 			Gc();
 
-		UnMark(object);
+		value.Mark();
+
 		object->next = m_FirstObject;
 		m_FirstObject = object;
 
@@ -674,8 +675,11 @@ void VM::Gc(bool isExitingVM)
 			slot->Mark();
 		for (auto &g : m_GlobalVariables)
 			g.Mark();
-		for (CallFrame *slot = m_CallFrameStack; slot < m_CallFrameTop; ++slot)
-			Mark(slot->fn);
+		for (CallFrame* slot = m_CallFrameStack; slot < m_CallFrameTop; ++slot)
+		{
+			auto v=Value(slot->fn);
+			v.Mark();
+		}
 	}
 	else
 	{
@@ -684,8 +688,11 @@ void VM::Gc(bool isExitingVM)
 			slot->UnMark();
 		for (auto &g : m_GlobalVariables)
 			g.UnMark();
-		for (CallFrame *slot = m_CallFrameStack; slot < m_CallFrameTop; ++slot)
-			UnMark(slot->fn);
+		for (CallFrame* slot = m_CallFrameStack; slot < m_CallFrameTop; ++slot)
+		{
+			auto v = Value(slot->fn);
+			v.UnMark();
+		}
 	}
 
 	// sweep objects which is not reachable

@@ -42,7 +42,7 @@ void Run(std::string_view content)
 	auto fn = g_Compiler->Compile(stmts);
 
 #ifndef NDEBUG
-	std::cout << Stringify(fn,true) << std::endl;
+	std::cout << Value(fn).Stringify(true) << std::endl;
 #endif
 
 	for (auto stmt : stmts)
