@@ -5,9 +5,6 @@
 #include <vector>
 #include <memory>
 #include "Utils.h"
-#ifdef BUILD_WITH_LLVM
-#include "Value.h"
-#endif
 
 enum class AstType
 {

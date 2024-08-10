@@ -1,11 +1,5 @@
 #include "ConstantFolder.h"
 #include "Utils.h"
-ConstantFolder::ConstantFolder()
-{
-}
-ConstantFolder::~ConstantFolder()
-{
-}
 
 void ConstantFolder::Fold(std::vector<Stmt *> &stmts)
 {
@@ -75,7 +69,7 @@ Stmt *ConstantFolder::FoldReturnStmt(ReturnStmt *stmt)
 
 Stmt *ConstantFolder::FoldStructStmt(StructStmt *stmt)
 {
-    stmt->body = (StructExpr *)FoldStructExpr(stmt->body);
+    stmt->body = (StructExpr *)FoldExpr(stmt->body);
     return stmt;
 }
 Expr *ConstantFolder::FoldExpr(Expr *expr)

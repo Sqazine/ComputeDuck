@@ -11,12 +11,12 @@ VM::~VM()
 	Gc(true);
 }
 
-void VM::Run(FunctionObject *mainFn)
+void VM::Run(const Value& fnValue)
 {
 	ResetStatus();
 
-	auto mainCallFrame = CallFrame(mainFn, m_StackTop);
-	RegisterToGCRecordChain(mainFn);
+	auto mainCallFrame = CallFrame(fnValue, m_StackTop);
+	RegisterToGCRecordChain(fnValue);
 	PushCallFrame(mainCallFrame);
 
 	Execute();
@@ -86,7 +86,12 @@ void VM::Execute()
 			auto returnCount = *frame->ip++;
 			Value value;
 			if (returnCount == 1)
+			{
 				value = Pop();
+#ifdef BUILD_WITH_LLVM
+				frame->GetFnObject()->probableReturnTypes.insert(value.type);
+#endif
+			}
 
 			auto callFrame = PopCallFrame();
 
@@ -101,7 +106,7 @@ void VM::Execute()
 		case OP_CONSTANT:
 		{
 			auto idx = *frame->ip++;
-			auto value = frame->fn->chunk.constants[idx];
+			auto value = frame->GetFnObject()->chunk.constants[idx];
 
 			RegisterToGCRecordChain(value);
 
@@ -263,7 +268,7 @@ void VM::Execute()
 			if (!IS_BOOL_VALUE(value))
 				ASSERT("The if condition not a boolean value");
 			if (!TO_BOOL_VALUE(value))
-				frame->ip = frame->fn->chunk.opCodes.data() + address;
+				frame->ip = frame->GetFnObject()->chunk.opCodes.data() + address;
 			break;
 		}
 		case OP_JUMP:
@@ -272,7 +277,7 @@ void VM::Execute()
 #ifdef BUILD_WITH_LLVM
 			auto mode = *frame->ip++;
 #endif
-			frame->ip = frame->fn->chunk.opCodes.data() + address;
+			frame->ip = frame->GetFnObject()->chunk.opCodes.data() + address;
 			break;
 		}
 #ifdef BUILD_WITH_LLVM
@@ -329,7 +334,7 @@ void VM::Execute()
 					auto fnName = "function_" + fn->uuid + "_" + std::to_string(paramTypeHash);
 
 					auto iter = fn->jitCache.find(paramTypeHash);
-					if (iter == fn->jitCache.end() && fn->returnTypeSet.size() < 2)
+					if (iter == fn->jitCache.end() && fn->probableReturnTypes.size() < 2)
 					{
 						fn->jitCache.insert(paramTypeHash);
 						auto success=m_LLVMJit->Compile(fn, fnName);
@@ -342,25 +347,25 @@ void VM::Execute()
 						}
 					}
 
-					if (fn->returnTypeSet.size() == 1 && fn->returnTypeSet.contains(ValueType::NUM))
+					if (fn->probableReturnTypes.size() == 1 && fn->probableReturnTypes.contains(ValueType::NUM))
 					{
 						auto v = m_LLVMJit->Run<double>(fnName);
 						m_StackTop -= argCount + 1;
 						Push(v);
 					}
-					else if (fn->returnTypeSet.size() == 1 && fn->returnTypeSet.contains(ValueType::NIL))
+					else if (fn->probableReturnTypes.size() == 1 && fn->probableReturnTypes.contains(ValueType::NIL))
 					{
                         auto v = m_LLVMJit->Run<bool*>(fnName);
                         m_StackTop -= argCount + 1;
 						Push(Value());
 					}
-                    else if (fn->returnTypeSet.size() == 1 && fn->returnTypeSet.contains(ValueType::BOOL))
+                    else if (fn->probableReturnTypes.size() == 1 && fn->probableReturnTypes.contains(ValueType::BOOL))
                     {
                         auto v = m_LLVMJit->Run<bool>(fnName);
                         m_StackTop -= argCount + 1;
                         Push(v);
                     }
-                    else if (fn->returnTypeSet.size() == 1 && fn->returnTypeSet.contains(ValueType::STR))
+                    else if (fn->probableReturnTypes.size() == 1 && fn->probableReturnTypes.contains(ValueType::STR))
                     {
                         auto v = m_LLVMJit->Run<char*>(fnName);
                         m_StackTop -= argCount + 1;
@@ -445,7 +450,7 @@ void VM::Execute()
 		case OP_GET_BUILTIN:
 		{
 			auto idx = *frame->ip++;
-			auto value = frame->fn->chunk.constants[idx];
+			auto value = frame->GetFnObject()->chunk.constants[idx];
 
 			RegisterToGCRecordChain(value);
 
@@ -676,10 +681,7 @@ void VM::Gc(bool isExitingVM)
 		for (auto &g : m_GlobalVariables)
 			g.Mark();
 		for (CallFrame* slot = m_CallFrameStack; slot < m_CallFrameTop; ++slot)
-		{
-			auto v=Value(slot->fn);
-			v.Mark();
-		}
+			slot->fn.Mark();
 	}
 	else
 	{
@@ -689,10 +691,7 @@ void VM::Gc(bool isExitingVM)
 		for (auto &g : m_GlobalVariables)
 			g.UnMark();
 		for (CallFrame* slot = m_CallFrameStack; slot < m_CallFrameTop; ++slot)
-		{
-			auto v = Value(slot->fn);
-			v.UnMark();
-		}
+			slot->fn.UnMark();
 	}
 
 	// sweep objects which is not reachable

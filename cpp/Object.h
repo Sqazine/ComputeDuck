@@ -42,7 +42,7 @@ struct StrObject : public Object
 struct ArrayObject : public Object
 {
 	ArrayObject(Value* eles,uint32_t len): elements(eles), len(len),capacity(len) {}
-    ~ArrayObject(){}
+    ~ArrayObject() = default;
 
 	Value* elements;
     uint32_t len;
@@ -52,7 +52,7 @@ struct ArrayObject : public Object
 struct RefObject : public Object
 {
 	RefObject(Value *pointer): pointer(pointer){}
-	~RefObject(){}
+    ~RefObject() = default;
 
 	Value *pointer;
 };
@@ -67,22 +67,16 @@ struct FunctionObject : public Object
 #endif
     {}
 
-    FunctionObject()
-#ifdef BUILD_WITH_LLVM
-        : callCount(0), uuid(GenerateUUID())
-#endif
-    {}
-
-
-	~FunctionObject(){}
+    ~FunctionObject() = default;
 
 	Chunk chunk;
 	uint8_t localVarCount;
 	uint8_t parameterCount;
+
 #ifdef BUILD_WITH_LLVM
     uint32_t callCount;
     std::set<uint32_t> jitCache;
-    std::set<ValueType> returnTypeSet;//record function return types,some function with multiply return stmt may return mutiply types of value
+    std::set<ValueType> probableReturnTypes;//record function return types,some function with multiply return stmt may return mutiply types of value
     std::string uuid;
 #endif
 };
@@ -90,7 +84,7 @@ struct FunctionObject : public Object
 struct StructObject : public Object
 {
 	StructObject(const std::unordered_map<std::string, Value> &members)	: members(members){}
-	~StructObject() {}
+    ~StructObject() = default;
 
 	std::unordered_map<std::string, Value> members;
 };

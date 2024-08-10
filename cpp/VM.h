@@ -17,7 +17,7 @@ public:
     VM();
     ~VM();
 
-    void Run(FunctionObject* fnObj);
+    void Run(const Value& fnValue);
 
 private:
     struct CallFrame
@@ -25,20 +25,28 @@ private:
         CallFrame() = default;
         ~CallFrame() = default;
 
-        CallFrame(FunctionObject* fn,Value* slot)
-            : fn(fn), ip(fn->chunk.opCodes.data()), slot(slot)
+        CallFrame(const Value& f,Value* slot)
+            : fn(f), slot(slot)
         {
-            fn->callCount++;
+            auto fnObj = GetFnObject();
+            fnObj->callCount++;
+            ip = fnObj->chunk.opCodes.data();
         }
 
         bool IsEnd()
         {
-            if ((ip - fn->chunk.opCodes.data()) < fn->chunk.opCodes.size())
+            auto fnObj = GetFnObject();
+            if ((ip - fnObj->chunk.opCodes.data()) < fnObj->chunk.opCodes.size())
                 return false;
             return true;
         }
 
-        FunctionObject* fn{ nullptr };
+        FunctionObject* GetFnObject() const
+        {
+            return TO_FUNCTION_VALUE(fn);
+        }
+
+        Value fn;
         int16_t* ip{ nullptr };
         Value* slot{ nullptr };
     };

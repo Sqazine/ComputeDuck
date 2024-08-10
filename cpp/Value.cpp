@@ -51,7 +51,7 @@ Value ::~Value()
 
 std::string Value::Stringify(
 #ifndef NDEBUG
-    bool printChunkIfIsFunctionObject
+    bool printChunkIfIsFunction
 #endif
 ) const
 {
@@ -96,7 +96,7 @@ std::string Value::Stringify(
 	{
         std::string result = "function(0x" + PointerAddressToString(object) + ")";
 #ifndef NDEBUG
-        if (printChunkIfIsFunctionObject)
+        if (printChunkIfIsFunction)
         {
             result += ":\n";
             result += TO_FUNCTION_VALUE(*this)->chunk.Stringify();

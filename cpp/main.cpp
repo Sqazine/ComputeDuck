@@ -39,16 +39,16 @@ void Run(std::string_view content)
 		std::cout << stmt->Stringify() << std::endl;
 #endif
 
-	auto fn = g_Compiler->Compile(stmts);
+	auto fnVal = g_Compiler->Compile(stmts);
 
 #ifndef NDEBUG
-	std::cout << Value(fn).Stringify(true) << std::endl;
+	std::cout << fnVal.Stringify(true) << std::endl;
 #endif
 
 	for (auto stmt : stmts)
 		SAFE_DELETE(stmt);
 
-	g_Vm->Run(fn);
+	g_Vm->Run(fnVal);
 }
 
 void Repl(std::string_view exePath)

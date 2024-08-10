@@ -4,8 +4,8 @@
 class ConstantFolder
 {
 public:
-    ConstantFolder();
-    ~ConstantFolder();
+    ConstantFolder() = default;
+    ~ConstantFolder() = default;
 
     void Fold(std::vector<Stmt *> &stmts);
 
