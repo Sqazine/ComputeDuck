@@ -90,8 +90,6 @@ void LLVMJit::ResetStatus()
         g = nullptr;
 
     m_StackTop = m_ValueStack;
-
-    //InitModuleAndPassManager();
 }
 
 bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
@@ -875,7 +873,7 @@ void LLVMJit::InitModuleAndPassManager()
 
         m_ObjectType = llvm::StructType::create(*m_Context, "struct.Object");
         m_ObjectPtrType = llvm::PointerType::get(m_ObjectType, 0);
-        m_ObjectType->setBody({m_Int8Type, m_BoolType, m_ObjectPtrType});
+        m_ObjectType->setBody({m_BoolType, m_ObjectPtrType});
         m_ObjectPtrPtrType = llvm::PointerType::get(m_ObjectPtrType, 0);
 
         m_StrObjectType = llvm::StructType::create(*m_Context, {m_ObjectType, m_Int8PtrType, m_Int32Type}, "struct.StrObject");
@@ -913,12 +911,12 @@ llvm::Value *LLVMJit::CreateCDValue(llvm::Value *v)
         vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::NIL));
         storedV = llvm::ConstantFP::get(m_DoubleType, 0.0);
     }
-    else if (v->getType() == m_ObjectPtrType)
+    /*else if (v->getType() == m_ObjectPtrType)
     {
         vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::OBJECT));
         type = m_ObjectPtrPtrType;
         storedV = v;
-    }
+    }*/
     else if (v->getType()->isPointerTy())
     {
         auto vPtrType = static_cast<llvm::PointerType *>(v->getType());
@@ -927,7 +925,7 @@ llvm::Value *LLVMJit::CreateCDValue(llvm::Value *v)
             auto vArrayType = static_cast<llvm::ArrayType *>(vPtrType->getElementType());
             if (vArrayType->getElementType() == m_Int8Type)
             {
-                vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::OBJECT));
+                vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::STR));
                 type = m_ObjectPtrPtrType;
 
                 // convert chars[] to i8*
@@ -938,9 +936,6 @@ llvm::Value *LLVMJit::CreateCDValue(llvm::Value *v)
                 auto base = m_Builder->CreateBitCast(strObject, m_ObjectPtrType);
 
                 {
-                    auto objctTypeVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, {m_Builder->getInt32(0), m_Builder->getInt32(0)});
-                    m_Builder->CreateStore(m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::STR)), objctTypeVar);
-
                     auto markedVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, {m_Builder->getInt32(0), m_Builder->getInt32(1)});
                     m_Builder->CreateStore(m_Builder->getInt1(0), markedVar);
 
@@ -960,7 +955,7 @@ llvm::Value *LLVMJit::CreateCDValue(llvm::Value *v)
             {
                 auto numCount = vArrayType->getArrayNumElements();
 
-                vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::OBJECT));
+                vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::ARRAY));
                 type = m_ObjectPtrPtrType;
 
                 // convert Value[] to Value*
@@ -971,9 +966,6 @@ llvm::Value *LLVMJit::CreateCDValue(llvm::Value *v)
                 auto base = m_Builder->CreateBitCast(arrayObject, m_ObjectPtrType);
 
                 {
-                    auto objctTypeVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, {m_Builder->getInt32(0), m_Builder->getInt32(0)});
-                    m_Builder->CreateStore(m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::ARRAY)), objctTypeVar);
-
                     auto markedVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, {m_Builder->getInt32(0), m_Builder->getInt32(1)});
                     m_Builder->CreateStore(m_Builder->getInt1(0), markedVar);
 

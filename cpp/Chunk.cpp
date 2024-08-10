@@ -9,12 +9,11 @@ Chunk::Chunk(OpCodes opCodes, const std::vector<Value> &constants)
 std::string Chunk::Stringify()
 {
     std::string result = OpCodeStringify(opCodes);
-    for (const auto &c : constants)
+    for (const auto& c : constants)
         if (IS_FUNCTION_VALUE(c))
-            result += ::Stringify(TO_FUNCTION_VALUE(c)
+            result += c.Stringify(
 #ifndef NDEBUG
-                                      ,
-                                  true
+                true
 #endif
             );
     return result;
