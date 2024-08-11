@@ -44,9 +44,8 @@ public:
 
     bool Compile(FunctionObject* fnObj,const std::string& fnName);
 
-    template<typename T>
-        requires(!std::is_same_v<T, void>)
-    T Run(const std::string& name)
+    template<typename RetType,typename... Args>
+    RetType Run(const std::string& name,Args &&...params)
     {
         auto rt = m_Jit->GetMainJITDylib().createResourceTracker();
 
@@ -56,31 +55,19 @@ public:
         
         auto symbol = m_ExitOnErr(m_Jit->LookUp(name));
 
-        using JitFuncType = T(*)();
+        using JitFuncType = RetType(*)(Args...);
         JitFuncType jitFn = reinterpret_cast<JitFuncType>(symbol.getAddress());
-
-        T v = jitFn();
-        m_ExitOnErr(rt->remove());
-        return v;
-    }
-
-    template<typename T>
-        requires(std::is_same_v<T, void>)
-    T Run(const std::string& name)
-    {
-        auto rt = m_Jit->GetMainJITDylib().createResourceTracker();
-      
-        auto tsm = llvm::orc::ThreadSafeModule(std::move(m_Module), std::move(m_Context));
-        m_ExitOnErr(m_Jit->AddModule(std::move(tsm), rt));
-        InitModuleAndPassManager();
-
-        auto symbol = m_ExitOnErr(m_Jit->LookUp(name));
-
-        using JitFuncType = void(*)();
-        JitFuncType jitFn = reinterpret_cast<JitFuncType>(symbol.getAddress());
-
-        jitFn();
-        m_ExitOnErr(rt->remove());
+        if constexpr(std::is_same_v<RetType, void>) 
+        {
+            jitFn(std::forward<Args>(params)...);
+            m_ExitOnErr(rt->remove());
+        }
+        else 
+        {
+            RetType v = jitFn(std::forward<Args>(params)...);
+            m_ExitOnErr(rt->remove());
+            return v;
+        }
     }
 
 private:
@@ -126,6 +113,8 @@ private:
     llvm::Value *Pop();
 
     std::string GetTypeName(llvm::Type* type);
+
+    llvm::Value* GetLLVMValueFromValue(const Value& value);
 
     template <typename T>
         requires(std::is_same_v<T, llvm::CallInst> || std::is_same_v<T, llvm::Function>)
@@ -177,6 +166,8 @@ private:
 
     llvm::Value **m_StackTop;
     llvm::Value *m_ValueStack[STACK_MAX];
+
+    std::map<std::string, llvm::AllocaInst*> m_LocalVariable;
 
     std::vector<JumpInstrSet> m_JumpInstrSetTable;
 

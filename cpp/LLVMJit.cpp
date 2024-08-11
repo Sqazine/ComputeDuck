@@ -86,6 +86,8 @@ void LLVMJit::ResetStatus()
 {
     m_BuiltinFnCache.clear();
 
+    m_LocalVariable.clear();
+
     for (auto &g : m_GlobalVariables)
         g = nullptr;
 
@@ -110,7 +112,7 @@ bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
     State state = State::IF_CONDITION;
 
     std::vector<llvm::Type *> paramTypes;
-    for (Value *slot = m_VM->m_StackTop - fnObj->parameterCount; slot < m_VM->m_StackTop; ++slot)
+    for (Value *slot = m_VM->m_StackTop; slot < m_VM->m_StackTop + fnObj->parameterCount; ++slot)
     {
         if (IS_NUM_VALUE(*slot))
             paramTypes.push_back(m_DoubleType);
@@ -148,46 +150,14 @@ bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
             auto idx = *ip++;
             auto value = fnObj->chunk.constants[idx];
 
-            if (IS_NUM_VALUE(value))
+            auto llvmValue = GetLLVMValueFromValue(value);
+            if (!llvmValue)
             {
-                llvm::Value* alloc = llvm::ConstantFP::get(m_DoubleType, TO_NUM_VALUE(value));
-                Push(alloc);
-            }
-            else if (IS_BOOL_VALUE(value))
-            {
-                llvm::Value* alloc = llvm::ConstantInt::get(m_BoolType, TO_BOOL_VALUE(value));
-                Push(alloc);
-            }
-            else if (IS_NIL_VALUE(value))
-            {
-                llvm::Value* alloc = llvm::ConstantPointerNull::get(m_BoolPtrType);
-                Push(alloc);
-            }
-            else if (IS_STR_VALUE(value))
-            {
-                auto str = TO_STR_VALUE(value)->value;
-                llvm::Value* chars = m_Builder->CreateGlobalString(str);
-                Push(chars);
-            }
-            else
-            {
-                ERROR("Unsupported value type:%d", value.type);
+                ASSERT("Unsupported value type:%d", value.type);
                 return false;
             }
-            /*else if (IS_FUNCTION_VALUE(value))
-            {
-                auto parenetFn = m_Builder->GetInsertBlock()->getParent();
 
-                auto newFnObj = TO_FUNCTION_VALUE(value);
-
-                auto newFnName = "function_" + newFnObj->uuid + "_" + std::to_string(paramTypeHash);
-
-                auto newFn = Compile(newFnObj, "fn." + std::to_string(idx));
-
-                auto block = &parenetFn->getBasicBlockList().back();
-                m_Builder->SetInsertPoint(block);
-            }*/
-
+            Push(llvmValue);
             break;
         }
         case OP_ADD:
@@ -235,7 +205,7 @@ bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
             }
             else
             {
-                ERROR("Invalid binary op:%s + %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ASSERT("Invalid binary op:%s + %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
                 return false;
             }
 
@@ -249,7 +219,7 @@ bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
                 Push(m_Builder->CreateFSub(left, right));
             else
             {
-                ERROR("Invalid binary op:%s - %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ASSERT("Invalid binary op:%s - %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
                 return false;
             }
             break;
@@ -262,7 +232,7 @@ bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
                 Push(m_Builder->CreateFMul(left, right));
             else
             {
-                ERROR("Invalid binary op:%s * %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ASSERT("Invalid binary op:%s * %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
                 return false;
             }
             break;
@@ -275,7 +245,7 @@ bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
                 Push(m_Builder->CreateFDiv(left, right));
             else
             {
-                ERROR("Invalid binary op:%s / %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ASSERT("Invalid binary op:%s / %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
                 return false;
             }
             break;
@@ -288,7 +258,7 @@ bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
                 Push(m_Builder->CreateFCmpULT(left, right));
             else
             {
-                ERROR("Invalid binary op:%s < %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ASSERT("Invalid binary op:%s < %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
                 return false;
             }
             break;
@@ -301,7 +271,7 @@ bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
                 Push(m_Builder->CreateFCmpUGT(left, right));
             else
             {
-                ERROR("Invalid binary op:%s > %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ASSERT("Invalid binary op:%s > %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
                 return false;
             }
             break;
@@ -313,7 +283,7 @@ bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
                 Push(m_Builder->CreateNot(value));
             else
             {
-                ERROR("Invalid binary op:not %s.", GetTypeName(value->getType()).c_str());
+                ASSERT("Invalid binary op:not %s.", GetTypeName(value->getType()).c_str());
                 return false;
             }
             break;
@@ -325,7 +295,7 @@ bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
                 Push(m_Builder->CreateNeg(value));
             else
             {
-                ERROR("Invalid binary op:- %s.", GetTypeName(value->getType()).c_str());
+                ASSERT("Invalid binary op:- %s.", GetTypeName(value->getType()).c_str());
                 return false;
             }
             break;
@@ -367,7 +337,7 @@ bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
             }
             else
             {
-                ERROR("Invalid binary op:%s == %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ASSERT("Invalid binary op:%s == %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
                 return false;
             }
             break;
@@ -421,7 +391,7 @@ bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
                 Push(m_Builder->CreateLogicalAnd(left, right));
             else
             {
-                ERROR("Invalid binary op:%s and %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ASSERT("Invalid binary op:%s and %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
                 return false;
             }
             break;
@@ -434,7 +404,7 @@ bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
                 Push(m_Builder->CreateLogicalAnd(left, right));
             else
             {
-                ERROR("Invalid binary op:%s or %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ASSERT("Invalid binary op:%s or %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
                 return false;
             }
             break;
@@ -452,7 +422,7 @@ bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
             }
             else
             {
-                ERROR("Invalid binary op:%s & %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ASSERT("Invalid binary op:%s & %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
                 return false;
             }
             break;
@@ -470,7 +440,7 @@ bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
             }
             else
             {
-                ERROR("Invalid binary op:%s | %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ASSERT("Invalid binary op:%s | %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
                 return false;
             }
             break;
@@ -485,7 +455,7 @@ bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
             }
             else
             {
-                ERROR("Invalid binary op:~ %s.", GetTypeName(value->getType()).c_str());
+                ASSERT("Invalid binary op:~ %s.", GetTypeName(value->getType()).c_str());
                 return false;
             }
             break;
@@ -503,7 +473,7 @@ bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
             }
             else
             {
-                ERROR("Invalid binary op:%s ^ %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ASSERT("Invalid binary op:%s ^ %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
                 return false;
             }
             break;
@@ -535,7 +505,7 @@ bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
 
             if (!isSatis)
             {
-                ERROR("Invalid index op: %s[%s]", GetTypeName(ds->getType()), GetTypeName(index->getType()));
+                ASSERT("Invalid index op: %s[%s]", GetTypeName(ds->getType()), GetTypeName(index->getType()));
                 return false;
             }
 
@@ -712,15 +682,84 @@ bool LLVMJit::Compile(FunctionObject *fnObj, const std::string &fnName)
         }
         case OP_SET_LOCAL:
         {
+            auto scopeDepth = *ip++;
+            auto index = *ip++;
+            auto isUpValue = *ip++;
+            auto value = Pop();
+
+            auto name = "localVar_" + std::to_string(scopeDepth) + "_" + std::to_string(index) + "_" + std::to_string(isUpValue);
+
+            auto iter = m_LocalVariable.find(name);
+            if (iter == m_LocalVariable.end())
+            {
+                auto alloc = m_Builder->CreateAlloca(value->getType());
+                m_Builder->CreateStore(value, alloc);
+
+                m_LocalVariable[name] = alloc;
+            }
+            else
+            {
+               m_Builder->CreateStore(value,iter->second);
+            }
+
             break;
         }
         case OP_GET_LOCAL:
         {
+            auto scopeDepth = *ip++;
+            auto index = *ip++;
+            auto isUpValue = *ip++;
+
+            auto name = "localVar_" + std::to_string(scopeDepth) + "_" + std::to_string(index) + "_" + std::to_string(isUpValue);
+
+            auto iter = m_LocalVariable.find(name);
+            if (iter == m_LocalVariable.end())// create from function argumenet
+            {
+                auto parentFn = m_Builder->GetInsertBlock()->getParent();
+
+                auto arg = parentFn->getArg(index);
+
+                auto alloc = m_Builder->CreateAlloca(arg->getType());
+                m_Builder->CreateStore(arg, alloc);
+
+                m_LocalVariable[name] = alloc;
+
+                auto load = m_Builder->CreateLoad(alloc->getAllocatedType(), alloc);
+
+                Push(load);
+                
+
+                //Value* slot = nullptr;
+                //if (isUpValue)
+                //    slot = m_VM->PeekCallFrameFromFront(scopeDepth)->slot + index;
+                //else
+                //    slot = m_VM->PeekCallFrameFromBack(scopeDepth)->slot + index;
+
+                //auto llvmValue = GetLLVMValueFromValue(*slot);
+                //if (!llvmValue)
+                //{
+                //    ASSERT("Unsupported value type:%d", slot->type);
+                //    return false;
+                //}
+
+                //auto alloc = m_Builder->CreateAlloca(llvmValue->getType());
+                //m_Builder->CreateStore(llvmValue, alloc);
+
+                //m_LocalVariable[name] = alloc;
+
+                //Push(llvmValue);
+            }
+            else
+            {
+                auto load = m_Builder->CreateLoad(iter->second->getAllocatedType(), iter->second);
+                Push(load);
+            }
             break;
         }
         case OP_FUNCTION_CALL:
         {
             auto argCount = (uint8_t)*ip++;
+
             auto fn = static_cast<llvm::Function *>(*(m_StackTop - argCount - 1));
 
             auto ptrType = fn->getType();
@@ -1013,4 +1052,44 @@ std::string LLVMJit::GetTypeName(llvm::Type *type)
     llvm::raw_string_ostream typeStream(str);
     type->print(typeStream);
     return str;
+}
+
+llvm::Value* LLVMJit::GetLLVMValueFromValue(const Value& value)
+{
+    if (IS_NUM_VALUE(value))
+    {
+        llvm::Value* alloc = llvm::ConstantFP::get(m_DoubleType, TO_NUM_VALUE(value));
+        return alloc;
+    }
+    else if (IS_BOOL_VALUE(value))
+    {
+        llvm::Value* alloc = llvm::ConstantInt::get(m_BoolType, TO_BOOL_VALUE(value));
+        return alloc;
+    }
+    else if (IS_NIL_VALUE(value))
+    {
+        llvm::Value* alloc = llvm::ConstantPointerNull::get(m_BoolPtrType);
+        return alloc;
+    }
+    else if (IS_STR_VALUE(value))
+    {
+        auto str = TO_STR_VALUE(value)->value;
+        llvm::Value* chars = m_Builder->CreateGlobalString(str);
+        return chars;
+    }
+    /*else if (IS_FUNCTION_VALUE(value))
+    {
+        auto parenetFn = m_Builder->GetInsertBlock()->getParent();
+
+        auto newFnObj = TO_FUNCTION_VALUE(value);
+
+        auto newFnName = "function_" + newFnObj->uuid + "_" + std::to_string(paramTypeHash);
+
+        auto newFn = Compile(newFnObj, "fn." + std::to_string(idx));
+
+        auto block = &parenetFn->getBasicBlockList().back();
+        m_Builder->SetInsertPoint(block);
+    }*/
+    else
+        return nullptr;
 }
