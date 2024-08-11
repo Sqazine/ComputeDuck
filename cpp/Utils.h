@@ -71,13 +71,6 @@ enum JumpMode
         abort();                                                                    \
     } while (false);
 
-#define ERROR(...)                                                                  \
-    do                                                                              \
-    {                                                                               \
-        printf("[file:%s,function:%s,line:%d]:", __FILE__, __FUNCTION__, __LINE__); \
-        printf(__VA_ARGS__);                                                        \
-    } while (false);
-
 COMPUTE_DUCK_API std::string ReadFile(std::string_view path);
 
 COMPUTE_DUCK_API std::string PointerAddressToString(void *pointer);

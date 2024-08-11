@@ -93,7 +93,7 @@ void VM::Execute()
 #endif
 			}
 
-			auto callFrame = PopCallFrame();
+            auto callFrame = PopCallFrame();
 
 			if (m_CallFrameTop == m_CallFrameStack)
 				return;
@@ -324,6 +324,11 @@ void VM::Execute()
 
 				if (argCount != fn->parameterCount)
 					ASSERT("Non matching function parameters for calling arguments,parameter count:%d,argument count:%d", fn->parameterCount, argCount);
+
+                auto callFrame = CallFrame(fn, m_StackTop - argCount);
+                PushCallFrame(callFrame);
+                m_StackTop = callFrame.slot + fn->localVarCount;
+
 #ifdef BUILD_WITH_LLVM
 				if (fn->callCount >= JIT_TRIGGER_COUNT) 
 				{
@@ -337,53 +342,62 @@ void VM::Execute()
 					if (iter == fn->jitCache.end() && fn->probableReturnTypes.size() < 2)
 					{
 						fn->jitCache.insert(paramTypeHash);
+
+						m_StackTop = m_StackTop - argCount + fn->localVarCount;
+
 						auto success=m_LLVMJit->Compile(fn, fnName);
 						if (!success)
-						{
-                            auto callFrame = CallFrame(fn, m_StackTop - argCount);
-                            PushCallFrame(callFrame);
-                            m_StackTop = callFrame.slot + fn->localVarCount;
 							break;
-						}
 					}
 
+					auto prevCallFrame = PopCallFrame();
+
+					//Todo:Not solve function multiply argument
 					if (fn->probableReturnTypes.size() == 1 && fn->probableReturnTypes.contains(ValueType::NUM))
 					{
-						auto v = m_LLVMJit->Run<double>(fnName);
-						m_StackTop -= argCount + 1;
-						Push(v);
+						if (argCount == 1)
+						{
+							auto arg0 = callFrame.slot + 0;
+							if (IS_NUM_VALUE(*arg0))
+							{
+								double dArg0 = TO_NUM_VALUE(*arg0);
+								auto v = m_LLVMJit->Run<double>(fnName,std::move(dArg0));
+								m_StackTop = prevCallFrame->slot - 1;
+								Push(v);
+							}
+						}
+						else
+						{
+                            auto v = m_LLVMJit->Run<double>(fnName);
+                            m_StackTop = prevCallFrame->slot - 1;
+                            Push(v);
+						}
 					}
 					else if (fn->probableReturnTypes.size() == 1 && fn->probableReturnTypes.contains(ValueType::NIL))
 					{
                         auto v = m_LLVMJit->Run<bool*>(fnName);
-                        m_StackTop -= argCount + 1;
+						m_StackTop = prevCallFrame->slot - 1;
 						Push(Value());
 					}
                     else if (fn->probableReturnTypes.size() == 1 && fn->probableReturnTypes.contains(ValueType::BOOL))
                     {
                         auto v = m_LLVMJit->Run<bool>(fnName);
-                        m_StackTop -= argCount + 1;
+						m_StackTop = prevCallFrame->slot - 1;
                         Push(v);
                     }
                     else if (fn->probableReturnTypes.size() == 1 && fn->probableReturnTypes.contains(ValueType::STR))
                     {
                         auto v = m_LLVMJit->Run<char*>(fnName);
-                        m_StackTop -= argCount + 1;
+						m_StackTop = prevCallFrame->slot - 1;
                         Push(CreateObject<StrObject>(v));
                     }
                     else
                     {
                         m_LLVMJit->Run<void>(fnName);
-                        m_StackTop -= argCount + 1;
+						m_StackTop = prevCallFrame->slot - 1;
                     }
 				}
-				else
 #endif
-				{
-					auto callFrame = CallFrame(fn, m_StackTop - argCount);
-					PushCallFrame(callFrame);
-					m_StackTop = callFrame.slot + fn->localVarCount;
-				}
 			}
 			else if (IS_BUILTIN_VALUE(value))
 			{
