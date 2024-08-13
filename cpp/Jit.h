@@ -32,15 +32,16 @@
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm-c/Core.h>
+#include <variant>
 
 #include "Chunk.h"
 #include "Value.h"
 #include "Object.h"
-class COMPUTE_DUCK_API LLVMJit
+class COMPUTE_DUCK_API Jit
 {
 public:
-    LLVMJit(class VM* vm);
-    ~LLVMJit();
+    Jit(class VM* vm);
+    ~Jit();
 
     bool Compile(FunctionObject* fnObj,const std::string& fnName);
 
@@ -71,13 +72,13 @@ public:
     }
 
 private:
-    class OrcJit
+    class OrcExecutor
     {
     public:
-        OrcJit(std::unique_ptr<llvm::orc::ExecutionSession> es, llvm::orc::JITTargetMachineBuilder jtmb, llvm::DataLayout dl);
-        ~OrcJit();
+        OrcExecutor(std::unique_ptr<llvm::orc::ExecutionSession> es, llvm::orc::JITTargetMachineBuilder jtmb, llvm::DataLayout dl);
+        ~OrcExecutor();
 
-        static std::unique_ptr<OrcJit> Create();
+        static std::unique_ptr<OrcExecutor> Create();
 
         const llvm::DataLayout &GetDataLayout() const;
 
@@ -103,6 +104,38 @@ private:
         llvm::BasicBlock* endBranch{ nullptr };
     };
 
+    class StackValue
+    {
+    public:
+        StackValue() = default;
+        ~StackValue() = default;
+        StackValue(llvm::Value* v) :stored(v) {}
+        StackValue(const Value& v) :stored(v) {}
+
+        bool IsLlvmValue() const
+        {
+            return stored.index() == 2;
+        }
+
+        bool IsVmValue()
+        {
+            return stored.index() == 1;
+        }
+
+        llvm::Value* GetLlvmValue() const
+        {
+            return std::get<llvm::Value*>(stored);
+        }
+
+        const Value& GetVmValue() const
+        {
+            return std::get<Value>(stored);
+        }
+
+    private:
+        std::variant<Value,llvm::Value*> stored;
+    };
+
     void ResetStatus();
 
     void InitModuleAndPassManager();
@@ -110,11 +143,12 @@ private:
     llvm::Value *CreateCDValue(llvm::Value *v);
 
     void Push(llvm::Value *v);
-    llvm::Value *Pop();
+    void Push(const Value& v);
+    StackValue Pop();
 
     std::string GetTypeName(llvm::Type* type);
 
-    llvm::Value* GetLLVMValueFromValue(const Value& value);
+    llvm::Value* GetLlvmValueFrom(const Value& value);
 
     template <typename T>
         requires(std::is_same_v<T, llvm::CallInst> || std::is_same_v<T, llvm::Function>)
@@ -134,20 +168,15 @@ private:
 
     llvm::StructType *m_ValueType{nullptr};
     llvm::PointerType *m_ValuePtrType{nullptr};
-
     llvm::StructType *m_UnionType{nullptr};
-
     llvm::StructType *m_ObjectType{nullptr};
     llvm::StructType *m_StrObjectType{nullptr};
     llvm::StructType *m_ArrayObjectType{nullptr};
-
     llvm::PointerType *m_ObjectPtrType{nullptr};
     llvm::PointerType *m_ObjectPtrPtrType{nullptr};
     llvm::PointerType *m_StrObjectPtrType{nullptr};
     llvm::PointerType *m_ArrayObjectPtrType{nullptr};
-
     llvm::FunctionType *m_BuiltinFunctionType{nullptr};
-
     llvm::Type *m_Int8Type{nullptr};
     llvm::Type *m_BoolType{nullptr};
     llvm::Type *m_DoubleType{nullptr};
@@ -159,13 +188,12 @@ private:
     llvm::PointerType *m_Int8PtrType{nullptr};
     llvm::PointerType *m_BoolPtrType{nullptr};
     llvm::PointerType *m_DoublePtrType{nullptr};
-
     llvm::PointerType *m_Int8PtrPtrType{nullptr};
 
     llvm::Value *m_GlobalVariables[STACK_MAX];
 
-    llvm::Value **m_StackTop;
-    llvm::Value *m_ValueStack[STACK_MAX];
+    StackValue *m_StackTop;
+    StackValue m_ValueStack[STACK_MAX];
 
     std::map<std::string, llvm::AllocaInst*> m_LocalVariable;
 
@@ -179,6 +207,6 @@ private:
 
     llvm::ExitOnError m_ExitOnErr;
 
-    std::unique_ptr<OrcJit> m_Jit;
+    std::unique_ptr<OrcExecutor> m_Jit;
     std::unique_ptr<llvm::legacy::FunctionPassManager> m_FPM;
 };

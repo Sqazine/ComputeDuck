@@ -26,15 +26,10 @@ function(SetLLVM llvmDir llvmlibs)
     add_subdirectory(${llvmDir})
     
     set(LLVM_LINK_COMPONENTS
-        Analysis
         Core
         ExecutionEngine
-        InstCombine
         Object
         OrcJIT
-        RuntimeDyld
-        ScalarOpts
-        Support
         native
         X86CodeGen
         X86AsmParser
@@ -42,6 +37,16 @@ function(SetLLVM llvmDir llvmlibs)
         X86Desc
         X86Info
         X86TargetMCA
+        ARMCodeGen
+        ARMAsmParser
+        ARMDisassembler
+        ARMDesc
+        ARMInfo
+        AArch64CodeGen
+        AArch64AsmParser
+        AArch64Disassembler
+        AArch64Desc
+        AArch64Info
     )
     
     llvm_map_components_to_libnames(llvm_libs ${LLVM_LINK_COMPONENTS})
