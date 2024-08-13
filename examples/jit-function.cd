@@ -1,0 +1,41 @@
+#jit=function()
+#{
+#    return 10;
+#};
+#
+#println(jit());
+#println(jit());
+#println(jit());
+#println(jit());
+#println(jit());
+#println(jit());
+#println(jit());
+#println(jit());
+#println(jit());
+#
+#
+#jit2=function()
+#{
+#    println(100);
+#};
+#
+#jit2();
+#jit2();
+#jit2();
+#jit2();
+#jit2();
+#jit2();
+#jit2();
+#jit2();
+#jit2();
+#jit2();
+
+jit=function()
+{
+	return "Fuck you";
+};
+
+println(jit());
+println(jit());
+println(jit());
+println(jit());

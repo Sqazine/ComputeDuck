@@ -67,7 +67,7 @@ void Compiler::CompileExprStmt(ExprStmt *stmt)
 
 void Compiler::CompileIfStmt(IfStmt *stmt)
 {
-#ifdef BUILD_WITH_LLVM
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     Emit(OP_JUMP_START);
     Emit(JumpMode::IF);
 #endif
@@ -75,7 +75,7 @@ void Compiler::CompileIfStmt(IfStmt *stmt)
     CompileExpr(stmt->condition);
     Emit(OP_JUMP_IF_FALSE);
     auto jumpIfFalseAddress = Emit(INVALID_OPCODE);
-#ifdef BUILD_WITH_LLVM
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     Emit(JumpMode::IF);
 #endif
 
@@ -83,7 +83,7 @@ void Compiler::CompileIfStmt(IfStmt *stmt)
 
     Emit(OP_JUMP);
     auto jumpAddress = Emit(INVALID_OPCODE);
-#ifdef BUILD_WITH_LLVM
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     Emit(JumpMode::IF);
 #endif
 
@@ -93,7 +93,7 @@ void Compiler::CompileIfStmt(IfStmt *stmt)
         CompileStmt(stmt->elseBranch);
 
     ModifyOpCode(jumpAddress, (int16_t)CurChunk().opCodes.size());
-#ifdef BUILD_WITH_LLVM
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     Emit(OP_JUMP_END);
 #endif
 }
@@ -115,7 +115,7 @@ void Compiler::CompileScopeStmt(ScopeStmt *stmt)
 
 void Compiler::CompileWhileStmt(WhileStmt *stmt)
 {
-#ifdef BUILD_WITH_LLVM
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     Emit(OP_JUMP_START);
     Emit(JumpMode::WHILE);
 #endif
@@ -125,7 +125,7 @@ void Compiler::CompileWhileStmt(WhileStmt *stmt)
 
     Emit(OP_JUMP_IF_FALSE);
     auto jumpIfFalseAddress = Emit(INVALID_OPCODE);
-#ifdef BUILD_WITH_LLVM
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     Emit(JumpMode::WHILE);
 #endif
 
@@ -133,7 +133,7 @@ void Compiler::CompileWhileStmt(WhileStmt *stmt)
 
     Emit(OP_JUMP);
     Emit(jumpAddress);
-#ifdef BUILD_WITH_LLVM
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     Emit(JumpMode::WHILE);
 #endif
 

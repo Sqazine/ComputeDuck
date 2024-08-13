@@ -10,7 +10,7 @@
 #include "Object.h"
 #include "Utils.h"
 #include "Chunk.h"
-#include "LLVMJit.h"
+#include "Jit.h"
 class COMPUTE_DUCK_API VM
 {
 public:
@@ -74,7 +74,11 @@ private:
     Value *GetEndOfRefValue(Value *v);
     Value GetEndOfRefValue(const Value &v);
 
-    friend class LLVMJit;
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+    void RunJit(FunctionObject* curFn,size_t argCount);
+#endif
+
+    friend class Jit;
 
     Value m_GlobalVariables[STACK_MAX];
 
@@ -88,8 +92,8 @@ private:
     int m_CurObjCount;
     int m_MaxObjCount;
 
-#ifdef BUILD_WITH_LLVM
-    LLVMJit* m_LLVMJit{nullptr};
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+    Jit* m_Jit{nullptr};
 #endif
 };
 

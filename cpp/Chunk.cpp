@@ -84,20 +84,20 @@ std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_SET_INDEX" << std::endl;
             break;
         case OP_JUMP:
-#ifdef BUILD_WITH_LLVM
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP\t" << opcodes[++i]<< "\t" << opCodes[++i] << std::endl;
 #else
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP\t" << opcodes[++i]<< std::endl;
 #endif
             break;
         case OP_JUMP_IF_FALSE:
-#ifdef BUILD_WITH_LLVM
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP_IF_FALSE\t" << opcodes[++i]<< "\t" <<opCodes[++i] << std::endl;
 #else
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP_IF_FALSE\t" << opcodes[++i] << std::endl;
 #endif
             break;
-#ifdef BUILD_WITH_LLVM
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
         case OP_JUMP_START:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP_START\t"<< opcodes[++i] << std::endl;
             break;

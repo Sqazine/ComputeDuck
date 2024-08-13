@@ -7,7 +7,7 @@ VM::VM()
 
 VM::~VM()
 {
-	SAFE_DELETE(m_LLVMJit);
+	SAFE_DELETE(m_Jit);
 	Gc(true);
 }
 
@@ -88,7 +88,7 @@ void VM::Execute()
 			if (returnCount == 1)
 			{
 				value = Pop();
-#ifdef BUILD_WITH_LLVM
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
 				frame->GetFnObject()->probableReturnTypes.insert(value.type);
 #endif
 			}
@@ -261,7 +261,7 @@ void VM::Execute()
 		case OP_JUMP_IF_FALSE:
 		{
 			auto address = *frame->ip++;
-#ifdef BUILD_WITH_LLVM
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
             auto mode = *frame->ip++;
 #endif
 			auto value = Pop();
@@ -274,13 +274,13 @@ void VM::Execute()
 		case OP_JUMP:
 		{
 			auto address = *frame->ip++;
-#ifdef BUILD_WITH_LLVM
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
 			auto mode = *frame->ip++;
 #endif
 			frame->ip = frame->GetFnObject()->chunk.opCodes.data() + address;
 			break;
 		}
-#ifdef BUILD_WITH_LLVM
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
 		case OP_JUMP_START:
 		{
 			frame->ip++;
@@ -329,74 +329,9 @@ void VM::Execute()
                 PushCallFrame(callFrame);
                 m_StackTop = callFrame.slot + fn->localVarCount;
 
-#ifdef BUILD_WITH_LLVM
-				if (fn->callCount >= JIT_TRIGGER_COUNT) 
-				{
-					size_t paramTypeHash=0;
-                    for (Value* slot = m_StackTop - fn->parameterCount; slot < m_StackTop; ++slot)
-						paramTypeHash ^= std::hash<ValueType>()(slot->type);
-
-					auto fnName = "function_" + fn->uuid + "_" + std::to_string(paramTypeHash);
-
-					auto iter = fn->jitCache.find(paramTypeHash);
-					if (iter == fn->jitCache.end() && fn->probableReturnTypes.size() < 2)
-					{
-						fn->jitCache.insert(paramTypeHash);
-
-						m_StackTop = m_StackTop - argCount + fn->localVarCount;
-
-						auto success=m_LLVMJit->Compile(fn, fnName);
-						if (!success)
-							break;
-					}
-
-					auto prevCallFrame = PopCallFrame();
-
-					//Todo:Not solve function multiply argument
-					if (fn->probableReturnTypes.size() == 1 && fn->probableReturnTypes.contains(ValueType::NUM))
-					{
-						if (argCount == 1)
-						{
-							auto arg0 = callFrame.slot + 0;
-							if (IS_NUM_VALUE(*arg0))
-							{
-								double dArg0 = TO_NUM_VALUE(*arg0);
-								auto v = m_LLVMJit->Run<double>(fnName,std::move(dArg0));
-								m_StackTop = prevCallFrame->slot - 1;
-								Push(v);
-							}
-						}
-						else
-						{
-                            auto v = m_LLVMJit->Run<double>(fnName);
-                            m_StackTop = prevCallFrame->slot - 1;
-                            Push(v);
-						}
-					}
-					else if (fn->probableReturnTypes.size() == 1 && fn->probableReturnTypes.contains(ValueType::NIL))
-					{
-                        auto v = m_LLVMJit->Run<bool*>(fnName);
-						m_StackTop = prevCallFrame->slot - 1;
-						Push(Value());
-					}
-                    else if (fn->probableReturnTypes.size() == 1 && fn->probableReturnTypes.contains(ValueType::BOOL))
-                    {
-                        auto v = m_LLVMJit->Run<bool>(fnName);
-						m_StackTop = prevCallFrame->slot - 1;
-                        Push(v);
-                    }
-                    else if (fn->probableReturnTypes.size() == 1 && fn->probableReturnTypes.contains(ValueType::STR))
-                    {
-                        auto v = m_LLVMJit->Run<char*>(fnName);
-						m_StackTop = prevCallFrame->slot - 1;
-                        Push(CreateObject<StrObject>(v));
-                    }
-                    else
-                    {
-                        m_LLVMJit->Run<void>(fnName);
-						m_StackTop = prevCallFrame->slot - 1;
-                    }
-				}
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+				if (fn->callCount >= JIT_TRIGGER_COUNT)
+					RunJit(fn, argCount);
 #endif
 			}
 			else if (IS_BUILTIN_VALUE(value))
@@ -627,7 +562,7 @@ void VM::ResetStatus()
 	m_CurObjCount = 0;
 	m_MaxObjCount = STACK_MAX;
 
-	m_LLVMJit = new LLVMJit(this);
+	m_Jit = new Jit(this);
 }
 
 void VM::Push(const Value &value)
@@ -731,4 +666,88 @@ void VM::Gc(bool isExitingVM)
 	m_MaxObjCount = m_CurObjCount == 0 ? STACK_MAX : m_CurObjCount * 2;
 
 	std::cout << "Collected " << objNum - m_CurObjCount << " objects," << m_CurObjCount << " remaining." << std::endl;
+}
+
+
+void VM::RunJit(FunctionObject* curFn, size_t argCount)
+{
+        size_t paramTypeHash = 0;
+        for (Value* slot = m_StackTop - curFn->parameterCount; slot < m_StackTop; ++slot)
+            paramTypeHash ^= std::hash<ValueType>()(slot->type);
+
+        auto fnName = "function_" + curFn->uuid + "_" + std::to_string(paramTypeHash);
+
+        auto iter = curFn->jitCache.find(paramTypeHash);
+        if (iter == curFn->jitCache.end() && curFn->probableReturnTypes.size() < 2)
+        {
+			curFn->jitCache.insert(paramTypeHash);
+
+            m_StackTop = m_StackTop - argCount + curFn->localVarCount;
+
+            auto success = m_Jit->Compile(curFn, fnName);
+            if (!success)
+                return;
+        }
+
+		auto curCallFrame = PeekCallFrameFromBack(1);
+
+        auto prevCallFrame = PopCallFrame();
+
+        //TODO:tmp
+        if (argCount == 1)
+        {
+            auto arg0 = curCallFrame->slot + 0;
+            if (IS_NUM_VALUE(*arg0))
+            {
+                double dArg0 = TO_NUM_VALUE(*arg0);
+                auto v = m_Jit->Run<double>(fnName, std::move(dArg0));
+                m_StackTop = prevCallFrame->slot - 1;
+                Push(v);
+            }
+        }
+
+        ////Todo:Not solve function multiply argument
+        //if (fn->probableReturnTypes.size() == 1 && fn->probableReturnTypes.contains(ValueType::NUM))
+        //{
+        //	if (argCount == 1)
+        //	{
+        //		auto arg0 = callFrame.slot + 0;
+        //		if (IS_NUM_VALUE(*arg0))
+        //		{
+        //			double dArg0 = TO_NUM_VALUE(*arg0);
+        //			auto v = m_Jit->Run<double>(fnName,std::move(dArg0));
+        //			m_StackTop = prevCallFrame->slot - 1;
+        //			Push(v);
+        //		}
+        //	}
+        //	else
+        //	{
+//                       auto v = m_Jit->Run<double>(fnName);
+//                       m_StackTop = prevCallFrame->slot - 1;
+//                       Push(v);
+               //	}
+               //}
+               //else if (fn->probableReturnTypes.size() == 1 && fn->probableReturnTypes.contains(ValueType::NIL))
+               //{
+//                   auto v = m_Jit->Run<bool*>(fnName);
+               //	m_StackTop = prevCallFrame->slot - 1;
+               //	Push(Value());
+               //}
+//               else if (fn->probableReturnTypes.size() == 1 && fn->probableReturnTypes.contains(ValueType::BOOL))
+//               {
+//                   auto v = m_Jit->Run<bool>(fnName);
+               //	m_StackTop = prevCallFrame->slot - 1;
+//                   Push(v);
+//               }
+//               else if (fn->probableReturnTypes.size() == 1 && fn->probableReturnTypes.contains(ValueType::STR))
+//               {
+//                   auto v = m_Jit->Run<char*>(fnName);
+               //	m_StackTop = prevCallFrame->slot - 1;
+//                   Push(CreateObject<StrObject>(v));
+//               }
+//               else
+//               {
+//                   m_Jit->Run<void>(fnName);
+               //	m_StackTop = prevCallFrame->slot - 1;
+//               }
 }
