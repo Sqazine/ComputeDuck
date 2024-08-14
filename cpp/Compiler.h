@@ -26,23 +26,23 @@ private:
     void CompileReturnStmt(ReturnStmt *stmt);
     void CompileStructStmt(StructStmt *stmt);
 
-    void CompileExpr(Expr *expr, const RWState &state = RWState::READ);
-    void CompileInfixExpr(InfixExpr *expr);
-    void CompileNumExpr(NumExpr *expr);
-    void CompileBoolExpr(BoolExpr *expr);
-    void CompilePrefixExpr(PrefixExpr *expr);
-    void CompileStrExpr(StrExpr *expr);
-    void CompileNilExpr(NilExpr *expr);
-    void CompileGroupExpr(GroupExpr *expr);
-    void CompileArrayExpr(ArrayExpr *expr);
-    void CompileIndexExpr(IndexExpr *expr, const RWState& state);
-    void CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state);
-    void CompileFunctionExpr(FunctionExpr *expr);
-    void CompileFunctionCallExpr(FunctionCallExpr *expr);
-    void CompileStructCallExpr(StructCallExpr *expr, const RWState &state);
-    void CompileRefExpr(RefExpr *expr);
-    void CompileStructExpr(StructExpr *expr);
-    void CompileDllImportExpr(DllImportExpr *expr);
+    ValueType CompileExpr(Expr *expr, const RWState &state = RWState::READ, ValueType type = ValueType::NIL);
+    ValueType CompileInfixExpr(InfixExpr *expr);
+    ValueType CompileNumExpr(NumExpr *expr);
+    ValueType CompileBoolExpr(BoolExpr *expr);
+    ValueType CompilePrefixExpr(PrefixExpr *expr);
+    ValueType CompileStrExpr(StrExpr *expr);
+    ValueType CompileNilExpr(NilExpr *expr);
+    ValueType CompileGroupExpr(GroupExpr *expr);
+    ValueType CompileArrayExpr(ArrayExpr *expr);
+    ValueType CompileIndexExpr(IndexExpr *expr, const RWState& state);
+    ValueType CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state = RWState::READ, ValueType type = ValueType::NIL);
+    ValueType CompileFunctionExpr(FunctionExpr *expr);
+    ValueType CompileFunctionCallExpr(FunctionCallExpr *expr);
+    ValueType CompileStructCallExpr(StructCallExpr *expr, const RWState &state);
+    ValueType CompileRefExpr(RefExpr *expr);
+    ValueType CompileStructExpr(StructExpr *expr);
+    ValueType CompileDllImportExpr(DllImportExpr *expr);
 
     void EnterScope();
     void ExitScope();
@@ -57,7 +57,13 @@ private:
     void LoadSymbol(const Symbol &symbol);
     void StoreSymbol(const Symbol &symbol);
 
+    void PushFnObj(FunctionObject* fnObj);
+    void PopFnObj();
+    FunctionObject* GetCurFnObj();
+
     std::vector<Chunk> m_ScopeChunks;
+
+    std::vector<FunctionObject*> m_FunctionObjectList;
 
     SymbolTable *m_SymbolTable{nullptr};
 };

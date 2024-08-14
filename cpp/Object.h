@@ -14,8 +14,8 @@
 
 struct Object
 {
-	Object(): marked(false), next(nullptr){}
-	~Object() {}
+    Object() : marked(false), next(nullptr) {}
+    ~Object() {}
 
 	bool marked;
     Object* next;
@@ -59,6 +59,7 @@ struct RefObject : public Object
 
 struct FunctionObject : public Object
 {
+    FunctionObject() = default;
 	FunctionObject(Chunk chunk, uint8_t localVarCount = 0, uint8_t parameterCount = 0)
 		: chunk(chunk), localVarCount(localVarCount), parameterCount(parameterCount)
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM

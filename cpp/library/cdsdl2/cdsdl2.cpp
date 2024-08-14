@@ -4,6 +4,7 @@
 #include "BuiltinManager.h"
 #include "Value.h"
 #include "Object.h"
+#include "Config.h"
 
 extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_Init)(Value *args, uint8_t argCount, Value &result)
 {
@@ -41,7 +42,9 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_PollEvent)(Value *args, uint8_t 
     SDL_Event *event = new SDL_Event();
     SDL_PollEvent(event);
     BuiltinObject *builtinData = new BuiltinObject(event, [](void *nativeData)
-                                                   { delete (SDL_Event *)nativeData; });
+                                                   { 
+                                                   delete (SDL_Event *)nativeData;
+                                                   });
 
     result = Value(builtinData);
     return true;
@@ -80,7 +83,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_LoadBMP)(Value *args, uint8_t ar
     if (!IS_STR_VALUE(args[0]))
         ASSERT("Invalid str value.");
 
-    auto fullPath = BuiltinManager::GetInstance()->ToFullPath(TO_STR_VALUE(args[0])->value);
+    auto fullPath = Config::GetInstance()->ToFullPath(TO_STR_VALUE(args[0])->value);
 
     SDL_Surface *surface = SDL_LoadBMP(fullPath.c_str());
 

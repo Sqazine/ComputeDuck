@@ -41,10 +41,6 @@ Value::Value(BuiltinObject* object)
 {
 }
 
-Value::Value(ValueType type)
-	: type(type), object(nullptr)
-{
-}
 Value ::~Value()
 {
 }

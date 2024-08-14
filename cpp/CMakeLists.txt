@@ -56,6 +56,7 @@ set(ROOT_SRC Ast.h
              BuiltinManager.cpp BuiltinManager.h
              VM.h VM.cpp
              PreProcessor.h
+             Config.cpp Config.h
              SetLLVM.cmake)
 
 add_executable(${EXE_NAME} main.cpp ${EXAMPLES})

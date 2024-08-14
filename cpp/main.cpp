@@ -7,7 +7,7 @@
 #include "Compiler.h"
 #include "BuiltinManager.h"
 #include "VM.h"
-#include "VM.h"
+#include "Config.h"
 
 PreProcessor *g_PreProcessor = nullptr;
 Parser *g_Parser = nullptr;
@@ -22,7 +22,7 @@ void SetBasePath(std::string_view path)
 #else
 	curPath = curPath.substr(0, curPath.find_last_of('/') + 1);
 #endif
-	BuiltinManager::GetInstance()->SetExecuteFilePath(curPath);
+	Config::GetInstance()->SetExecuteFilePath(curPath);
 }
 
 void Run(std::string_view content)
@@ -65,6 +65,18 @@ void Repl(std::string_view exePath)
 			return;
 		else if (line == "clear")
 			allLines.clear();
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+		else if (line == "-n" || line == "--no-jit")
+		{
+			Config::GetInstance()->SetUseJit(false);
+			allLines.clear();
+		}
+		else if (line == "-j" || line == "--jit")
+		{
+			Config::GetInstance()->SetUseJit(true);
+			allLines.clear();
+		}
+#endif
 		else
 		{
 			allLines += line;
@@ -87,6 +99,9 @@ int32_t PrintUsage()
 	std::cout << "Usage: ComputeDuck [option]:" << std::endl;
 	std::cout << "-h or --help:show usage info." << std::endl;
 	std::cout << "-f or --file:run source file with a valid file path,like : ComputeDuck -f examples/array.cd." << std::endl;
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+	std::cout << "-nj or --no-jit:not use jit compiler" << std::endl;
+#endif
 	return EXIT_FAILURE;
 }
 
@@ -103,6 +118,11 @@ int32_t main(int argc, const char **argv)
 			else
 				return PrintUsage();
 		}
+
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+		if (strcmp(argv[i], "-njit") == 0 || strcmp(argv[i], "--no-jit") == 0)
+			Config::GetInstance()->SetUseJit(false);
+#endif
 
 		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
 			return PrintUsage();

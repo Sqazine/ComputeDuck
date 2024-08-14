@@ -1,6 +1,9 @@
 #pragma once
 #include <vector>
 #include <unordered_map>
+#include <memory>
+#include <string>
+#include "Utils.h"
 #include "Object.h"
 
 class COMPUTE_DUCK_API BuiltinManager
@@ -18,22 +21,13 @@ public:
         m_BuiltinObjects[name] = new BuiltinObject(name, v);
     }
 
-    void SetExecuteFilePath(std::string_view path);
-    const std::string &GetExecuteFilePath() const;
-
-    std::string ToFullPath(std::string_view filePath);
-
     BuiltinObject* FindBuiltinObject(std::string_view name);
 
     const std::unordered_map<std::string_view, BuiltinObject*> GetBuiltinObjectList() const;
 
 private:
-    static std::unique_ptr<BuiltinManager> instance;
-
     BuiltinManager();
     ~BuiltinManager();
-
-    std::string m_CurExecuteFilePath;
 
     std::unordered_map<std::string_view,BuiltinObject *> m_BuiltinObjects;
 };
