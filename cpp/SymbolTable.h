@@ -2,6 +2,7 @@
 #include <string>
 #include <unordered_map>
 #include "Utils.h"
+#include "Value.h"
 
 enum class SymbolScope
 {
@@ -26,6 +27,8 @@ struct Symbol
     int32_t index{0};
     int32_t scopeDepth{0};
     int32_t isUpValue{ 0 };
+
+    ValueType type;
 };
 
 struct SymbolTable
@@ -48,9 +51,10 @@ struct SymbolTable
         }
     }
 
-    Symbol Define(const std::string& name, bool isStructSymbol = false)
+    Symbol Define(const std::string& name,ValueType type, bool isStructSymbol = false)
     {
         auto symbol = Symbol(name, SymbolScope::GLOBAL, definitionCount, scopeDepth, isStructSymbol);
+        symbol.type=type;
 
         if (!enclosing)
             symbol.scope = SymbolScope::GLOBAL;

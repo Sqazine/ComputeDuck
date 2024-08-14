@@ -1,6 +1,7 @@
 #include "VM.h"
 #include <iostream>
 #include "BuiltinManager.h"
+#include "Config.h"
 VM::VM()
 {
 }
@@ -330,8 +331,9 @@ void VM::Execute()
                 m_StackTop = callFrame.slot + fn->localVarCount;
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-				if (fn->callCount >= JIT_TRIGGER_COUNT)
-					RunJit(fn, argCount);
+				if(Config::GetInstance()->IsUseJit())
+					if (fn->callCount >= JIT_TRIGGER_COUNT)
+						RunJit(fn, argCount);
 #endif
 			}
 			else if (IS_BUILTIN_VALUE(value))

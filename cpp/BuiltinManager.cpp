@@ -1,6 +1,5 @@
 #include "BuiltinManager.h"
 #include <ctime>
-#include <filesystem>
 #include "Object.h"
 
 namespace
@@ -146,24 +145,6 @@ BuiltinManager::BuiltinManager()
 BuiltinManager::~BuiltinManager()
 {
 	std::unordered_map<std::string_view, BuiltinObject *>().swap(m_BuiltinObjects);
-}
-
-void BuiltinManager::SetExecuteFilePath(std::string_view path)
-{
-	m_CurExecuteFilePath = path;
-}
-const std::string &BuiltinManager::GetExecuteFilePath() const
-{
-	return m_CurExecuteFilePath;
-}
-
-std::string BuiltinManager::ToFullPath(std::string_view filePath)
-{
-	std::filesystem::path filesysPath = filePath;
-	std::string fullPath = filesysPath.string();
-	if (!filesysPath.is_absolute())
-		fullPath = BuiltinManager::GetInstance()->GetExecuteFilePath() + fullPath;
-	return fullPath;
 }
 
 BuiltinObject *BuiltinManager::FindBuiltinObject(std::string_view name)

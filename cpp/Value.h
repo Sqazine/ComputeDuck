@@ -26,7 +26,7 @@
 #define TO_STRUCT_VALUE(v) ((StructObject *)((v).object))
 #define TO_BUILTIN_VALUE(v) ((BuiltinObject *)((v).object))
 
-#define TO_OBJECT_VALUE(v) ((Object *)((v).object))
+#define TO_OBJECT_VALUE(v) ((v).object)
 
 enum class ValueType : uint8_t
 {
@@ -57,7 +57,6 @@ struct COMPUTE_DUCK_API Value
 	Value(struct FunctionObject *object);
 	Value(struct StructObject *object);
 	Value(struct BuiltinObject *object);
-	Value(ValueType type);
 	~Value();
 
 	std::string Stringify(
