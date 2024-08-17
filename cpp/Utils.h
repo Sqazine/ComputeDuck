@@ -71,6 +71,7 @@ enum JumpMode
         abort();                                                                    \
     } while (false);
 
+
 COMPUTE_DUCK_API std::string ReadFile(std::string_view path);
 
 COMPUTE_DUCK_API std::string PointerAddressToString(void *pointer);
@@ -79,5 +80,13 @@ COMPUTE_DUCK_API void RegisterDLLs(std::string rawDllPath);
 
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+#define ERROR(...)                                                                  \
+    do                                                                              \
+    {                                                                               \
+        printf("[file:%s,function:%s,line:%d]:", __FILE__, __FUNCTION__, __LINE__); \
+        printf(__VA_ARGS__);                                                        \
+        return false;                                                               \
+    } while (false);
+
 std::string GenerateUUID();
 #endif

@@ -67,15 +67,9 @@ void Repl(std::string_view exePath)
 			allLines.clear();
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
 		else if (line == "-n" || line == "--no-jit")
-		{
 			Config::GetInstance()->SetUseJit(false);
-			allLines.clear();
-		}
 		else if (line == "-j" || line == "--jit")
-		{
 			Config::GetInstance()->SetUseJit(true);
-			allLines.clear();
-		}
 #endif
 		else
 		{

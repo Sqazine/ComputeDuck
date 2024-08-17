@@ -8,9 +8,6 @@
 #include "Chunk.h"
 #include <variant>
 #include <type_traits>
-#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-#include <set>
-#endif
 
 struct Object
 {
@@ -59,7 +56,6 @@ struct RefObject : public Object
 
 struct FunctionObject : public Object
 {
-    FunctionObject() = default;
 	FunctionObject(Chunk chunk, uint8_t localVarCount = 0, uint8_t parameterCount = 0)
 		: chunk(chunk), localVarCount(localVarCount), parameterCount(parameterCount)
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
@@ -68,7 +64,10 @@ struct FunctionObject : public Object
 #endif
     {}
 
-    ~FunctionObject() = default;
+    ~FunctionObject()
+    {
+        SAFE_DELETE(probableReturnTypeSet);
+    }
 
 	Chunk chunk;
 	uint8_t localVarCount;
@@ -77,7 +76,7 @@ struct FunctionObject : public Object
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     uint32_t callCount;
     std::set<size_t> jitCache;
-    std::set<ValueType> probableReturnTypes;//record function return types,some function with multiply return stmt may return mutiply types of value
+    ValueTypeSet* probableReturnTypeSet{nullptr};//record function return types,some function with multiply return stmt may return mutiply types of value
     std::string uuid;
 #endif
 };

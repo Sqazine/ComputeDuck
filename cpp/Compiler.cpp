@@ -10,11 +10,11 @@ Compiler::~Compiler()
     SAFE_DELETE(m_SymbolTable);
 }
 
-Value Compiler::Compile(const std::vector<Stmt *> &stmts)
+Value Compiler::Compile(const std::vector<Stmt*>& stmts)
 {
     ResetStatus();
 
-    for (const auto &stmt : stmts)
+    for (const auto& stmt : stmts)
         CompileStmt(stmt);
 
     return new FunctionObject(CurChunk());
@@ -29,43 +29,43 @@ void Compiler::ResetStatus()
 
     m_SymbolTable = new SymbolTable();
 
-    for (const auto &[k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
+    for (const auto& [k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
         m_SymbolTable->DefineBuiltin(k);
 }
 
-void Compiler::CompileStmt(Stmt *stmt)
+void Compiler::CompileStmt(Stmt* stmt)
 {
     switch (stmt->type)
     {
     case AstType::RETURN:
-        CompileReturnStmt((ReturnStmt *)stmt);
+        CompileReturnStmt((ReturnStmt*)stmt);
         break;
     case AstType::EXPR:
-        CompileExprStmt((ExprStmt *)stmt);
+        CompileExprStmt((ExprStmt*)stmt);
         break;
     case AstType::SCOPE:
-        CompileScopeStmt((ScopeStmt *)stmt);
+        CompileScopeStmt((ScopeStmt*)stmt);
         break;
     case AstType::IF:
-        CompileIfStmt((IfStmt *)stmt);
+        CompileIfStmt((IfStmt*)stmt);
         break;
     case AstType::WHILE:
-        CompileWhileStmt((WhileStmt *)stmt);
+        CompileWhileStmt((WhileStmt*)stmt);
         break;
     case AstType::STRUCT:
-        CompileStructStmt((StructStmt *)stmt);
+        CompileStructStmt((StructStmt*)stmt);
         break;
     default:
-        break;
+        ASSERT("Unknown stmt")
     }
 }
 
-void Compiler::CompileExprStmt(ExprStmt *stmt)
+void Compiler::CompileExprStmt(ExprStmt* stmt)
 {
     CompileExpr(stmt->expr);
 }
 
-void Compiler::CompileIfStmt(IfStmt *stmt)
+void Compiler::CompileIfStmt(IfStmt* stmt)
 {
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     Emit(OP_JUMP_START);
@@ -98,22 +98,22 @@ void Compiler::CompileIfStmt(IfStmt *stmt)
 #endif
 }
 
-void Compiler::CompileScopeStmt(ScopeStmt *stmt)
+void Compiler::CompileScopeStmt(ScopeStmt* stmt)
 {
     Emit(OP_SP_OFFSET);
     auto idx = Emit(0);
 
-    for (const auto &s : stmt->stmts)
+    for (const auto& s : stmt->stmts)
         CompileStmt(s);
 
-    auto localVarCount = m_SymbolTable->definitionCount;
+    auto localVarCount = m_SymbolTable->GetDefinitionCount();
 
     CurChunk().opCodes[idx] = localVarCount;
     Emit(OP_SP_OFFSET);
     Emit(-localVarCount);
 }
 
-void Compiler::CompileWhileStmt(WhileStmt *stmt)
+void Compiler::CompileWhileStmt(WhileStmt* stmt)
 {
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     Emit(OP_JUMP_START);
@@ -140,13 +140,11 @@ void Compiler::CompileWhileStmt(WhileStmt *stmt)
     ModifyOpCode(jumpIfFalseAddress, (int16_t)CurChunk().opCodes.size());
 }
 
-void Compiler::CompileReturnStmt(ReturnStmt *stmt)
+void Compiler::CompileReturnStmt(ReturnStmt* stmt)
 {
     if (stmt->expr)
     {
-        auto rightType = CompileExpr(stmt->expr);
-        GetCurFnObj()->probableReturnTypes.insert(rightType);
-
+        CompileExpr(stmt->expr);
         Emit(OP_RETURN);
         Emit(1);
     }
@@ -157,9 +155,9 @@ void Compiler::CompileReturnStmt(ReturnStmt *stmt)
     }
 }
 
-void Compiler::CompileStructStmt(StructStmt *stmt)
+void Compiler::CompileStructStmt(StructStmt* stmt)
 {
-    auto symbol = m_SymbolTable->Define(stmt->name, ValueType::STRUCT, true);
+    auto symbol = m_SymbolTable->Define(stmt->name, true);
 
     m_ScopeChunks.emplace_back(Chunk());
 
@@ -178,71 +176,63 @@ void Compiler::CompileStructStmt(StructStmt *stmt)
     StoreSymbol(symbol);
 }
 
-ValueType Compiler::CompileExpr(Expr *expr, const RWState &state, ValueType type)
+void Compiler::CompileExpr(Expr* expr, const RWState& state)
 {
     switch (expr->type)
     {
     case AstType::NUM:
-        return CompileNumExpr((NumExpr *)expr);
+        return CompileNumExpr((NumExpr*)expr);
     case AstType::STR:
-        return CompileStrExpr((StrExpr *)expr);
+        return CompileStrExpr((StrExpr*)expr);
     case AstType::BOOL:
-        return CompileBoolExpr((BoolExpr *)expr);
+        return CompileBoolExpr((BoolExpr*)expr);
     case AstType::NIL:
-        return CompileNilExpr((NilExpr *)expr);
+        return CompileNilExpr((NilExpr*)expr);
     case AstType::IDENTIFIER:
-        return CompileIdentifierExpr((IdentifierExpr *)expr, state, type);
+        return CompileIdentifierExpr((IdentifierExpr*)expr, state);
     case AstType::GROUP:
-        return CompileGroupExpr((GroupExpr *)expr);
+        return CompileGroupExpr((GroupExpr*)expr);
     case AstType::ARRAY:
-        return CompileArrayExpr((ArrayExpr *)expr);
+        return CompileArrayExpr((ArrayExpr*)expr);
     case AstType::INDEX:
-        return CompileIndexExpr((IndexExpr *)expr, state);
+        return CompileIndexExpr((IndexExpr*)expr, state);
     case AstType::PREFIX:
-        return CompilePrefixExpr((PrefixExpr *)expr);
+        return CompilePrefixExpr((PrefixExpr*)expr);
     case AstType::INFIX:
-        return CompileInfixExpr((InfixExpr *)expr);
+        return CompileInfixExpr((InfixExpr*)expr);
     case AstType::FUNCTION_CALL:
-        return CompileFunctionCallExpr((FunctionCallExpr *)expr);
+        return CompileFunctionCallExpr((FunctionCallExpr*)expr);
     case AstType::STRUCT_CALL:
-        return CompileStructCallExpr((StructCallExpr *)expr, state);
+        return CompileStructCallExpr((StructCallExpr*)expr, state);
     case AstType::REF:
-        return CompileRefExpr((RefExpr *)expr);
+        return CompileRefExpr((RefExpr*)expr);
     case AstType::FUNCTION:
-        return CompileFunctionExpr((FunctionExpr *)expr);
+        return CompileFunctionExpr((FunctionExpr*)expr);
     case AstType::STRUCT:
-        return CompileStructExpr((StructExpr *)expr);
+        return CompileStructExpr((StructExpr*)expr);
     case AstType::DLL_IMPORT:
-        return CompileDllImportExpr((DllImportExpr *)expr);
+        return CompileDllImportExpr((DllImportExpr*)expr);
     default:
-        return ValueType::NIL;
+        ASSERT("Unknown expr.");
     }
 }
 
-ValueType Compiler::CompileInfixExpr(InfixExpr *expr)
+void Compiler::CompileInfixExpr(InfixExpr* expr)
 {
     if (expr->op == "=")
     {
         if (expr->left->type == AstType::IDENTIFIER && expr->right->type == AstType::FUNCTION)
-            m_SymbolTable->Define(((IdentifierExpr *)expr->left)->literal, ValueType::NIL); // TODO
-        auto rightType = CompileExpr(expr->right);
-        return CompileExpr(expr->left, RWState::WRITE, rightType);
+            m_SymbolTable->Define(((IdentifierExpr*)expr->left)->literal);
+        CompileExpr(expr->right);
+        CompileExpr(expr->left, RWState::WRITE);
     }
     else
     {
-        auto rightType = CompileExpr(expr->right);
-        auto leftType = CompileExpr(expr->left);
+        CompileExpr(expr->right);
+        CompileExpr(expr->left);
 
         if (expr->op == "+")
-        {
-            if ((leftType == ValueType::NUM && rightType == ValueType::NUM) || (leftType == ValueType::STR && rightType == ValueType::STR))
-            {
-                Emit(OP_ADD);
-                return leftType;
-            }
-            else
-                ASSERT("Invalid type of '+'");
-        }
+            Emit(OP_ADD);
         else if (expr->op == "-")
             Emit(OP_SUB);
         else if (expr->op == "*")
@@ -283,73 +273,61 @@ ValueType Compiler::CompileInfixExpr(InfixExpr *expr)
     }
 }
 
-ValueType Compiler::CompileNumExpr(NumExpr *expr)
+void Compiler::CompileNumExpr(NumExpr* expr)
 {
     EmitConstant(expr->value);
-    return ValueType::NUM;
 }
 
-ValueType Compiler::CompileBoolExpr(BoolExpr *expr)
+void Compiler::CompileBoolExpr(BoolExpr* expr)
 {
     if (expr->value)
         EmitConstant(true);
     else
         EmitConstant(false);
-    return ValueType::BOOL;
 }
 
-ValueType Compiler::CompilePrefixExpr(PrefixExpr *expr)
+void Compiler::CompilePrefixExpr(PrefixExpr* expr)
 {
-    auto rightType = CompileExpr(expr->right);
-    if (rightType == ValueType::NUM)
-    {
-        if (expr->op == "-")
-            Emit(OP_MINUS);
-        else if (expr->op == "~")
-            Emit(OP_BIT_NOT);
-        else
-            ASSERT("Unrecognized prefix op");
-    }
-    else if (rightType == ValueType::NUM)
-    {
-        if (expr->op == "not")
-            Emit(OP_NOT);
-        else
-            ASSERT("Unrecognized prefix op");
-    }
+    CompileExpr(expr->right);
+
+    if (expr->op == "-")
+        Emit(OP_MINUS);
+    else if (expr->op == "~")
+        Emit(OP_BIT_NOT);
+
+
+    else if (expr->op == "not")
+        Emit(OP_NOT);
+
     else
         ASSERT("Unrecognized prefix type.");
-    return rightType;
 }
 
-ValueType Compiler::CompileStrExpr(StrExpr *expr)
+void Compiler::CompileStrExpr(StrExpr* expr)
 {
     EmitConstant(new StrObject(expr->value.c_str()));
-    return ValueType::STR;
 }
 
-ValueType Compiler::CompileNilExpr(NilExpr *expr)
+void Compiler::CompileNilExpr(NilExpr* expr)
 {
     EmitConstant(Value());
-    return ValueType::NIL;
 }
 
-ValueType Compiler::CompileGroupExpr(GroupExpr *expr)
+void Compiler::CompileGroupExpr(GroupExpr* expr)
 {
     return CompileExpr(expr->expr);
 }
 
-ValueType Compiler::CompileArrayExpr(ArrayExpr *expr)
+void Compiler::CompileArrayExpr(ArrayExpr* expr)
 {
-    for (const auto &e : expr->elements)
+    for (const auto& e : expr->elements)
         CompileExpr(e);
 
     Emit(OP_ARRAY);
     Emit(static_cast<int16_t>(expr->elements.size()));
-    return ValueType::ARRAY;
 }
 
-ValueType Compiler::CompileIndexExpr(IndexExpr *expr, const RWState &state)
+void Compiler::CompileIndexExpr(IndexExpr* expr, const RWState& state)
 {
     CompileExpr(expr->ds);
     CompileExpr(expr->index);
@@ -357,10 +335,9 @@ ValueType Compiler::CompileIndexExpr(IndexExpr *expr, const RWState &state)
         Emit(OP_SET_INDEX);
     else
         Emit(OP_GET_INDEX);
-    return ValueType::NIL; // TODO
 }
 
-ValueType Compiler::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state, ValueType type)
+void Compiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& state)
 {
     Symbol symbol;
     bool isFound = m_SymbolTable->Resolve(expr->literal, symbol);
@@ -373,30 +350,24 @@ ValueType Compiler::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &s
     else
     {
         if (!isFound)
-            symbol = m_SymbolTable->Define(expr->literal, type);
+            symbol = m_SymbolTable->Define(expr->literal);
         StoreSymbol(symbol);
     }
-
-    return symbol.type;
 }
 
-ValueType Compiler::CompileFunctionExpr(FunctionExpr *expr)
+void Compiler::CompileFunctionExpr(FunctionExpr* expr)
 {
-
-    auto fn = new FunctionObject();
-    PushFnObj(fn);
-
     EnterScope();
 
     m_ScopeChunks.emplace_back(Chunk());
 
-    for (const auto &param : expr->parameters)
-        m_SymbolTable->Define(param->literal, ValueType::NIL);
+    for (const auto& param : expr->parameters)
+        m_SymbolTable->Define(param->literal);
 
-    for (const auto &s : expr->body->stmts)
+    for (const auto& s : expr->body->stmts)
         CompileStmt(s);
 
-    auto localVarCount = m_SymbolTable->definitionCount;
+    auto localVarCount = m_SymbolTable->GetDefinitionCount();
 
     auto chunk = m_ScopeChunks.back();
     m_ScopeChunks.pop_back();
@@ -410,31 +381,23 @@ ValueType Compiler::CompileFunctionExpr(FunctionExpr *expr)
         chunk.opCodes.emplace_back(0);
     }
 
-    fn->chunk = chunk;
-    fn->localVarCount = localVarCount;
-    fn->parameterCount = static_cast<uint8_t>(expr->parameters.size());
+    auto fn = new FunctionObject(chunk, localVarCount, static_cast<uint8_t>(expr->parameters.size()));
 
     EmitConstant(fn);
-
-    PopFnObj();
-
-    return ValueType::FUNCTION;//TODO
 }
 
-ValueType Compiler::CompileFunctionCallExpr(FunctionCallExpr *expr)
+void Compiler::CompileFunctionCallExpr(FunctionCallExpr* expr)
 {
-   auto type = CompileExpr(expr->name);
+    CompileExpr(expr->name);
 
-    for (const auto &argu : expr->arguments)
+    for (const auto& argu : expr->arguments)
         CompileExpr(argu);
 
     Emit(OP_FUNCTION_CALL);
     Emit(static_cast<int16_t>(expr->arguments.size()));
-
-    return type;
 }
 
-ValueType Compiler::CompileStructCallExpr(StructCallExpr *expr, const RWState &state)
+void Compiler::CompileStructCallExpr(StructCallExpr* expr, const RWState& state)
 {
     if (expr->callMember->type == AstType::FUNCTION_CALL && state == RWState::WRITE)
         ASSERT("Cannot assign to a struct's function call expr");
@@ -442,9 +405,9 @@ ValueType Compiler::CompileStructCallExpr(StructCallExpr *expr, const RWState &s
     CompileExpr(expr->callee);
 
     if (expr->callMember->type == AstType::IDENTIFIER)
-        EmitConstant(new StrObject(((IdentifierExpr *)expr->callMember)->literal.c_str()));
+        EmitConstant(new StrObject(((IdentifierExpr*)expr->callMember)->literal.c_str()));
     else if (expr->callMember->type == AstType::FUNCTION_CALL)
-        EmitConstant(new StrObject(((IdentifierExpr *)((FunctionCallExpr *)expr->callMember)->name)->literal.data()));
+        EmitConstant(new StrObject(((IdentifierExpr*)((FunctionCallExpr*)expr->callMember)->name)->literal.data()));
 
     if (state == RWState::READ)
     {
@@ -452,8 +415,8 @@ ValueType Compiler::CompileStructCallExpr(StructCallExpr *expr, const RWState &s
 
         if (expr->callMember->type == AstType::FUNCTION_CALL)
         {
-            auto funcCall = (FunctionCallExpr *)expr->callMember;
-            for (const auto &argu : funcCall->arguments)
+            auto funcCall = (FunctionCallExpr*)expr->callMember;
+            for (const auto& argu : funcCall->arguments)
                 CompileExpr(argu);
 
             Emit(OP_FUNCTION_CALL);
@@ -462,17 +425,15 @@ ValueType Compiler::CompileStructCallExpr(StructCallExpr *expr, const RWState &s
     }
     else
         Emit(OP_SET_STRUCT);
-
-    return ValueType::STRUCT;
 }
 
-ValueType Compiler::CompileRefExpr(RefExpr *expr)
+void Compiler::CompileRefExpr(RefExpr* expr)
 {
     Symbol symbol;
     if (expr->refExpr->type == AstType::INDEX)
     {
-        CompileExpr(((IndexExpr *)expr->refExpr)->index);
-        bool isFound = m_SymbolTable->Resolve(((IndexExpr *)expr->refExpr)->ds->Stringify(), symbol);
+        CompileExpr(((IndexExpr*)expr->refExpr)->index);
+        bool isFound = m_SymbolTable->Resolve(((IndexExpr*)expr->refExpr)->ds->Stringify(), symbol);
         if (!isFound)
             ASSERT("Undefined variable:%s", expr->Stringify().c_str());
 
@@ -514,13 +475,11 @@ ValueType Compiler::CompileRefExpr(RefExpr *expr)
             break;
         }
     }
-
-    return symbol.type;
 }
 
-ValueType Compiler::CompileStructExpr(StructExpr *expr)
+void Compiler::CompileStructExpr(StructExpr* expr)
 {
-    for (const auto &[k, v] : expr->members)
+    for (const auto& [k, v] : expr->members)
     {
         CompileExpr(v);
         EmitConstant(new StrObject(k->literal.c_str()));
@@ -528,23 +487,19 @@ ValueType Compiler::CompileStructExpr(StructExpr *expr)
 
     Emit(OP_STRUCT);
     Emit(static_cast<int16_t>(expr->members.size()));
-
-    return ValueType::STRUCT;
 }
 
-ValueType Compiler::CompileDllImportExpr(DllImportExpr *expr)
+void Compiler::CompileDllImportExpr(DllImportExpr* expr)
 {
     auto dllpath = expr->dllPath;
 
     RegisterDLLs(dllpath);
 
-    for (const auto &[k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
+    for (const auto& [k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
         m_SymbolTable->DefineBuiltin(k);
 
     EmitConstant(new StrObject(dllpath.c_str()));
     Emit(OP_DLL_IMPORT);
-
-    return ValueType::NIL;//TODO
 }
 
 void Compiler::EnterScope()
@@ -553,10 +508,10 @@ void Compiler::EnterScope()
 }
 void Compiler::ExitScope()
 {
-    m_SymbolTable = m_SymbolTable->enclosing;
+    m_SymbolTable = m_SymbolTable->GetEnclosing();
 }
 
-Chunk &Compiler::CurChunk()
+Chunk& Compiler::CurChunk()
 {
     return m_ScopeChunks.back();
 }
@@ -567,7 +522,7 @@ uint32_t Compiler::Emit(int16_t opcode)
     return static_cast<uint32_t>(CurChunk().opCodes.size() - 1);
 }
 
-uint32_t Compiler::EmitConstant(const Value &value)
+uint32_t Compiler::EmitConstant(const Value& value)
 {
     CurChunk().constants.emplace_back(value);
     auto pos = static_cast<int16_t>(CurChunk().constants.size() - 1);
@@ -582,7 +537,7 @@ void Compiler::ModifyOpCode(uint32_t pos, int16_t opcode)
     CurChunk().opCodes[pos] = opcode;
 }
 
-void Compiler::LoadSymbol(const Symbol &symbol)
+void Compiler::LoadSymbol(const Symbol& symbol)
 {
     switch (symbol.scope)
     {
@@ -615,7 +570,7 @@ void Compiler::LoadSymbol(const Symbol &symbol)
     }
 }
 
-void Compiler::StoreSymbol(const Symbol &symbol)
+void Compiler::StoreSymbol(const Symbol& symbol)
 {
     switch (symbol.scope)
     {
@@ -632,19 +587,4 @@ void Compiler::StoreSymbol(const Symbol &symbol)
     default:
         break;
     }
-}
-
-void Compiler::PushFnObj(FunctionObject *fnObj)
-{
-    m_FunctionObjectList.emplace_back(fnObj);
-}
-
-void Compiler::PopFnObj()
-{
-    m_FunctionObjectList.pop_back();
-}
-
-FunctionObject *Compiler::GetCurFnObj()
-{
-    return m_FunctionObjectList.back();
 }

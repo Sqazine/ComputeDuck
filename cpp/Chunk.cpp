@@ -9,7 +9,7 @@ Chunk::Chunk(OpCodes opCodes, const std::vector<Value> &constants)
 std::string Chunk::Stringify()
 {
     std::string result = OpCodeStringify(opCodes);
-    for (const auto& c : constants)
+    for (const auto &c : constants)
         if (IS_FUNCTION_VALUE(c))
             result += c.Stringify(
 #ifndef NDEBUG
@@ -85,21 +85,21 @@ std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
             break;
         case OP_JUMP:
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP\t" << opcodes[++i]<< "\t" << opCodes[++i] << std::endl;
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP\t" << opcodes[++i] << "\t" << opCodes[++i] << std::endl;
 #else
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP\t" << opcodes[++i]<< std::endl;
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP\t" << opcodes[++i] << std::endl;
 #endif
             break;
         case OP_JUMP_IF_FALSE:
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP_IF_FALSE\t" << opcodes[++i]<< "\t" <<opCodes[++i] << std::endl;
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP_IF_FALSE\t" << opcodes[++i] << "\t" << opCodes[++i] << std::endl;
 #else
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP_IF_FALSE\t" << opcodes[++i] << std::endl;
 #endif
             break;
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
         case OP_JUMP_START:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP_START\t"<< opcodes[++i] << std::endl;
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP_START\t" << opcodes[++i] << std::endl;
             break;
         case OP_JUMP_END:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP_END" << std::endl;
