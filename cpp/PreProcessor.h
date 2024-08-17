@@ -66,7 +66,7 @@ public:
         }
 
         std::sort(tables.begin(), tables.end(), [](const TokenBlockTable &left, const TokenBlockTable &right)
-                  { return left.refCount > right.refCount; });
+            { return left.refCount > right.refCount; });
 
         std::vector<Token> result;
         for (const auto &t : tables)

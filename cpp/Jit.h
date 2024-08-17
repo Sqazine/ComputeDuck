@@ -114,12 +114,12 @@ private:
 
         bool IsLlvmValue() const
         {
-            return stored.index() == 2;
+            return stored.index() == 1;
         }
 
         bool IsVmValue()
         {
-            return stored.index() == 1;
+            return stored.index() == 0;
         }
 
         llvm::Value* GetLlvmValue() const

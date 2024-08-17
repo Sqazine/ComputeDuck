@@ -13,84 +13,81 @@ enum class SymbolScope
 
 struct Symbol
 {
-    Symbol() = default;
-    ~Symbol() = default;
-
-    Symbol(std::string_view name, const SymbolScope& scope, int32_t index, int32_t scopeDepth = 0, bool isStructSymbol = false)
-        : name(name), scope(scope), index(index), isStructSymbol(isStructSymbol), scopeDepth(scopeDepth)
-    {
-    }
-
     std::string_view name;
-    bool isStructSymbol{false};
+    bool isStructSymbol{ false };
     SymbolScope scope{ SymbolScope::GLOBAL };
-    int32_t index{0};
-    int32_t scopeDepth{0};
+    int32_t index{ -1 };
+    int32_t scopeDepth{ 0 };
     int32_t isUpValue{ 0 };
-
-    ValueType type;
 };
 
-struct SymbolTable
+class SymbolTable
 {
-    SymbolTable(){}
+public:
+    SymbolTable() = default;
 
-    SymbolTable(SymbolTable* enclosing)
-        : enclosing(enclosing), scopeDepth(enclosing->scopeDepth + 1)
+    SymbolTable(SymbolTable *enclosing)
+        : m_Enclosing(enclosing), m_ScopeDepth(m_Enclosing->m_ScopeDepth + 1)
     {
     }
 
     ~SymbolTable()
     {
-        auto p = enclosing;
+        auto p = m_Enclosing;
         while (p)
         {
-            auto q = p->enclosing;
+            auto q = p->m_Enclosing;
             SAFE_DELETE(p);
             p = q;
         }
     }
 
-    Symbol Define(const std::string& name,ValueType type, bool isStructSymbol = false)
+    Symbol Define(std::string_view name, bool isStructSymbol = false)
     {
-        auto symbol = Symbol(name, SymbolScope::GLOBAL, definitionCount, scopeDepth, isStructSymbol);
-        symbol.type=type;
+        Symbol symbol;
+        symbol.name = name;
+        symbol.index = m_DefinitionCount;
+        symbol.scopeDepth = m_ScopeDepth;
 
-        if (!enclosing)
+        if (!m_Enclosing)
             symbol.scope = SymbolScope::GLOBAL;
         else
             symbol.scope = SymbolScope::LOCAL;
 
-        if (symbolMaps.find(name) != symbolMaps.end())
+        if (m_SymbolMaps.find(name) != m_SymbolMaps.end())
             ASSERT("Redefined variable:(%s) in current context.", name.data());
 
-        symbolMaps[name] = symbol;
-        definitionCount++;
+        m_SymbolMaps[name] = symbol;
+        m_DefinitionCount++;
         return symbol;
     }
 
     Symbol DefineBuiltin(std::string_view name)
     {
-        auto iter = symbolMaps.find(name);
-        if (iter != symbolMaps.end())
+        auto iter = m_SymbolMaps.find(name);
+        if (iter != m_SymbolMaps.end())
             return iter->second;
 
-        auto symbol = Symbol(name, SymbolScope::BUILTIN, -1, scopeDepth);
-        symbolMaps[name] = symbol;
+        Symbol symbol;
+        symbol.name = name;
+        symbol.scopeDepth = m_ScopeDepth;
+        symbol.scope = SymbolScope::BUILTIN;
+
+        m_SymbolMaps[name] = symbol;
         return symbol;
     }
 
-    bool Resolve(const std::string& name, Symbol& symbol)
+    bool Resolve(std::string_view name, Symbol &symbol)
     {
-        auto iter = symbolMaps.find(name);
-        if (iter != symbolMaps.end())
+        auto iter = m_SymbolMaps.find(name);
+        if (iter != m_SymbolMaps.end())
         {
             symbol = iter->second;
             return true;
         }
-        else if (enclosing)
+        else if (m_Enclosing)
         {
-            bool isFound = enclosing->Resolve(name, symbol);
+            bool isFound = m_Enclosing->Resolve(name, symbol);
             if (!isFound)
                 return false;
             if (symbol.scope == SymbolScope::GLOBAL || symbol.scope == SymbolScope::BUILTIN)
@@ -98,15 +95,26 @@ struct SymbolTable
 
             symbol.isUpValue = 1;
 
-            symbolMaps[symbol.name] = symbol;
+            m_SymbolMaps[symbol.name] = symbol;
             return true;
         }
 
         return false;
     }
 
-    SymbolTable* enclosing{nullptr};
-    std::unordered_map<std::string_view, Symbol> symbolMaps;
-    uint8_t definitionCount{0};
-    uint8_t scopeDepth{0};
+    uint8_t GetDefinitionCount() const
+    {
+        return m_DefinitionCount;
+    }
+
+    SymbolTable *GetEnclosing() const
+    {
+        return m_Enclosing;
+    }
+
+private:
+    SymbolTable *m_Enclosing{ nullptr };
+    std::unordered_map<std::string_view, Symbol> m_SymbolMaps;
+    uint8_t m_DefinitionCount{ 0 };
+    uint8_t m_ScopeDepth{ 0 };
 };

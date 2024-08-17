@@ -4,12 +4,12 @@
 
 Jit::OrcExecutor::OrcExecutor(std::unique_ptr<llvm::orc::ExecutionSession> es, llvm::orc::JITTargetMachineBuilder jtmb, llvm::DataLayout dl)
     : m_Es(std::move(es)), m_DataLayout(std::move(dl)), m_Mangle(*m_Es, m_DataLayout),
-      m_ObjectLayer(*m_Es,
-                    []()
-                    { return std::make_unique<llvm::SectionMemoryManager>(); }),
-      m_CompileLayer(*m_Es, m_ObjectLayer,
-                     std::make_unique<llvm::orc::ConcurrentIRCompiler>(std::move(jtmb))),
-      m_MainJD(m_Es->createBareJITDylib("<main>"))
+    m_ObjectLayer(*m_Es,
+        []()
+        { return std::make_unique<llvm::SectionMemoryManager>(); }),
+    m_CompileLayer(*m_Es, m_ObjectLayer,
+        std::make_unique<llvm::orc::ConcurrentIRCompiler>(std::move(jtmb))),
+    m_MainJD(m_Es->createBareJITDylib("<main>"))
 {
     m_MainJD.addGenerator(cantFail(llvm::orc::DynamicLibrarySearchGenerator::GetForCurrentProcess(m_DataLayout.getGlobalPrefix())));
 
@@ -62,7 +62,7 @@ llvm::Error Jit::OrcExecutor::AddModule(llvm::orc::ThreadSafeModule tsm, llvm::o
 
 llvm::Expected<llvm::JITEvaluatedSymbol> Jit::OrcExecutor::LookUp(llvm::StringRef name)
 {
-    return m_Es->lookup({&m_MainJD}, m_Mangle(name.str()));
+    return m_Es->lookup({ &m_MainJD }, m_Mangle(name.str()));
 }
 
 Jit::Jit(VM *vm)
@@ -120,20 +120,19 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
             paramTypes.push_back(m_Int8PtrType);
     }
 
-    llvm::FunctionType* fnType = nullptr;
-    fnType = llvm::FunctionType::get(m_DoubleType, paramTypes, false);//TODO:tmp
-    /* if (fnObj->probableReturnTypes.size() == 0)
-         fnType=llvm::FunctionType::get(m_VoidType, paramTypes, false);
-     else if(fnObj->probableReturnTypes.contains(ValueType::NUM))
-         fnType=llvm::FunctionType::get(m_DoubleType, paramTypes, false);
-     else if (fnObj->probableReturnTypes.contains(ValueType::NIL))
-         fnType = llvm::FunctionType::get(m_BoolPtrType, paramTypes, false);
-     else if (fnObj->probableReturnTypes.contains(ValueType::BOOL))
-         fnType = llvm::FunctionType::get(m_BoolType, paramTypes, false);
-     else if (fnObj->probableReturnTypes.contains(ValueType::STR))
-         fnType = llvm::FunctionType::get(m_Int8PtrType, paramTypes, false);
-     else
-         fnType=llvm::FunctionType::get(m_DoubleType, paramTypes, false);*/
+    llvm::FunctionType *fnType = nullptr;
+    if (fnObj->probableReturnTypeSet->IsNone())
+        fnType = llvm::FunctionType::get(m_VoidType, paramTypes, false);
+    else if (fnObj->probableReturnTypeSet->IsOnly(ValueType::NUM))
+        fnType = llvm::FunctionType::get(m_DoubleType, paramTypes, false);
+    else if (fnObj->probableReturnTypeSet->IsOnly(ValueType::NIL))
+        fnType = llvm::FunctionType::get(m_BoolPtrType, paramTypes, false);
+    else if (fnObj->probableReturnTypeSet->IsOnly(ValueType::BOOL))
+        fnType = llvm::FunctionType::get(m_BoolType, paramTypes, false);
+    else if (fnObj->probableReturnTypeSet->IsOnly(ValueType::STR))
+        fnType = llvm::FunctionType::get(m_Int8PtrType, paramTypes, false);
+    else
+        ERROR("Unknown return type");
 
     llvm::Function *fn = llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, fnName.c_str(), m_Module.get());
     llvm::BasicBlock *codeBlock = llvm::BasicBlock::Create(*m_Context, fnName + ".entry", fn);
@@ -153,10 +152,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
 
             auto llvmValue = GetLlvmValueFrom(value);
             if (!llvmValue)
-            {
-                ASSERT("Unsupported value type:%d", value.type);
-                return false;
-            }
+                ERROR("Unsupported value type:%d", value.type);
 
             Push(llvmValue);
             break;
@@ -181,8 +177,8 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
                     if (leftArrayType->getElementType() == m_Int8Type && rightArrayType->getElementType() == m_Int8Type)
                     {
                         // convert chars[] to i8*
-                        auto leftCharsPtr = m_Builder->CreateInBoundsGEP(leftArrayType, left, {m_Builder->getInt64(0), m_Builder->getInt64(0)});
-                        auto rightCharsPtr = m_Builder->CreateInBoundsGEP(rightArrayType, right, {m_Builder->getInt64(0), m_Builder->getInt64(0)});
+                        auto leftCharsPtr = m_Builder->CreateInBoundsGEP(leftArrayType, left, { m_Builder->getInt64(0), m_Builder->getInt64(0) });
+                        auto rightCharsPtr = m_Builder->CreateInBoundsGEP(rightArrayType, right, { m_Builder->getInt64(0), m_Builder->getInt64(0) });
 
                         auto leftNum = leftArrayType->getNumElements() - 1;
                         auto rightNum = rightArrayType->getNumElements() - 1;
@@ -191,13 +187,13 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
 
                         auto alloc = m_Builder->CreateAlloca(arrayType);
 
-                        auto firstPartPtr = m_Builder->CreateInBoundsGEP(arrayType, alloc, {m_Builder->getInt64(0), m_Builder->getInt64(0)});
+                        auto firstPartPtr = m_Builder->CreateInBoundsGEP(arrayType, alloc, { m_Builder->getInt64(0), m_Builder->getInt64(0) });
                         m_Builder->CreateMemCpy(firstPartPtr, llvm::MaybeAlign(8), leftCharsPtr, llvm::MaybeAlign(8), m_Builder->getInt64(leftNum));
 
-                        auto secondPartPtr = m_Builder->CreateInBoundsGEP(arrayType, alloc, {m_Builder->getInt64(0), m_Builder->getInt64(leftNum)});
+                        auto secondPartPtr = m_Builder->CreateInBoundsGEP(arrayType, alloc, { m_Builder->getInt64(0), m_Builder->getInt64(leftNum) });
                         m_Builder->CreateMemCpy(secondPartPtr, llvm::MaybeAlign(8), rightCharsPtr, llvm::MaybeAlign(8), m_Builder->getInt64(rightNum));
 
-                        auto lastPartPtr = m_Builder->CreateInBoundsGEP(arrayType, alloc, {m_Builder->getInt64(0), m_Builder->getInt64(totalNum - 1)});
+                        auto lastPartPtr = m_Builder->CreateInBoundsGEP(arrayType, alloc, { m_Builder->getInt64(0), m_Builder->getInt64(totalNum - 1) });
                         m_Builder->CreateStore(m_Builder->getInt8(0), lastPartPtr);
 
                         Push(alloc);
@@ -205,10 +201,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
                 }
             }
             else
-            {
-                ASSERT("Invalid binary op:%s + %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
-                return false;
-            }
+                ERROR("Invalid binary op:%s + %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
 
             break;
         }
@@ -219,10 +212,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFSub(left, right));
             else
-            {
-                ASSERT("Invalid binary op:%s - %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
-                return false;
-            }
+                ERROR("Invalid binary op:%s - %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
             break;
         }
         case OP_MUL:
@@ -232,10 +222,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFMul(left, right));
             else
-            {
-                ASSERT("Invalid binary op:%s * %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
-                return false;
-            }
+                ERROR("Invalid binary op:%s * %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
             break;
         }
         case OP_DIV:
@@ -245,10 +232,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFDiv(left, right));
             else
-            {
-                ASSERT("Invalid binary op:%s / %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
-                return false;
-            }
+                ERROR("Invalid binary op:%s / %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
             break;
         }
         case OP_LESS:
@@ -258,10 +242,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFCmpULT(left, right));
             else
-            {
-                ASSERT("Invalid binary op:%s < %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
-                return false;
-            }
+                ERROR("Invalid binary op:%s < %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
             break;
         }
         case OP_GREATER:
@@ -271,10 +252,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFCmpUGT(left, right));
             else
-            {
-                ASSERT("Invalid binary op:%s > %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
-                return false;
-            }
+                ERROR("Invalid binary op:%s > %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
             break;
         }
         case OP_NOT:
@@ -283,10 +261,8 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
             if (value->getType() == m_BoolType)
                 Push(m_Builder->CreateNot(value));
             else
-            {
-                ASSERT("Invalid binary op:not %s.", GetTypeName(value->getType()).c_str());
-                return false;
-            }
+                ERROR("Invalid binary op:not %s.", GetTypeName(value->getType()).c_str());
+
             break;
         }
         case OP_MINUS:
@@ -295,10 +271,8 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
             if (value->getType() == m_DoubleType)
                 Push(m_Builder->CreateNeg(value));
             else
-            {
-                ASSERT("Invalid binary op:- %s.", GetTypeName(value->getType()).c_str());
-                return false;
-            }
+                ERROR("Invalid binary op:- %s.", GetTypeName(value->getType()).c_str());
+
             break;
         }
         case OP_EQUAL:
@@ -323,13 +297,13 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
                         if (leftArrayType->getElementType() == m_Int8Type && rightArrayType->getElementType() == m_Int8Type)
                         {
                             // convert chars[] to i8*
-                            auto leftCharsPtr = m_Builder->CreateInBoundsGEP(leftArrayType, left, {m_Builder->getInt64(0), m_Builder->getInt64(0)});
-                            auto rightCharsPtr = m_Builder->CreateInBoundsGEP(rightArrayType, right, {m_Builder->getInt64(0), m_Builder->getInt64(0)});
+                            auto leftCharsPtr = m_Builder->CreateInBoundsGEP(leftArrayType, left, { m_Builder->getInt64(0), m_Builder->getInt64(0) });
+                            auto rightCharsPtr = m_Builder->CreateInBoundsGEP(rightArrayType, right, { m_Builder->getInt64(0), m_Builder->getInt64(0) });
 
-                            auto fnType = llvm::FunctionType::get(m_Int32Type, {m_Int8PtrType, m_Int8PtrType}, false);
+                            auto fnType = llvm::FunctionType::get(m_Int32Type, { m_Int8PtrType, m_Int8PtrType }, false);
                             auto fn = AddBuiltinFnOrCallParamAttributes(llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, "strcmp", m_Module.get()));
 
-                            auto result = m_Builder->CreateCall(fn, {leftCharsPtr, rightCharsPtr});
+                            auto result = m_Builder->CreateCall(fn, { leftCharsPtr, rightCharsPtr });
 
                             Push(m_Builder->CreateICmpEQ(result, llvm::ConstantInt::get(m_Int32Type, 0)));
                         }
@@ -337,10 +311,8 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
                 }
             }
             else
-            {
-                ASSERT("Invalid binary op:%s == %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
-                return false;
-            }
+                ERROR("Invalid binary op:%s == %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+
             break;
         }
         case OP_ARRAY:
@@ -365,7 +337,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
             auto arrayType = llvm::ArrayType::get(m_ValueType, numElements);
             llvm::Value *alloc = m_Builder->CreateAlloca(arrayType);
 
-            llvm::Value *memberAddr = m_Builder->CreateInBoundsGEP(arrayType, alloc, {m_Builder->getInt32(0), m_Builder->getInt32(0)});
+            llvm::Value *memberAddr = m_Builder->CreateInBoundsGEP(arrayType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
 
             for (auto i = 0; i < elements.size(); ++i)
             {
@@ -373,7 +345,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
                     m_Builder->CreateMemCpy(memberAddr, llvm::MaybeAlign(8), elements[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
                 else
                 {
-                    llvm::Value *argIMemberAddr = m_Builder->CreateInBoundsGEP(arrayType, alloc, {m_Builder->getInt32(0), m_Builder->getInt32(i)});
+                    llvm::Value *argIMemberAddr = m_Builder->CreateInBoundsGEP(arrayType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(i) });
                     m_Builder->CreateMemCpy(argIMemberAddr, llvm::MaybeAlign(8), elements[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
                 }
             }
@@ -392,10 +364,8 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
             if (left->getType() == m_BoolType && right->getType() == m_BoolType)
                 Push(m_Builder->CreateLogicalAnd(left, right));
             else
-            {
-                ASSERT("Invalid binary op:%s and %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
-                return false;
-            }
+                ERROR("Invalid binary op:%s and %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+
             break;
         }
         case OP_OR:
@@ -405,10 +375,8 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
             if (left->getType() == m_BoolType && right->getType() == m_BoolType)
                 Push(m_Builder->CreateLogicalAnd(left, right));
             else
-            {
-                ASSERT("Invalid binary op:%s or %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
-                return false;
-            }
+                ERROR("Invalid binary op:%s or %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+
             break;
         }
         case OP_BIT_AND:
@@ -423,10 +391,8 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
                 Push(result);
             }
             else
-            {
-                ASSERT("Invalid binary op:%s & %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
-                return false;
-            }
+                ERROR("Invalid binary op:%s & %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+
             break;
         }
         case OP_BIT_OR:
@@ -441,10 +407,8 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
                 Push(result);
             }
             else
-            {
-                ASSERT("Invalid binary op:%s | %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
-                return false;
-            }
+                ERROR("Invalid binary op:%s | %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+
             break;
         }
         case OP_BIT_NOT:
@@ -456,10 +420,8 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
                 Push(m_Builder->CreateXor(value, -1));
             }
             else
-            {
-                ASSERT("Invalid binary op:~ %s.", GetTypeName(value->getType()).c_str());
-                return false;
-            }
+                ERROR("Invalid binary op:~ %s.", GetTypeName(value->getType()).c_str());
+
             break;
         }
         case OP_BIT_XOR:
@@ -474,10 +436,8 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
                 Push(result);
             }
             else
-            {
-                ASSERT("Invalid binary op:%s ^ %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
-                return false;
-            }
+                ERROR("Invalid binary op:%s ^ %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+
             break;
         }
         case OP_GET_INDEX:
@@ -498,7 +458,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
 
                         auto iIndex = m_Builder->CreateFPToSI(index, m_Int64Type);
 
-                        llvm::Value *memberAddr = m_Builder->CreateInBoundsGEP(vArrayType, ds, {m_Builder->getInt32(0), iIndex});
+                        llvm::Value *memberAddr = m_Builder->CreateInBoundsGEP(vArrayType, ds, { m_Builder->getInt32(0), iIndex });
 
                         Push(memberAddr);
                     }
@@ -506,10 +466,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
             }
 
             if (!isSatis)
-            {
-                ASSERT("Invalid index op: %s[%s]", GetTypeName(ds->getType()), GetTypeName(index->getType()));
-                return false;
-            }
+                ERROR("Invalid index op: %s[%s]", GetTypeName(ds->getType()).c_str(), GetTypeName(index->getType()).c_str());
 
             break;
         }
@@ -683,11 +640,9 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
             {
                 auto vmStored = m_VM->m_GlobalVariables[index];
                 if (IS_FUNCTION_VALUE(vmStored))
-                {
                     Push(vmStored);
-                }
                 else
-                    ASSERT("Not finished yet,tag it as error");
+                    ERROR("Not finished yet,tag it as error");
             }
 
             break;
@@ -710,9 +665,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
                 m_LocalVariable[name] = alloc;
             }
             else
-            {
-               m_Builder->CreateStore(value,iter->second);
-            }
+                m_Builder->CreateStore(value, iter->second);
 
             break;
         }
@@ -728,38 +681,40 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
             if (iter == m_LocalVariable.end())// create from function argumenet
             {
                 auto parentFn = m_Builder->GetInsertBlock()->getParent();
+                if (index < parentFn->arg_size()) // load from function arguments
+                {
+                    auto arg = parentFn->getArg(index);
 
-                auto arg = parentFn->getArg(index);
+                    auto alloc = m_Builder->CreateAlloca(arg->getType());
+                    m_Builder->CreateStore(arg, alloc);
 
-                auto alloc = m_Builder->CreateAlloca(arg->getType());
-                m_Builder->CreateStore(arg, alloc);
+                    m_LocalVariable[name] = alloc;
 
-                m_LocalVariable[name] = alloc;
+                    auto load = m_Builder->CreateLoad(alloc->getAllocatedType(), alloc);
 
-                auto load = m_Builder->CreateLoad(alloc->getAllocatedType(), alloc);
+                    Push(load);
+                }
+                else // load from interpreter vm
+                {
+                    Value *slot = nullptr;
+                    if (isUpValue)
+                        slot = m_VM->PeekCallFrameFromFront(scopeDepth)->slot + index;
+                    else
+                        slot = m_VM->PeekCallFrameFromBack(scopeDepth)->slot + index;
 
-                Push(load);
-                
+                    auto constant = GetLlvmValueFrom(*slot);
+                    if (!constant)
+                        ERROR("Unsupported value type:%d", slot->type);
+                      
+                    auto alloc = m_Builder->CreateAlloca(constant->getType());
+                    m_Builder->CreateStore(constant, alloc);
 
-                //Value* slot = nullptr;
-                //if (isUpValue)
-                //    slot = m_VM->PeekCallFrameFromFront(scopeDepth)->slot + index;
-                //else
-                //    slot = m_VM->PeekCallFrameFromBack(scopeDepth)->slot + index;
+                    m_LocalVariable[name] = alloc;
 
-                //auto llvmValue = GetLLVMValueFromValue(*slot);
-                //if (!llvmValue)
-                //{
-                //    ASSERT("Unsupported value type:%d", slot->type);
-                //    return false;
-                //}
+                    auto load = m_Builder->CreateLoad(alloc->getAllocatedType(), alloc);
 
-                //auto alloc = m_Builder->CreateAlloca(llvmValue->getType());
-                //m_Builder->CreateStore(llvmValue, alloc);
-
-                //m_LocalVariable[name] = alloc;
-
-                //Push(llvmValue);
+                    Push(load);
+                }
             }
             else
             {
@@ -776,7 +731,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
 
             if (fnSlot->IsLlvmValue())
             {
-                auto fn = static_cast<llvm::Function*>(fnSlot->GetLlvmValue());
+                auto fn = static_cast<llvm::Function *>(fnSlot->GetLlvmValue());
 
                 auto ptrType = fn->getType();
                 auto elemType = ptrType->getElementType();
@@ -784,7 +739,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
                 // builtin function type
                 if (elemType == m_BuiltinFunctionType)
                 {
-                    std::vector<llvm::Value*> argsV;
+                    std::vector<llvm::Value *> argsV;
                     for (auto slot = m_StackTop - argCount; slot != m_StackTop; ++slot)
                     {
                         auto v = slot->GetLlvmValue();
@@ -797,7 +752,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
                     auto valueArrayType = llvm::ArrayType::get(m_ValueType, argsV.size());
 
                     auto arg0 = m_Builder->CreateAlloca(valueArrayType);
-                    llvm::Value* arg0MemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
+                    llvm::Value *arg0MemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
 
                     for (auto i = 0; i < argsV.size(); ++i)
                     {
@@ -805,12 +760,12 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
                             m_Builder->CreateMemCpy(arg0MemberAddr, llvm::MaybeAlign(8), argsV[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
                         else
                         {
-                            llvm::Value* argIMemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, { m_Builder->getInt32(0), m_Builder->getInt32(i) });
+                            llvm::Value *argIMemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, { m_Builder->getInt32(0), m_Builder->getInt32(i) });
                             m_Builder->CreateMemCpy(argIMemberAddr, llvm::MaybeAlign(8), argsV[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
                         }
                     }
 
-                    llvm::Value* arg1 = m_Builder->getInt8(argsV.size());
+                    llvm::Value *arg1 = m_Builder->getInt8(argsV.size());
 
                     auto result = m_Builder->CreateAlloca(m_ValueType, nullptr);
 
@@ -826,30 +781,26 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
                 size_t paramTypeHash = 0;
                 for (auto slot = m_StackTop - fn->parameterCount; slot < m_StackTop; ++slot)
                 {
-                    if(slot->GetLlvmValue()->getType()==m_DoubleType)
-                    paramTypeHash ^= std::hash<ValueType>()(ValueType::NUM);
+                    if (slot->GetLlvmValue()->getType() == m_DoubleType)
+                        paramTypeHash ^= std::hash<ValueType>()(ValueType::NUM);
                 }
 
                 auto fnName = "function_" + fn->uuid + "_" + std::to_string(paramTypeHash);
 
                 auto iter = fn->jitCache.find(paramTypeHash);
-                if (iter == fn->jitCache.end() || fn->probableReturnTypes.size() >= 2)
+                if (iter != fn->jitCache.end() && !fn->probableReturnTypeSet->IsMultiplyType())
                 {
-                    ASSERT("Not jitted function");
-                }
-                else
-                {
-                    std::vector<llvm::Value*> args;
+                    std::vector<llvm::Value *> args;
                     for (auto slot = m_StackTop - argCount; slot < m_StackTop; ++slot)
-                    {
                         args.emplace_back(slot->GetLlvmValue());
-                    }
 
                     m_StackTop = m_StackTop - argCount - 1;
 
-                    llvm::Value* ret = m_Builder->CreateCall(m_Module->getFunction(fnName),args);
+                    llvm::Value *ret = m_Builder->CreateCall(m_Module->getFunction(fnName), args);
                     Push(ret);
                 }
+                else
+                    ERROR("Not jitted function");
             }
 
             break;
@@ -957,23 +908,23 @@ void Jit::InitModuleAndPassManager()
 
         m_Int8PtrPtrType = llvm::PointerType::get(m_Int8PtrType, 0);
 
-        m_UnionType = llvm::StructType::create(*m_Context, {m_DoubleType}, "union.anon");
+        m_UnionType = llvm::StructType::create(*m_Context, { m_DoubleType }, "union.anon");
 
-        m_ValueType = llvm::StructType::create(*m_Context, {m_Int8Type, m_UnionType}, "struct.Value");
+        m_ValueType = llvm::StructType::create(*m_Context, { m_Int8Type, m_UnionType }, "struct.Value");
         m_ValuePtrType = llvm::PointerType::get(m_ValueType, 0);
 
         m_ObjectType = llvm::StructType::create(*m_Context, "struct.Object");
         m_ObjectPtrType = llvm::PointerType::get(m_ObjectType, 0);
-        m_ObjectType->setBody({m_BoolType, m_ObjectPtrType});
+        m_ObjectType->setBody({ m_BoolType, m_ObjectPtrType });
         m_ObjectPtrPtrType = llvm::PointerType::get(m_ObjectPtrType, 0);
 
-        m_StrObjectType = llvm::StructType::create(*m_Context, {m_ObjectType, m_Int8PtrType, m_Int32Type}, "struct.StrObject");
+        m_StrObjectType = llvm::StructType::create(*m_Context, { m_ObjectType, m_Int8PtrType, m_Int32Type }, "struct.StrObject");
         m_StrObjectPtrType = llvm::PointerType::get(m_StrObjectType, 0);
 
-        m_ArrayObjectType = llvm::StructType::create(*m_Context, {m_ObjectType, m_ValuePtrType, m_Int32Type}, "struct.ArrayObject");
+        m_ArrayObjectType = llvm::StructType::create(*m_Context, { m_ObjectType, m_ValuePtrType, m_Int32Type }, "struct.ArrayObject");
         m_ArrayObjectPtrType = llvm::PointerType::get(m_ArrayObjectType, 0);
 
-        m_BuiltinFunctionType = llvm::FunctionType::get(m_BoolType, {m_ValuePtrType, m_Int8Type, m_ValuePtrType}, false);
+        m_BuiltinFunctionType = llvm::FunctionType::get(m_BoolType, { m_ValuePtrType, m_Int8Type, m_ValuePtrType }, false);
     }
 }
 
@@ -1002,12 +953,12 @@ llvm::Value *Jit::CreateCDValue(llvm::Value *v)
         vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::NIL));
         storedV = llvm::ConstantFP::get(m_DoubleType, 0.0);
     }
-    /*else if (v->getType() == m_ObjectPtrType)
+    else if (v->getType() == m_StrObjectPtrType)
     {
-        vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::OBJECT));
+        vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::STR));
         type = m_ObjectPtrPtrType;
         storedV = v;
-    }*/
+    }
     else if (v->getType()->isPointerTy())
     {
         auto vPtrType = static_cast<llvm::PointerType *>(v->getType());
@@ -1020,23 +971,23 @@ llvm::Value *Jit::CreateCDValue(llvm::Value *v)
                 type = m_ObjectPtrPtrType;
 
                 // convert chars[] to i8*
-                auto charsPtr = m_Builder->CreateInBoundsGEP(vArrayType, v, {m_Builder->getInt64(0), m_Builder->getInt64(0)});
+                auto charsPtr = m_Builder->CreateInBoundsGEP(vArrayType, v, { m_Builder->getInt64(0), m_Builder->getInt64(0) });
 
                 // create str object
                 auto strObject = m_Builder->CreateAlloca(m_StrObjectType, nullptr);
                 auto base = m_Builder->CreateBitCast(strObject, m_ObjectPtrType);
 
                 {
-                    auto markedVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, {m_Builder->getInt32(0), m_Builder->getInt32(1)});
+                    auto markedVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
                     m_Builder->CreateStore(m_Builder->getInt1(0), markedVar);
 
-                    auto nextVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, {m_Builder->getInt32(0), m_Builder->getInt32(2)});
+                    auto nextVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, { m_Builder->getInt32(0), m_Builder->getInt32(2) });
                     m_Builder->CreateStore(llvm::ConstantPointerNull::get(m_ObjectPtrType), nextVar);
 
-                    auto strPtr = m_Builder->CreateInBoundsGEP(m_StrObjectType, strObject, {m_Builder->getInt32(0), m_Builder->getInt32(1)});
+                    auto strPtr = m_Builder->CreateInBoundsGEP(m_StrObjectType, strObject, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
                     m_Builder->CreateStore(charsPtr, strPtr);
 
-                    auto len = m_Builder->CreateInBoundsGEP(m_StrObjectType, strObject, {m_Builder->getInt32(0), m_Builder->getInt32(2)});
+                    auto len = m_Builder->CreateInBoundsGEP(m_StrObjectType, strObject, { m_Builder->getInt32(0), m_Builder->getInt32(2) });
                     m_Builder->CreateStore(m_Builder->getInt32(vArrayType->getArrayNumElements() - 1), len); //-1 for ignoring the end char '\0'
                 }
 
@@ -1050,23 +1001,23 @@ llvm::Value *Jit::CreateCDValue(llvm::Value *v)
                 type = m_ObjectPtrPtrType;
 
                 // convert Value[] to Value*
-                auto valuesPtr = m_Builder->CreateInBoundsGEP(vArrayType, v, {m_Builder->getInt64(0), m_Builder->getInt64(0)});
+                auto valuesPtr = m_Builder->CreateInBoundsGEP(vArrayType, v, { m_Builder->getInt64(0), m_Builder->getInt64(0) });
 
                 // create array object
                 auto arrayObject = m_Builder->CreateAlloca(m_ArrayObjectType, nullptr);
                 auto base = m_Builder->CreateBitCast(arrayObject, m_ObjectPtrType);
 
                 {
-                    auto markedVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, {m_Builder->getInt32(0), m_Builder->getInt32(1)});
+                    auto markedVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
                     m_Builder->CreateStore(m_Builder->getInt1(0), markedVar);
 
-                    auto nextVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, {m_Builder->getInt32(0), m_Builder->getInt32(2)});
+                    auto nextVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, { m_Builder->getInt32(0), m_Builder->getInt32(2) });
                     m_Builder->CreateStore(llvm::ConstantPointerNull::get(m_ObjectPtrType), nextVar);
 
-                    auto valuePtr = m_Builder->CreateInBoundsGEP(m_ArrayObjectType, arrayObject, {m_Builder->getInt32(0), m_Builder->getInt32(1)});
+                    auto valuePtr = m_Builder->CreateInBoundsGEP(m_ArrayObjectType, arrayObject, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
                     m_Builder->CreateStore(valuesPtr, valuePtr);
 
-                    auto len = m_Builder->CreateInBoundsGEP(m_ArrayObjectType, arrayObject, {m_Builder->getInt32(0), m_Builder->getInt32(2)});
+                    auto len = m_Builder->CreateInBoundsGEP(m_ArrayObjectType, arrayObject, { m_Builder->getInt32(0), m_Builder->getInt32(2) });
                     m_Builder->CreateStore(m_Builder->getInt32(numCount), len);
                 }
 
@@ -1077,9 +1028,9 @@ llvm::Value *Jit::CreateCDValue(llvm::Value *v)
 
     auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr);
 
-    llvm::Value *memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, {m_Builder->getInt32(0), m_Builder->getInt32(0)});
+    llvm::Value *memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
     m_Builder->CreateStore(vt, memberAddr);
-    memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, {m_Builder->getInt32(0), m_Builder->getInt32(1)});
+    memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
     memberAddr = m_Builder->CreateBitCast(memberAddr, type);
     m_Builder->CreateStore(storedV, memberAddr);
 
@@ -1091,7 +1042,7 @@ void Jit::Push(llvm::Value *v)
     *m_StackTop++ = v;
 }
 
-void Jit::Push(const Value& v)
+void Jit::Push(const Value &v)
 {
     *m_StackTop++ = v;
 }
@@ -1103,33 +1054,33 @@ Jit::StackValue Jit::Pop()
 
 std::string Jit::GetTypeName(llvm::Type *type)
 {
-    std::string str = "";
+    std::string str;
     llvm::raw_string_ostream typeStream(str);
     type->print(typeStream);
     return str;
 }
 
-llvm::Value* Jit::GetLlvmValueFrom(const Value& value)
+llvm::Value *Jit::GetLlvmValueFrom(const Value &value)
 {
     if (IS_NUM_VALUE(value))
     {
-        llvm::Value* alloc = llvm::ConstantFP::get(m_DoubleType, TO_NUM_VALUE(value));
+        llvm::Value *alloc = llvm::ConstantFP::get(m_DoubleType, TO_NUM_VALUE(value));
         return alloc;
     }
     else if (IS_BOOL_VALUE(value))
     {
-        llvm::Value* alloc = llvm::ConstantInt::get(m_BoolType, TO_BOOL_VALUE(value));
+        llvm::Value *alloc = llvm::ConstantInt::get(m_BoolType, TO_BOOL_VALUE(value));
         return alloc;
     }
     else if (IS_NIL_VALUE(value))
     {
-        llvm::Value* alloc = llvm::ConstantPointerNull::get(m_BoolPtrType);
+        llvm::Value *alloc = llvm::ConstantPointerNull::get(m_BoolPtrType);
         return alloc;
     }
     else if (IS_STR_VALUE(value))
     {
         auto str = TO_STR_VALUE(value)->value;
-        llvm::Value* chars = m_Builder->CreateGlobalString(str);
+        llvm::Value *chars = m_Builder->CreateGlobalString(str);
         return chars;
     }
     /*else if (IS_FUNCTION_VALUE(value))

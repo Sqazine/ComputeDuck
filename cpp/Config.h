@@ -8,15 +8,16 @@ public:
     static Config *GetInstance();
 
     void SetExecuteFilePath(std::string_view path);
-    const std::string& GetExecuteFilePath() const;
+    const std::string &GetExecuteFilePath() const;
 
     std::string ToFullPath(std::string_view filePath);
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     void SetUseJit(bool b);
     bool IsUseJit();
+
 private:
-    bool m_UseJit;
+    bool m_UseJit{true};
 #endif
 
 private:

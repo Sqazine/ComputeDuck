@@ -21,13 +21,13 @@ public:
         m_BuiltinObjects[name] = new BuiltinObject(name, v);
     }
 
-    BuiltinObject* FindBuiltinObject(std::string_view name);
+    BuiltinObject *FindBuiltinObject(std::string_view name);
 
-    const std::unordered_map<std::string_view, BuiltinObject*> GetBuiltinObjectList() const;
+    const std::unordered_map<std::string_view, BuiltinObject *> GetBuiltinObjectList() const;
 
 private:
     BuiltinManager();
     ~BuiltinManager();
 
-    std::unordered_map<std::string_view,BuiltinObject *> m_BuiltinObjects;
+    std::unordered_map<std::string_view, BuiltinObject *> m_BuiltinObjects;
 };

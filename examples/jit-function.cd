@@ -1,41 +1,37 @@
-#jit=function()
-#{
-#    return 10;
-#};
-#
-#println(jit());
-#println(jit());
-#println(jit());
-#println(jit());
-#println(jit());
-#println(jit());
-#println(jit());
-#println(jit());
-#println(jit());
-#
-#
-#jit2=function()
-#{
-#    println(100);
-#};
-#
-#jit2();
-#jit2();
-#jit2();
-#jit2();
-#jit2();
-#jit2();
-#jit2();
-#jit2();
-#jit2();
-#jit2();
-
 jit=function()
 {
-	return "Fuck you";
+    return 10;
 };
 
-println(jit());
-println(jit());
-println(jit());
-println(jit());
+i=0;
+while(i<100)
+{
+    println(jit());
+    i=i+1;
+}
+
+
+jit2=function()
+{
+    println(100);
+};
+
+i=0;
+while(i<100)
+{
+    jit2();
+    i=i+1;
+}
+
+
+jit3=function()
+{
+	return "Test";
+};
+
+i=0;
+while(i<100)
+{
+    println(jit3());
+    i=i+1;
+}

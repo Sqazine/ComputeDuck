@@ -2,6 +2,9 @@
 #include <string>
 #include <type_traits>
 #include <cfloat>
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+#include <set>
+#endif
 #include "Utils.h"
 
 #define IS_NIL_VALUE(v) ((v).type == ValueType::NIL)
@@ -30,51 +33,84 @@
 
 enum class ValueType : uint8_t
 {
-	NIL,
-	NUM,
-	BOOL,
-	STR,
-	ARRAY,
-	STRUCT,
-	REF,
-	FUNCTION,
-	BUILTIN,
+    NIL,
+    NUM,
+    BOOL,
+    STR,
+    ARRAY,
+    STRUCT,
+    REF,
+    FUNCTION,
+    BUILTIN,
 };
+
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+class ValueTypeSet
+{
+public:
+    ValueTypeSet() = default;
+    ~ValueTypeSet() = default;
+
+    void Insert(ValueType type)
+    {
+        m_ValueTypeSet.insert(type);
+    }
+
+    template<typename T>
+    bool IsOnly(T t)
+    {
+        return m_ValueTypeSet.size() == 1 && m_ValueTypeSet.contains(t);
+    }
+
+    bool IsMultiplyType()
+    {
+        return m_ValueTypeSet.size() >= 2;
+    }
+
+    bool IsNone()
+    {
+        return m_ValueTypeSet.size() == 0;
+    }
+
+private:
+    std::set<ValueType> m_ValueTypeSet{};
+};
+#endif
 
 struct COMPUTE_DUCK_API Value
 {
-	template <typename T>
-	requires(std::is_integral_v<T> || std::is_floating_point_v<T>)
-		Value(T number)
-		: stored(static_cast<double>(number)), type(ValueType::NUM)
-	{
-	}
-	Value();
-	Value(bool boolean);
-	Value(struct StrObject *object);
-	Value(struct ArrayObject *object);
-	Value(struct RefObject *object);
-	Value(struct FunctionObject *object);
-	Value(struct StructObject *object);
-	Value(struct BuiltinObject *object);
-	~Value();
+    template <typename T>
+        requires(std::is_integral_v<T> || std::is_floating_point_v<T>)
+    Value(T number)
+        : stored(static_cast<double>(number)), type(ValueType::NUM)
+    {
+    }
+    Value();
+    Value(bool boolean);
+    Value(struct StrObject *object);
+    Value(struct ArrayObject *object);
+    Value(struct RefObject *object);
+    Value(struct FunctionObject *object);
+    Value(struct StructObject *object);
+    Value(struct BuiltinObject *object);
+    ~Value();
 
-	std::string Stringify(
+    std::string Stringify(
 #ifndef NDEBUG
-		bool printChunkIfIsFunction = false
+        bool printChunkIfIsFunction = false
 #endif
-	) const;
+    ) const;
 
-	void Mark() const;
-	void UnMark() const;
+    void Mark() const;
+    void UnMark() const;
 
-	ValueType type;
+    ValueType type;
 
-	union
-	{
-		double stored;
-		struct Object *object{nullptr};
-	};
+    union
+    {
+        double stored;
+        struct Object *object{ nullptr };
+    };
 };
 
 bool operator==(const Value &left, const Value &right);

@@ -2,41 +2,41 @@
 #include "Object.h"
 
 Value::Value()
-	: type(ValueType::NIL), object(nullptr)
+    : type(ValueType::NIL), object(nullptr)
 {
 }
 
 Value::Value(bool boolean)
-	: stored(boolean), type(ValueType::BOOL)
+    : stored(boolean), type(ValueType::BOOL)
 {
 }
 
-Value::Value(StrObject*object)
-	: object(object), type(ValueType::STR)
+Value::Value(StrObject *object)
+    : object(object), type(ValueType::STR)
 {
 }
 
-Value::Value(ArrayObject* object)
+Value::Value(ArrayObject *object)
     : object(object), type(ValueType::ARRAY)
 {
 }
 
-Value::Value(RefObject* object)
+Value::Value(RefObject *object)
     : object(object), type(ValueType::REF)
 {
 }
 
-Value::Value(FunctionObject* object)
+Value::Value(FunctionObject *object)
     : object(object), type(ValueType::FUNCTION)
 {
 }
 
-Value::Value(StructObject* object)
+Value::Value(StructObject *object)
     : object(object), type(ValueType::STRUCT)
 {
 }
 
-Value::Value(BuiltinObject* object)
+Value::Value(BuiltinObject *object)
     : object(object), type(ValueType::BUILTIN)
 {
 }
@@ -51,21 +51,21 @@ std::string Value::Stringify(
 #endif
 ) const
 {
-	switch (type)
-	{
-	case ValueType::NIL:
-		return "nil";
-	case ValueType::NUM:
-		return std::to_string(stored);
-	case ValueType::BOOL:
-		return stored == 1.0 ? "true" : "false";
+    switch (type)
+    {
+    case ValueType::NIL:
+        return "nil";
+    case ValueType::NUM:
+        return std::to_string(stored);
+    case ValueType::BOOL:
+        return stored == 1.0 ? "true" : "false";
     case ValueType::STR:
-	{
+    {
         auto strObj = TO_STR_VALUE(*this);
         return TO_STR_VALUE(*this)->value;
-	}
+    }
     case ValueType::ARRAY:
-	{
+    {
         auto arrObj = TO_ARRAY_VALUE(*this);
         std::string result = "[";
         if (arrObj->len != 0)
@@ -76,20 +76,20 @@ std::string Value::Stringify(
         }
         result += "]";
         return result;
-	}
-	case ValueType::STRUCT:
-	{
+    }
+    case ValueType::STRUCT:
+    {
         std::string result = "struct instance(0x" + PointerAddressToString(object) + "):\n{\n";
-        for (const auto& [k, v] : TO_STRUCT_VALUE(*this)->members)
+        for (const auto &[k, v] : TO_STRUCT_VALUE(*this)->members)
             result += k + ":" + v.Stringify() + "\n";
         result = result.substr(0, result.size() - 1);
         result += "\n}\n";
         return result;
-	}
+    }
     case ValueType::REF:
-		return TO_REF_VALUE(*this)->pointer->Stringify();
+        return TO_REF_VALUE(*this)->pointer->Stringify();
     case ValueType::FUNCTION:
-	{
+    {
         std::string result = "function(0x" + PointerAddressToString(object) + ")";
 #ifndef NDEBUG
         if (printChunkIfIsFunction)
@@ -99,9 +99,9 @@ std::string Value::Stringify(
         }
 #endif
         return result;
-	}
-	case ValueType::BUILTIN:
-	{
+    }
+    case ValueType::BUILTIN:
+    {
         std::string vStr;
         if (TO_BUILTIN_VALUE(*this)->Is<BuiltinFn>())
             vStr = "(0x" + PointerAddressToString(object) + ")";
@@ -111,18 +111,18 @@ std::string Value::Stringify(
             vStr = TO_BUILTIN_VALUE(*this)->Get<Value>().Stringify();
 
         return "Builtin :" + vStr;
-	}
-	default:
-		return "nil";
-	}
-	return "nil";
+    }
+    default:
+        return "nil";
+    }
+    return "nil";
 }
 
 void Value::Mark() const
 {
-	if (IS_OBJECT_VALUE(*this))
-	{
-		this->object->marked=true;
+    if (IS_OBJECT_VALUE(*this))
+    {
+        this->object->marked = true;
         switch (this->type)
         {
         case ValueType::STR:
@@ -137,7 +137,7 @@ void Value::Mark() const
         }
         case ValueType::STRUCT:
         {
-            for (auto& [k, v] : TO_STRUCT_VALUE(*this)->members)
+            for (auto &[k, v] : TO_STRUCT_VALUE(*this)->members)
                 v.Mark();
             break;
         }
@@ -148,7 +148,7 @@ void Value::Mark() const
         }
         case ValueType::FUNCTION:
         {
-            for (auto& v : TO_FUNCTION_VALUE(*this)->chunk.constants)
+            for (auto &v : TO_FUNCTION_VALUE(*this)->chunk.constants)
                 v.Mark();
             break;
         }
@@ -161,8 +161,8 @@ void Value::Mark() const
         default:
             break;
         }
-	}
-	
+    }
+
 }
 void Value::UnMark() const
 {
@@ -183,7 +183,7 @@ void Value::UnMark() const
         }
         case ValueType::STRUCT:
         {
-            for (const auto& [k, v] : TO_STRUCT_VALUE(*this)->members)
+            for (const auto &[k, v] : TO_STRUCT_VALUE(*this)->members)
                 v.UnMark();
             break;
         }
@@ -194,7 +194,7 @@ void Value::UnMark() const
         }
         case ValueType::FUNCTION:
         {
-            for (auto& v : TO_FUNCTION_VALUE(*this)->chunk.constants)
+            for (auto &v : TO_FUNCTION_VALUE(*this)->chunk.constants)
                 v.UnMark();
             break;
         }
@@ -212,25 +212,25 @@ void Value::UnMark() const
 
 bool operator==(const Value &left, const Value &right)
 {
-	if (left.type != right.type)
-		return false;
+    if (left.type != right.type)
+        return false;
 
-	switch (left.type)
-	{
-	case ValueType::NIL:
-		return IS_NIL_VALUE(right);
-	case ValueType::NUM:
-	{
-		return left.stored == TO_NUM_VALUE(right);
-	}
-	case ValueType::BOOL:
-	{
-		return left.stored == TO_BOOL_VALUE(right);
-	}
-	case ValueType::STR:
-	{
-        return strcmp(((StrObject* )((left).object))->value , TO_STR_VALUE(right)->value)==0;
-	}
+    switch (left.type)
+    {
+    case ValueType::NIL:
+        return IS_NIL_VALUE(right);
+    case ValueType::NUM:
+    {
+        return left.stored == TO_NUM_VALUE(right);
+    }
+    case ValueType::BOOL:
+    {
+        return left.stored == TO_BOOL_VALUE(right);
+    }
+    case ValueType::STR:
+    {
+        return strcmp(((StrObject *)((left).object))->value, TO_STR_VALUE(right)->value) == 0;
+    }
     case ValueType::ARRAY:
     {
         if (TO_ARRAY_VALUE(left)->len != TO_ARRAY_VALUE(right)->len)
@@ -242,7 +242,7 @@ bool operator==(const Value &left, const Value &right)
     }
     case ValueType::STRUCT:
     {
-        for (const auto& [k1, v1] : TO_STRUCT_VALUE(left)->members)
+        for (const auto &[k1, v1] : TO_STRUCT_VALUE(left)->members)
         {
             auto iter = TO_STRUCT_VALUE(right)->members.find(k1);
             if (iter == TO_STRUCT_VALUE(right)->members.end())
@@ -256,16 +256,16 @@ bool operator==(const Value &left, const Value &right)
     }
     case ValueType::FUNCTION:
     {
-            if (TO_FUNCTION_VALUE(left)->chunk.opCodes.size() != TO_FUNCTION_VALUE(right)->chunk.opCodes.size())
+        if (TO_FUNCTION_VALUE(left)->chunk.opCodes.size() != TO_FUNCTION_VALUE(right)->chunk.opCodes.size())
+            return false;
+        if (TO_FUNCTION_VALUE(left)->parameterCount != TO_FUNCTION_VALUE(right)->parameterCount)
+            return false;
+        if (TO_FUNCTION_VALUE(left)->localVarCount != TO_FUNCTION_VALUE(right)->localVarCount)
+            return false;
+        for (int32_t i = 0; i < TO_FUNCTION_VALUE(left)->chunk.opCodes.size(); ++i)
+            if (TO_FUNCTION_VALUE(left)->chunk.opCodes[i] != TO_FUNCTION_VALUE(right)->chunk.opCodes[i])
                 return false;
-            if (TO_FUNCTION_VALUE(left)->parameterCount != TO_FUNCTION_VALUE(right)->parameterCount)
-                return false;
-            if (TO_FUNCTION_VALUE(left)->localVarCount != TO_FUNCTION_VALUE(right)->localVarCount)
-                return false;
-            for (int32_t i = 0; i < TO_FUNCTION_VALUE(left)->chunk.opCodes.size(); ++i)
-                if (TO_FUNCTION_VALUE(left)->chunk.opCodes[i] != TO_FUNCTION_VALUE(right)->chunk.opCodes[i])
-                    return false;
-            return true;
+        return true;
     }
     case ValueType::BUILTIN:
     {
@@ -278,12 +278,12 @@ bool operator==(const Value &left, const Value &right)
         else
             return TO_BUILTIN_VALUE(left)->data.index() == TO_BUILTIN_VALUE(right)->data.index();
     }
-	default:
-		return false;
-	}
+    default:
+        return false;
+    }
 }
 
 bool operator!=(const Value &left, const Value &right)
 {
-	return !(left == right);
+    return !(left == right);
 }

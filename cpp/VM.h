@@ -17,7 +17,7 @@ public:
     VM();
     ~VM();
 
-    void Run(const Value& fnValue);
+    void Run(const Value &fnValue);
 
 private:
     struct CallFrame
@@ -25,7 +25,7 @@ private:
         CallFrame() = default;
         ~CallFrame() = default;
 
-        CallFrame(const Value& f,Value* slot)
+        CallFrame(const Value &f, Value *slot)
             : fn(f), slot(slot)
         {
             auto fnObj = GetFnObject();
@@ -41,16 +41,15 @@ private:
             return true;
         }
 
-        FunctionObject* GetFnObject() const
+        FunctionObject *GetFnObject() const
         {
             return TO_FUNCTION_VALUE(fn);
         }
 
         Value fn;
-        int16_t* ip{ nullptr };
-        Value* slot{ nullptr };
+        int16_t *ip{nullptr};
+        Value *slot{nullptr};
     };
-
 
     void ResetStatus();
     void Execute();
@@ -75,7 +74,7 @@ private:
     Value GetEndOfRefValue(const Value &v);
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-    void RunJit(FunctionObject* curFn,size_t argCount);
+    void RunJit(FunctionObject *fn, size_t argCount);
 #endif
 
     friend class Jit;
@@ -93,7 +92,7 @@ private:
     int m_MaxObjCount;
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-    Jit* m_Jit{nullptr};
+    Jit *m_Jit{nullptr};
 #endif
 };
 
