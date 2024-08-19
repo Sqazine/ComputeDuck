@@ -10,7 +10,7 @@ Compiler::~Compiler()
     SAFE_DELETE(m_SymbolTable);
 }
 
-Value Compiler::Compile(const std::vector<Stmt*>& stmts)
+FunctionObject* Compiler::Compile(const std::vector<Stmt*>& stmts)
 {
     ResetStatus();
 

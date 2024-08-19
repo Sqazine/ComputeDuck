@@ -12,12 +12,12 @@ VM::~VM()
     Gc(true);
 }
 
-void VM::Run(const Value &fnValue)
+void VM::Run(FunctionObject *fn)
 {
     ResetStatus();
 
-    auto mainCallFrame = CallFrame(fnValue, m_StackTop);
-    RegisterToGCRecordChain(fnValue);
+    auto mainCallFrame = CallFrame(fn, m_StackTop);
+    RegisterToGCRecordChain(fn);
     PushCallFrame(mainCallFrame);
 
     Execute();
@@ -88,7 +88,7 @@ void VM::Execute()
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
             if (frame->GetFnObject()->probableReturnTypeSet == nullptr)
-                frame->GetFnObject()->probableReturnTypeSet = new ValueTypeSet();
+                frame->GetFnObject()->probableReturnTypeSet = new TypeSet();
 #endif
 
             Value value;
@@ -405,11 +405,11 @@ void VM::Execute()
         case OP_GET_BUILTIN:
         {
             auto idx = *frame->ip++;
-            auto value = frame->GetFnObject()->chunk.constants[idx];
+            auto name = TO_STR_VALUE(frame->GetFnObject()->chunk.constants[idx])->value;
 
-            RegisterToGCRecordChain(value);
-
-            auto builtinObj = BuiltinManager::GetInstance()->FindBuiltinObject(TO_STR_VALUE(value)->value);
+            //RegisterToGCRecordChain(value);
+            
+            auto builtinObj = BuiltinManager::GetInstance()->FindBuiltinObject(name);
             Push(builtinObj);
             break;
         }
@@ -542,6 +542,52 @@ void VM::Execute()
     }
 }
 
+void VM::DeleteObject(Object *object)
+{
+    switch (object->type)
+    {
+        case ObjectType::STR:
+        {
+            auto strObj=TO_STR_OBJ(object);
+            SAFE_DELETE(strObj);
+            return;
+        }
+        case ObjectType::ARRAY:
+        {
+            auto arrObj = TO_ARRAY_OBJ(object);
+            SAFE_DELETE(arrObj);
+            return;
+        }
+        case ObjectType::STRUCT:
+        {
+            auto structObj = TO_STRUCT_OBJ(object);
+            SAFE_DELETE(structObj);
+            return;
+        }
+        case ObjectType::REF:
+        {
+            auto refObj = TO_REF_OBJ(object);
+            SAFE_DELETE(refObj);
+            return;
+        }
+        case ObjectType::FUNCTION:
+        {
+            auto fnObj = TO_FUNCTION_OBJ(object);
+            SAFE_DELETE(fnObj);
+            return;
+        }
+        case ObjectType::BUILTIN:
+        {
+            auto builtinObj = TO_BUILTIN_OBJ(object);
+            SAFE_DELETE(builtinObj);
+            return;
+        }
+        default:
+        return;
+
+    }
+}
+
 void VM::RegisterToGCRecordChain(const Value &value)
 {
     if (IS_OBJECT_VALUE(value) && TO_OBJECT_VALUE(value)->next == nullptr) // check is null to avoid cross-reference in vm's object record chain
@@ -550,8 +596,7 @@ void VM::RegisterToGCRecordChain(const Value &value)
         if (m_CurObjCount >= m_MaxObjCount)
             Gc();
 
-        value.Mark();
-
+        value.UnMark();
         object->next = m_FirstObject;
         m_FirstObject = object;
 
@@ -636,7 +681,7 @@ void VM::Gc(bool isExitingVM)
         for (auto &g : m_GlobalVariables)
             g.Mark();
         for (CallFrame *slot = m_CallFrameStack; slot < m_CallFrameTop; ++slot)
-            slot->fn.Mark();
+            ObjectMark(slot->fn);
     }
     else
     {
@@ -646,7 +691,7 @@ void VM::Gc(bool isExitingVM)
         for (auto &g : m_GlobalVariables)
             g.UnMark();
         for (CallFrame *slot = m_CallFrameStack; slot < m_CallFrameTop; ++slot)
-            slot->fn.UnMark();
+            ObjectUnMark(slot->fn);
     }
 
     // sweep objects which is not reachable
@@ -658,7 +703,7 @@ void VM::Gc(bool isExitingVM)
             Object *unreached = *object;
             *object = unreached->next;
 
-            SAFE_DELETE(unreached);
+            DeleteObject(unreached);
 
             m_CurObjCount--;
         }
@@ -736,7 +781,7 @@ void VM::RunJit(FunctionObject *fn, size_t argCount)
         m_StackTop = prevCallFrame->slot - 1;
         Push(v);
     }
-    else if (fn->probableReturnTypeSet->IsOnly(ValueType::STR))
+    else if (fn->probableReturnTypeSet->IsOnly(ObjectType::STR))
     {
         auto v = m_Jit->Run<char *>(fnName);
         m_StackTop = prevCallFrame->slot - 1;

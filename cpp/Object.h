@@ -9,55 +9,116 @@
 #include <variant>
 #include <type_traits>
 
+#define TO_STR_OBJ(obj) (static_cast<StrObject *>(obj))
+#define TO_ARRAY_OBJ(obj) (static_cast<ArrayObject *>(obj))
+#define TO_STRUCT_OBJ(obj) (static_cast<StructObject *>(obj))
+#define TO_REF_OBJ(obj) (static_cast<RefObject *>(obj))
+#define TO_FUNCTION_OBJ(obj) (static_cast<FunctionObject *>(obj))
+#define TO_BUILTIN_OBJ(obj) (static_cast<BuiltinObject *>(obj))
+
+#define IS_STR_OBJ(obj) (obj->type == ObjectType::STR)
+#define IS_ARRAY_OBJ(obj) (obj->type == ObjectType::ARRAY)
+#define IS_STRUCT_OBJ(obj) (obj->type == ObjectType::STRUCT)
+#define IS_REF_OBJ(obj) (obj->type == ObjectType::REF)
+#define IS_FUNCTION_OBJ(obj) (obj->type == ObjectType::FUNCTION)
+#define IS_BUILTIN_OBJ(obj) (obj->type == ObjectType::BUILTIN)
+
+enum class ObjectType :uint8_t
+{
+    STR,
+    ARRAY,
+    STRUCT,
+    REF,
+    FUNCTION,
+    BUILTIN,
+};
+
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+class TypeSet
+{
+public:
+    TypeSet() = default;
+    ~TypeSet() = default;
+
+    template <typename T>
+        requires(std::is_same_v<T, ValueType> || std::is_same_v<T, ObjectType>)
+    void Insert(T type)
+    {
+        m_ValueTypeSet.insert(type);
+    }
+
+    template<typename T>
+        requires(std::is_same_v<T, ValueType> || std::is_same_v<T, ObjectType>)
+    bool IsOnly(T t)
+    {
+        return m_ValueTypeSet.size() == 1 && m_ValueTypeSet.contains(t);
+    }
+
+    bool IsMultiplyType()
+    {
+        return m_ValueTypeSet.size() >= 2;
+    }
+
+    bool IsNone()
+    {
+        return m_ValueTypeSet.size() == 0;
+    }
+
+private:
+    std::set<std::variant<ValueType, ObjectType>> m_ValueTypeSet{};
+};
+#endif
+
 struct Object
 {
-    Object() : marked(false), next(nullptr) {}
+    Object(ObjectType type) : type(type), marked(false), next(nullptr) {}
     ~Object() {}
 
-	bool marked;
-    Object* next;
+    ObjectType type;
+    bool marked;
+    Object *next;
 };
 
 struct StrObject : public Object
 {
-	StrObject(char* v): value(v),len(strlen(value)){}
-	StrObject(const char* v): len(strlen(v))
+    StrObject(char *v) :Object(ObjectType::STR), value(v), len(strlen(value)) {}
+    StrObject(const char *v) :Object(ObjectType::STR), len(strlen(v))
     {
-        value = new char[len+1];
+        value = new char[len + 1];
         strcpy(value, v);
         value[len] = '\0';
     }
-	~StrObject()
+    ~StrObject()
     {
-       SAFE_DELETE_ARRAY(value);
+        SAFE_DELETE_ARRAY(value);
     }
 
-	char* value;
+    char *value;
     uint32_t len;
 };
 
 struct ArrayObject : public Object
 {
-	ArrayObject(Value* eles,uint32_t len): elements(eles), len(len),capacity(len) {}
+    ArrayObject(Value *eles, uint32_t len) :Object(ObjectType::ARRAY), elements(eles), len(len), capacity(len) {}
     ~ArrayObject() = default;
 
-	Value* elements;
+    Value *elements;
     uint32_t len;
     uint32_t capacity;
 };
 
 struct RefObject : public Object
 {
-	RefObject(Value *pointer): pointer(pointer){}
+    RefObject(Value *pointer) : Object(ObjectType::REF), pointer(pointer) {}
     ~RefObject() = default;
 
-	Value *pointer;
+    Value *pointer;
 };
 
 struct FunctionObject : public Object
 {
-	FunctionObject(Chunk chunk, uint8_t localVarCount = 0, uint8_t parameterCount = 0)
-		: chunk(chunk), localVarCount(localVarCount), parameterCount(parameterCount)
+    FunctionObject(Chunk chunk, uint8_t localVarCount = 0, uint8_t parameterCount = 0)
+        :Object(ObjectType::FUNCTION), chunk(chunk), localVarCount(localVarCount), parameterCount(parameterCount)
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
         , callCount(0)
         , uuid(GenerateUUID())
@@ -69,37 +130,37 @@ struct FunctionObject : public Object
         SAFE_DELETE(probableReturnTypeSet);
     }
 
-	Chunk chunk;
-	uint8_t localVarCount;
-	uint8_t parameterCount;
+    Chunk chunk;
+    uint8_t localVarCount;
+    uint8_t parameterCount;
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     uint32_t callCount;
     std::set<size_t> jitCache;
-    ValueTypeSet* probableReturnTypeSet{nullptr};//record function return types,some function with multiply return stmt may return mutiply types of value
+    TypeSet *probableReturnTypeSet{ nullptr };//record function return types,some function with multiply return stmt may return mutiply types of value
     std::string uuid;
 #endif
 };
 
 struct StructObject : public Object
 {
-	StructObject(const std::unordered_map<std::string, Value> &members)	: members(members){}
+    StructObject(const std::unordered_map<std::string, Value> &members) :Object(ObjectType::STRUCT), members(members) {}
     ~StructObject() = default;
 
-	std::unordered_map<std::string, Value> members;
+    std::unordered_map<std::string, Value> members;
 };
 
 using BuiltinFn = std::function<bool(Value *, uint8_t, Value &)>;
 
 struct NativeData
 {
-    void* nativeData{ nullptr };
-    std::function<void(void* nativeData)> destroyFunc;
+    void *nativeData{ nullptr };
+    std::function<void(void *nativeData)> destroyFunc;
 
     template <typename T>
-    T* As()
+    T *As()
     {
-        return (T*)nativeData;
+        return (T *)nativeData;
     }
 
     template <typename T>
@@ -111,89 +172,60 @@ struct NativeData
 
 struct BuiltinObject : public Object
 {
-	BuiltinObject(void *nativeData, std::function<void(void *nativeData)> destroyFunc)
-	{
-		NativeData nd;
-		nd.nativeData = nativeData;
-		nd.destroyFunc = destroyFunc;
-		data = nd;
-	}
+    BuiltinObject(void *nativeData, std::function<void(void *nativeData)> destroyFunc)
+        :Object(ObjectType::BUILTIN)
+    {
+        NativeData nd;
+        nd.nativeData = nativeData;
+        nd.destroyFunc = destroyFunc;
+        data = nd;
+    }
 
-	template <typename T>
-		requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value>)
-	BuiltinObject(std::string_view name, const T &v)
-	{
-		data = v;
-	}
+    template <typename T>
+        requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value>)
+    BuiltinObject(std::string_view name, const T &v)
+        :Object(ObjectType::BUILTIN)
+    {
+        data = v;
+    }
 
-	~BuiltinObject()
-	{
-		if (Is<NativeData>())
-			Get<NativeData>().destroyFunc(Get<NativeData>().nativeData);
-	}
+    ~BuiltinObject()
+    {
+        if (Is<NativeData>())
+            Get<NativeData>().destroyFunc(Get<NativeData>().nativeData);
+    }
 
-	template<typename T>
-		requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value> ||std::is_same_v<T,NativeData>)
-	T Get()
-	{
-		return std::get<T>(data);
-	}
+    template<typename T>
+        requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value> || std::is_same_v<T, NativeData>)
+    T Get()
+    {
+        return std::get<T>(data);
+    }
 
-	template<typename T>
-		requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value> || std::is_same_v<T, NativeData>)
-	bool Is()
-	{
-		return std::holds_alternative<T>(data);
-	}
+    template<typename T>
+        requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value> || std::is_same_v<T, NativeData>)
+    bool Is()
+    {
+        return std::holds_alternative<T>(data);
+    }
 
-	std::variant<NativeData, BuiltinFn, Value> data;
+    std::variant<NativeData, BuiltinFn, Value> data;
 };
 
-COMPUTE_DUCK_API inline StrObject* StrAdd(StrObject* left, StrObject* right)
-{
-    int length = left->len + right->len;
-    char* newStr = new char[length + 1];
-    memcpy(newStr, left->value, left->len);
-    memcpy(newStr + left->len, right->value, right->len);
-    newStr[length] = '\0';
-    return new StrObject(newStr);
-}
+COMPUTE_DUCK_API std::string ObjectStringify(Object *object
+#ifndef NDEBUG
+    , bool printChunkIfIsFunctionObject = false
+#endif
+);
 
-COMPUTE_DUCK_API inline void StrInsert(StrObject* left,uint32_t idx,StrObject* right)
-{
-    int length = left->len + right->len;
-    char* newStr = new char[length+1];
-    memset(newStr, '\0', sizeof(newStr));
-    strncpy(newStr, left->value, idx);
-    newStr = strcat(newStr, right->value);
-    newStr=strcat(newStr,left->value+idx);
-  
-    left->value = newStr;
-    left->len = length;
-}
+COMPUTE_DUCK_API void ObjectMark(Object *object);
+COMPUTE_DUCK_API void ObjectUnMark(Object *object);
 
-COMPUTE_DUCK_API inline void StrErase(StrObject* left, uint32_t idx)
-{
-    int32_t i=0, j=0;
-    for (; left->value[i] != '\0'; ++i)
-        if (i != idx)
-            left->value[j++] = left->value[i];
+COMPUTE_DUCK_API bool IsObjectsEqual(Object *left, Object *right);
 
-    left->value[j] = '\0';
-    left->len--;
-}
+extern "C" COMPUTE_DUCK_API StrObject *StrAdd(StrObject *left, StrObject *right);
+extern "C" COMPUTE_DUCK_API void StrInsert(StrObject *left, uint32_t idx, StrObject *right);
+extern "C" COMPUTE_DUCK_API void StrErase(StrObject *left, uint32_t idx);
 
-COMPUTE_DUCK_API inline void ArrayInsert(ArrayObject* left, uint32_t idx, const Value& element)
-{
-    //TODO:not implement yet
-}
-
-COMPUTE_DUCK_API inline void ArrayErase(ArrayObject* left, uint32_t idx)
-{
-    int32_t i = 0, j = 0;
-    for (;i<left->len;++i)
-        if (i != idx)
-            left->elements[j++] = left->elements[i];
-
-    left->len--;
-}
+extern "C" COMPUTE_DUCK_API void ArrayInsert(ArrayObject *left, uint32_t idx, const Value &element);
+extern "C" COMPUTE_DUCK_API void ArrayErase(ArrayObject *left, uint32_t idx);

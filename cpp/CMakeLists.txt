@@ -47,7 +47,7 @@ set(ROOT_SRC Ast.h
              Compiler.h Compiler.cpp
              ConstantFolder.h ConstantFolder.cpp 
              Lexer.cpp Lexer.h
-             Object.h 
+             Object.h Object.cpp
              Parser.cpp Parser.h
              Token.h
              SymbolTable.h

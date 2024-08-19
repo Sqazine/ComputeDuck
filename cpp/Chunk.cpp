@@ -11,8 +11,9 @@ std::string Chunk::Stringify()
     std::string result = OpCodeStringify(opCodes);
     for (const auto &c : constants)
         if (IS_FUNCTION_VALUE(c))
-            result += c.Stringify(
+            result += ObjectStringify(TO_FUNCTION_VALUE(c)
 #ifndef NDEBUG
+                ,
                 true
 #endif
             );
