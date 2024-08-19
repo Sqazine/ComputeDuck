@@ -12,7 +12,7 @@ public:
     Compiler() = default;
     ~Compiler();
 
-    Value Compile(const std::vector<Stmt*>& stmts);
+    FunctionObject* Compile(const std::vector<Stmt*>& stmts);
 
 private:
     void ResetStatus();

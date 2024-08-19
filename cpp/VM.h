@@ -17,7 +17,7 @@ public:
     VM();
     ~VM();
 
-    void Run(const Value &fnValue);
+    void Run(FunctionObject *fn);
 
 private:
     struct CallFrame
@@ -25,7 +25,7 @@ private:
         CallFrame() = default;
         ~CallFrame() = default;
 
-        CallFrame(const Value &f, Value *slot)
+        CallFrame(FunctionObject *f, Value *slot)
             : fn(f), slot(slot)
         {
             auto fnObj = GetFnObject();
@@ -43,12 +43,12 @@ private:
 
         FunctionObject *GetFnObject() const
         {
-            return TO_FUNCTION_VALUE(fn);
+            return fn;
         }
 
-        Value fn;
-        int16_t *ip{nullptr};
-        Value *slot{nullptr};
+        FunctionObject *fn;
+        int16_t *ip{ nullptr };
+        Value *slot{ nullptr };
     };
 
     void ResetStatus();
@@ -56,6 +56,8 @@ private:
 
     template <class T, typename... Args>
     T *CreateObject(Args &&...params);
+
+    void DeleteObject(Object* object);
 
     void RegisterToGCRecordChain(const Value &value);
 
@@ -75,6 +77,7 @@ private:
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     void RunJit(FunctionObject *fn, size_t argCount);
+    Jit *m_Jit{ nullptr };
 #endif
 
     friend class Jit;
@@ -90,10 +93,6 @@ private:
     Object *m_FirstObject;
     int m_CurObjCount;
     int m_MaxObjCount;
-
-#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-    Jit *m_Jit{nullptr};
-#endif
 };
 
 template <class T, typename... Args>
