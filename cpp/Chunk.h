@@ -59,7 +59,6 @@ public:
     ~Chunk()
     {
         OpCodes().swap(opCodes);
-        std::vector<Value>().swap(constants);
     }
 
     std::string Stringify();

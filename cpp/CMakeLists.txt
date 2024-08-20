@@ -43,6 +43,7 @@ if(COMPUTEDUCK_BUILD_WITH_OPENGL)
 endif()
 
 set(ROOT_SRC Ast.h
+             Allocator.h Allocator.cpp
              Chunk.cpp Chunk.h
              Compiler.h Compiler.cpp
              ConstantFolder.h ConstantFolder.cpp 

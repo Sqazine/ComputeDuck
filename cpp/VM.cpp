@@ -2,23 +2,29 @@
 #include <iostream>
 #include "BuiltinManager.h"
 #include "Config.h"
-VM::VM()
-{
-}
+#include "Allocator.h"
 
 VM::~VM()
 {
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     SAFE_DELETE(m_Jit);
-    Gc(true);
+#endif
+    Allocator::GetInstance()->FreeAllObjects();
 }
 
 void VM::Run(FunctionObject *fn)
 {
-    ResetStatus();
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+    SAFE_DELETE(m_Jit);
+    m_Jit = new Jit();
+#endif
 
-    auto mainCallFrame = CallFrame(fn, m_StackTop);
-    RegisterToGCRecordChain(fn);
-    PushCallFrame(mainCallFrame);
+    Allocator::GetInstance()->ResetStack();
+    Allocator::GetInstance()->ResetFrame();
+
+    auto mainCallFrame = CallFrame(fn, STACK_TOP());
+    REGISTER_GC_RECORD_CHAIN(fn);
+    PUSH_CALL_FRAME(mainCallFrame);
 
     Execute();
 }
@@ -29,10 +35,10 @@ void VM::Execute()
 #define COMMON_BINARY(op)                                                                                     \
     do                                                                                                        \
     {                                                                                                         \
-        auto left = FindActualValue(Pop());                                                                   \
-        auto right = FindActualValue(Pop());                                                                  \
+        auto left = FindActualValue(POP());                                                                   \
+        auto right = FindActualValue(POP());                                                                  \
         if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                                        \
-            Push(TO_NUM_VALUE(left) op TO_NUM_VALUE(right));                                                  \
+            PUSH(TO_NUM_VALUE(left) op TO_NUM_VALUE(right));                                                  \
         else                                                                                                  \
             ASSERT("Invalid binary op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
     } while (0);
@@ -41,22 +47,22 @@ void VM::Execute()
 #define COMPARE_BINARY(op)                                                                \
     do                                                                                    \
     {                                                                                     \
-        Value left = FindActualValue(Pop());                                              \
-        Value right = FindActualValue(Pop());                                             \
+        Value left = FindActualValue(POP());                                              \
+        Value right = FindActualValue(POP());                                             \
         if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                    \
-            Push(TO_NUM_VALUE(left) op TO_NUM_VALUE(right) ? Value(true) : Value(false)); \
+            PUSH(TO_NUM_VALUE(left) op TO_NUM_VALUE(right) ? Value(true) : Value(false)); \
         else                                                                              \
-            Push(false);                                                                  \
+            PUSH(false);                                                                  \
     } while (0);
 
 // and or
 #define LOGIC_BINARY(op)                                                                               \
     do                                                                                                 \
     {                                                                                                  \
-        Value left = FindActualValue(Pop());                                                           \
-        Value right = FindActualValue(Pop());                                                          \
+        Value left = FindActualValue(POP());                                                           \
+        Value right = FindActualValue(POP());                                                          \
         if (IS_BOOL_VALUE(right) && IS_BOOL_VALUE(left))                                               \
-            Push(TO_BOOL_VALUE(left) op TO_BOOL_VALUE(right) ? Value(true) : Value(false));            \
+            PUSH(TO_BOOL_VALUE(left) op TO_BOOL_VALUE(right) ? Value(true) : Value(false));            \
         else                                                                                           \
             ASSERT("Invalid op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
     } while (0);
@@ -64,17 +70,17 @@ void VM::Execute()
 #define BIT_BINARY(op)                                                                                 \
     do                                                                                                 \
     {                                                                                                  \
-        Value left = FindActualValue(Pop());                                                           \
-        Value right = FindActualValue(Pop());                                                          \
+        Value left = FindActualValue(POP());                                                           \
+        Value right = FindActualValue(POP());                                                          \
         if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                                 \
-            Push((uint64_t)TO_NUM_VALUE(left) op(uint64_t) TO_NUM_VALUE(right));                       \
+            PUSH((uint64_t)TO_NUM_VALUE(left) op(uint64_t) TO_NUM_VALUE(right));                       \
         else                                                                                           \
             ASSERT("Invalid op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
     } while (0);
 
     while (1)
     {
-        auto frame = PeekCallFrameFromBack(1);
+        auto frame = PEEK_CALL_FRAME_FROM_BACK(1);
 
         if (frame->IsEnd())
             return;
@@ -94,20 +100,20 @@ void VM::Execute()
             Value value;
             if (returnCount == 1)
             {
-                value = Pop();
+                value = POP();
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
                 frame->GetFnObject()->probableReturnTypeSet->Insert(value.type);
 #endif
             }
 
-            auto callFrame = PopCallFrame();
+            auto callFrame = POP_CALL_FRAME();
 
-            if (m_CallFrameTop == m_CallFrameStack)
+            if (Allocator::GetInstance()->IsCallFrameStackEmpty())
                 return;
 
-            m_StackTop = callFrame->slot - 1;
+            SET_STACK_TOP(callFrame->slot - 1);
 
-            Push(value);
+            PUSH(value);
             break;
         }
         case OP_CONSTANT:
@@ -115,19 +121,19 @@ void VM::Execute()
             auto idx = *frame->ip++;
             auto value = frame->GetFnObject()->chunk.constants[idx];
 
-            RegisterToGCRecordChain(value);
+            REGISTER_GC_RECORD_CHAIN(value);
 
-            Push(value);
+            PUSH(value);
             break;
         }
         case OP_ADD:
         {
-            Value left = FindActualValue(Pop());
-            Value right = FindActualValue(Pop());
+            Value left = FindActualValue(POP());
+            Value right = FindActualValue(POP());
             if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))
-                Push(TO_NUM_VALUE(left) + TO_NUM_VALUE(right));
+                PUSH(TO_NUM_VALUE(left) + TO_NUM_VALUE(right));
             else if (IS_STR_VALUE(right) && IS_STR_VALUE(left))
-                Push(StrAdd(TO_STR_VALUE(left), TO_STR_VALUE(right)));
+                PUSH(StrAdd(TO_STR_VALUE(left), TO_STR_VALUE(right)));
             else
                 ASSERT("Invalid binary op:%s+%s", left.Stringify().c_str(), right.Stringify().c_str());
             break;
@@ -159,25 +165,25 @@ void VM::Execute()
         }
         case OP_EQUAL:
         {
-            Value left = FindActualValue(Pop());
-            Value right = FindActualValue(Pop());
-            Push(left == right);
+            Value left = FindActualValue(POP());
+            Value right = FindActualValue(POP());
+            PUSH(left == right);
             break;
         }
         case OP_NOT:
         {
-            auto value = FindActualValue(Pop());
+            auto value = FindActualValue(POP());
             if (!IS_BOOL_VALUE(value))
                 ASSERT("Invalid op:'!' %s", value.Stringify().c_str());
-            Push(!TO_BOOL_VALUE(value));
+            PUSH(!TO_BOOL_VALUE(value));
             break;
         }
         case OP_MINUS:
         {
-            auto value = FindActualValue(Pop());
+            auto value = FindActualValue(POP());
             if (!IS_NUM_VALUE(value))
                 ASSERT("Invalid op:'-' %s", value.Stringify().c_str());
-            Push(-TO_NUM_VALUE(value));
+            PUSH(-TO_NUM_VALUE(value));
             break;
         }
         case OP_AND:
@@ -207,10 +213,10 @@ void VM::Execute()
         }
         case OP_BIT_NOT:
         {
-            Value value = FindActualValue(Pop());
+            Value value = FindActualValue(POP());
             if (!IS_NUM_VALUE(value))
                 ASSERT("Invalid op:~ %s", value.Stringify().c_str());
-            Push(~(uint64_t)TO_NUM_VALUE(value));
+            PUSH(~(uint64_t)TO_NUM_VALUE(value));
             break;
         }
         case OP_ARRAY:
@@ -219,29 +225,29 @@ void VM::Execute()
             Value *elements = new Value[numElements];
 
             int32_t i = numElements - 1;
-            for (Value *p = m_StackTop - 1; p >= m_StackTop - numElements && i >= 0; --p, --i)
+            for (Value *p = STACK_TOP() - 1; p >= STACK_TOP() - numElements && i >= 0; --p, --i)
                 elements[i] = *p;
 
-            auto array = CreateObject<ArrayObject>(elements, numElements);
+            auto array = Allocator::GetInstance()->CreateObject<ArrayObject>(elements, numElements);
 
-            m_StackTop -= numElements;
+            STACK_TOP_JUMP_BACK(numElements);
 
-            Push(array);
+            PUSH(array);
             break;
         }
         case OP_GET_INDEX:
         {
-            auto index = Pop();
-            auto ds = Pop();
+            auto index = POP();
+            auto ds = POP();
 
             if (IS_ARRAY_VALUE(ds) && IS_NUM_VALUE(index))
             {
                 auto array = TO_ARRAY_VALUE(ds);
                 auto i = (size_t)TO_NUM_VALUE(index);
                 if (i < 0 || i >= array->len)
-                    Push(Value());
+                    PUSH(Value());
                 else
-                    Push(array->elements[i]);
+                    PUSH(array->elements[i]);
             }
             else
                 ASSERT("Invalid index op: %s[%s]", ds.Stringify().c_str(), index.Stringify().c_str());
@@ -249,9 +255,9 @@ void VM::Execute()
         }
         case OP_SET_INDEX:
         {
-            auto index = Pop();
-            auto ds = Pop();
-            auto v = Pop();
+            auto index = POP();
+            auto ds = POP();
+            auto v = POP();
             if (IS_ARRAY_VALUE(ds) && IS_NUM_VALUE(index))
             {
                 auto array = TO_ARRAY_VALUE(ds);
@@ -271,7 +277,7 @@ void VM::Execute()
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
             auto mode = *frame->ip++;
 #endif
-            auto value = Pop();
+            auto value = POP();
             if (!IS_BOOL_VALUE(value))
                 ASSERT("The if condition not a boolean value");
             if (!TO_BOOL_VALUE(value))
@@ -301,30 +307,26 @@ void VM::Execute()
         case OP_SET_GLOBAL:
         {
             auto index = *frame->ip++;
-            auto value = Pop();
+            auto value = POP();
 
-            auto ptr = &m_GlobalVariables[index];
+            auto ptr = GET_GLOBAL_VARIABLE_REF(index);
 
             if (IS_REF_VALUE(*ptr)) // if is a reference object,then set the actual value which the reference object points
-            {
                 ptr = GetEndOfRefValue(ptr);
-                *ptr = value;
-            }
-            else
-                m_GlobalVariables[index] = value;
+            *ptr = value;
             break;
         }
         case OP_GET_GLOBAL:
         {
             auto index = *frame->ip++;
-            Push(m_GlobalVariables[index]);
+            PUSH(*GET_GLOBAL_VARIABLE_REF(index));
             break;
         }
         case OP_FUNCTION_CALL:
         {
             auto argCount = (uint8_t)*frame->ip++;
 
-            auto value = *(m_StackTop - argCount - 1);
+            auto value = *(STACK_TOP() - argCount - 1);
             if (IS_FUNCTION_VALUE(value))
             {
                 auto fn = TO_FUNCTION_VALUE(value);
@@ -332,9 +334,9 @@ void VM::Execute()
                 if (argCount != fn->parameterCount)
                     ASSERT("Non matching function parameters for calling arguments,parameter count:%d,argument count:%d", fn->parameterCount, argCount);
 
-                auto callFrame = CallFrame(fn, m_StackTop - argCount);
-                PushCallFrame(callFrame);
-                m_StackTop = callFrame.slot + fn->localVarCount;
+                auto callFrame = CallFrame(fn, STACK_TOP() - argCount);
+                PUSH_CALL_FRAME(callFrame);
+                SET_STACK_TOP(callFrame.slot + fn->localVarCount);
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
                 RunJit(fn, argCount);
@@ -347,17 +349,17 @@ void VM::Execute()
                 if (!builtin->Is<BuiltinFn>())
                     ASSERT("Invalid builtin function");
 
-                Value *slot = m_StackTop - argCount;
+                Value *slot = STACK_TOP() - argCount;
 
-                m_StackTop -= (argCount + 1);
+                STACK_TOP_JUMP_BACK(argCount + 1);
 
                 Value returnValue;
                 auto hasRet = builtin->Get<BuiltinFn>()(slot, argCount, returnValue);
 
                 if (hasRet)
                 {
-                    RegisterToGCRecordChain(returnValue);
-                    Push(returnValue);
+                    REGISTER_GC_RECORD_CHAIN(returnValue);
+                    PUSH(returnValue);
                 }
             }
             else
@@ -369,13 +371,13 @@ void VM::Execute()
             auto scopeDepth = *frame->ip++;
             auto index = *frame->ip++;
             auto isUpValue = *frame->ip++;
-            auto value = Pop();
+            auto value = POP();
 
             Value *slot = nullptr;
             if (isUpValue)
-                slot = PeekCallFrameFromFront(scopeDepth)->slot + index;
+                slot = PEEK_CALL_FRAME_FROM_FRONT(scopeDepth)->slot + index;
             else
-                slot = PeekCallFrameFromBack(scopeDepth)->slot + index;
+                slot = PEEK_CALL_FRAME_FROM_BACK(scopeDepth)->slot + index;
             slot = GetEndOfRefValue(slot);
 
             *slot = value;
@@ -389,17 +391,17 @@ void VM::Execute()
 
             Value *slot = nullptr;
             if (isUpValue)
-                slot = PeekCallFrameFromFront(scopeDepth)->slot + index;
+                slot = PEEK_CALL_FRAME_FROM_FRONT(scopeDepth)->slot + index;
             else
-                slot = PeekCallFrameFromBack(scopeDepth)->slot + index;
+                slot = PEEK_CALL_FRAME_FROM_BACK(scopeDepth)->slot + index;
 
-            Push(*slot);
+            PUSH(*slot);
             break;
         }
         case OP_SP_OFFSET:
         {
             auto offset = *frame->ip++;
-            m_StackTop += offset;
+            STACK_TOP_JUMP(offset);
             break;
         }
         case OP_GET_BUILTIN:
@@ -407,10 +409,10 @@ void VM::Execute()
             auto idx = *frame->ip++;
             auto name = TO_STR_VALUE(frame->GetFnObject()->chunk.constants[idx])->value;
 
-            //RegisterToGCRecordChain(value);
-            
+            // RegisterToGCRecordChain(value);
+
             auto builtinObj = BuiltinManager::GetInstance()->FindBuiltinObject(name);
-            Push(builtinObj);
+            PUSH(builtinObj);
             break;
         }
         case OP_STRUCT:
@@ -418,7 +420,7 @@ void VM::Execute()
             std::unordered_map<std::string, Value> members;
             auto memberCount = *frame->ip++;
 
-            auto tmpPtr = m_StackTop; // save the locale,to avoid gc system delete the tmp object before finish the struct instance creation
+            auto tmpPtr = STACK_TOP(); // save the locale,to avoid gc system delete the tmp object before finish the struct instance creation
 
             for (int i = 0; i < memberCount; ++i)
             {
@@ -427,31 +429,31 @@ void VM::Execute()
                 members[name] = value;
             }
 
-            auto structInstance = CreateObject<StructObject>(members);
-            m_StackTop = tmpPtr; // recover the locale
-            Push(structInstance);
+            auto structInstance = Allocator::GetInstance()->CreateObject<StructObject>(members);
+            SET_STACK_TOP(tmpPtr); // recover the locale
+            PUSH(structInstance);
             break;
         }
         case OP_GET_STRUCT:
         {
-            auto memberName = Pop();
-            auto instance = GetEndOfRefValue(Pop());
+            auto memberName = POP();
+            auto instance = GetEndOfRefValue(POP());
             if (IS_STR_VALUE(memberName))
             {
                 auto structInstance = TO_STRUCT_VALUE(instance);
                 auto iter = structInstance->members.find(TO_STR_VALUE(memberName)->value);
                 if (iter == structInstance->members.end())
                     ASSERT("no member named:(%s) in struct instance:%s", memberName.Stringify().c_str(), instance.Stringify().c_str());
-                Push(iter->second);
+                PUSH(iter->second);
             }
             break;
         }
         case OP_SET_STRUCT:
         {
-            auto memberName = Pop();
-            auto instance = GetEndOfRefValue(Pop());
+            auto memberName = POP();
+            auto instance = GetEndOfRefValue(POP());
             auto structInstance = TO_STRUCT_VALUE(instance);
-            auto value = Pop();
+            auto value = POP();
             if (IS_STR_VALUE(memberName))
             {
                 auto iter = structInstance->members.find(TO_STR_VALUE(memberName)->value);
@@ -464,7 +466,7 @@ void VM::Execute()
         case OP_REF_GLOBAL:
         {
             auto index = *frame->ip++;
-            Push(CreateObject<RefObject>(&m_GlobalVariables[index]));
+            PUSH(Allocator::GetInstance()->CreateObject<RefObject>(GET_GLOBAL_VARIABLE_REF(index)));
             break;
         }
         case OP_REF_LOCAL:
@@ -474,19 +476,19 @@ void VM::Execute()
             auto isUpValue = *frame->ip++;
             Value *slot = nullptr;
             if (isUpValue)
-                slot = PeekCallFrameFromFront(scopeDepth)->slot + index;
+                slot = PEEK_CALL_FRAME_FROM_FRONT(scopeDepth)->slot + index;
             else
-                slot = PeekCallFrameFromBack(scopeDepth)->slot + index;
+                slot = PEEK_CALL_FRAME_FROM_BACK(scopeDepth)->slot + index;
 
-            Push(CreateObject<RefObject>(slot));
+            PUSH(Allocator::GetInstance()->CreateObject<RefObject>(slot));
             break;
         }
         case OP_REF_INDEX_GLOBAL:
         {
             auto index = *frame->ip++;
-            auto idxValue = Pop();
+            auto idxValue = POP();
 
-            auto ptr = GetEndOfRefValue(&m_GlobalVariables[index]);
+            auto ptr = GetEndOfRefValue(GET_GLOBAL_VARIABLE_REF(index));
 
             if (IS_ARRAY_VALUE(*ptr))
             {
@@ -495,7 +497,7 @@ void VM::Execute()
                 auto intIdx = TO_NUM_VALUE(idxValue);
                 if (intIdx < 0 || intIdx >= TO_ARRAY_VALUE(*ptr)->len)
                     ASSERT("Idx out of range.");
-                Push(CreateObject<RefObject>(&(TO_ARRAY_VALUE(*ptr)->elements[(uint64_t)intIdx])));
+                PUSH(Allocator::GetInstance()->CreateObject<RefObject>(&(TO_ARRAY_VALUE(*ptr)->elements[(uint64_t)intIdx])));
             }
             else
                 ASSERT("Invalid indexed reference type: %s not a array value.", ptr->Stringify().c_str());
@@ -507,13 +509,13 @@ void VM::Execute()
             auto index = *frame->ip++;
             auto isUpValue = *frame->ip++;
 
-            auto idxValue = Pop();
+            auto idxValue = POP();
 
             Value *slot = nullptr;
             if (isUpValue)
-                slot = PeekCallFrameFromFront(scopeDepth)->slot + index;
+                slot = PEEK_CALL_FRAME_FROM_FRONT(scopeDepth)->slot + index;
             else
-                slot = PeekCallFrameFromBack(scopeDepth)->slot + index;
+                slot = PEEK_CALL_FRAME_FROM_BACK(scopeDepth)->slot + index;
 
             slot = GetEndOfRefValue(slot);
 
@@ -524,7 +526,7 @@ void VM::Execute()
                 auto intIdx = TO_NUM_VALUE(idxValue);
                 if (intIdx < 0 || intIdx >= TO_ARRAY_VALUE(*slot)->len)
                     ASSERT("Idx out of range.");
-                Push(CreateObject<RefObject>(&(TO_ARRAY_VALUE(*slot)->elements[(uint64_t)intIdx])));
+                PUSH(Allocator::GetInstance()->CreateObject<RefObject>(&(TO_ARRAY_VALUE(*slot)->elements[(uint64_t)intIdx])));
             }
             else
                 ASSERT("Invalid indexed reference type: %s not a array value.", slot->Stringify().c_str());
@@ -532,7 +534,7 @@ void VM::Execute()
         }
         case OP_DLL_IMPORT:
         {
-            auto name = TO_STR_VALUE(Pop())->value;
+            auto name = TO_STR_VALUE(POP())->value;
             RegisterDLLs(name);
             break;
         }
@@ -540,110 +542,6 @@ void VM::Execute()
             return;
         }
     }
-}
-
-void VM::DeleteObject(Object *object)
-{
-    switch (object->type)
-    {
-        case ObjectType::STR:
-        {
-            auto strObj=TO_STR_OBJ(object);
-            SAFE_DELETE(strObj);
-            return;
-        }
-        case ObjectType::ARRAY:
-        {
-            auto arrObj = TO_ARRAY_OBJ(object);
-            SAFE_DELETE(arrObj);
-            return;
-        }
-        case ObjectType::STRUCT:
-        {
-            auto structObj = TO_STRUCT_OBJ(object);
-            SAFE_DELETE(structObj);
-            return;
-        }
-        case ObjectType::REF:
-        {
-            auto refObj = TO_REF_OBJ(object);
-            SAFE_DELETE(refObj);
-            return;
-        }
-        case ObjectType::FUNCTION:
-        {
-            auto fnObj = TO_FUNCTION_OBJ(object);
-            SAFE_DELETE(fnObj);
-            return;
-        }
-        case ObjectType::BUILTIN:
-        {
-            auto builtinObj = TO_BUILTIN_OBJ(object);
-            SAFE_DELETE(builtinObj);
-            return;
-        }
-        default:
-        return;
-
-    }
-}
-
-void VM::RegisterToGCRecordChain(const Value &value)
-{
-    if (IS_OBJECT_VALUE(value) && TO_OBJECT_VALUE(value)->next == nullptr) // check is null to avoid cross-reference in vm's object record chain
-    {
-        auto object = TO_OBJECT_VALUE(value);
-        if (m_CurObjCount >= m_MaxObjCount)
-            Gc();
-
-        value.UnMark();
-        object->next = m_FirstObject;
-        m_FirstObject = object;
-
-        m_CurObjCount++;
-    }
-}
-
-void VM::ResetStatus()
-{
-    m_CallFrameTop = m_CallFrameStack;
-    m_StackTop = m_ValueStack;
-
-    m_FirstObject = nullptr;
-    m_CurObjCount = 0;
-    m_MaxObjCount = STACK_MAX;
-
-    m_Jit = new Jit(this);
-}
-
-void VM::Push(const Value &value)
-{
-    *m_StackTop++ = value;
-}
-
-Value VM::Pop()
-{
-    return *(--m_StackTop);
-}
-
-void VM::PushCallFrame(const CallFrame &callFrame)
-{
-    *m_CallFrameTop++ = callFrame;
-}
-
-VM::CallFrame *VM::PopCallFrame()
-{
-    return --m_CallFrameTop;
-}
-
-VM::CallFrame *VM::PeekCallFrameFromFront(int32_t distance)
-{
-    return &m_CallFrameStack[distance];
-}
-
-VM::CallFrame *VM::PeekCallFrameFromBack(int32_t distance)
-{
-    return m_CallFrameTop - distance;
 }
 
 Value VM::FindActualValue(const Value &v)
@@ -670,55 +568,6 @@ Value VM::GetEndOfRefValue(const Value &v)
     return value;
 }
 
-void VM::Gc(bool isExitingVM)
-{
-    auto objNum = m_CurObjCount;
-    if (!isExitingVM)
-    {
-        // mark all object which in stack and in context
-        for (Value *slot = m_ValueStack; slot < m_StackTop; ++slot)
-            slot->Mark();
-        for (auto &g : m_GlobalVariables)
-            g.Mark();
-        for (CallFrame *slot = m_CallFrameStack; slot < m_CallFrameTop; ++slot)
-            ObjectMark(slot->fn);
-    }
-    else
-    {
-        // unMark all objects while exiting vm
-        for (Value *slot = m_ValueStack; slot < m_StackTop; ++slot)
-            slot->UnMark();
-        for (auto &g : m_GlobalVariables)
-            g.UnMark();
-        for (CallFrame *slot = m_CallFrameStack; slot < m_CallFrameTop; ++slot)
-            ObjectUnMark(slot->fn);
-    }
-
-    // sweep objects which is not reachable
-    Object **object = &m_FirstObject;
-    while (*object)
-    {
-        if (!(*object)->marked)
-        {
-            Object *unreached = *object;
-            *object = unreached->next;
-
-            DeleteObject(unreached);
-
-            m_CurObjCount--;
-        }
-        else
-        {
-            (*object)->marked = false;
-            object = &(*object)->next;
-        }
-    }
-
-    m_MaxObjCount = m_CurObjCount == 0 ? STACK_MAX : m_CurObjCount * 2;
-
-    std::cout << "Collected " << objNum - m_CurObjCount << " objects," << m_CurObjCount << " remaining." << std::endl;
-}
-
 void VM::RunJit(FunctionObject *fn, size_t argCount)
 {
     if (!Config::GetInstance()->IsUseJit())
@@ -727,7 +576,7 @@ void VM::RunJit(FunctionObject *fn, size_t argCount)
         return;
 
     size_t paramTypeHash = 0;
-    for (Value *slot = m_StackTop - fn->parameterCount; slot < m_StackTop; ++slot)
+    for (Value *slot = STACK_TOP() - fn->parameterCount; slot < STACK_TOP(); ++slot)
         paramTypeHash ^= std::hash<ValueType>()(slot->type);
 
     auto fnName = "function_" + fn->uuid + "_" + std::to_string(paramTypeHash);
@@ -737,16 +586,16 @@ void VM::RunJit(FunctionObject *fn, size_t argCount)
     {
         fn->jitCache.insert(paramTypeHash);
 
-        m_StackTop = m_StackTop - argCount + fn->localVarCount;
+        STACK_TOP_JUMP_BACK(argCount + fn->localVarCount);
 
         auto success = m_Jit->Compile(fn, fnName);
         if (!success)
             return;
     }
 
-    auto curCallFrame = PeekCallFrameFromBack(1);
+    auto curCallFrame = PEEK_CALL_FRAME_FROM_BACK(1);
 
-    auto prevCallFrame = PopCallFrame();
+    auto prevCallFrame = POP_CALL_FRAME();
 
     // Todo:Not solve function multiply argument
     if (fn->probableReturnTypeSet->IsOnly(ValueType::NUM))
@@ -758,38 +607,38 @@ void VM::RunJit(FunctionObject *fn, size_t argCount)
             {
                 double dArg0 = TO_NUM_VALUE(*arg0);
                 auto v = m_Jit->Run<double>(fnName, std::move(dArg0));
-                m_StackTop = prevCallFrame->slot - 1;
-                Push(v);
+                SET_STACK_TOP(prevCallFrame->slot - 1);
+                PUSH(v);
             }
         }
         else
         {
             auto v = m_Jit->Run<double>(fnName);
-            m_StackTop = prevCallFrame->slot - 1;
-            Push(v);
+            SET_STACK_TOP(prevCallFrame->slot - 1);
+            PUSH(v);
         }
     }
     else if (fn->probableReturnTypeSet->IsOnly(ValueType::NIL))
     {
         auto v = m_Jit->Run<bool *>(fnName);
-        m_StackTop = prevCallFrame->slot - 1;
-        Push(Value());
+        SET_STACK_TOP(prevCallFrame->slot - 1);
+        PUSH(Value());
     }
     else if (fn->probableReturnTypeSet->IsOnly(ValueType::BOOL))
     {
         auto v = m_Jit->Run<bool>(fnName);
-        m_StackTop = prevCallFrame->slot - 1;
-        Push(v);
+        SET_STACK_TOP(prevCallFrame->slot - 1);
+        PUSH(v);
     }
     else if (fn->probableReturnTypeSet->IsOnly(ObjectType::STR))
     {
         auto v = m_Jit->Run<char *>(fnName);
-        m_StackTop = prevCallFrame->slot - 1;
-        Push(CreateObject<StrObject>(v));
+        SET_STACK_TOP(prevCallFrame->slot - 1);
+        PUSH(Allocator::GetInstance()->CreateObject<StrObject>(v));
     }
     else
     {
         m_Jit->Run<void>(fnName);
-        m_StackTop = prevCallFrame->slot - 1;
+        SET_STACK_TOP(prevCallFrame->slot - 1);
     }
 }
