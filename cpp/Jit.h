@@ -40,7 +40,7 @@
 class COMPUTE_DUCK_API Jit
 {
 public:
-    Jit(class VM* vm);
+    Jit();
     ~Jit();
 
     bool Compile(FunctionObject* fnObj,const std::string& fnName);
@@ -48,13 +48,13 @@ public:
     template<typename RetType,typename... Args>
     RetType Run(const std::string& name,Args &&...params)
     {
-        auto rt = m_Jit->GetMainJITDylib().createResourceTracker();
+        auto rt = m_Executor->GetMainJITDylib().createResourceTracker();
 
         auto tsm = llvm::orc::ThreadSafeModule(std::move(m_Module), std::move(m_Context));
-        m_ExitOnErr(m_Jit->AddModule(std::move(tsm), rt));
+        m_ExitOnErr(m_Executor->AddModule(std::move(tsm), rt));
         InitModuleAndPassManager();
         
-        auto symbol = m_ExitOnErr(m_Jit->LookUp(name));
+        auto symbol = m_ExitOnErr(m_Executor->LookUp(name));
 
         using JitFuncType = RetType(*)(Args...);
         JitFuncType jitFn = reinterpret_cast<JitFuncType>(symbol.getAddress());
@@ -164,8 +164,6 @@ private:
         return fnOrCallInst;
     }
 
-    class VM* m_VM{nullptr};
-
     llvm::StructType *m_ValueType{nullptr};
     llvm::PointerType *m_ValuePtrType{nullptr};
     llvm::StructType *m_UnionType{nullptr};
@@ -207,6 +205,6 @@ private:
 
     llvm::ExitOnError m_ExitOnErr;
 
-    std::unique_ptr<OrcExecutor> m_Jit;
+    std::unique_ptr<OrcExecutor> m_Executor;
     std::unique_ptr<llvm::legacy::FunctionPassManager> m_FPM;
 };

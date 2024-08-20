@@ -1,4 +1,5 @@
 #include "Jit.h"
+#include "Allocator.h"
 #include "BuiltinManager.h"
 #include "VM.h"
 
@@ -65,21 +66,19 @@ llvm::Expected<llvm::JITEvaluatedSymbol> Jit::OrcExecutor::LookUp(llvm::StringRe
     return m_Es->lookup({ &m_MainJD }, m_Mangle(name.str()));
 }
 
-Jit::Jit(VM *vm)
-    : m_VM(vm)
+Jit::Jit()
 {
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();
     llvm::InitializeNativeTargetAsmParser();
 
-    m_Jit = OrcExecutor::Create();
+    m_Executor = OrcExecutor::Create();
 
     InitModuleAndPassManager();
 }
 
 Jit::~Jit()
 {
-    m_VM = nullptr;
 }
 
 void Jit::ResetStatus()
@@ -112,7 +111,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
     State state = State::IF_CONDITION;
 
     std::vector<llvm::Type *> paramTypes;
-    for (Value *slot = m_VM->m_StackTop; slot < m_VM->m_StackTop + fnObj->parameterCount; ++slot)
+    for (Value *slot = STACK_TOP(); slot < STACK_TOP() + fnObj->parameterCount; ++slot)
     {
         if (IS_NUM_VALUE(*slot))
             paramTypes.push_back(m_DoubleType);
@@ -638,7 +637,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
             }
             else
             {
-                auto vmStored = m_VM->m_GlobalVariables[index];
+                auto vmStored = *Allocator::GetInstance()->GetGlobalVariableRef(index);
                 if (IS_FUNCTION_VALUE(vmStored))
                     Push(vmStored);
                 else
@@ -698,9 +697,9 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
                 {
                     Value *slot = nullptr;
                     if (isUpValue)
-                        slot = m_VM->PeekCallFrameFromFront(scopeDepth)->slot + index;
+                        slot = Allocator::GetInstance()->PeekCallFrameFromFront(scopeDepth)->slot + index;
                     else
-                        slot = m_VM->PeekCallFrameFromBack(scopeDepth)->slot + index;
+                        slot = Allocator::GetInstance()->PeekCallFrameFromBack(scopeDepth)->slot + index;
 
                     auto constant = GetLlvmValueFrom(*slot);
                     if (!constant)
@@ -869,7 +868,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
     llvm::verifyFunction(*fn);
     m_FPM->run(*fn);
 
-    m_Jit->AddModule(llvm::orc::ThreadSafeModule(std::move(m_Module), std::move(m_Context)));
+    m_Executor->AddModule(llvm::orc::ThreadSafeModule(std::move(m_Module), std::move(m_Context)));
     InitModuleAndPassManager();
 
     return true;
@@ -880,7 +879,7 @@ void Jit::InitModuleAndPassManager()
     m_Context = std::make_unique<llvm::LLVMContext>();
 
     m_Module = std::make_unique<llvm::Module>("ComputeDuck LLVM JIT", *m_Context);
-    m_Module->setDataLayout(m_Jit->GetDataLayout());
+    m_Module->setDataLayout(m_Executor->GetDataLayout());
 
     m_Builder = std::make_unique<llvm::IRBuilder<>>(*m_Context);
 
