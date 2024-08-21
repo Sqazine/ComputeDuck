@@ -34,7 +34,7 @@ struct CallFrame
     Value *slot{ nullptr };
 };
 
-class Allocator
+class COMPUTE_DUCK_API Allocator
 {
 public:
     static Allocator *GetInstance();
@@ -57,7 +57,7 @@ public:
         return object;
     }
 
-    void RegisterToGCRecordChain(const Value &value);
+    //void RegisterToGCRecordChain(const Value &value);
 
     void Push(const Value &value);
     Value Pop();
@@ -103,7 +103,7 @@ private:
 #define PUSH(x) (Allocator::GetInstance()->Push(x))
 #define POP() (Allocator::GetInstance()->Pop())
 
-#define REGISTER_GC_RECORD_CHAIN(x) (Allocator::GetInstance()->RegisterToGCRecordChain(x))
+//#define REGISTER_GC_RECORD_CHAIN(x) (Allocator::GetInstance()->RegisterToGCRecordChain(x))
 
 #define PUSH_CALL_FRAME(x) (Allocator::GetInstance()->PushCallFrame(x))
 #define POP_CALL_FRAME(x) (Allocator::GetInstance()->PopCallFrame())

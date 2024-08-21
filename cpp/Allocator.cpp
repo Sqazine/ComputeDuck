@@ -5,6 +5,9 @@ Allocator::Allocator()
     m_FirstObject = nullptr;
     m_CurObjCount = 0;
     m_MaxObjCount = STACK_MAX;
+
+    ResetStack();
+    ResetFrame();
 }
 
 Allocator::~Allocator()
@@ -27,21 +30,21 @@ void Allocator::ResetFrame()
     m_CallFrameTop = m_CallFrameStack;
 }
 
-void Allocator::RegisterToGCRecordChain(const Value &value)
-{
-    if (IS_OBJECT_VALUE(value) && TO_OBJECT_VALUE(value)->next == nullptr) // check is null to avoid cross-reference in vm's object record chain
-    {
-        auto object = TO_OBJECT_VALUE(value);
-        if (m_CurObjCount >= m_MaxObjCount)
-            Gc();
-
-        value.UnMark();
-        object->next = m_FirstObject;
-        m_FirstObject = object;
-
-        m_CurObjCount++;
-    }
-}
+//void Allocator::RegisterToGCRecordChain(const Value &value)
+//{
+//    if (IS_OBJECT_VALUE(value) && TO_OBJECT_VALUE(value)->next == nullptr) // check is null to avoid cross-reference in vm's object record chain
+//    {
+//        auto object = TO_OBJECT_VALUE(value);
+//        if (m_CurObjCount >= m_MaxObjCount)
+//            Gc();
+//
+//        value.UnMark();
+//        object->next = m_FirstObject;
+//        m_FirstObject = object;
+//
+//        m_CurObjCount++;
+//    }
+//}
 
 void Allocator::Push(const Value &value)
 {

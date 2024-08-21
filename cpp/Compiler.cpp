@@ -1,7 +1,8 @@
 #include "Compiler.h"
+#include <limits>
 #include "Object.h"
 #include "BuiltinManager.h"
-#include <limits>
+#include "Allocator.h"
 
 constexpr int16_t INVALID_OPCODE = std::numeric_limits<int16_t>::max();
 
@@ -10,14 +11,14 @@ Compiler::~Compiler()
     SAFE_DELETE(m_SymbolTable);
 }
 
-FunctionObject* Compiler::Compile(const std::vector<Stmt*>& stmts)
+FunctionObject *Compiler::Compile(const std::vector<Stmt *> &stmts)
 {
     ResetStatus();
 
-    for (const auto& stmt : stmts)
+    for (const auto &stmt : stmts)
         CompileStmt(stmt);
 
-    return new FunctionObject(CurChunk());
+    return Allocator::GetInstance()->CreateObject<FunctionObject>(CurChunk());
 }
 
 void Compiler::ResetStatus()
@@ -29,43 +30,43 @@ void Compiler::ResetStatus()
 
     m_SymbolTable = new SymbolTable();
 
-    for (const auto& [k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
+    for (const auto &[k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
         m_SymbolTable->DefineBuiltin(k);
 }
 
-void Compiler::CompileStmt(Stmt* stmt)
+void Compiler::CompileStmt(Stmt *stmt)
 {
     switch (stmt->type)
     {
     case AstType::RETURN:
-        CompileReturnStmt((ReturnStmt*)stmt);
+        CompileReturnStmt((ReturnStmt *)stmt);
         break;
     case AstType::EXPR:
-        CompileExprStmt((ExprStmt*)stmt);
+        CompileExprStmt((ExprStmt *)stmt);
         break;
     case AstType::SCOPE:
-        CompileScopeStmt((ScopeStmt*)stmt);
+        CompileScopeStmt((ScopeStmt *)stmt);
         break;
     case AstType::IF:
-        CompileIfStmt((IfStmt*)stmt);
+        CompileIfStmt((IfStmt *)stmt);
         break;
     case AstType::WHILE:
-        CompileWhileStmt((WhileStmt*)stmt);
+        CompileWhileStmt((WhileStmt *)stmt);
         break;
     case AstType::STRUCT:
-        CompileStructStmt((StructStmt*)stmt);
+        CompileStructStmt((StructStmt *)stmt);
         break;
     default:
         ASSERT("Unknown stmt")
     }
 }
 
-void Compiler::CompileExprStmt(ExprStmt* stmt)
+void Compiler::CompileExprStmt(ExprStmt *stmt)
 {
     CompileExpr(stmt->expr);
 }
 
-void Compiler::CompileIfStmt(IfStmt* stmt)
+void Compiler::CompileIfStmt(IfStmt *stmt)
 {
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     Emit(OP_JUMP_START);
@@ -98,12 +99,12 @@ void Compiler::CompileIfStmt(IfStmt* stmt)
 #endif
 }
 
-void Compiler::CompileScopeStmt(ScopeStmt* stmt)
+void Compiler::CompileScopeStmt(ScopeStmt *stmt)
 {
     Emit(OP_SP_OFFSET);
     auto idx = Emit(0);
 
-    for (const auto& s : stmt->stmts)
+    for (const auto &s : stmt->stmts)
         CompileStmt(s);
 
     auto localVarCount = m_SymbolTable->GetDefinitionCount();
@@ -113,7 +114,7 @@ void Compiler::CompileScopeStmt(ScopeStmt* stmt)
     Emit(-localVarCount);
 }
 
-void Compiler::CompileWhileStmt(WhileStmt* stmt)
+void Compiler::CompileWhileStmt(WhileStmt *stmt)
 {
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     Emit(OP_JUMP_START);
@@ -140,7 +141,7 @@ void Compiler::CompileWhileStmt(WhileStmt* stmt)
     ModifyOpCode(jumpIfFalseAddress, (int16_t)CurChunk().opCodes.size());
 }
 
-void Compiler::CompileReturnStmt(ReturnStmt* stmt)
+void Compiler::CompileReturnStmt(ReturnStmt *stmt)
 {
     if (stmt->expr)
     {
@@ -155,7 +156,7 @@ void Compiler::CompileReturnStmt(ReturnStmt* stmt)
     }
 }
 
-void Compiler::CompileStructStmt(StructStmt* stmt)
+void Compiler::CompileStructStmt(StructStmt *stmt)
 {
     auto symbol = m_SymbolTable->Define(stmt->name, true);
 
@@ -169,60 +170,60 @@ void Compiler::CompileStructStmt(StructStmt* stmt)
     chunk.opCodes.emplace_back(OP_RETURN);
     chunk.opCodes.emplace_back(1);
 
-    auto fn = new FunctionObject(chunk);
+    auto fn = Allocator::GetInstance()->CreateObject < FunctionObject>(chunk);
 
     EmitConstant(fn);
 
     StoreSymbol(symbol);
 }
 
-void Compiler::CompileExpr(Expr* expr, const RWState& state)
+void Compiler::CompileExpr(Expr *expr, const RWState &state)
 {
     switch (expr->type)
     {
     case AstType::NUM:
-        return CompileNumExpr((NumExpr*)expr);
+        return CompileNumExpr((NumExpr *)expr);
     case AstType::STR:
-        return CompileStrExpr((StrExpr*)expr);
+        return CompileStrExpr((StrExpr *)expr);
     case AstType::BOOL:
-        return CompileBoolExpr((BoolExpr*)expr);
+        return CompileBoolExpr((BoolExpr *)expr);
     case AstType::NIL:
-        return CompileNilExpr((NilExpr*)expr);
+        return CompileNilExpr((NilExpr *)expr);
     case AstType::IDENTIFIER:
-        return CompileIdentifierExpr((IdentifierExpr*)expr, state);
+        return CompileIdentifierExpr((IdentifierExpr *)expr, state);
     case AstType::GROUP:
-        return CompileGroupExpr((GroupExpr*)expr);
+        return CompileGroupExpr((GroupExpr *)expr);
     case AstType::ARRAY:
-        return CompileArrayExpr((ArrayExpr*)expr);
+        return CompileArrayExpr((ArrayExpr *)expr);
     case AstType::INDEX:
-        return CompileIndexExpr((IndexExpr*)expr, state);
+        return CompileIndexExpr((IndexExpr *)expr, state);
     case AstType::PREFIX:
-        return CompilePrefixExpr((PrefixExpr*)expr);
+        return CompilePrefixExpr((PrefixExpr *)expr);
     case AstType::INFIX:
-        return CompileInfixExpr((InfixExpr*)expr);
+        return CompileInfixExpr((InfixExpr *)expr);
     case AstType::FUNCTION_CALL:
-        return CompileFunctionCallExpr((FunctionCallExpr*)expr);
+        return CompileFunctionCallExpr((FunctionCallExpr *)expr);
     case AstType::STRUCT_CALL:
-        return CompileStructCallExpr((StructCallExpr*)expr, state);
+        return CompileStructCallExpr((StructCallExpr *)expr, state);
     case AstType::REF:
-        return CompileRefExpr((RefExpr*)expr);
+        return CompileRefExpr((RefExpr *)expr);
     case AstType::FUNCTION:
-        return CompileFunctionExpr((FunctionExpr*)expr);
+        return CompileFunctionExpr((FunctionExpr *)expr);
     case AstType::STRUCT:
-        return CompileStructExpr((StructExpr*)expr);
+        return CompileStructExpr((StructExpr *)expr);
     case AstType::DLL_IMPORT:
-        return CompileDllImportExpr((DllImportExpr*)expr);
+        return CompileDllImportExpr((DllImportExpr *)expr);
     default:
         ASSERT("Unknown expr.");
     }
 }
 
-void Compiler::CompileInfixExpr(InfixExpr* expr)
+void Compiler::CompileInfixExpr(InfixExpr *expr)
 {
     if (expr->op == "=")
     {
         if (expr->left->type == AstType::IDENTIFIER && expr->right->type == AstType::FUNCTION)
-            m_SymbolTable->Define(((IdentifierExpr*)expr->left)->literal);
+            m_SymbolTable->Define(((IdentifierExpr *)expr->left)->literal);
         CompileExpr(expr->right);
         CompileExpr(expr->left, RWState::WRITE);
     }
@@ -273,12 +274,12 @@ void Compiler::CompileInfixExpr(InfixExpr* expr)
     }
 }
 
-void Compiler::CompileNumExpr(NumExpr* expr)
+void Compiler::CompileNumExpr(NumExpr *expr)
 {
     EmitConstant(expr->value);
 }
 
-void Compiler::CompileBoolExpr(BoolExpr* expr)
+void Compiler::CompileBoolExpr(BoolExpr *expr)
 {
     if (expr->value)
         EmitConstant(true);
@@ -286,7 +287,7 @@ void Compiler::CompileBoolExpr(BoolExpr* expr)
         EmitConstant(false);
 }
 
-void Compiler::CompilePrefixExpr(PrefixExpr* expr)
+void Compiler::CompilePrefixExpr(PrefixExpr *expr)
 {
     CompileExpr(expr->right);
 
@@ -303,31 +304,31 @@ void Compiler::CompilePrefixExpr(PrefixExpr* expr)
         ASSERT("Unrecognized prefix type.");
 }
 
-void Compiler::CompileStrExpr(StrExpr* expr)
+void Compiler::CompileStrExpr(StrExpr *expr)
 {
-    EmitConstant(new StrObject(expr->value.c_str()));
+    EmitConstant(Allocator::GetInstance()->CreateObject < StrObject>(expr->value.c_str()));
 }
 
-void Compiler::CompileNilExpr(NilExpr* expr)
+void Compiler::CompileNilExpr(NilExpr *expr)
 {
     EmitConstant(Value());
 }
 
-void Compiler::CompileGroupExpr(GroupExpr* expr)
+void Compiler::CompileGroupExpr(GroupExpr *expr)
 {
     return CompileExpr(expr->expr);
 }
 
-void Compiler::CompileArrayExpr(ArrayExpr* expr)
+void Compiler::CompileArrayExpr(ArrayExpr *expr)
 {
-    for (const auto& e : expr->elements)
+    for (const auto &e : expr->elements)
         CompileExpr(e);
 
     Emit(OP_ARRAY);
     Emit(static_cast<int16_t>(expr->elements.size()));
 }
 
-void Compiler::CompileIndexExpr(IndexExpr* expr, const RWState& state)
+void Compiler::CompileIndexExpr(IndexExpr *expr, const RWState &state)
 {
     CompileExpr(expr->ds);
     CompileExpr(expr->index);
@@ -337,7 +338,7 @@ void Compiler::CompileIndexExpr(IndexExpr* expr, const RWState& state)
         Emit(OP_GET_INDEX);
 }
 
-void Compiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& state)
+void Compiler::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state)
 {
     Symbol symbol;
     bool isFound = m_SymbolTable->Resolve(expr->literal, symbol);
@@ -355,16 +356,16 @@ void Compiler::CompileIdentifierExpr(IdentifierExpr* expr, const RWState& state)
     }
 }
 
-void Compiler::CompileFunctionExpr(FunctionExpr* expr)
+void Compiler::CompileFunctionExpr(FunctionExpr *expr)
 {
     EnterScope();
 
     m_ScopeChunks.emplace_back(Chunk());
 
-    for (const auto& param : expr->parameters)
+    for (const auto &param : expr->parameters)
         m_SymbolTable->Define(param->literal);
 
-    for (const auto& s : expr->body->stmts)
+    for (const auto &s : expr->body->stmts)
         CompileStmt(s);
 
     auto localVarCount = m_SymbolTable->GetDefinitionCount();
@@ -381,23 +382,23 @@ void Compiler::CompileFunctionExpr(FunctionExpr* expr)
         chunk.opCodes.emplace_back(0);
     }
 
-    auto fn = new FunctionObject(chunk, localVarCount, static_cast<uint8_t>(expr->parameters.size()));
+    auto fn = Allocator::GetInstance()->CreateObject < FunctionObject>(chunk, localVarCount, static_cast<uint8_t>(expr->parameters.size()));
 
     EmitConstant(fn);
 }
 
-void Compiler::CompileFunctionCallExpr(FunctionCallExpr* expr)
+void Compiler::CompileFunctionCallExpr(FunctionCallExpr *expr)
 {
     CompileExpr(expr->name);
 
-    for (const auto& argu : expr->arguments)
+    for (const auto &argu : expr->arguments)
         CompileExpr(argu);
 
     Emit(OP_FUNCTION_CALL);
     Emit(static_cast<int16_t>(expr->arguments.size()));
 }
 
-void Compiler::CompileStructCallExpr(StructCallExpr* expr, const RWState& state)
+void Compiler::CompileStructCallExpr(StructCallExpr *expr, const RWState &state)
 {
     if (expr->callMember->type == AstType::FUNCTION_CALL && state == RWState::WRITE)
         ASSERT("Cannot assign to a struct's function call expr");
@@ -405,9 +406,9 @@ void Compiler::CompileStructCallExpr(StructCallExpr* expr, const RWState& state)
     CompileExpr(expr->callee);
 
     if (expr->callMember->type == AstType::IDENTIFIER)
-        EmitConstant(new StrObject(((IdentifierExpr*)expr->callMember)->literal.c_str()));
+        EmitConstant(Allocator::GetInstance()->CreateObject < StrObject>(((IdentifierExpr *)expr->callMember)->literal.c_str()));
     else if (expr->callMember->type == AstType::FUNCTION_CALL)
-        EmitConstant(new StrObject(((IdentifierExpr*)((FunctionCallExpr*)expr->callMember)->name)->literal.data()));
+        EmitConstant(Allocator::GetInstance()->CreateObject < StrObject>(((IdentifierExpr *)((FunctionCallExpr *)expr->callMember)->name)->literal.data()));
 
     if (state == RWState::READ)
     {
@@ -415,8 +416,8 @@ void Compiler::CompileStructCallExpr(StructCallExpr* expr, const RWState& state)
 
         if (expr->callMember->type == AstType::FUNCTION_CALL)
         {
-            auto funcCall = (FunctionCallExpr*)expr->callMember;
-            for (const auto& argu : funcCall->arguments)
+            auto funcCall = (FunctionCallExpr *)expr->callMember;
+            for (const auto &argu : funcCall->arguments)
                 CompileExpr(argu);
 
             Emit(OP_FUNCTION_CALL);
@@ -427,13 +428,13 @@ void Compiler::CompileStructCallExpr(StructCallExpr* expr, const RWState& state)
         Emit(OP_SET_STRUCT);
 }
 
-void Compiler::CompileRefExpr(RefExpr* expr)
+void Compiler::CompileRefExpr(RefExpr *expr)
 {
     Symbol symbol;
     if (expr->refExpr->type == AstType::INDEX)
     {
-        CompileExpr(((IndexExpr*)expr->refExpr)->index);
-        bool isFound = m_SymbolTable->Resolve(((IndexExpr*)expr->refExpr)->ds->Stringify(), symbol);
+        CompileExpr(((IndexExpr *)expr->refExpr)->index);
+        bool isFound = m_SymbolTable->Resolve(((IndexExpr *)expr->refExpr)->ds->Stringify(), symbol);
         if (!isFound)
             ASSERT("Undefined variable:%s", expr->Stringify().c_str());
 
@@ -477,28 +478,28 @@ void Compiler::CompileRefExpr(RefExpr* expr)
     }
 }
 
-void Compiler::CompileStructExpr(StructExpr* expr)
+void Compiler::CompileStructExpr(StructExpr *expr)
 {
-    for (const auto& [k, v] : expr->members)
+    for (const auto &[k, v] : expr->members)
     {
         CompileExpr(v);
-        EmitConstant(new StrObject(k->literal.c_str()));
+        EmitConstant(Allocator::GetInstance()->CreateObject < StrObject>(k->literal.c_str()));
     }
 
     Emit(OP_STRUCT);
     Emit(static_cast<int16_t>(expr->members.size()));
 }
 
-void Compiler::CompileDllImportExpr(DllImportExpr* expr)
+void Compiler::CompileDllImportExpr(DllImportExpr *expr)
 {
     auto dllpath = expr->dllPath;
 
     RegisterDLLs(dllpath);
 
-    for (const auto& [k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
+    for (const auto &[k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
         m_SymbolTable->DefineBuiltin(k);
 
-    EmitConstant(new StrObject(dllpath.c_str()));
+    EmitConstant(Allocator::GetInstance()->CreateObject < StrObject>(dllpath.c_str()));
     Emit(OP_DLL_IMPORT);
 }
 
@@ -511,7 +512,7 @@ void Compiler::ExitScope()
     m_SymbolTable = m_SymbolTable->GetEnclosing();
 }
 
-Chunk& Compiler::CurChunk()
+Chunk &Compiler::CurChunk()
 {
     return m_ScopeChunks.back();
 }
@@ -522,8 +523,10 @@ uint32_t Compiler::Emit(int16_t opcode)
     return static_cast<uint32_t>(CurChunk().opCodes.size() - 1);
 }
 
-uint32_t Compiler::EmitConstant(const Value& value)
+uint32_t Compiler::EmitConstant(const Value &value)
 {
+    PUSH(value);// push value to stack for avoiding GC while compiler running
+
     CurChunk().constants.emplace_back(value);
     auto pos = static_cast<int16_t>(CurChunk().constants.size() - 1);
 
@@ -537,7 +540,7 @@ void Compiler::ModifyOpCode(uint32_t pos, int16_t opcode)
     CurChunk().opCodes[pos] = opcode;
 }
 
-void Compiler::LoadSymbol(const Symbol& symbol)
+void Compiler::LoadSymbol(const Symbol &symbol)
 {
     switch (symbol.scope)
     {
@@ -553,7 +556,7 @@ void Compiler::LoadSymbol(const Symbol& symbol)
         break;
     case SymbolScope::BUILTIN:
     {
-        CurChunk().constants.emplace_back(new StrObject(symbol.name.data()));
+        CurChunk().constants.emplace_back(Allocator::GetInstance()->CreateObject < StrObject>(symbol.name.data()));
         auto pos = static_cast<int16_t>(CurChunk().constants.size() - 1);
         Emit(OP_GET_BUILTIN);
         Emit(pos);
@@ -570,7 +573,7 @@ void Compiler::LoadSymbol(const Symbol& symbol)
     }
 }
 
-void Compiler::StoreSymbol(const Symbol& symbol)
+void Compiler::StoreSymbol(const Symbol &symbol)
 {
     switch (symbol.scope)
     {

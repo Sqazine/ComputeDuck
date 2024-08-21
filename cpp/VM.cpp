@@ -23,7 +23,7 @@ void VM::Run(FunctionObject *fn)
     Allocator::GetInstance()->ResetFrame();
 
     auto mainCallFrame = CallFrame(fn, STACK_TOP());
-    REGISTER_GC_RECORD_CHAIN(fn);
+    //REGISTER_GC_RECORD_CHAIN(fn);
     PUSH_CALL_FRAME(mainCallFrame);
 
     Execute();
@@ -121,7 +121,7 @@ void VM::Execute()
             auto idx = *frame->ip++;
             auto value = frame->GetFnObject()->chunk.constants[idx];
 
-            REGISTER_GC_RECORD_CHAIN(value);
+            //REGISTER_GC_RECORD_CHAIN(value);
 
             PUSH(value);
             break;
@@ -358,7 +358,7 @@ void VM::Execute()
 
                 if (hasRet)
                 {
-                    REGISTER_GC_RECORD_CHAIN(returnValue);
+                    //REGISTER_GC_RECORD_CHAIN(returnValue);
                     PUSH(returnValue);
                 }
             }
@@ -409,7 +409,7 @@ void VM::Execute()
             auto idx = *frame->ip++;
             auto name = TO_STR_VALUE(frame->GetFnObject()->chunk.constants[idx])->value;
 
-            // RegisterToGCRecordChain(value);
+            // REGISTER_GC_RECORD_CHAIN(value);
 
             auto builtinObj = BuiltinManager::GetInstance()->FindBuiltinObject(name);
             PUSH(builtinObj);
