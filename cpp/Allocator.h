@@ -12,8 +12,10 @@ struct CallFrame
         : fn(f), slot(slot)
     {
         auto fnObj = GetFnObject();
-        fnObj->callCount++;
         ip = fnObj->chunk.opCodes.data();
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+        fnObj->callCount++;
+#endif
     }
 
     bool IsEnd()
@@ -43,7 +45,7 @@ public:
     void ResetFrame();
 
     template <class T, typename... Args>
-    T *CreateObject(Args &&...params) 
+    T *CreateObject(Args &&...params)
     {
         if (m_CurObjCount >= m_MaxObjCount)
             Gc();
@@ -57,8 +59,6 @@ public:
         return object;
     }
 
-    //void RegisterToGCRecordChain(const Value &value);
-
     void Push(const Value &value);
     Value Pop();
 
@@ -69,13 +69,13 @@ public:
 
     bool IsCallFrameStackEmpty();
 
-    Value* GetStackTop() const;
+    Value *GetStackTop() const;
     void SetStackTop(Value *slot);
 
     void StackTopJumpBack(size_t slotCount);
     void StackTopJump(size_t slotCount);
 
-    Value* GetGlobalVariableRef(size_t index);
+    Value *GetGlobalVariableRef(size_t index);
 
     void FreeAllObjects();
 private:
@@ -102,8 +102,6 @@ private:
 
 #define PUSH(x) (Allocator::GetInstance()->Push(x))
 #define POP() (Allocator::GetInstance()->Pop())
-
-//#define REGISTER_GC_RECORD_CHAIN(x) (Allocator::GetInstance()->RegisterToGCRecordChain(x))
 
 #define PUSH_CALL_FRAME(x) (Allocator::GetInstance()->PushCallFrame(x))
 #define POP_CALL_FRAME(x) (Allocator::GetInstance()->PopCallFrame())
