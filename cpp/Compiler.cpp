@@ -170,7 +170,7 @@ void Compiler::CompileStructStmt(StructStmt *stmt)
     chunk.opCodes.emplace_back(OP_RETURN);
     chunk.opCodes.emplace_back(1);
 
-    auto fn = Allocator::GetInstance()->CreateObject < FunctionObject>(chunk);
+    auto fn = Allocator::GetInstance()->CreateObject<FunctionObject>(chunk);
 
     EmitConstant(fn);
 
@@ -306,7 +306,7 @@ void Compiler::CompilePrefixExpr(PrefixExpr *expr)
 
 void Compiler::CompileStrExpr(StrExpr *expr)
 {
-    EmitConstant(Allocator::GetInstance()->CreateObject < StrObject>(expr->value.c_str()));
+    EmitConstant(Allocator::GetInstance()->CreateObject<StrObject>(expr->value.c_str()));
 }
 
 void Compiler::CompileNilExpr(NilExpr *expr)
@@ -382,7 +382,7 @@ void Compiler::CompileFunctionExpr(FunctionExpr *expr)
         chunk.opCodes.emplace_back(0);
     }
 
-    auto fn = Allocator::GetInstance()->CreateObject < FunctionObject>(chunk, localVarCount, static_cast<uint8_t>(expr->parameters.size()));
+    auto fn = Allocator::GetInstance()->CreateObject<FunctionObject>(chunk, localVarCount, static_cast<uint8_t>(expr->parameters.size()));
 
     EmitConstant(fn);
 }
@@ -406,9 +406,9 @@ void Compiler::CompileStructCallExpr(StructCallExpr *expr, const RWState &state)
     CompileExpr(expr->callee);
 
     if (expr->callMember->type == AstType::IDENTIFIER)
-        EmitConstant(Allocator::GetInstance()->CreateObject < StrObject>(((IdentifierExpr *)expr->callMember)->literal.c_str()));
+        EmitConstant(Allocator::GetInstance()->CreateObject<StrObject>(((IdentifierExpr *)expr->callMember)->literal.c_str()));
     else if (expr->callMember->type == AstType::FUNCTION_CALL)
-        EmitConstant(Allocator::GetInstance()->CreateObject < StrObject>(((IdentifierExpr *)((FunctionCallExpr *)expr->callMember)->name)->literal.data()));
+        EmitConstant(Allocator::GetInstance()->CreateObject<StrObject>(((IdentifierExpr *)((FunctionCallExpr *)expr->callMember)->name)->literal.data()));
 
     if (state == RWState::READ)
     {
@@ -483,7 +483,7 @@ void Compiler::CompileStructExpr(StructExpr *expr)
     for (const auto &[k, v] : expr->members)
     {
         CompileExpr(v);
-        EmitConstant(Allocator::GetInstance()->CreateObject < StrObject>(k->literal.c_str()));
+        EmitConstant(Allocator::GetInstance()->CreateObject<StrObject>(k->literal.c_str()));
     }
 
     Emit(OP_STRUCT);
@@ -499,7 +499,7 @@ void Compiler::CompileDllImportExpr(DllImportExpr *expr)
     for (const auto &[k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
         m_SymbolTable->DefineBuiltin(k);
 
-    EmitConstant(Allocator::GetInstance()->CreateObject < StrObject>(dllpath.c_str()));
+    EmitConstant(Allocator::GetInstance()->CreateObject<StrObject>(dllpath.c_str()));
     Emit(OP_DLL_IMPORT);
 }
 
@@ -556,7 +556,7 @@ void Compiler::LoadSymbol(const Symbol &symbol)
         break;
     case SymbolScope::BUILTIN:
     {
-        CurChunk().constants.emplace_back(Allocator::GetInstance()->CreateObject < StrObject>(symbol.name.data()));
+        CurChunk().constants.emplace_back(Allocator::GetInstance()->CreateObject<StrObject>(symbol.name.data()));
         auto pos = static_cast<int16_t>(CurChunk().constants.size() - 1);
         Emit(OP_GET_BUILTIN);
         Emit(pos);

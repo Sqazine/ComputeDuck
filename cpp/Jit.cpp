@@ -75,10 +75,51 @@ Jit::Jit()
     m_Executor = OrcExecutor::Create();
 
     InitModuleAndPassManager();
+
+    CreateSetGlobalVariablesFunction();
+
+    InitModuleAndPassManager();
 }
 
 Jit::~Jit()
 {
+}
+
+void Jit::CreateSetGlobalVariablesFunction()
+{
+    {
+        m_Module->setModuleIdentifier(m_SetGlobalVariablesFnStr);
+        m_Module->setSourceFileName(m_SetGlobalVariablesFnStr);
+    }
+
+    m_Module->getOrInsertGlobal(m_GlobalVariablesStr, m_ValuePtrType);
+    auto globalVariable = m_Module->getNamedGlobal(m_GlobalVariablesStr);
+    globalVariable->setInitializer(llvm::ConstantPointerNull::get(m_ValuePtrType));
+    globalVariable->setAlignment(llvm::MaybeAlign(8));
+    globalVariable->setDSOLocal(true);
+
+    llvm::FunctionType *fnType = llvm::FunctionType::get(m_VoidType, { m_ValuePtrType }, false);
+    llvm::Function *fn = llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, m_SetGlobalVariablesFnStr, m_Module.get());
+    llvm::BasicBlock *codeBlock = llvm::BasicBlock::Create(*m_Context, m_SetGlobalVariablesFnStr + ".entry", fn);
+    m_Builder->SetInsertPoint(codeBlock);
+    auto tmpAlloc = m_Builder->CreateAlloca(m_ValuePtrType);
+    m_Builder->CreateStore(fn->getArg(0), tmpAlloc);
+    auto load = m_Builder->CreateLoad(tmpAlloc->getAllocatedType(), tmpAlloc);
+    m_Builder->CreateStore(load, globalVariable);
+    m_Builder->CreateRetVoid();
+#ifndef NDEBUG
+    m_Module->print(llvm::errs(), nullptr);
+#endif
+
+    m_Executor->AddModule(llvm::orc::ThreadSafeModule(std::move(m_Module), std::move(m_Context)));
+}
+
+void Jit::CreateGlobalVariablesDecl()
+{
+    m_Module->getOrInsertGlobal(m_GlobalVariablesStr, m_ValuePtrType);
+    auto globalVariable = m_Module->getNamedGlobal(m_GlobalVariablesStr);
+    globalVariable->setLinkage(llvm::GlobalVariable::ExternalLinkage);
+    globalVariable->setAlignment(llvm::MaybeAlign(8));
 }
 
 void Jit::ResetStatus()
@@ -87,15 +128,17 @@ void Jit::ResetStatus()
 
     m_LocalVariable.clear();
 
-    for (auto &g : m_GlobalVariables)
-        g = nullptr;
-
     m_StackTop = m_ValueStack;
 }
 
 bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
 {
     ResetStatus();
+
+    m_Module->setSourceFileName(fnName);
+    m_Module->setSourceFileName(fnName);
+
+    CreateGlobalVariablesDecl();
 
     enum class State
     {
@@ -129,7 +172,8 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
     else if (fnObj->probableReturnTypeSet->IsOnly(ValueType::BOOL))
         fnType = llvm::FunctionType::get(m_BoolType, paramTypes, false);
     else if (fnObj->probableReturnTypeSet->IsOnly(ObjectType::STR))
-        fnType = llvm::FunctionType::get(m_Int8PtrType, paramTypes, false);
+        //fnType = llvm::FunctionType::get(m_Int8PtrType, paramTypes, false);
+        fnType = llvm::FunctionType::get(m_ValuePtrType, paramTypes, false);
     else
         ERROR("Unknown return type");
 
@@ -609,17 +653,16 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
             auto index = *ip++;
             auto v = Pop().GetLlvmValue();
 
-            auto &ref = m_GlobalVariables[index];
+            auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(m_GlobalVariablesStr));
+            auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
 
-            if (ref == nullptr || ref->getType() != v->getType())
+            if (v->getType()!=m_ValueType)
             {
-                auto alloc = m_Builder->CreateAlloca(v->getType(), nullptr, "globalVar_" + std::to_string(index));
-                m_Builder->CreateStore(v, alloc);
-
-                ref = alloc;
+                auto cdValue=CreateCDValue(v);
+                m_Builder->CreateMemCpy(globalVar, llvm::MaybeAlign(8), cdValue, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
             }
             else
-                m_Builder->CreateStore(v, ref);
+                m_Builder->CreateStore(v, globalVar);
 
             break;
         }
@@ -627,13 +670,21 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
         {
             auto index = *ip++;
 
-            auto stored = m_GlobalVariables[index];
+            auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(m_GlobalVariablesStr));
+            auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
 
-            if (stored && stored->getType()->isPointerTy())
+            if (globalVar && globalVar->getType()->isPointerTy())
             {
-                auto ptrType = static_cast<llvm::PointerType *>(stored->getType());
-                auto v = m_Builder->CreateLoad(ptrType->getElementType(), stored);
-                Push(v);
+                auto ptrType = static_cast<llvm::PointerType *>(globalVar->getType());
+                if (ptrType->getElementType() == m_ValueType)
+                {
+                    Push(globalVar);
+                }
+                else
+                {
+                    auto v = m_Builder->CreateLoad(ptrType->getElementType(), globalVar);
+                    Push(v);
+                }
             }
             else
             {
@@ -643,7 +694,6 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
                 else
                     ERROR("Not finished yet,tag it as error");
             }
-
             break;
         }
         case OP_SET_LOCAL:
@@ -704,7 +754,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
                     auto constant = GetLlvmValueFrom(*slot);
                     if (!constant)
                         ERROR("Unsupported value type:%d", slot->type);
-                      
+
                     auto alloc = m_Builder->CreateAlloca(constant->getType());
                     m_Builder->CreateStore(constant, alloc);
 
@@ -863,7 +913,11 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
         }
     }
 
+#ifndef NDEBUG
+    m_Module->print(llvm::errs(), nullptr);
+
     fn->print(llvm::errs());
+#endif
 
     llvm::verifyFunction(*fn);
     m_FPM->run(*fn);
@@ -897,6 +951,7 @@ void Jit::InitModuleAndPassManager()
         m_BoolType = llvm::Type::getInt1Ty(*m_Context);
         m_Int64Type = llvm::Type::getInt64Ty(*m_Context);
         m_Int32Type = llvm::Type::getInt32Ty(*m_Context);
+        m_Int16Type = llvm::Type::getInt16Ty(*m_Context);
         m_VoidType = llvm::Type::getVoidTy(*m_Context);
 
         m_Int64PtrType = llvm::PointerType::get(m_Int64Type, 0);
@@ -925,6 +980,10 @@ void Jit::InitModuleAndPassManager()
 
         m_BuiltinFunctionType = llvm::FunctionType::get(m_BoolType, { m_ValuePtrType, m_Int8Type, m_ValuePtrType }, false);
     }
+
+    llvm::FunctionType *createStrObjectFnType = llvm::FunctionType::get(m_StrObjectPtrType, { m_Int8PtrType }, false);
+    m_Module->getOrInsertFunction("CreateStrObject", createStrObjectFnType);
+
 }
 
 llvm::Value *Jit::CreateCDValue(llvm::Value *v)
@@ -973,27 +1032,9 @@ llvm::Value *Jit::CreateCDValue(llvm::Value *v)
                 auto charsPtr = m_Builder->CreateInBoundsGEP(vArrayType, v, { m_Builder->getInt64(0), m_Builder->getInt64(0) });
 
                 // create str object
-                auto strObject = m_Builder->CreateAlloca(m_StrObjectType, nullptr);
-                auto base = m_Builder->CreateBitCast(strObject, m_ObjectPtrType);
-
-                {
-                    auto objctTypeVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
-                    m_Builder->CreateStore(m_Builder->getInt8(std::underlying_type<ObjectType>::type(ObjectType::STR)), objctTypeVar);
-
-                    auto markedVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
-                    m_Builder->CreateStore(m_Builder->getInt1(0), markedVar);
-
-                    auto nextVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, { m_Builder->getInt32(0), m_Builder->getInt32(2) });
-                    m_Builder->CreateStore(llvm::ConstantPointerNull::get(m_ObjectPtrType), nextVar);
-
-                    auto strPtr = m_Builder->CreateInBoundsGEP(m_StrObjectType, strObject, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
-                    m_Builder->CreateStore(charsPtr, strPtr);
-
-                    auto len = m_Builder->CreateInBoundsGEP(m_StrObjectType, strObject, { m_Builder->getInt32(0), m_Builder->getInt32(2) });
-                    m_Builder->CreateStore(m_Builder->getInt32(vArrayType->getArrayNumElements() - 1), len); //-1 for ignoring the end char '\0'
-                }
-
-                storedV = base;
+                auto strObject=m_Builder->CreateCall(m_Module->getFunction("CreateStrObject"),{charsPtr});
+                //to base ptr
+                storedV =m_Builder->CreateBitCast(strObject,m_ObjectPtrType);
             }
             else if (vArrayType->getElementType() == m_ValueType)
             {

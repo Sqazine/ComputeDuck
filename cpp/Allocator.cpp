@@ -1,5 +1,10 @@
 #include "Allocator.h"
 
+extern "C" COMPUTE_DUCK_API StrObject* CreateStrObject(const char* v)
+{
+    return Allocator::GetInstance()->CreateObject<StrObject>(v);
+}
+
 Allocator::Allocator()
 {
     m_FirstObject = nullptr;

@@ -37,33 +37,41 @@
 #include "Chunk.h"
 #include "Value.h"
 #include "Object.h"
+#include "Allocator.h"
 class COMPUTE_DUCK_API Jit
 {
 public:
     Jit();
     ~Jit();
 
-    bool Compile(FunctionObject* fnObj,const std::string& fnName);
+    bool Compile(FunctionObject *fnObj, const std::string &fnName);
 
-    template<typename RetType,typename... Args>
-    RetType Run(const std::string& name,Args &&...params)
+    template<typename RetType, typename... Args>
+    RetType Run(const std::string &name, Args &&...params)
     {
         auto rt = m_Executor->GetMainJITDylib().createResourceTracker();
+
+        {//set global variables
+            auto symbol = m_ExitOnErr(m_Executor->LookUp(m_SetGlobalVariablesFnStr));
+            using SetGlobalVarFnType = void(*)(Value *);
+            SetGlobalVarFnType setGlobalVarFn = reinterpret_cast<SetGlobalVarFnType>(symbol.getAddress());
+            setGlobalVarFn(Allocator::GetInstance()->GetGlobalVariableRef(0));
+        }
 
         auto tsm = llvm::orc::ThreadSafeModule(std::move(m_Module), std::move(m_Context));
         m_ExitOnErr(m_Executor->AddModule(std::move(tsm), rt));
         InitModuleAndPassManager();
-        
+
         auto symbol = m_ExitOnErr(m_Executor->LookUp(name));
 
         using JitFuncType = RetType(*)(Args...);
         JitFuncType jitFn = reinterpret_cast<JitFuncType>(symbol.getAddress());
-        if constexpr(std::is_same_v<RetType, void>) 
+        if constexpr (std::is_same_v<RetType, void>)
         {
             jitFn(std::forward<Args>(params)...);
             m_ExitOnErr(rt->remove());
         }
-        else 
+        else
         {
             RetType v = jitFn(std::forward<Args>(params)...);
             m_ExitOnErr(rt->remove());
@@ -98,10 +106,10 @@ private:
 
     struct JumpInstrSet
     {
-        llvm::BasicBlock* conditionBranch{ nullptr };
-        llvm::BasicBlock* bodyBranch{ nullptr };
-        llvm::BasicBlock* elseBranch{ nullptr };
-        llvm::BasicBlock* endBranch{ nullptr };
+        llvm::BasicBlock *conditionBranch{ nullptr };
+        llvm::BasicBlock *bodyBranch{ nullptr };
+        llvm::BasicBlock *elseBranch{ nullptr };
+        llvm::BasicBlock *endBranch{ nullptr };
     };
 
     class StackValue
@@ -109,8 +117,8 @@ private:
     public:
         StackValue() = default;
         ~StackValue() = default;
-        StackValue(llvm::Value* v) :stored(v) {}
-        StackValue(const Value& v) :stored(v) {}
+        StackValue(llvm::Value *v) :stored(v) {}
+        StackValue(const Value &v) :stored(v) {}
 
         bool IsLlvmValue() const
         {
@@ -122,19 +130,22 @@ private:
             return stored.index() == 0;
         }
 
-        llvm::Value* GetLlvmValue() const
+        llvm::Value *GetLlvmValue() const
         {
-            return std::get<llvm::Value*>(stored);
+            return std::get<llvm::Value *>(stored);
         }
 
-        const Value& GetVmValue() const
+        const Value &GetVmValue() const
         {
             return std::get<Value>(stored);
         }
 
     private:
-        std::variant<Value,llvm::Value*> stored;
+        std::variant<Value, llvm::Value *> stored;
     };
+
+    void CreateSetGlobalVariablesFunction();
+    void CreateGlobalVariablesDecl();
 
     void ResetStatus();
 
@@ -143,12 +154,12 @@ private:
     llvm::Value *CreateCDValue(llvm::Value *v);
 
     void Push(llvm::Value *v);
-    void Push(const Value& v);
+    void Push(const Value &v);
     StackValue Pop();
 
-    std::string GetTypeName(llvm::Type* type);
+    std::string GetTypeName(llvm::Type *type);
 
-    llvm::Value* GetLlvmValueFrom(const Value& value);
+    llvm::Value *GetLlvmValueFrom(const Value &value);
 
     template <typename T>
         requires(std::is_same_v<T, llvm::CallInst> || std::is_same_v<T, llvm::Function>)
@@ -164,36 +175,38 @@ private:
         return fnOrCallInst;
     }
 
-    llvm::StructType *m_ValueType{nullptr};
-    llvm::PointerType *m_ValuePtrType{nullptr};
-    llvm::StructType *m_UnionType{nullptr};
-    llvm::StructType *m_ObjectType{nullptr};
-    llvm::StructType *m_StrObjectType{nullptr};
-    llvm::StructType *m_ArrayObjectType{nullptr};
-    llvm::PointerType *m_ObjectPtrType{nullptr};
-    llvm::PointerType *m_ObjectPtrPtrType{nullptr};
-    llvm::PointerType *m_StrObjectPtrType{nullptr};
-    llvm::PointerType *m_ArrayObjectPtrType{nullptr};
-    llvm::FunctionType *m_BuiltinFunctionType{nullptr};
-    llvm::Type *m_Int8Type{nullptr};
-    llvm::Type *m_BoolType{nullptr};
-    llvm::Type *m_DoubleType{nullptr};
-    llvm::Type *m_Int64Type{nullptr};
-    llvm::Type *m_Int32Type{nullptr};
-    llvm::Type *m_VoidType{nullptr};
-    llvm::PointerType *m_Int64PtrType{nullptr};
-    llvm::PointerType *m_Int32PtrType{nullptr};
-    llvm::PointerType *m_Int8PtrType{nullptr};
-    llvm::PointerType *m_BoolPtrType{nullptr};
-    llvm::PointerType *m_DoublePtrType{nullptr};
-    llvm::PointerType *m_Int8PtrPtrType{nullptr};
+    llvm::StructType *m_ValueType{ nullptr };
+    llvm::PointerType *m_ValuePtrType{ nullptr };
+    llvm::StructType *m_UnionType{ nullptr };
+    llvm::StructType *m_ObjectType{ nullptr };
+    llvm::StructType *m_StrObjectType{ nullptr };
+    llvm::StructType *m_ArrayObjectType{ nullptr };
+    llvm::PointerType *m_ObjectPtrType{ nullptr };
+    llvm::PointerType *m_ObjectPtrPtrType{ nullptr };
+    llvm::PointerType *m_StrObjectPtrType{ nullptr };
+    llvm::PointerType *m_ArrayObjectPtrType{ nullptr };
+    llvm::FunctionType *m_BuiltinFunctionType{ nullptr };
+    llvm::Type *m_Int8Type{ nullptr };
+    llvm::Type *m_BoolType{ nullptr };
+    llvm::Type *m_DoubleType{ nullptr };
+    llvm::Type *m_Int64Type{ nullptr };
+    llvm::Type *m_Int32Type{ nullptr };
+    llvm::Type *m_Int16Type{ nullptr };
+    llvm::Type *m_VoidType{ nullptr };
+    llvm::PointerType *m_Int64PtrType{ nullptr };
+    llvm::PointerType *m_Int32PtrType{ nullptr };
+    llvm::PointerType *m_Int8PtrType{ nullptr };
+    llvm::PointerType *m_BoolPtrType{ nullptr };
+    llvm::PointerType *m_DoublePtrType{ nullptr };
+    llvm::PointerType *m_Int8PtrPtrType{ nullptr };
 
-    llvm::Value *m_GlobalVariables[STACK_MAX];
+    std::string m_GlobalVariablesStr = "m_GlobalVariables";
+    std::string m_SetGlobalVariablesFnStr = "function_SetGlobalVariables";
 
     StackValue *m_StackTop;
     StackValue m_ValueStack[STACK_MAX];
 
-    std::map<std::string, llvm::AllocaInst*> m_LocalVariable;
+    std::map<std::string, llvm::AllocaInst *> m_LocalVariable;
 
     std::vector<JumpInstrSet> m_JumpInstrSetTable;
 

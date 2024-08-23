@@ -102,7 +102,10 @@ void VM::Execute()
             {
                 value = POP();
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-                frame->GetFnObject()->probableReturnTypeSet->Insert(value.type);
+                if(IS_OBJECT_VALUE(value))
+                    frame->GetFnObject()->probableReturnTypeSet->Insert(TO_OBJECT_VALUE(value)->type);
+                else
+                    frame->GetFnObject()->probableReturnTypeSet->Insert(value.type);
 #endif
             }
 
@@ -632,9 +635,11 @@ void VM::RunJit(FunctionObject *fn, size_t argCount)
     }
     else if (fn->probableReturnTypeSet->IsOnly(ObjectType::STR))
     {
-        auto v = m_Jit->Run<char *>(fnName);
+        auto v = m_Jit->Run<Value*>(fnName);
+        //auto v = m_Jit->Run<const char*>(fnName);
         SET_STACK_TOP(prevCallFrame->slot - 1);
-        PUSH(Allocator::GetInstance()->CreateObject<StrObject>(v));
+        //PUSH(Allocator::GetInstance()->CreateObject<StrObject>(v));
+        PUSH(*v);
     }
     else
     {

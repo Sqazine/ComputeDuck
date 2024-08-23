@@ -1,4 +1,4 @@
-jit=function()
+getConstant=function()
 {
     return 10;
 };
@@ -6,12 +6,12 @@ jit=function()
 i=0;
 while(i<100)
 {
-    println(jit());
+    println(getConstant());
     i=i+1;
 }
 
 
-jit2=function()
+readBuiltin=function()
 {
     println(100);
 };
@@ -19,19 +19,58 @@ jit2=function()
 i=0;
 while(i<100)
 {
-    jit2();
+    readBuiltin();
     i=i+1;
 }
 
-
-jit3=function()
+getStrConstant=function()
 {
-	return "Test";
+	return "Test3";
 };
 
 i=0;
 while(i<100)
 {
-    println(jit3());
+    println(getStrConstant());
+    i=i+1;
+}
+
+str="Test4";
+getGlob=function()
+{
+	return str;
+};
+
+i=0;
+while(i<100)
+{
+    println(getGlob());
+    i=i+1;
+}
+
+str2="Test5";
+globBuiltin=function()
+{
+	println(str2);
+};
+
+i=0;
+while(i<100)
+{
+	globBuiltin();
+    i=i+1;
+}
+
+str3="Test6";
+setGlob=function()
+{
+    str3="Test7";
+};
+
+i=0;
+while(i<100)
+{
+	setGlob();
+    println(str3);
     i=i+1;
 }
