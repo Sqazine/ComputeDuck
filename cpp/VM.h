@@ -10,7 +10,9 @@
 #include "Object.h"
 #include "Utils.h"
 #include "Chunk.h"
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
 #include "Jit.h"
+#endif
 class COMPUTE_DUCK_API VM
 {
 public:

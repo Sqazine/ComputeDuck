@@ -127,7 +127,9 @@ struct FunctionObject : public Object
 
     ~FunctionObject()
     {
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
         SAFE_DELETE(probableReturnTypeSet);
+#endif
     }
 
     Chunk chunk;

@@ -18,7 +18,12 @@ FunctionObject *Compiler::Compile(const std::vector<Stmt *> &stmts)
     for (const auto &stmt : stmts)
         CompileStmt(stmt);
 
-    return Allocator::GetInstance()->CreateObject<FunctionObject>(CurChunk());
+    auto mainFn= Allocator::GetInstance()->CreateObject<FunctionObject>(CurChunk());
+    PUSH(mainFn);
+
+    Allocator::GetInstance()->ResetStack();
+
+    return mainFn;
 }
 
 void Compiler::ResetStatus()

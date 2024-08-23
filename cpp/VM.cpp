@@ -23,7 +23,6 @@ void VM::Run(FunctionObject *fn)
     Allocator::GetInstance()->ResetFrame();
 
     auto mainCallFrame = CallFrame(fn, STACK_TOP());
-    //REGISTER_GC_RECORD_CHAIN(fn);
     PUSH_CALL_FRAME(mainCallFrame);
 
     Execute();
@@ -123,8 +122,6 @@ void VM::Execute()
         {
             auto idx = *frame->ip++;
             auto value = frame->GetFnObject()->chunk.constants[idx];
-
-            //REGISTER_GC_RECORD_CHAIN(value);
 
             PUSH(value);
             break;
@@ -360,10 +357,7 @@ void VM::Execute()
                 auto hasRet = builtin->Get<BuiltinFn>()(slot, argCount, returnValue);
 
                 if (hasRet)
-                {
-                    //REGISTER_GC_RECORD_CHAIN(returnValue);
                     PUSH(returnValue);
-                }
             }
             else
                 ASSERT("Calling not a function or a builtinFn");
@@ -411,8 +405,6 @@ void VM::Execute()
         {
             auto idx = *frame->ip++;
             auto name = TO_STR_VALUE(frame->GetFnObject()->chunk.constants[idx])->value;
-
-            // REGISTER_GC_RECORD_CHAIN(value);
 
             auto builtinObj = BuiltinManager::GetInstance()->FindBuiltinObject(name);
             PUSH(builtinObj);
@@ -571,6 +563,8 @@ Value VM::GetEndOfRefValue(const Value &v)
     return value;
 }
 
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+
 void VM::RunJit(FunctionObject *fn, size_t argCount)
 {
     if (!Config::GetInstance()->IsUseJit())
@@ -647,3 +641,4 @@ void VM::RunJit(FunctionObject *fn, size_t argCount)
         SET_STACK_TOP(prevCallFrame->slot - 1);
     }
 }
+#endif
