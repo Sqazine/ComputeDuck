@@ -56,6 +56,8 @@ struct COMPUTE_DUCK_API Value
     void Mark() const;
     void UnMark() const;
 
+    bool IsValid() const;
+
     ValueType type;
 
     union

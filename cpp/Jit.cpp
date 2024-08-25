@@ -136,7 +136,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
     ResetStatus();
 
     m_Module->setSourceFileName(fnName);
-    m_Module->setSourceFileName(fnName);
+    m_Module->setModuleIdentifier(fnName);
 
     CreateGlobalVariablesDecl();
 
@@ -172,7 +172,6 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
     else if (fnObj->probableReturnTypeSet->IsOnly(ValueType::BOOL))
         fnType = llvm::FunctionType::get(m_BoolType, paramTypes, false);
     else if (fnObj->probableReturnTypeSet->IsOnly(ObjectType::STR))
-        //fnType = llvm::FunctionType::get(m_Int8PtrType, paramTypes, false);
         fnType = llvm::FunctionType::get(m_ValuePtrType, paramTypes, false);
     else
         ERROR("Unknown return type");
@@ -370,34 +369,36 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
                 auto v = p->GetLlvmValue();
                 if (v->getType() != m_ValuePtrType)
                 {
-                    llvm::Value *arg = CreateCDValue(v);
+                    llvm::Value *arg = CreateLlvmValue(v);
                     elements[i] = arg;
                 }
                 else
                     elements[i] = v;
             }
 
-            auto arrayType = llvm::ArrayType::get(m_ValueType, numElements);
-            llvm::Value *alloc = m_Builder->CreateAlloca(arrayType);
+            llvm::Value *alloc = m_Builder->CreateAlloca(m_ValuePtrType);
 
-            llvm::Value *memberAddr = m_Builder->CreateInBoundsGEP(arrayType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
+            auto mallocation = m_Builder->CreateCall(m_Module->getFunction("malloc"), { llvm::ConstantInt::get(m_Int64Type, numElements * sizeof(Value)) });
+            auto arrayObjectBitCast = m_Builder->CreateBitCast(mallocation, m_ValuePtrType);
+            m_Builder->CreateStore(arrayObjectBitCast, alloc);
 
+            auto load = m_Builder->CreateLoad(m_ValuePtrType, alloc);
+
+            llvm::Value *memberAddr = nullptr;
             for (auto i = 0; i < elements.size(); ++i)
             {
-                if (i == 0)
-                    m_Builder->CreateMemCpy(memberAddr, llvm::MaybeAlign(8), elements[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
-                else
-                {
-                    llvm::Value *argIMemberAddr = m_Builder->CreateInBoundsGEP(arrayType, alloc, { m_Builder->getInt32(0), m_Builder->getInt32(i) });
-                    m_Builder->CreateMemCpy(argIMemberAddr, llvm::MaybeAlign(8), elements[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
-                }
+                memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, load, { m_Builder->getInt64(i) });
+                auto addrBitCast = m_Builder->CreateBitCast(memberAddr, m_Int8PtrType);
+                auto eleBitCast = m_Builder->CreateBitCast(elements[i], m_Int8PtrType);
+                m_Builder->CreateMemCpy(addrBitCast, llvm::MaybeAlign(sizeof(Value)), eleBitCast, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
             }
-
-            // alloc = CreateCDValue(alloc);
 
             m_StackTop -= numElements;
 
-            Push(alloc);
+            auto arrayObject = m_Builder->CreateCall(m_Module->getFunction("CreateArrayObject"), { load,llvm::ConstantInt::get(m_Int32Type,numElements) });
+            arrayObjectBitCast = m_Builder->CreateBitCast(arrayObject, m_ObjectPtrType);
+
+            Push(arrayObjectBitCast);
             break;
         }
         case OP_AND:
@@ -656,9 +657,9 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
             auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(m_GlobalVariablesStr));
             auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
 
-            if (v->getType()!=m_ValueType)
+            if (v->getType() != m_ValueType)
             {
-                auto cdValue=CreateCDValue(v);
+                auto cdValue = CreateLlvmValue(v);
                 m_Builder->CreateMemCpy(globalVar, llvm::MaybeAlign(8), cdValue, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
             }
             else
@@ -670,27 +671,27 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
         {
             auto index = *ip++;
 
-            auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(m_GlobalVariablesStr));
-            auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
+            auto vmStored = *Allocator::GetInstance()->GetGlobalVariableRef(index);
+            if (IS_FUNCTION_VALUE(vmStored))
+                Push(vmStored);
+            else 
+            {
+                auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(m_GlobalVariablesStr));
+                auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
 
-            if (globalVar && globalVar->getType()->isPointerTy())
-            {
-                auto ptrType = static_cast<llvm::PointerType *>(globalVar->getType());
-                if (ptrType->getElementType() == m_ValueType)
+                if (globalVar && globalVar->getType()->isPointerTy())
                 {
-                    Push(globalVar);
+                    auto ptrType = static_cast<llvm::PointerType *>(globalVar->getType());
+                    if (ptrType->getElementType() == m_ValueType)
+                    {
+                        Push(globalVar);
+                    }
+                    else
+                    {
+                        auto v = m_Builder->CreateLoad(ptrType->getElementType(), globalVar);
+                        Push(v);
+                    }
                 }
-                else
-                {
-                    auto v = m_Builder->CreateLoad(ptrType->getElementType(), globalVar);
-                    Push(v);
-                }
-            }
-            else
-            {
-                auto vmStored = *Allocator::GetInstance()->GetGlobalVariableRef(index);
-                if (IS_FUNCTION_VALUE(vmStored))
-                    Push(vmStored);
                 else
                     ERROR("Not finished yet,tag it as error");
             }
@@ -793,7 +794,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
                     {
                         auto v = slot->GetLlvmValue();
                         if (v->getType() != m_ValuePtrType)
-                            argsV.emplace_back(CreateCDValue(v));
+                            argsV.emplace_back(CreateLlvmValue(v));
                         else
                             argsV.emplace_back(v);
                     }
@@ -981,12 +982,18 @@ void Jit::InitModuleAndPassManager()
         m_BuiltinFunctionType = llvm::FunctionType::get(m_BoolType, { m_ValuePtrType, m_Int8Type, m_ValuePtrType }, false);
     }
 
+    llvm::FunctionType *mallocFnType = llvm::FunctionType::get(m_Int8PtrType, { m_Int64Type }, false);
+    m_Module->getOrInsertFunction("malloc", mallocFnType);
+
     llvm::FunctionType *createStrObjectFnType = llvm::FunctionType::get(m_StrObjectPtrType, { m_Int8PtrType }, false);
     m_Module->getOrInsertFunction("CreateStrObject", createStrObjectFnType);
 
+    llvm::FunctionType *createArrayObjectFnType = llvm::FunctionType::get(m_ArrayObjectPtrType, { m_ValuePtrType,m_Int32Type }, false);
+    m_Module->getOrInsertFunction("CreateArrayObject", createArrayObjectFnType);
+
 }
 
-llvm::Value *Jit::CreateCDValue(llvm::Value *v)
+llvm::Value *Jit::CreateLlvmValue(llvm::Value *v)
 {
     llvm::Value *vt = nullptr;
     llvm::Value *storedV = nullptr;
@@ -1032,42 +1039,9 @@ llvm::Value *Jit::CreateCDValue(llvm::Value *v)
                 auto charsPtr = m_Builder->CreateInBoundsGEP(vArrayType, v, { m_Builder->getInt64(0), m_Builder->getInt64(0) });
 
                 // create str object
-                auto strObject=m_Builder->CreateCall(m_Module->getFunction("CreateStrObject"),{charsPtr});
+                auto strObject = m_Builder->CreateCall(m_Module->getFunction("CreateStrObject"), { charsPtr });
                 //to base ptr
-                storedV =m_Builder->CreateBitCast(strObject,m_ObjectPtrType);
-            }
-            else if (vArrayType->getElementType() == m_ValueType)
-            {
-                auto numCount = vArrayType->getArrayNumElements();
-
-                vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::OBJECT));
-                type = m_ObjectPtrPtrType;
-
-                // convert Value[] to Value*
-                auto valuesPtr = m_Builder->CreateInBoundsGEP(vArrayType, v, { m_Builder->getInt64(0), m_Builder->getInt64(0) });
-
-                // create array object
-                auto arrayObject = m_Builder->CreateAlloca(m_ArrayObjectType, nullptr);
-                auto base = m_Builder->CreateBitCast(arrayObject, m_ObjectPtrType);
-
-                {
-                    auto objctTypeVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
-                    m_Builder->CreateStore(m_Builder->getInt8(std::underlying_type<ObjectType>::type(ObjectType::ARRAY)), objctTypeVar);
-
-                    auto markedVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
-                    m_Builder->CreateStore(m_Builder->getInt1(0), markedVar);
-
-                    auto nextVar = m_Builder->CreateInBoundsGEP(m_ObjectType, base, { m_Builder->getInt32(0), m_Builder->getInt32(2) });
-                    m_Builder->CreateStore(llvm::ConstantPointerNull::get(m_ObjectPtrType), nextVar);
-
-                    auto valuePtr = m_Builder->CreateInBoundsGEP(m_ArrayObjectType, arrayObject, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
-                    m_Builder->CreateStore(valuesPtr, valuePtr);
-
-                    auto len = m_Builder->CreateInBoundsGEP(m_ArrayObjectType, arrayObject, { m_Builder->getInt32(0), m_Builder->getInt32(2) });
-                    m_Builder->CreateStore(m_Builder->getInt32(numCount), len);
-                }
-
-                storedV = base;
+                storedV = m_Builder->CreateBitCast(strObject, m_ObjectPtrType);
             }
         }
     }

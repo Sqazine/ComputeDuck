@@ -80,6 +80,10 @@ COMPUTE_DUCK_API void RegisterDLLs(std::string rawDllPath);
 
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+
+#ifndef NDEBUG
+#define ERROR ASSERT
+#else
 #define ERROR(...)                                                                  \
     do                                                                              \
     {                                                                               \
@@ -87,6 +91,7 @@ COMPUTE_DUCK_API void RegisterDLLs(std::string rawDllPath);
         printf(__VA_ARGS__);                                                        \
         return false;                                                               \
     } while (false);
+#endif
 
 std::string GenerateUUID();
 #endif

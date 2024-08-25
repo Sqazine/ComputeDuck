@@ -74,3 +74,17 @@ while(i<100)
     println(str3);
     i=i+1;
 }
+
+arr1=[1];
+setGlobArr=function()
+{
+    arr1=[1,2];
+};
+
+i=0;
+while(i<100)
+{
+    println(arr1);
+	setGlobArr();
+    i=i+1;
+}
