@@ -31,6 +31,11 @@ void Value::UnMark() const
         ObjectUnMark(object);
 }
 
+bool Value::IsValid() const
+{
+    return (type<=ValueType::OBJECT && type>=ValueType::NUM) && object;
+}
+
 bool operator==(const Value &left, const Value &right)
 {
     if (left.type != right.type)

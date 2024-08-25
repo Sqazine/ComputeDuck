@@ -80,7 +80,7 @@ void ObjectMark(Object *object)
     }
     case ObjectType::ARRAY:
     {
-        for (int32_t i = 0; i < TO_ARRAY_OBJ(object)->capacity; ++i)
+        for (int32_t i = 0; i < TO_ARRAY_OBJ(object)->len; ++i)
             TO_ARRAY_OBJ(object)->elements[i].Mark();
         break;
     }
@@ -123,7 +123,7 @@ void ObjectUnMark(Object *object)
     }
     case ObjectType::ARRAY:
     {
-        for (int32_t i = 0; i < TO_ARRAY_OBJ(object)->capacity; ++i)
+        for (int32_t i = 0; i < TO_ARRAY_OBJ(object)->len; ++i)
             TO_ARRAY_OBJ(object)->elements[i].UnMark();
         break;
     }

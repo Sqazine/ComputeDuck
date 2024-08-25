@@ -99,12 +99,14 @@ struct StrObject : public Object
 
 struct ArrayObject : public Object
 {
-    ArrayObject(Value *eles, uint32_t len) :Object(ObjectType::ARRAY), elements(eles), len(len), capacity(len) {}
-    ~ArrayObject() = default;
+    ArrayObject(Value *eles, uint32_t len) :Object(ObjectType::ARRAY), elements(eles), len(len) {}
+    ~ArrayObject()
+    {
+        // SAFE_DELETE_ARRAY(elements);
+    }
 
     Value *elements;
     uint32_t len;
-    uint32_t capacity;
 };
 
 struct RefObject : public Object

@@ -1,8 +1,13 @@
 #include "Allocator.h"
 
-extern "C" COMPUTE_DUCK_API StrObject* CreateStrObject(const char* v)
+extern "C" COMPUTE_DUCK_API StrObject *CreateStrObject(const char *v)
 {
     return Allocator::GetInstance()->CreateObject<StrObject>(v);
+}
+
+extern "C" COMPUTE_DUCK_API ArrayObject *CreateArrayObject(Value *elements, uint32_t size)
+{
+    return Allocator::GetInstance()->CreateObject<ArrayObject>(elements, size);
 }
 
 Allocator::Allocator()
@@ -77,12 +82,12 @@ Value *Allocator::GetStackTop() const
 
 void Allocator::SetStackTop(Value *slot)
 {
-    m_StackTop=slot;
+    m_StackTop = slot;
 }
 
 void Allocator::StackTopJumpBack(size_t slotCount)
 {
-m_StackTop-=slotCount;
+    m_StackTop -= slotCount;
 }
 
 void Allocator::StackTopJump(size_t slotCount)

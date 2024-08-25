@@ -151,7 +151,7 @@ private:
 
     void InitModuleAndPassManager();
 
-    llvm::Value *CreateCDValue(llvm::Value *v);
+    llvm::Value *CreateLlvmValue(llvm::Value *v);
 
     void Push(llvm::Value *v);
     void Push(const Value &v);
