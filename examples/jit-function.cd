@@ -88,3 +88,27 @@ while(i<100)
 	setGlobArr();
     i=i+1;
 }
+
+setArr=function()
+{
+    return [1,2,3];
+};
+
+i=0;
+while(i<100)
+{
+    println(setArr());
+    i=i+1;
+}
+
+setArr2=function(x)
+{
+    return x;
+};
+
+i=0;
+while(i<100)
+{
+    println(setArr2([1,2,3,4]));
+    i=i+1;
+}
