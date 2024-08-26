@@ -28,7 +28,7 @@ private:
     Value GetEndOfRefValue(const Value &v);
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-    void RunJit(FunctionObject *fn, size_t argCount);
+    void RunJit(const CallFrame& frame);
     Jit *m_Jit{ nullptr };
 #endif
 };

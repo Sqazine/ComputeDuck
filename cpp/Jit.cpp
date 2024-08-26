@@ -77,8 +77,6 @@ Jit::Jit()
     InitModuleAndPassManager();
 
     CreateSetGlobalVariablesFunction();
-
-    InitModuleAndPassManager();
 }
 
 Jit::~Jit()
@@ -112,6 +110,7 @@ void Jit::CreateSetGlobalVariablesFunction()
 #endif
 
     m_Executor->AddModule(llvm::orc::ThreadSafeModule(std::move(m_Module), std::move(m_Context)));
+    InitModuleAndPassManager();
 }
 
 void Jit::CreateGlobalVariablesDecl()
@@ -160,6 +159,8 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
             paramTypes.push_back(m_DoubleType);
         else if (IS_STR_VALUE(*slot))
             paramTypes.push_back(m_Int8PtrType);
+        else if (IS_ARRAY_VALUE(*slot))
+            paramTypes.push_back(m_ArrayObjectPtrType);
     }
 
     llvm::FunctionType *fnType = nullptr;
@@ -173,10 +174,16 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
         fnType = llvm::FunctionType::get(m_BoolType, paramTypes, false);
     else if (fnObj->probableReturnTypeSet->IsOnly(ObjectType::STR))
         fnType = llvm::FunctionType::get(m_ValuePtrType, paramTypes, false);
+    else if (fnObj->probableReturnTypeSet->IsOnly(ObjectType::ARRAY))
+        fnType = llvm::FunctionType::get(m_ArrayObjectPtrType, paramTypes, false);
     else
         ERROR("Unknown return type");
 
     llvm::Function *fn = llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, fnName.c_str(), m_Module.get());
+    fn->setDSOLocal(true);
+    for(auto i=0;i<paramTypes.size();++i)
+        fn->addParamAttr(i, llvm::Attribute::NoUndef);
+
     llvm::BasicBlock *codeBlock = llvm::BasicBlock::Create(*m_Context, fnName + ".entry", fn);
     m_Builder->SetInsertPoint(codeBlock);
 
@@ -342,10 +349,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
                             auto leftCharsPtr = m_Builder->CreateInBoundsGEP(leftArrayType, left, { m_Builder->getInt64(0), m_Builder->getInt64(0) });
                             auto rightCharsPtr = m_Builder->CreateInBoundsGEP(rightArrayType, right, { m_Builder->getInt64(0), m_Builder->getInt64(0) });
 
-                            auto fnType = llvm::FunctionType::get(m_Int32Type, { m_Int8PtrType, m_Int8PtrType }, false);
-                            auto fn = AddBuiltinFnOrCallParamAttributes(llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, "strcmp", m_Module.get()));
-
-                            auto result = m_Builder->CreateCall(fn, { leftCharsPtr, rightCharsPtr });
+                            auto result = m_Builder->CreateCall(m_Module->getFunction("strcmp"), { leftCharsPtr, rightCharsPtr });
 
                             Push(m_Builder->CreateICmpEQ(result, llvm::ConstantInt::get(m_Int32Type, 0)));
                         }
@@ -735,12 +739,13 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
                 {
                     auto arg = parentFn->getArg(index);
 
-                    auto alloc = m_Builder->CreateAlloca(arg->getType());
+                    llvm::Value *alloc = m_Builder->CreateAlloca(arg->getType());
+
                     m_Builder->CreateStore(arg, alloc);
 
                     m_LocalVariable[name] = alloc;
 
-                    auto load = m_Builder->CreateLoad(alloc->getAllocatedType(), alloc);
+                    auto load = m_Builder->CreateLoad(arg->getType(), alloc);
 
                     Push(load);
                 }
@@ -768,7 +773,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
             }
             else
             {
-                auto load = m_Builder->CreateLoad(iter->second->getAllocatedType(), iter->second);
+                auto load = m_Builder->CreateLoad(iter->second->getType(), iter->second);
                 Push(load);
             }
             break;
@@ -916,8 +921,6 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
 
 #ifndef NDEBUG
     m_Module->print(llvm::errs(), nullptr);
-
-    fn->print(llvm::errs());
 #endif
 
     llvm::verifyFunction(*fn);
@@ -984,6 +987,9 @@ void Jit::InitModuleAndPassManager()
 
     llvm::FunctionType *mallocFnType = llvm::FunctionType::get(m_Int8PtrType, { m_Int64Type }, false);
     m_Module->getOrInsertFunction("malloc", mallocFnType);
+
+    llvm::FunctionType *strcmpFnType = llvm::FunctionType::get(m_Int32Type, { m_Int8PtrType, m_Int8PtrType }, false);
+    m_Module->getOrInsertFunction("strcmp", strcmpFnType);
 
     llvm::FunctionType *createStrObjectFnType = llvm::FunctionType::get(m_StrObjectPtrType, { m_Int8PtrType }, false);
     m_Module->getOrInsertFunction("CreateStrObject", createStrObjectFnType);

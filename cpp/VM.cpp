@@ -339,7 +339,7 @@ void VM::Execute()
                 SET_STACK_TOP(callFrame.slot + fn->localVarCount);
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-                RunJit(fn, argCount);
+                RunJit(callFrame);
 #endif
             }
             else if (IS_BUILTIN_VALUE(value))
@@ -565,27 +565,31 @@ Value VM::GetEndOfRefValue(const Value &v)
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
 
-void VM::RunJit(FunctionObject *fn, size_t argCount)
+void VM::RunJit(const CallFrame &frame)
 {
     if (!Config::GetInstance()->IsUseJit())
         return;
-    if (fn->callCount < JIT_TRIGGER_COUNT || !fn->probableReturnTypeSet)
+    if (frame.fn->callCount < JIT_TRIGGER_COUNT || !frame.fn->probableReturnTypeSet)
         return;
 
     size_t paramTypeHash = 0;
-    for (Value *slot = STACK_TOP() - fn->parameterCount; slot < STACK_TOP(); ++slot)
-        paramTypeHash ^= std::hash<ValueType>()(slot->type);
-
-    auto fnName = "function_" + fn->uuid + "_" + std::to_string(paramTypeHash);
-
-    auto iter = fn->jitCache.find(paramTypeHash);
-    if (iter == fn->jitCache.end() && !fn->probableReturnTypeSet->IsMultiplyType())
+    for (Value *slot = frame.slot; slot < frame.slot + frame.fn->parameterCount; ++slot)
     {
-        fn->jitCache.insert(paramTypeHash);
+        paramTypeHash ^= std::hash<ValueType>()(slot->type);
+        if (IS_OBJECT_VALUE(*slot))
+            paramTypeHash ^= std::hash<ObjectType>()(TO_OBJECT_VALUE(*slot)->type);
+    }
 
-        STACK_TOP_JUMP_BACK(argCount - fn->localVarCount);
+    auto fnName = "function_" + frame.fn->uuid + "_" + std::to_string(paramTypeHash);
 
-        auto success = m_Jit->Compile(fn, fnName);
+    auto iter = frame.fn->jitCache.find(paramTypeHash);
+    if (iter == frame.fn->jitCache.end() && !frame.fn->probableReturnTypeSet->IsMultiplyType())
+    {
+        frame.fn->jitCache.insert(paramTypeHash);
+
+        SET_STACK_TOP(frame.slot);
+
+        auto success = m_Jit->Compile(frame.fn, fnName);
         if (!success)
             return;
     }
@@ -595,39 +599,36 @@ void VM::RunJit(FunctionObject *fn, size_t argCount)
     auto prevCallFrame = POP_CALL_FRAME();
 
     // Todo:Not solve function multiply argument
-    if (fn->probableReturnTypeSet->IsOnly(ValueType::NUM))
+    if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::NUM))
     {
-        if (argCount == 1)
+        Value ret;
+        if (frame.fn->parameterCount == 1)
         {
             auto arg0 = curCallFrame->slot + 0;
             if (IS_NUM_VALUE(*arg0))
             {
                 double dArg0 = TO_NUM_VALUE(*arg0);
-                auto v = m_Jit->Run<double>(fnName, std::move(dArg0));
-                SET_STACK_TOP(prevCallFrame->slot - 1);
-                PUSH(v);
+                ret = m_Jit->Run<double>(fnName, std::move(dArg0));
             }
         }
         else
-        {
-            auto v = m_Jit->Run<double>(fnName);
-            SET_STACK_TOP(prevCallFrame->slot - 1);
-            PUSH(v);
-        }
+            ret = m_Jit->Run<double>(fnName);
+        SET_STACK_TOP(prevCallFrame->slot - 1);
+        PUSH(ret);
     }
-    else if (fn->probableReturnTypeSet->IsOnly(ValueType::NIL))
+    else if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::NIL))
     {
-        auto v = m_Jit->Run<bool *>(fnName);
+        m_Jit->Run<bool *>(fnName);
         SET_STACK_TOP(prevCallFrame->slot - 1);
         PUSH(Value());
     }
-    else if (fn->probableReturnTypeSet->IsOnly(ValueType::BOOL))
+    else if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::BOOL))
     {
         auto v = m_Jit->Run<bool>(fnName);
         SET_STACK_TOP(prevCallFrame->slot - 1);
         PUSH(v);
     }
-    else if (fn->probableReturnTypeSet->IsOnly(ObjectType::STR))
+    else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::STR))
     {
         auto v = m_Jit->Run<Value *>(fnName);
         SET_STACK_TOP(prevCallFrame->slot - 1);
@@ -635,9 +636,26 @@ void VM::RunJit(FunctionObject *fn, size_t argCount)
             PUSH(*v);
         else
         {
-            auto rawChars=reinterpret_cast<const char*>(v);
+            auto rawChars = reinterpret_cast<const char *>(v);
             PUSH(Allocator::GetInstance()->CreateObject<StrObject>(rawChars));
         }
+    }
+    else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::ARRAY))
+    {
+        Value ret;
+        if (frame.fn->parameterCount == 1)
+        {
+            auto arg0 = curCallFrame->slot + 0;
+            if (IS_ARRAY_VALUE(*arg0))
+            {
+                auto aArg0 = TO_ARRAY_VALUE(*arg0);
+                ret = m_Jit->Run<ArrayObject *>(fnName, std::move(aArg0));
+            }
+        }
+        else
+            ret = m_Jit->Run<ArrayObject *>(fnName);
+        SET_STACK_TOP(prevCallFrame->slot - 1);
+        PUSH(ret);
     }
     else
     {
