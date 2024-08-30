@@ -206,7 +206,7 @@ private:
     StackValue *m_StackTop;
     StackValue m_ValueStack[STACK_MAX];
 
-    std::map<std::string, llvm::Value *> m_LocalVariable;
+    std::map<std::string, llvm::AllocaInst *> m_LocalVariable;
 
     std::vector<JumpInstrSet> m_JumpInstrSetTable;
 

@@ -112,3 +112,36 @@ while(i<100)
     println(setArr2([1,2,3,4]));
     i=i+1;
 }
+
+lam1=function()
+{
+    x=function()
+    {
+        return 10;
+    };
+    return x();
+};
+
+i=0;
+while(i<100)
+{
+    println(lam1());
+    i=i+1;
+}
+
+
+lam2=function()
+{
+    x=function()
+    {
+        return 100;
+    };
+    return x;
+};
+
+i=0;
+while(i<100)
+{
+    println(lam2()());
+    i=i+1;
+}

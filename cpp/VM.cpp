@@ -102,7 +102,12 @@ void VM::Execute()
                 value = POP();
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
                 if (IS_OBJECT_VALUE(value))
-                    frame->GetFnObject()->probableReturnTypeSet->Insert(TO_OBJECT_VALUE(value)->type);
+                {
+                    if (IS_FUNCTION_VALUE(value))
+                        frame->GetFnObject()->probableReturnTypeSet->Insert(TO_FUNCTION_VALUE(value)->probableReturnTypeSet);
+                    else
+                        frame->GetFnObject()->probableReturnTypeSet->Insert(TO_OBJECT_VALUE(value)->type);
+                }
                 else
                     frame->GetFnObject()->probableReturnTypeSet->Insert(value.type);
 #endif
@@ -585,13 +590,16 @@ void VM::RunJit(const CallFrame &frame)
     auto iter = frame.fn->jitCache.find(paramTypeHash);
     if (iter == frame.fn->jitCache.end() && !frame.fn->probableReturnTypeSet->IsMultiplyType())
     {
-        frame.fn->jitCache.insert(paramTypeHash);
-
         SET_STACK_TOP(frame.slot);
 
+        frame.fn->jitCache.insert(paramTypeHash);
+        
         auto success = m_Jit->Compile(frame.fn, fnName);
         if (!success)
+        {
+            frame.fn->jitCache.erase(paramTypeHash);
             return;
+        }
     }
 
     auto curCallFrame = PEEK_CALL_FRAME_FROM_BACK(1);
