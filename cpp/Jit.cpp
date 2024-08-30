@@ -181,14 +181,13 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
 
     llvm::Function *fn = llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, fnName.c_str(), m_Module.get());
     fn->setDSOLocal(true);
-    for(auto i=0;i<paramTypes.size();++i)
+    for (auto i = 0; i < paramTypes.size(); ++i)
         fn->addParamAttr(i, llvm::Attribute::NoUndef);
 
     llvm::BasicBlock *codeBlock = llvm::BasicBlock::Create(*m_Context, fnName + ".entry", fn);
     m_Builder->SetInsertPoint(codeBlock);
 
     auto ip = fnObj->chunk.opCodes.data();
-
     while ((ip - fnObj->chunk.opCodes.data()) < fnObj->chunk.opCodes.size())
     {
         int32_t instruction = *ip++;
@@ -199,11 +198,26 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
             auto idx = *ip++;
             auto value = fnObj->chunk.constants[idx];
 
-            auto llvmValue = GetLlvmValueFrom(value);
-            if (!llvmValue)
-                ERROR("Unsupported value type:%d", value.type);
+            if(IS_FUNCTION_VALUE(value))
+            {
+                auto fnObj=TO_FUNCTION_VALUE(value);
 
-            Push(llvmValue);
+                auto fn=m_Module->getFunction("function_"+ fnObj->uuid+std::to_string(fnObj->parameterCount));
+                if (fn == nullptr)//no compiled function
+                {
+                    m_Module->getFunctionList().pop_back();
+                    return false;
+                }
+                Push(fn);
+            }
+            else
+            { 
+                auto llvmValue = GetLlvmValueFrom(value);
+                if (!llvmValue)
+                    ERROR("Unsupported value type:%d", value.type);
+
+                Push(llvmValue);
+            }
             break;
         }
         case OP_ADD:
@@ -739,13 +753,13 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
                 {
                     auto arg = parentFn->getArg(index);
 
-                    llvm::Value *alloc = m_Builder->CreateAlloca(arg->getType());
+                    llvm::AllocaInst *alloc = m_Builder->CreateAlloca(arg->getType());
 
                     m_Builder->CreateStore(arg, alloc);
 
                     m_LocalVariable[name] = alloc;
 
-                    auto load = m_Builder->CreateLoad(arg->getType(), alloc);
+                    auto load = m_Builder->CreateLoad(alloc->getAllocatedType(), alloc);
 
                     Push(load);
                 }
@@ -773,7 +787,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
             }
             else
             {
-                auto load = m_Builder->CreateLoad(iter->second->getType(), iter->second);
+                auto load = m_Builder->CreateLoad(iter->second->getAllocatedType(), iter->second);
                 Push(load);
             }
             break;

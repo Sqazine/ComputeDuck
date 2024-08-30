@@ -47,6 +47,13 @@ public:
         m_ValueTypeSet.insert(type);
     }
 
+    void Insert(const TypeSet* other)
+    {
+        if(other!=nullptr && !other->m_ValueTypeSet.empty())
+            m_ValueTypeSet.insert(other->m_ValueTypeSet.begin(),other->m_ValueTypeSet.end());
+    }
+
+
     template<typename T>
         requires(std::is_same_v<T, ValueType> || std::is_same_v<T, ObjectType>)
     bool IsOnly(T t)
