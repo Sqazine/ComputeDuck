@@ -130,7 +130,7 @@ void Jit::ResetStatus()
     m_StackTop = m_ValueStack;
 }
 
-bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
+llvm::Function* Jit::Compile(const CallFrame& frame, const std::string &fnName)
 {
     ResetStatus();
 
@@ -152,8 +152,10 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
 
     State state = State::IF_CONDITION;
 
+    auto fnObj=frame.fn;
+
     std::vector<llvm::Type *> paramTypes;
-    for (Value *slot = STACK_TOP(); slot < STACK_TOP() + fnObj->parameterCount; ++slot)
+    for (Value *slot = frame.slot; slot < frame.slot + fnObj->parameterCount; ++slot)
     {
         if (IS_NUM_VALUE(*slot))
             paramTypes.push_back(m_DoubleType);
@@ -184,7 +186,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
     for (auto i = 0; i < paramTypes.size(); ++i)
         fn->addParamAttr(i, llvm::Attribute::NoUndef);
 
-    llvm::BasicBlock *codeBlock = llvm::BasicBlock::Create(*m_Context, fnName + ".entry", fn);
+    llvm::BasicBlock *codeBlock = llvm::BasicBlock::Create(*m_Context,"", fn);
     m_Builder->SetInsertPoint(codeBlock);
 
     auto ip = fnObj->chunk.opCodes.data();
@@ -198,17 +200,10 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
             auto idx = *ip++;
             auto value = fnObj->chunk.constants[idx];
 
-            if(IS_FUNCTION_VALUE(value))
+            if (IS_FUNCTION_VALUE(value))
             {
-                auto fnObj=TO_FUNCTION_VALUE(value);
-
-                auto fn=m_Module->getFunction("function_"+ fnObj->uuid+std::to_string(fnObj->parameterCount));
-                if (fn == nullptr)//no compiled function
-                {
-                    m_Module->getFunctionList().pop_back();
-                    return false;
-                }
-                Push(fn);
+                m_Module->getFunctionList().pop_back();// pop current invalid function
+                ERROR("Not support jit compile for:%s", fnName.c_str());
             }
             else
             { 
@@ -749,7 +744,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
             if (iter == m_LocalVariable.end())// create from function argumenet
             {
                 auto parentFn = m_Builder->GetInsertBlock()->getParent();
-                if (index < parentFn->arg_size()) // load from function arguments
+                if (isUpValue==0 && index < parentFn->arg_size()) // load from function arguments
                 {
                     auto arg = parentFn->getArg(index);
 
@@ -943,7 +938,7 @@ bool Jit::Compile(FunctionObject *fnObj, const std::string &fnName)
     m_Executor->AddModule(llvm::orc::ThreadSafeModule(std::move(m_Module), std::move(m_Context)));
     InitModuleAndPassManager();
 
-    return true;
+    return fn;
 }
 
 void Jit::InitModuleAndPassManager()
