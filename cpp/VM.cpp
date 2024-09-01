@@ -569,7 +569,6 @@ Value VM::GetEndOfRefValue(const Value &v)
 }
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-
 void VM::RunJit(const CallFrame &frame)
 {
     if (!Config::GetInstance()->IsUseJit())
@@ -590,16 +589,16 @@ void VM::RunJit(const CallFrame &frame)
     auto iter = frame.fn->jitCache.find(paramTypeHash);
     if (iter == frame.fn->jitCache.end() && !frame.fn->probableReturnTypeSet->IsMultiplyType())
     {
-        SET_STACK_TOP(frame.slot);
-
-        frame.fn->jitCache.insert(paramTypeHash);
+        frame.fn->jitCache[paramTypeHash]=nullptr;
         
-        auto success = m_Jit->Compile(frame.fn, fnName);
-        if (!success)
+        auto llvmFn = m_Jit->Compile(frame, fnName);
+        if (!llvmFn)
         {
             frame.fn->jitCache.erase(paramTypeHash);
             return;
         }
+        else
+            frame.fn->jitCache[paramTypeHash]= llvmFn;
     }
 
     auto curCallFrame = PEEK_CALL_FRAME_FROM_BACK(1);

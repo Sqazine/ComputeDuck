@@ -145,3 +145,20 @@ while(i<100)
     println(lam2()());
     i=i+1;
 }
+
+closure=function()
+{
+    a=1000;
+    x=function()
+    {
+        return a;
+    };
+    return x();
+};
+
+i=0;
+while(i<100)
+{
+    println(closure());
+    i=i+1;
+}

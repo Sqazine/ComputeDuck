@@ -44,7 +44,7 @@ public:
     Jit();
     ~Jit();
 
-    bool Compile(FunctionObject *fnObj, const std::string &fnName);
+    llvm::Function* Compile(const CallFrame&  frame, const std::string &fnName);
 
     template<typename RetType, typename... Args>
     RetType Run(const std::string &name, Args &&...params)

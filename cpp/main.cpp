@@ -66,7 +66,7 @@ void Repl(std::string_view exePath)
 		else if (line == "clear")
 			allLines.clear();
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-		else if (line == "-n" || line == "--no-jit")
+		else if (line == "-nj" || line == "--no-jit")
 			Config::GetInstance()->SetUseJit(false);
 		else if (line == "-j" || line == "--jit")
 			Config::GetInstance()->SetUseJit(true);
@@ -114,7 +114,7 @@ int32_t main(int argc, const char **argv)
 		}
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-		if (strcmp(argv[i], "-njit") == 0 || strcmp(argv[i], "--no-jit") == 0)
+		if (strcmp(argv[i], "-nj") == 0 || strcmp(argv[i], "--no-jit") == 0)
 			Config::GetInstance()->SetUseJit(false);
 #endif
 
