@@ -162,3 +162,49 @@ while(i<100)
     println(closure());
     i=i+1;
 }
+
+closure2=function()
+{
+    a=10;
+    x=function()
+    {
+        a=1000;
+        return a;
+    };
+    return x();
+};
+
+i=0;
+while(i<100)
+{
+    println(closure2());
+    i=i+1;
+}
+
+arrSet=[1,2];
+setArrElement=function()
+{
+    arrSet[0]=100;
+};
+
+i=0;
+while(i<100)
+{
+	setArrElement();
+    println(arrSet);
+    i=i+1;
+}
+
+arrSet2=[1,2];
+setArrElement2=function(v)
+{
+    arrSet2[1]=v;
+};
+
+i=0;
+while(i<100)
+{
+	setArrElement2(i);
+    println(arrSet2);
+    i=i+1;
+}
