@@ -544,30 +544,6 @@ void VM::Execute()
     }
 }
 
-Value VM::FindActualValue(const Value &v)
-{
-    auto value = GetEndOfRefValue(v);
-    if (IS_BUILTIN_VALUE(value) && TO_BUILTIN_VALUE(value)->Is<Value>())
-        value = TO_BUILTIN_VALUE(value)->Get<Value>();
-    return value;
-}
-
-Value *VM::GetEndOfRefValue(Value *v)
-{
-    auto result = v;
-    while (IS_REF_VALUE(*result))
-        result = TO_REF_VALUE(*result)->pointer;
-    return result;
-}
-
-Value VM::GetEndOfRefValue(const Value &v)
-{
-    auto value = v;
-    while (IS_REF_VALUE(value))
-        value = *TO_REF_VALUE(value)->pointer;
-    return value;
-}
-
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
 void VM::RunJit(const CallFrame &frame)
 {
@@ -680,6 +656,12 @@ void VM::RunJit(const CallFrame &frame)
         else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::ARRAY))
         {
             RUN_WITH_RET(ArrayObject *, nullptr);
+            SET_STACK_TOP(prevCallFrame->slot - 1);
+            PUSH(ret);
+        }
+        else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::REF))
+        {
+            RUN_WITH_RET(RefObject *, nullptr);
             SET_STACK_TOP(prevCallFrame->slot - 1);
             PUSH(ret);
         }

@@ -184,10 +184,12 @@ private:
     llvm::StructType *m_ObjectType{ nullptr };
     llvm::StructType *m_StrObjectType{ nullptr };
     llvm::StructType *m_ArrayObjectType{ nullptr };
+    llvm::StructType *m_RefObjectType{ nullptr };
     llvm::PointerType *m_ObjectPtrType{ nullptr };
     llvm::PointerType *m_ObjectPtrPtrType{ nullptr };
     llvm::PointerType *m_StrObjectPtrType{ nullptr };
     llvm::PointerType *m_ArrayObjectPtrType{ nullptr };
+    llvm::PointerType *m_RefObjectPtrType{ nullptr };
     llvm::FunctionType *m_BuiltinFunctionType{ nullptr };
     llvm::Type *m_Int8Type{ nullptr };
     llvm::Type *m_BoolType{ nullptr };

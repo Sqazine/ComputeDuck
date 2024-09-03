@@ -69,3 +69,7 @@ struct COMPUTE_DUCK_API Value
 
 bool operator==(const Value &left, const Value &right);
 bool operator!=(const Value &left, const Value &right);
+
+COMPUTE_DUCK_API Value FindActualValue(const Value &v);
+COMPUTE_DUCK_API Value *GetEndOfRefValue(Value *v);
+COMPUTE_DUCK_API Value GetEndOfRefValue(const Value &v);

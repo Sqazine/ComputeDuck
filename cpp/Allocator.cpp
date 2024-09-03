@@ -10,6 +10,11 @@ extern "C" COMPUTE_DUCK_API ArrayObject *CreateArrayObject(Value *elements, uint
     return Allocator::GetInstance()->CreateObject<ArrayObject>(elements, size);
 }
 
+extern "C" COMPUTE_DUCK_API RefObject *CreateRefObject(Value * pointer)
+{
+    return Allocator::GetInstance()->CreateObject<RefObject>(pointer);
+}
+
 Allocator::Allocator()
 {
     m_FirstObject = nullptr;
@@ -47,6 +52,9 @@ void Allocator::Push(const Value &value)
 
 Value Allocator::Pop()
 {
+#ifndef NDEBUG
+    *m_StackTop=Value();
+#endif
     return *(--m_StackTop);
 }
 

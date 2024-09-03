@@ -60,3 +60,28 @@ bool operator!=(const Value &left, const Value &right)
 {
     return !(left == right);
 }
+
+
+Value FindActualValue(const Value &v)
+{
+    auto value = GetEndOfRefValue(v);
+    if (IS_BUILTIN_VALUE(value) && TO_BUILTIN_VALUE(value)->Is<Value>())
+        value = TO_BUILTIN_VALUE(value)->Get<Value>();
+    return value;
+}
+
+Value *GetEndOfRefValue(Value *v)
+{
+    auto result = v;
+    while (IS_REF_VALUE(*result))
+        result = TO_REF_VALUE(*result)->pointer;
+    return result;
+}
+
+Value GetEndOfRefValue(const Value &v)
+{
+    auto value = v;
+    while (IS_REF_VALUE(value))
+        value = *TO_REF_VALUE(value)->pointer;
+    return value;
+}

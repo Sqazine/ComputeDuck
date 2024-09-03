@@ -110,6 +110,8 @@ namespace ComputeDuck
         }
         void CompileWhileStmt(WhileStmt stmt)
         {
+            EnterScope()
+
             var jumpAddress = CurChunk().opCodes.Count - 1;
             CompileExpr(stmt.condition);
 
@@ -122,6 +124,8 @@ namespace ComputeDuck
             Emit(jumpAddress);
 
             ModifyOpCode(jumpIfFalseAddress, CurChunk().opCodes.Count - 1);
+
+            ExitScope();
         }
         void CompileReturnStmt(ReturnStmt stmt)
         {

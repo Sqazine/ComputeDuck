@@ -23,10 +23,6 @@ public:
 private:
     void Execute();
 
-    Value FindActualValue(const Value &v);
-    Value *GetEndOfRefValue(Value *v);
-    Value GetEndOfRefValue(const Value &v);
-
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     void RunJit(const CallFrame& frame);
     Jit *m_Jit{ nullptr };

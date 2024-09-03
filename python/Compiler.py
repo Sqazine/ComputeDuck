@@ -82,6 +82,7 @@ class Compiler:
         self.__emit(-localVarCount)
 
     def __compile_while_stmt(self, stmt: WhileStmt) -> None:
+        self.__enter_scope()
         jumpAddress = len(self.__cur_chunk().opCodes)-1
         self.__compile_expr(stmt.condition)
 
@@ -94,6 +95,8 @@ class Compiler:
         self.__emit(jumpAddress)
 
         self.__modify_opcode(jumpIfFalseAddress, len(self.__cur_chunk().opCodes)-1)
+
+        self.__exit_scope()
 
     def __compile_return_stmt(self, stmt: ReturnStmt) -> None:
         if stmt.expr != None:
