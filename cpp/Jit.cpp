@@ -86,19 +86,19 @@ Jit::~Jit()
 void Jit::CreateSetGlobalVariablesFunction()
 {
     {
-        m_Module->setModuleIdentifier(m_SetGlobalVariablesFnStr);
-        m_Module->setSourceFileName(m_SetGlobalVariablesFnStr);
+        m_Module->setModuleIdentifier(setGlobalVariablesFnStr);
+        m_Module->setSourceFileName(setGlobalVariablesFnStr);
     }
 
-    m_Module->getOrInsertGlobal(m_GlobalVariablesStr, m_ValuePtrType);
-    auto globalVariable = m_Module->getNamedGlobal(m_GlobalVariablesStr);
+    m_Module->getOrInsertGlobal(globalVariablesStr, m_ValuePtrType);
+    auto globalVariable = m_Module->getNamedGlobal(globalVariablesStr);
     globalVariable->setInitializer(llvm::ConstantPointerNull::get(m_ValuePtrType));
     globalVariable->setAlignment(llvm::MaybeAlign(8));
     globalVariable->setDSOLocal(true);
 
     llvm::FunctionType *fnType = llvm::FunctionType::get(m_VoidType, { m_ValuePtrType }, false);
-    llvm::Function *fn = llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, m_SetGlobalVariablesFnStr, m_Module.get());
-    llvm::BasicBlock *codeBlock = llvm::BasicBlock::Create(*m_Context, m_SetGlobalVariablesFnStr + ".entry", fn);
+    llvm::Function *fn = llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, setGlobalVariablesFnStr, m_Module.get());
+    llvm::BasicBlock *codeBlock = llvm::BasicBlock::Create(*m_Context, "", fn);
     m_Builder->SetInsertPoint(codeBlock);
     auto tmpAlloc = m_Builder->CreateAlloca(m_ValuePtrType);
     m_Builder->CreateStore(fn->getArg(0), tmpAlloc);
@@ -115,8 +115,8 @@ void Jit::CreateSetGlobalVariablesFunction()
 
 void Jit::CreateGlobalVariablesDecl()
 {
-    m_Module->getOrInsertGlobal(m_GlobalVariablesStr, m_ValuePtrType);
-    auto globalVariable = m_Module->getNamedGlobal(m_GlobalVariablesStr);
+    m_Module->getOrInsertGlobal(globalVariablesStr, m_ValuePtrType);
+    auto globalVariable = m_Module->getNamedGlobal(globalVariablesStr);
     globalVariable->setLinkage(llvm::GlobalVariable::ExternalLinkage);
     globalVariable->setAlignment(llvm::MaybeAlign(8));
 }
@@ -125,37 +125,24 @@ void Jit::ResetStatus()
 {
     m_BuiltinFnCache.clear();
 
-    m_LocalVariable.clear();
-
     m_StackTop = m_ValueStack;
 }
 
-llvm::Function* Jit::Compile(const CallFrame& frame, const std::string &fnName)
+llvm::Function *Jit::Compile(const CallFrame &frame, const std::string &fnName)
 {
-    ResetStatus();
-
-    m_Module->setSourceFileName(fnName);
-    m_Module->setModuleIdentifier(fnName);
-
-    CreateGlobalVariablesDecl();
-
-    enum class State
     {
-        IF_CONDITION,
-        IF_BODY,
-        IF_ELSE,
-        IF_END,
-        WHILE_CONDITION,
-        WHILE_BODY,
-        WHILE_END
-    };
+        m_Module->setSourceFileName(fnName);
+        m_Module->setModuleIdentifier(fnName);
 
-    State state = State::IF_CONDITION;
+        CreateGlobalVariablesDecl();
+    }
 
-    auto fnObj=frame.fn;
+    std::map<std::string, llvm::AllocaInst *> localVariables;
+
+    BranchState branchState = BranchState::IF_CONDITION;
 
     std::vector<llvm::Type *> paramTypes;
-    for (Value *slot = frame.slot; slot < frame.slot + fnObj->parameterCount; ++slot)
+    for (Value *slot = frame.slot; slot < frame.slot + frame.fn->parameterCount; ++slot)
     {
         if (IS_NUM_VALUE(*slot))
             paramTypes.push_back(m_DoubleType);
@@ -166,17 +153,17 @@ llvm::Function* Jit::Compile(const CallFrame& frame, const std::string &fnName)
     }
 
     llvm::FunctionType *fnType = nullptr;
-    if (fnObj->probableReturnTypeSet->IsNone())
+    if (frame.fn->probableReturnTypeSet->IsNone())
         fnType = llvm::FunctionType::get(m_VoidType, paramTypes, false);
-    else if (fnObj->probableReturnTypeSet->IsOnly(ValueType::NUM))
+    else if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::NUM))
         fnType = llvm::FunctionType::get(m_DoubleType, paramTypes, false);
-    else if (fnObj->probableReturnTypeSet->IsOnly(ValueType::NIL))
+    else if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::NIL))
         fnType = llvm::FunctionType::get(m_BoolPtrType, paramTypes, false);
-    else if (fnObj->probableReturnTypeSet->IsOnly(ValueType::BOOL))
+    else if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::BOOL))
         fnType = llvm::FunctionType::get(m_BoolType, paramTypes, false);
-    else if (fnObj->probableReturnTypeSet->IsOnly(ObjectType::STR))
+    else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::STR))
         fnType = llvm::FunctionType::get(m_ValuePtrType, paramTypes, false);
-    else if (fnObj->probableReturnTypeSet->IsOnly(ObjectType::ARRAY))
+    else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::ARRAY))
         fnType = llvm::FunctionType::get(m_ArrayObjectPtrType, paramTypes, false);
     else
         ERROR("Unknown return type");
@@ -186,11 +173,11 @@ llvm::Function* Jit::Compile(const CallFrame& frame, const std::string &fnName)
     for (auto i = 0; i < paramTypes.size(); ++i)
         fn->addParamAttr(i, llvm::Attribute::NoUndef);
 
-    llvm::BasicBlock *codeBlock = llvm::BasicBlock::Create(*m_Context,"", fn);
+    llvm::BasicBlock *codeBlock = llvm::BasicBlock::Create(*m_Context, "", fn);
     m_Builder->SetInsertPoint(codeBlock);
 
-    auto ip = fnObj->chunk.opCodes.data();
-    while ((ip - fnObj->chunk.opCodes.data()) < fnObj->chunk.opCodes.size())
+    auto ip = frame.fn->chunk.opCodes.data();
+    while ((ip - frame.fn->chunk.opCodes.data()) < frame.fn->chunk.opCodes.size())
     {
         int32_t instruction = *ip++;
         switch (instruction)
@@ -198,7 +185,7 @@ llvm::Function* Jit::Compile(const CallFrame& frame, const std::string &fnName)
         case OP_CONSTANT:
         {
             auto idx = *ip++;
-            auto value = fnObj->chunk.constants[idx];
+            auto value = frame.fn->chunk.constants[idx];
 
             if (IS_FUNCTION_VALUE(value))
             {
@@ -206,8 +193,8 @@ llvm::Function* Jit::Compile(const CallFrame& frame, const std::string &fnName)
                 ERROR("Not support jit compile for:%s", fnName.c_str());
             }
             else
-            { 
-                auto llvmValue = GetLlvmValueFrom(value);
+            {
+                auto llvmValue = CreateLlvmValue(value);
                 if (!llvmValue)
                     ERROR("Unsupported value type:%d", value.type);
 
@@ -529,6 +516,58 @@ llvm::Function* Jit::Compile(const CallFrame& frame, const std::string &fnName)
         }
         case OP_SET_INDEX:
         {
+            auto index = Pop().GetLlvmValue();
+            auto ds = Pop().GetLlvmValue();
+            auto v = Pop().GetLlvmValue();
+
+            bool isSatis = false;
+
+            if (ds->getType()->isPointerTy())
+            {
+                auto elementType = static_cast<llvm::PointerType *>(ds->getType())->getElementType();
+                if (elementType->isArrayTy())
+                {
+                    if (index->getType() == m_DoubleType)
+                    {
+                        isSatis = true;
+                        auto iIndex = m_Builder->CreateFPToSI(index, m_Int64Type);
+
+                        llvm::Value *memberAddr = m_Builder->CreateInBoundsGEP(elementType, ds, { m_Builder->getInt32(0), iIndex });
+                        m_Builder->CreateStore(v, memberAddr);
+
+                    }
+                }
+                else if (elementType == m_ValueType)
+                {
+                    auto objMemberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, ds, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
+                    auto arrayObjMemberAddr = m_Builder->CreateBitCast(objMemberAddr, m_ObjectPtrPtrType);
+                    arrayObjMemberAddr = m_Builder->CreateLoad(m_ObjectPtrType,arrayObjMemberAddr);
+                    arrayObjMemberAddr=m_Builder->CreateBitCast(arrayObjMemberAddr,m_ArrayObjectPtrType);
+
+                    auto array = m_Builder->CreateInBoundsGEP(m_ArrayObjectType, arrayObjMemberAddr, { m_Builder->getInt32(0),  m_Builder->getInt32(1) }); 
+                    auto arrayElements = m_Builder->CreateLoad(m_ValuePtrType, array);
+
+                    if (index->getType() == m_DoubleType)
+                    {
+                        isSatis = true;
+                        auto iIndex = m_Builder->CreateFPToSI(index, m_Int64Type);
+
+                        llvm::Value *memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, arrayElements, iIndex);
+
+                        if(v->getType()!=m_ValueType||v->getType()!=m_ValuePtrType)
+                            v=CreateLlvmValue(v);    
+
+                        auto castV = m_Builder->CreateBitCast(v, m_Int8PtrType);
+                        auto castMemberAddr = m_Builder->CreateBitCast(memberAddr, m_Int8PtrType);
+
+                        m_Builder->CreateMemCpy(castMemberAddr, llvm::MaybeAlign(sizeof(Value)), castV, llvm::MaybeAlign(sizeof(Value)), m_Builder->getInt64(sizeof(Value)));
+
+                    }
+                }
+            }
+
+            if (!isSatis)
+                ERROR("Invalid index op: %s[%s]", GetTypeName(ds->getType()).c_str(), GetTypeName(index->getType()).c_str());
             break;
         }
         case OP_JUMP_START:
@@ -536,7 +575,7 @@ llvm::Function* Jit::Compile(const CallFrame& frame, const std::string &fnName)
             auto mode = *ip++;
 
             auto fn = m_Builder->GetInsertBlock()->getParent();
-            auto curAddress = ip - fnObj->chunk.opCodes.data();
+            auto curAddress = ip - frame.fn->chunk.opCodes.data();
             JumpInstrSet instrSet;
 
             if (mode == JumpMode::IF)
@@ -551,7 +590,7 @@ llvm::Function* Jit::Compile(const CallFrame& frame, const std::string &fnName)
                 m_Builder->CreateBr(instrSet.conditionBranch);
 
                 m_Builder->SetInsertPoint(instrSet.conditionBranch);
-                state = State::IF_CONDITION;
+                branchState = BranchState::IF_CONDITION;
             }
             else
             {
@@ -564,7 +603,7 @@ llvm::Function* Jit::Compile(const CallFrame& frame, const std::string &fnName)
                 m_Builder->CreateBr(instrSet.conditionBranch);
 
                 m_Builder->SetInsertPoint(instrSet.conditionBranch);
-                state = State::WHILE_CONDITION;
+                branchState = BranchState::WHILE_CONDITION;
             }
             break;
         }
@@ -581,14 +620,14 @@ llvm::Function* Jit::Compile(const CallFrame& frame, const std::string &fnName)
                 m_Builder->CreateCondBr(conditionValue, instrSet.bodyBranch, instrSet.elseBranch);
 
                 m_Builder->SetInsertPoint(instrSet.bodyBranch);
-                state = State::IF_BODY;
+                branchState = BranchState::IF_BODY;
             }
             else
             {
                 m_Builder->CreateCondBr(conditionValue, instrSet.bodyBranch, instrSet.endBranch);
 
                 m_Builder->SetInsertPoint(instrSet.bodyBranch);
-                state = State::WHILE_BODY;
+                branchState = BranchState::WHILE_BODY;
             }
             break;
         }
@@ -607,11 +646,11 @@ llvm::Function* Jit::Compile(const CallFrame& frame, const std::string &fnName)
 
             if (mode == JumpMode::IF)
             {
-                if (state == State::IF_BODY)
+                if (branchState == BranchState::IF_BODY)
                     m_Builder->CreateBr(instrSet.endBranch);
 
                 m_Builder->SetInsertPoint(instrSet.elseBranch);
-                state = State::IF_ELSE;
+                branchState = BranchState::IF_ELSE;
             }
             else
             {
@@ -619,7 +658,7 @@ llvm::Function* Jit::Compile(const CallFrame& frame, const std::string &fnName)
 
                 m_Builder->CreateBr(instrSet.conditionBranch);
                 m_Builder->SetInsertPoint(instrSet.endBranch);
-                state = State::WHILE_END;
+                branchState = BranchState::WHILE_END;
             }
 
             break;
@@ -634,11 +673,11 @@ llvm::Function* Jit::Compile(const CallFrame& frame, const std::string &fnName)
                 fn->getBasicBlockList().push_back(br.endBranch);
             }
 
-            if (state == State::IF_ELSE)
+            if (branchState == BranchState::IF_ELSE)
                 m_Builder->CreateBr(br.endBranch); // create jump br for else branch;
 
             m_Builder->SetInsertPoint(br.endBranch);
-            state = State::IF_END;
+            branchState = BranchState::IF_END;
 
             {
                 auto offset = m_JumpInstrSetTable.size() - 1;
@@ -667,7 +706,7 @@ llvm::Function* Jit::Compile(const CallFrame& frame, const std::string &fnName)
             auto index = *ip++;
             auto v = Pop().GetLlvmValue();
 
-            auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(m_GlobalVariablesStr));
+            auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(globalVariablesStr));
             auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
 
             if (v->getType() != m_ValueType)
@@ -684,21 +723,19 @@ llvm::Function* Jit::Compile(const CallFrame& frame, const std::string &fnName)
         {
             auto index = *ip++;
 
-            auto vmStored = *Allocator::GetInstance()->GetGlobalVariableRef(index);
-            if (IS_FUNCTION_VALUE(vmStored))
-                Push(vmStored);
-            else 
+            auto vmGlobal = *GET_GLOBAL_VARIABLE_REF(index);
+            if (IS_FUNCTION_VALUE(vmGlobal))
+                Push(vmGlobal);
+            else
             {
-                auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(m_GlobalVariablesStr));
+                auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(globalVariablesStr));
                 auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
 
                 if (globalVar && globalVar->getType()->isPointerTy())
                 {
                     auto ptrType = static_cast<llvm::PointerType *>(globalVar->getType());
                     if (ptrType->getElementType() == m_ValueType)
-                    {
                         Push(globalVar);
-                    }
                     else
                     {
                         auto v = m_Builder->CreateLoad(ptrType->getElementType(), globalVar);
@@ -719,13 +756,13 @@ llvm::Function* Jit::Compile(const CallFrame& frame, const std::string &fnName)
 
             auto name = "localVar_" + std::to_string(scopeDepth) + "_" + std::to_string(index) + "_" + std::to_string(isUpValue);
 
-            auto iter = m_LocalVariable.find(name);
-            if (iter == m_LocalVariable.end())
+            auto iter = localVariables.find(name);
+            if (iter == localVariables.end())
             {
                 auto alloc = m_Builder->CreateAlloca(value->getType());
                 m_Builder->CreateStore(value, alloc);
 
-                m_LocalVariable[name] = alloc;
+                localVariables[name] = alloc;
             }
             else
                 m_Builder->CreateStore(value, iter->second);
@@ -740,11 +777,11 @@ llvm::Function* Jit::Compile(const CallFrame& frame, const std::string &fnName)
 
             auto name = "localVar_" + std::to_string(scopeDepth) + "_" + std::to_string(index) + "_" + std::to_string(isUpValue);
 
-            auto iter = m_LocalVariable.find(name);
-            if (iter == m_LocalVariable.end())// create from function argumenet
+            auto iter = localVariables.find(name);
+            if (iter == localVariables.end())// create from function argumenet
             {
                 auto parentFn = m_Builder->GetInsertBlock()->getParent();
-                if (isUpValue==0 && index < parentFn->arg_size()) // load from function arguments
+                if (isUpValue == 0 && index < parentFn->arg_size()) // load from function arguments
                 {
                     auto arg = parentFn->getArg(index);
 
@@ -752,7 +789,7 @@ llvm::Function* Jit::Compile(const CallFrame& frame, const std::string &fnName)
 
                     m_Builder->CreateStore(arg, alloc);
 
-                    m_LocalVariable[name] = alloc;
+                    localVariables[name] = alloc;
 
                     auto load = m_Builder->CreateLoad(alloc->getAllocatedType(), alloc);
 
@@ -762,18 +799,18 @@ llvm::Function* Jit::Compile(const CallFrame& frame, const std::string &fnName)
                 {
                     Value *slot = nullptr;
                     if (isUpValue)
-                        slot = Allocator::GetInstance()->PeekCallFrameFromFront(scopeDepth)->slot + index;
+                        slot = PEEK_CALL_FRAME_FROM_FRONT(scopeDepth)->slot+index;
                     else
-                        slot = Allocator::GetInstance()->PeekCallFrameFromBack(scopeDepth)->slot + index;
+                        slot = PEEK_CALL_FRAME_FROM_BACK(scopeDepth)->slot + index;
 
-                    auto constant = GetLlvmValueFrom(*slot);
+                    auto constant = CreateLlvmValue(*slot);
                     if (!constant)
                         ERROR("Unsupported value type:%d", slot->type);
 
                     auto alloc = m_Builder->CreateAlloca(constant->getType());
                     m_Builder->CreateStore(constant, alloc);
 
-                    m_LocalVariable[name] = alloc;
+                    localVariables[name] = alloc;
 
                     auto load = m_Builder->CreateLoad(alloc->getAllocatedType(), alloc);
 
@@ -833,7 +870,7 @@ llvm::Function* Jit::Compile(const CallFrame& frame, const std::string &fnName)
 
                     auto result = m_Builder->CreateAlloca(m_ValueType, nullptr);
 
-                    auto callInst = AddBuiltinFnOrCallParamAttributes(m_Builder->CreateCall(fn, { arg0MemberAddr, arg1, result }));
+                    auto callInst = m_Builder->CreateCall(fn, { arg0MemberAddr, arg1, result });
 
                     Push(result);
                 }
@@ -872,15 +909,15 @@ llvm::Function* Jit::Compile(const CallFrame& frame, const std::string &fnName)
         case OP_GET_BUILTIN:
         {
             auto idx = *ip++;
-            auto value = fnObj->chunk.constants[idx];
+            auto value = frame.fn->chunk.constants[idx];
             auto name = TO_STR_VALUE(value)->value;
-            std::string namrStr = name;
+            std::string nameStr = name;
             auto iter = m_BuiltinFnCache.find(name);
 
             llvm::Function *fn = nullptr;
             if (iter == m_BuiltinFnCache.end())
             {
-                fn = AddBuiltinFnOrCallParamAttributes(llvm::Function::Create(m_BuiltinFunctionType, llvm::Function::ExternalLinkage, BUILTIN_FN_PREFIX_STR + namrStr, m_Module.get()));
+                fn = llvm::Function::Create(m_BuiltinFunctionType, llvm::Function::ExternalLinkage, BUILTIN_FN_PREFIX_STR + nameStr, m_Module.get());
                 m_BuiltinFnCache[name] = fn;
             }
             else
@@ -1033,11 +1070,12 @@ llvm::Value *Jit::CreateLlvmValue(llvm::Value *v)
         vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::NIL));
         storedV = llvm::ConstantFP::get(m_DoubleType, 0.0);
     }
-    else if (v->getType() == m_ObjectPtrType)
+    else if (v->getType() == m_ObjectPtrType || v->getType() == m_ArrayObjectPtrType)
     {
         vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::OBJECT));
         type = m_ObjectPtrPtrType;
-        storedV = v;
+        auto castV = m_Builder->CreateBitCast(v, m_ObjectPtrType);
+        storedV = castV;
     }
     else if (v->getType()->isPointerTy())
     {
@@ -1072,30 +1110,7 @@ llvm::Value *Jit::CreateLlvmValue(llvm::Value *v)
     return alloc;
 }
 
-void Jit::Push(llvm::Value *v)
-{
-    *m_StackTop++ = v;
-}
-
-void Jit::Push(const Value &v)
-{
-    *m_StackTop++ = v;
-}
-
-Jit::StackValue Jit::Pop()
-{
-    return *(--m_StackTop);
-}
-
-std::string Jit::GetTypeName(llvm::Type *type)
-{
-    std::string str;
-    llvm::raw_string_ostream typeStream(str);
-    type->print(typeStream);
-    return str;
-}
-
-llvm::Value *Jit::GetLlvmValueFrom(const Value &value)
+llvm::Value *Jit::CreateLlvmValue(const Value &value)
 {
     if (IS_NUM_VALUE(value))
     {
@@ -1133,4 +1148,27 @@ llvm::Value *Jit::GetLlvmValueFrom(const Value &value)
     }*/
     else
         return nullptr;
+}
+
+void Jit::Push(llvm::Value *v)
+{
+    *m_StackTop++ = v;
+}
+
+void Jit::Push(const Value &v)
+{
+    *m_StackTop++ = v;
+}
+
+Jit::StackValue Jit::Pop()
+{
+    return *(--m_StackTop);
+}
+
+std::string Jit::GetTypeName(llvm::Type *type)
+{
+    std::string str;
+    llvm::raw_string_ostream typeStream(str);
+    type->print(typeStream);
+    return str;
 }
