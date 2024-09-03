@@ -150,6 +150,8 @@ llvm::Function *Jit::Compile(const CallFrame &frame, const std::string &fnName)
             paramTypes.push_back(m_Int8PtrType);
         else if (IS_ARRAY_VALUE(*slot))
             paramTypes.push_back(m_ArrayObjectPtrType);
+        else if (IS_REF_VALUE(*slot))
+            paramTypes.push_back(m_RefObjectPtrType);
     }
 
     llvm::FunctionType *fnType = nullptr;
@@ -165,6 +167,8 @@ llvm::Function *Jit::Compile(const CallFrame &frame, const std::string &fnName)
         fnType = llvm::FunctionType::get(m_ValuePtrType, paramTypes, false);
     else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::ARRAY))
         fnType = llvm::FunctionType::get(m_ArrayObjectPtrType, paramTypes, false);
+    else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::REF))
+        fnType = llvm::FunctionType::get(m_RefObjectPtrType, paramTypes, false);
     else
         ERROR("Unknown return type");
 
@@ -928,30 +932,43 @@ llvm::Function *Jit::Compile(const CallFrame &frame, const std::string &fnName)
         }
         case OP_STRUCT:
         {
+            ERROR("Not finished yet,tag it as error");
             break;
         }
         case OP_GET_STRUCT:
         {
+            ERROR("Not finished yet,tag it as error");
             break;
         }
         case OP_SET_STRUCT:
         {
+            ERROR("Not finished yet,tag it as error");
             break;
         }
         case OP_REF_GLOBAL:
         {
+            auto index = *ip++;
+
+            auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(globalVariablesStr));
+            auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
+
+            auto alloc=m_Builder->CreateCall(m_Module->getFunction("CreateRefObject"),{globalVar});
+            Push(alloc);
             break;
         }
         case OP_REF_LOCAL:
         {
+            ERROR("Not finished yet,tag it as error");
             break;
         }
         case OP_REF_INDEX_GLOBAL:
         {
+            ERROR("Not finished yet,tag it as error");
             break;
         }
         case OP_REF_INDEX_LOCAL:
         {
+            ERROR("Not finished yet,tag it as error");
             break;
         }
         case OP_SP_OFFSET:
@@ -1028,6 +1045,9 @@ void Jit::InitModuleAndPassManager()
         m_ArrayObjectType = llvm::StructType::create(*m_Context, { m_ObjectType, m_ValuePtrType, m_Int32Type }, "struct.ArrayObject");
         m_ArrayObjectPtrType = llvm::PointerType::get(m_ArrayObjectType, 0);
 
+        m_RefObjectType=llvm::StructType::create(*m_Context,{m_ValuePtrType},"struct.RefObject");
+        m_RefObjectPtrType = llvm::PointerType::get(m_RefObjectType, 0);
+
         m_BuiltinFunctionType = llvm::FunctionType::get(m_BoolType, { m_ValuePtrType, m_Int8Type, m_ValuePtrType }, false);
     }
 
@@ -1042,6 +1062,9 @@ void Jit::InitModuleAndPassManager()
 
     llvm::FunctionType *createArrayObjectFnType = llvm::FunctionType::get(m_ArrayObjectPtrType, { m_ValuePtrType,m_Int32Type }, false);
     m_Module->getOrInsertFunction("CreateArrayObject", createArrayObjectFnType);
+
+    llvm::FunctionType *createRefObjectFnType = llvm::FunctionType::get(m_RefObjectPtrType, { m_ValuePtrType }, false);
+    m_Module->getOrInsertFunction("CreateRefObject", createRefObjectFnType);
 
 }
 
@@ -1133,19 +1156,6 @@ llvm::Value *Jit::CreateLlvmValue(const Value &value)
         llvm::Value *chars = m_Builder->CreateGlobalString(str);
         return chars;
     }
-    /*else if (IS_FUNCTION_VALUE(value))
-    {
-        auto parenetFn = m_Builder->GetInsertBlock()->getParent();
-
-        auto newFnObj = TO_FUNCTION_VALUE(value);
-
-        auto newFnName = "function_" + newFnObj->uuid + "_" + std::to_string(paramTypeHash);
-
-        auto newFn = Compile(newFnObj, "fn." + std::to_string(idx));
-
-        auto block = &parenetFn->getBasicBlockList().back();
-        m_Builder->SetInsertPoint(block);
-    }*/
     else
         return nullptr;
 }

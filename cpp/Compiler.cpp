@@ -121,6 +121,8 @@ void Compiler::CompileScopeStmt(ScopeStmt *stmt)
 
 void Compiler::CompileWhileStmt(WhileStmt *stmt)
 {
+    EnterScope();
+
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     Emit(OP_JUMP_START);
     Emit(JumpMode::WHILE);
@@ -144,6 +146,8 @@ void Compiler::CompileWhileStmt(WhileStmt *stmt)
 #endif
 
     ModifyOpCode(jumpIfFalseAddress, (int16_t)CurChunk().opCodes.size());
+
+    ExitScope();
 }
 
 void Compiler::CompileReturnStmt(ReturnStmt *stmt)
