@@ -41,6 +41,9 @@ class COMPUTE_DUCK_API Allocator
 public:
     static Allocator *GetInstance();
 
+    void Init();
+    void Destroy();
+
     void ResetStack();
     void ResetFrame();
 
@@ -76,24 +79,22 @@ public:
     void StackTopJump(size_t slotCount);
 
     Value *GetGlobalVariableRef(size_t index);
-
-    void FreeAllObjects();
 private:
-    Allocator();
-    ~Allocator();
+    Allocator() =default;
+    ~Allocator() =default;
 
     void DeleteObject(Object *object);
     void Gc(bool isExitingVM = false);
 
     Value m_GlobalVariables[STACK_MAX];
 
-    Value *m_StackTop;
-    Value m_ValueStack[STACK_MAX];
+    Value *m_StackTop{nullptr};
+    Value m_ValueStack[STACK_MAX]{};
 
-    CallFrame *m_CallFrameTop;
-    CallFrame m_CallFrameStack[STACK_MAX];
+    CallFrame *m_CallFrameTop{nullptr};
+    CallFrame m_CallFrameStack[STACK_MAX]{};
 
-    Object *m_FirstObject;
+    Object *m_FirstObject{nullptr};
     int m_CurObjCount;
     int m_MaxObjCount;
 };
@@ -104,7 +105,7 @@ private:
 #define POP() (Allocator::GetInstance()->Pop())
 
 #define PUSH_CALL_FRAME(x) (Allocator::GetInstance()->PushCallFrame(x))
-#define POP_CALL_FRAME(x) (Allocator::GetInstance()->PopCallFrame())
+#define POP_CALL_FRAME() (Allocator::GetInstance()->PopCallFrame())
 #define PEEK_CALL_FRAME_FROM_FRONT(x) (Allocator::GetInstance()->PeekCallFrameFromFront(x))
 #define PEEK_CALL_FRAME_FROM_BACK(x) (Allocator::GetInstance()->PeekCallFrameFromBack(x))
 

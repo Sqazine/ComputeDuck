@@ -31,12 +31,6 @@
 constexpr uint32_t STACK_MAX = 512;
 constexpr uint32_t JIT_TRIGGER_COUNT = 2;
 
-enum class RWState
-{
-    READ,
-    WRITE,
-};
-
 enum JumpMode
 {
     IF = 0,
@@ -74,6 +68,7 @@ enum JumpMode
     } while (false);
 
 COMPUTE_DUCK_API std::string ReadFile(std::string_view path);
+COMPUTE_DUCK_API void WriteFile(std::string_view path,std::string_view content);
 
 COMPUTE_DUCK_API std::string PointerAddressToString(void *pointer);
 

@@ -73,8 +73,9 @@ class VM:
                     return
 
                 self.__stackTop = callFrame.slot-1
-
-                self.__push(object)
+                
+                if returnCount == 1:
+                    self.__push(object)
 
             elif instruction == OpCode.OP_CONSTANT:
                 idx = frame.fn.chunk.opCodes[frame.ip]

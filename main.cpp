@@ -42,7 +42,9 @@ void Run(std::string_view content)
 	auto fn = g_Compiler->Compile(stmts);
 
 #ifndef NDEBUG
-    std::cout << ObjectStringify(fn, true) << std::endl;
+	auto str=ObjectStringify(fn, true);
+    std::cout << str << std::endl;
+	WriteFile(Config::GetInstance()->GetExecuteFilePath()+"TmpDump.txt",str);
 #endif
 
 	for (auto stmt : stmts)
@@ -122,6 +124,8 @@ int32_t main(int argc, const char **argv)
 			return PrintUsage();
 	}
 
+	Allocator::GetInstance()->Init();
+
 	g_PreProcessor = new PreProcessor();
 	g_Parser = new Parser();
 	g_Compiler = new Compiler();
@@ -136,6 +140,8 @@ int32_t main(int argc, const char **argv)
 	SAFE_DELETE(g_Compiler);
 	SAFE_DELETE(g_Parser);
 	SAFE_DELETE(g_PreProcessor);
+
+	Allocator::GetInstance()->Destroy();
 
 	return 0;
 }

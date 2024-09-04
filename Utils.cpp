@@ -25,6 +25,14 @@ std::string ReadFile(std::string_view path)
     return sstream.str();
 }
 
+void WriteFile(std::string_view path,std::string_view content)
+{
+    std::fstream f;
+	f.open(path.data(),std::ios::out);
+	f<<content;
+	f.close();
+}
+
 std::string PointerAddressToString(void *pointer)
 {
     std::stringstream sstr;

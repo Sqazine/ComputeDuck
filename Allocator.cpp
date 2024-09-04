@@ -10,23 +10,27 @@ extern "C" COMPUTE_DUCK_API ArrayObject *CreateArrayObject(Value *elements, uint
     return Allocator::GetInstance()->CreateObject<ArrayObject>(elements, size);
 }
 
-extern "C" COMPUTE_DUCK_API RefObject *CreateRefObject(Value * pointer)
+extern "C" COMPUTE_DUCK_API RefObject *CreateRefObject(Value *pointer)
 {
     return Allocator::GetInstance()->CreateObject<RefObject>(pointer);
 }
 
-Allocator::Allocator()
+void Allocator::Init()
 {
     m_FirstObject = nullptr;
     m_CurObjCount = 0;
     m_MaxObjCount = STACK_MAX;
 
+    memset(m_ValueStack, 0, sizeof(Value) * STACK_MAX);
+    memset(m_CallFrameStack, 0, sizeof(CallFrame) * STACK_MAX);
+
     ResetStack();
     ResetFrame();
 }
 
-Allocator::~Allocator()
+void Allocator::Destroy()
 {
+    Gc(true);
 }
 
 Allocator *Allocator::GetInstance()
@@ -47,13 +51,18 @@ void Allocator::ResetFrame()
 
 void Allocator::Push(const Value &value)
 {
+#ifndef NDEBUG
+    if (m_StackTop - m_ValueStack >= STACK_MAX)
+        ASSERT("Stack Overflow");
+#endif
     *m_StackTop++ = value;
 }
 
 Value Allocator::Pop()
 {
 #ifndef NDEBUG
-    *m_StackTop=Value();
+    if (m_StackTop - m_ValueStack < 0)
+        ASSERT("Stack Overflow");
 #endif
     return *(--m_StackTop);
 }
@@ -106,11 +115,6 @@ void Allocator::StackTopJump(size_t slotCount)
 Value *Allocator::GetGlobalVariableRef(size_t index)
 {
     return &m_GlobalVariables[index];
-}
-
-void Allocator::FreeAllObjects()
-{
-    Gc(true);
 }
 
 void Allocator::Gc(bool isExitingVM)
@@ -204,6 +208,5 @@ void Allocator::DeleteObject(Object *object)
     }
     default:
         return;
-
     }
 }

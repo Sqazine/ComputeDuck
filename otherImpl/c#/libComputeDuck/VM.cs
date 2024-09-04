@@ -61,7 +61,7 @@ namespace ComputeDuck
             ResetStatus();
 
             var mainCallFrame = new CallFrame(mainFn, m_StackTop);
-            
+
             PushCallFrame(mainCallFrame);
 
             Execute();
@@ -93,7 +93,8 @@ namespace ComputeDuck
 
                             m_StackTop = callFrame.slot - 1;
 
-                            Push(obj);
+                            if (returnCounnt == 1)
+                                Push(obj);
                             break;
                         }
                     case (int)OpCode.OP_CONSTANT:
@@ -120,8 +121,8 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_SUB:
                         {
-                            var left =FindActualObject(Pop());
-                            var right =FindActualObject(Pop());
+                            var left = FindActualObject(Pop());
+                            var right = FindActualObject(Pop());
 
                             if (left.type == ObjectType.NUM && right.type == ObjectType.NUM)
                                 Push(new NumObject(((NumObject)left).value - ((NumObject)right).value));
@@ -270,7 +271,7 @@ namespace ComputeDuck
                         {
                             var numElements = frame.fn.chunk.opCodes[frame.ip++];
                             List<Object> elements = new List<Object>(m_ObjectStack[(m_StackTop - numElements)..m_StackTop]);
-                            
+
                             m_StackTop -= numElements;
 
                             var array = new ArrayObject(elements);
@@ -376,11 +377,11 @@ namespace ComputeDuck
                             }
                             else if (obj.type == ObjectType.BUILTIN)
                             {
-                                var args = new List<Object>(m_ObjectStack[(m_StackTop-argCount)..m_StackTop]);
-                               
+                                var args = new List<Object>(m_ObjectStack[(m_StackTop - argCount)..m_StackTop]);
+
                                 m_StackTop -= (argCount + 1);
 
-                                var (hasReturnValue,returnValue) = ((BuiltinObject)obj).GetBuiltinFn()(args);
+                                var (hasReturnValue, returnValue) = ((BuiltinObject)obj).GetBuiltinFn()(args);
 
                                 if (hasReturnValue)
                                     Push(returnValue);
@@ -433,10 +434,10 @@ namespace ComputeDuck
                             var isUpValue = frame.fn.chunk.opCodes[frame.ip++];
 
                             int slot;
-                            if(isUpValue == 1)
-                                slot=PeekCallFrameFromFront(scopeDepth).slot + index;
+                            if (isUpValue == 1)
+                                slot = PeekCallFrameFromFront(scopeDepth).slot + index;
                             else
-                                slot=PeekCallFrameFromBack(scopeDepth).slot + index;
+                                slot = PeekCallFrameFromBack(scopeDepth).slot + index;
 
                             Push(m_ObjectStack[slot]);
                             break;
@@ -521,10 +522,10 @@ namespace ComputeDuck
                             var isUpValue = frame.fn.chunk.opCodes[frame.ip++];
 
                             int slot;
-                            if(isUpValue==1)
-                                slot=  PeekCallFrameFromFront(scopeDepth).slot + index;
+                            if (isUpValue == 1)
+                                slot = PeekCallFrameFromFront(scopeDepth).slot + index;
                             else
-                                slot=PeekCallFrameFromBack(scopeDepth).slot + index;
+                                slot = PeekCallFrameFromBack(scopeDepth).slot + index;
 
                             Push(new RefObject(m_ObjectStack[slot].GetAddress()));
 
@@ -559,7 +560,7 @@ namespace ComputeDuck
                             var idxValue = Pop();
 
                             int slot;
-                            if(isUpValue==1) 
+                            if (isUpValue == 1)
                                 slot = PeekCallFrameFromFront(scopeDepth).slot + index;
                             else
                                 slot = PeekCallFrameFromBack(scopeDepth).slot + index;
@@ -628,7 +629,7 @@ namespace ComputeDuck
             var actual = obj;
             while (actual.type == ObjectType.REF)
                 actual = SearchObjectByAddress(((RefObject)actual).pointer);
-           
+
             if (actual.type == ObjectType.BUILTIN && ((BuiltinObject)actual).IsBuiltinVar())
                 actual = ((BuiltinObject)actual).GetBuiltinVar();
 
