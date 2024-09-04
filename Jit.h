@@ -39,8 +39,11 @@
 #include "Object.h"
 #include "Allocator.h"
 
-constexpr const char *globalVariablesStr = "m_GlobalVariables";
-constexpr const char *setGlobalVariablesFnStr = "function_SetGlobalVariables";
+constexpr const char *g_GlobalVariablesStr = "m_GlobalVariables";
+constexpr const char *g_SetGlobalVariablesFnStr = "function_SetGlobalVariables";
+
+constexpr const char *g_StackStr = "m_ValueStack";
+constexpr const char *g_SetStackFnStr = "function_SetValueStack";
 
 class COMPUTE_DUCK_API Jit
 {
@@ -58,10 +61,18 @@ public:
 
         //set global variables
         {
-            auto symbol = m_ExitOnErr(m_Executor->LookUp(setGlobalVariablesFnStr));
+            auto symbol = m_ExitOnErr(m_Executor->LookUp(g_SetGlobalVariablesFnStr));
             using SetGlobalVarFnType = void(*)(Value *);
             SetGlobalVarFnType setGlobalVarFn = reinterpret_cast<SetGlobalVarFnType>(symbol.getAddress());
             setGlobalVarFn(Allocator::GetInstance()->GetGlobalVariableRef(0));
+        }
+
+        // set stack
+        {
+            auto symbol = m_ExitOnErr(m_Executor->LookUp(g_SetStackFnStr));
+            using SetStackFnType = void(*)(Value *);
+            SetStackFnType setStackFn = reinterpret_cast<SetStackFnType>(symbol.getAddress());
+            setStackFn(STACK_TOP());
         }
 
         auto tsm = llvm::orc::ThreadSafeModule(std::move(m_Module), std::move(m_Context));
@@ -166,6 +177,9 @@ private:
 
     void CreateSetGlobalVariablesFunction();
     void CreateGlobalVariablesDecl();
+
+    void CreateSetStackFunction();
+    void CreateStackDecl();
 
     void InitModuleAndPassManager();
 

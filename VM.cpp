@@ -9,14 +9,16 @@ VM::~VM()
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     SAFE_DELETE(m_Jit);
 #endif
-    Allocator::GetInstance()->FreeAllObjects();
 }
 
 void VM::Run(FunctionObject *fn)
 {
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-    SAFE_DELETE(m_Jit);
-    m_Jit = new Jit();
+    if (Config::GetInstance()->IsUseJit())
+    {
+        SAFE_DELETE(m_Jit);
+        m_Jit = new Jit();
+    }
 #endif
 
     Allocator::GetInstance()->ResetStack();
@@ -120,14 +122,14 @@ void VM::Execute()
 
             SET_STACK_TOP(callFrame->slot - 1);
 
-            PUSH(value);
+            if (returnCount == 1)
+                PUSH(value);
             break;
         }
         case OP_CONSTANT:
         {
             auto idx = *frame->ip++;
             auto value = frame->GetFnObject()->chunk.constants[idx];
-
             PUSH(value);
             break;
         }
@@ -314,6 +316,9 @@ void VM::Execute()
             auto index = *frame->ip++;
             auto value = POP();
 
+            if(IS_REF_VALUE(value))//get the actual value
+               value=GetEndOfRefValue(value);
+            
             auto ptr = GET_GLOBAL_VARIABLE_REF(index);
 
             if (IS_REF_VALUE(*ptr)) // if is a reference object,then set the actual value which the reference object points
@@ -374,6 +379,9 @@ void VM::Execute()
             auto index = *frame->ip++;
             auto isUpValue = *frame->ip++;
             auto value = POP();
+
+            if(IS_REF_VALUE(value))
+                 value=GetEndOfRefValue(value);
 
             Value *slot = nullptr;
             if (isUpValue)

@@ -1,213 +1,213 @@
-#getConstant=function()
-#{
-#    return 10;
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    println(getConstant());
-#    i=i+1;
-#}
-#
-#
-#readBuiltin=function()
-#{
-#    println(100);
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    readBuiltin();
-#    i=i+1;
-#}
-#
-#getStrConstant=function()
-#{
-#	return "Test3";
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    println(getStrConstant());
-#    i=i+1;
-#}
-#
-#str="Test4";
-#getGlob=function()
-#{
-#	return str;
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    println(getGlob());
-#    i=i+1;
-#}
-#
-#str2="Test5";
-#globBuiltin=function()
-#{
-#	println(str2);
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#	globBuiltin();
-#    i=i+1;
-#}
-#
-#str3="Test6";
-#setGlob=function()
-#{
-#    str3="Test7";
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#	setGlob();
-#    println(str3);
-#    i=i+1;
-#}
-#
-#arr1=[1];
-#setGlobArr=function()
-#{
-#    arr1=[1,2];
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    println(arr1);
-#	setGlobArr();
-#    i=i+1;
-#}
-#
-#setArr=function()
-#{
-#    return [1,2,3];
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    println(setArr());
-#    i=i+1;
-#}
-#
-#setArr2=function(x)
-#{
-#    return x;
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    println(setArr2([1,2,3,4]));
-#    i=i+1;
-#}
-#
-#lam1=function()
-#{
-#    x=function()
-#    {
-#        return 10;
-#    };
-#    return x();
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    println(lam1());
-#    i=i+1;
-#}
-#
-#
-#lam2=function()
-#{
-#    x=function()
-#    {
-#        return 100;
-#    };
-#    return x;
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    println(lam2()());
-#    i=i+1;
-#}
-#
-#closure=function()
-#{
-#    a=1000;
-#    x=function()
-#    {
-#        return a;
-#    };
-#    return x();
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    println(closure());
-#    i=i+1;
-#}
-#
-#closure2=function()
-#{
-#    a=10;
-#    x=function()
-#    {
-#        a=1000;
-#        return a;
-#    };
-#    return x();
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    println(closure2());
-#    i=i+1;
-#}
-#
-#arrSet=[1,2];
-#setArrElement=function()
-#{
-#    arrSet[0]=100;
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#	setArrElement();
-#    println(arrSet);
-#    i=i+1;
-#}
-#
-#arrSet2=[1,2];
-#setArrElement2=function(v)
-#{
-#    arrSet2[1]=v;
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#	setArrElement2(i);
-#    println(arrSet2);
-#    i=i+1;
-#}
+getConstant=function()
+{
+    return 10;
+};
+
+i=0;
+while(i<100)
+{
+    println(getConstant());
+    i=i+1;
+}
+
+
+readBuiltin=function()
+{
+    println(100);
+};
+
+i=0;
+while(i<100)
+{
+    readBuiltin();
+    i=i+1;
+}
+
+getStrConstant=function()
+{
+	return "Test3";
+};
+
+i=0;
+while(i<100)
+{
+    println(getStrConstant());
+    i=i+1;
+}
+
+str="Test4";
+getGlob=function()
+{
+	return str;
+};
+
+i=0;
+while(i<100)
+{
+    println(getGlob());
+    i=i+1;
+}
+
+str2="Test5";
+globBuiltin=function()
+{
+	println(str2);
+};
+
+i=0;
+while(i<100)
+{
+	globBuiltin();
+    i=i+1;
+}
+
+str3="Test6";
+setGlob=function()
+{
+    str3="Test7";
+};
+
+i=0;
+while(i<100)
+{
+	setGlob();
+    println(str3);
+    i=i+1;
+}
+
+arr1=[1];
+setGlobArr=function()
+{
+    arr1=[1,2];
+};
+
+i=0;
+while(i<100)
+{
+    println(arr1);
+	setGlobArr();
+    i=i+1;
+}
+
+setArr=function()
+{
+    return [1,2,3];
+};
+
+i=0;
+while(i<100)
+{
+    println(setArr());
+    i=i+1;
+}
+
+setArr2=function(x)
+{
+    return x;
+};
+
+i=0;
+while(i<100)
+{
+    println(setArr2([1,2,3,4]));
+    i=i+1;
+}
+
+lam1=function()
+{
+    x=function()
+    {
+        return 10;
+    };
+    return x();
+};
+
+i=0;
+while(i<100)
+{
+    println(lam1());
+    i=i+1;
+}
+
+
+lam2=function()
+{
+    x=function()
+    {
+        return 100;
+    };
+    return x;
+};
+
+i=0;
+while(i<100)
+{
+    println(lam2()());
+    i=i+1;
+}
+
+closure=function()
+{
+    a=1000;
+    x=function()
+    {
+        return a;
+    };
+    return x();
+};
+
+i=0;
+while(i<100)
+{
+    println(closure());
+    i=i+1;
+}
+
+closure2=function()
+{
+    a=10;
+    x=function()
+    {
+        a=1000;
+        return a;
+    };
+    return x();
+};
+
+i=0;
+while(i<100)
+{
+    println(closure2());
+    i=i+1;
+}
+
+arrSet=[1,2];
+setArrElement=function()
+{
+    arrSet[0]=100;
+};
+
+i=0;
+while(i<100)
+{
+	setArrElement();
+    println(arrSet);
+    i=i+1;
+}
+
+arrSet2=[1,2];
+setArrElement2=function(v)
+{
+    arrSet2[1]=v;
+};
+
+i=0;
+while(i<100)
+{
+	setArrElement2(i);
+    println(arrSet2);
+    i=i+1;
+}
 
 a=10;
 setRef=function()
