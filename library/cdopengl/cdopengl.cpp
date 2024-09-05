@@ -7,7 +7,7 @@
 
 extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(gladLoadGL)(Value *args, uint8_t argCount, Value &result)
 {
-    result = Value(gladLoadGL());
+    result = gladLoadGL();
     return true;
 }
 

@@ -9,8 +9,7 @@
 
 extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_Init)(Value *args, uint8_t argCount, Value &result)
 {
-    auto ret = SDL_Init(TO_NUM_VALUE(args[0]));
-    result = Value(ret);
+    result = SDL_Init(TO_NUM_VALUE(args[0]));
     return true;
 }
 
@@ -92,9 +91,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_LoadBMP)(Value *args, uint8_t ar
         { SDL_FreeSurface((SDL_Surface *)nativeData); });
 
     if (surface)
-        result = Value(resultBuiltinData);
-    else
-        result = Value();
+        result = resultBuiltinData;
     return true;
 }
 
@@ -111,7 +108,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_CreateTextureFromSurface)(Value 
     BuiltinObject *resultBuiltin = Allocator::GetInstance()->CreateObject<BuiltinObject>(texture, [](void *nativeData)
         { SDL_DestroyTexture((SDL_Texture *)nativeData); });
 
-    result = Value(resultBuiltin);
+    result = resultBuiltin;
     return true;
 }
 
@@ -133,9 +130,8 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_RenderCopy)(Value *args, uint8_t
     auto renderer = TO_BUILTIN_VALUE(args[0])->Get<NativeData>().As<SDL_Renderer>();
     auto texture = TO_BUILTIN_VALUE(args[1])->Get<NativeData>().As<SDL_Texture>();
 
-    auto ret = SDL_RenderCopy(renderer, texture, nullptr, nullptr);
+   result = SDL_RenderCopy(renderer, texture, nullptr, nullptr);
 
-    result = Value(ret);
     return true;
 }
 

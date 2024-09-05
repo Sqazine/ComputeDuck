@@ -40,9 +40,9 @@ namespace
             ASSERT("[Native function 'sizeof']:Expect a argument.");
 
         if (IS_ARRAY_VALUE(args[0]))
-            result = Value(TO_ARRAY_VALUE(args[0])->len);
+            result = TO_ARRAY_VALUE(args[0])->len;
         else if (IS_STR_VALUE(args[0]))
-            result = Value(TO_STR_VALUE(args[0])->len);
+            result = TO_STR_VALUE(args[0])->len;
         else
             ASSERT("[Native function 'sizeof']:Expect a array or string argument.");
         return true;
@@ -122,7 +122,7 @@ namespace
 
     extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(clock)(Value* args, uint8_t argCount, Value& result)
     {
-        result = Value(clock() / CLOCKS_PER_SEC);
+        result = clock() / CLOCKS_PER_SEC;
         return true;
     }
 }
