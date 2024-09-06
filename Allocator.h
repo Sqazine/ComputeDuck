@@ -79,6 +79,8 @@ public:
     void StackTopJump(size_t slotCount);
 
     Value *GetGlobalVariableRef(size_t index);
+
+    Value* GetLocalVariableSlot(int16_t scopeDepth,int16_t index,bool isUpValue);
 private:
     Allocator() =default;
     ~Allocator() =default;
@@ -106,8 +108,9 @@ private:
 
 #define PUSH_CALL_FRAME(x) (Allocator::GetInstance()->PushCallFrame(x))
 #define POP_CALL_FRAME() (Allocator::GetInstance()->PopCallFrame())
-#define PEEK_CALL_FRAME_FROM_FRONT(x) (Allocator::GetInstance()->PeekCallFrameFromFront(x))
 #define PEEK_CALL_FRAME_FROM_BACK(x) (Allocator::GetInstance()->PeekCallFrameFromBack(x))
+
+#define GET_LOCAL_VARIABLE_SLOT(d,idx,isUpV) (Allocator::GetInstance()->GetLocalVariableSlot(d,idx,isUpV))
 
 #define STACK_TOP() (Allocator::GetInstance()->GetStackTop())
 #define STACK_TOP_JUMP_BACK(x) (Allocator::GetInstance()->StackTopJumpBack(x))

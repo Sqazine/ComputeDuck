@@ -52,7 +52,7 @@ public:
     ~Jit();
 
     void ResetStatus();
-    llvm::Function *Compile(const CallFrame &frame, const std::string &fnName);
+    bool Compile(const CallFrame &frame, const std::string &fnName);
 
     template<typename RetType, typename... Args>
     RetType Run(const std::string &name, Args &&...params)

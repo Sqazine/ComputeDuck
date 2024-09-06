@@ -23,7 +23,8 @@
 
 #define BUILTIN_FN_PREFIX cd_builtin_fn_
 #define BUILTIN_FN_PREFIX_STR STR2(BUILTIN_FN_PREFIX)
-#define BUILTIN_FN(name) STR3(BUILTIN_FN_PREFIX)##name
+#define BUILTIN_FN(name) STR3(BUILTIN_FN_PREFIX) \
+##name
 
 #define REGISTER_BUILTIN_VALUE(x) BuiltinManager::GetInstance()->Register(#x, Value((uint64_t)x))
 #define REGISTER_BUILTIN_FN(x) BuiltinManager::GetInstance()->Register<BuiltinFn>(#x, BUILTIN_FN(x))
@@ -57,7 +58,6 @@ enum JumpMode
         }                    \
     } while (false);
 
-
 #define ASSERT(...)                                                                 \
     do                                                                              \
     {                                                                               \
@@ -68,27 +68,26 @@ enum JumpMode
     } while (false);
 
 COMPUTE_DUCK_API std::string ReadFile(std::string_view path);
-COMPUTE_DUCK_API void WriteFile(std::string_view path,std::string_view content);
+COMPUTE_DUCK_API void WriteFile(std::string_view path, std::string_view content);
 
 COMPUTE_DUCK_API std::string PointerAddressToString(void *pointer);
 
 COMPUTE_DUCK_API void RegisterDLLs(std::string rawDllPath);
 
-
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
 
-    #ifndef NDEBUG
-        #define ERROR(...)                                                                  \
-            do                                                                              \
-            {                                                                               \
-                printf("[file:%s,function:%s,line:%d]:", __FILE__, __FUNCTION__, __LINE__); \
-                printf(__VA_ARGS__);                                                        \
-                printf("\n");                                                               \
-                return nullptr;                                                             \
-            } while (false);
-    #else
-        #define ERROR(...)  return nullptr;
-    #endif
+#ifndef NDEBUG
+#define ERROR(...)                                                                  \
+    do                                                                              \
+    {                                                                               \
+        printf("[file:%s,function:%s,line:%d]:", __FILE__, __FUNCTION__, __LINE__); \
+        printf(__VA_ARGS__);                                                        \
+        printf("\n");                                                               \
+        return false;                                                               \
+    } while (false);
+#else
+#define ERROR(...) return false;
+#endif
 
 std::string GenerateUUID();
 #endif

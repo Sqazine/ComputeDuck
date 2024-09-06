@@ -92,12 +92,10 @@ void VM::Execute()
         case OP_RETURN:
         {
             auto returnCount = *frame->ip++;
-
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
             if (frame->GetFnObject()->probableReturnTypeSet == nullptr)
                 frame->GetFnObject()->probableReturnTypeSet = new TypeSet();
 #endif
-
             Value value;
             if (returnCount == 1)
             {
@@ -157,17 +155,17 @@ void VM::Execute()
         }
         case OP_DIV:
         {
-            COMMON_BINARY(/);
+            COMMON_BINARY(/ );
             break;
         }
         case OP_GREATER:
         {
-            COMPARE_BINARY(>);
+            COMPARE_BINARY(> );
             break;
         }
         case OP_LESS:
         {
-            COMPARE_BINARY(<);
+            COMPARE_BINARY(< );
             break;
         }
         case OP_EQUAL:
@@ -200,7 +198,7 @@ void VM::Execute()
         }
         case OP_OR:
         {
-            LOGIC_BINARY(||);
+            LOGIC_BINARY(|| );
             break;
         }
         case OP_BIT_AND:
@@ -210,7 +208,7 @@ void VM::Execute()
         }
         case OP_BIT_OR:
         {
-            BIT_BINARY(|);
+            BIT_BINARY(| );
             break;
         }
         case OP_BIT_XOR:
@@ -316,9 +314,9 @@ void VM::Execute()
             auto index = *frame->ip++;
             auto value = POP();
 
-            if(IS_REF_VALUE(value))//get the actual value
-               value=GetEndOfRefValue(value);
-            
+            if (IS_REF_VALUE(value)) //get the actual value
+                value = GetEndOfRefValue(value);
+
             auto ptr = GET_GLOBAL_VARIABLE_REF(index);
 
             if (IS_REF_VALUE(*ptr)) // if is a reference object,then set the actual value which the reference object points
@@ -380,16 +378,11 @@ void VM::Execute()
             auto isUpValue = *frame->ip++;
             auto value = POP();
 
-            if(IS_REF_VALUE(value))
-                 value=GetEndOfRefValue(value);
+            if (IS_REF_VALUE(value))
+                value = GetEndOfRefValue(value);
 
-            Value *slot = nullptr;
-            if (isUpValue)
-                slot = PEEK_CALL_FRAME_FROM_FRONT(scopeDepth)->slot + index;
-            else
-                slot = PEEK_CALL_FRAME_FROM_BACK(scopeDepth)->slot + index;
+            Value *slot = GET_LOCAL_VARIABLE_SLOT(scopeDepth, index, isUpValue);
             slot = GetEndOfRefValue(slot);
-
             *slot = value;
             break;
         }
@@ -398,13 +391,7 @@ void VM::Execute()
             auto scopeDepth = *frame->ip++;
             auto index = *frame->ip++;
             auto isUpValue = *frame->ip++;
-
-            Value *slot = nullptr;
-            if (isUpValue)
-                slot = PEEK_CALL_FRAME_FROM_FRONT(scopeDepth)->slot + index;
-            else
-                slot = PEEK_CALL_FRAME_FROM_BACK(scopeDepth)->slot + index;
-
+            Value *slot = GET_LOCAL_VARIABLE_SLOT(scopeDepth, index, isUpValue);
             PUSH(*slot);
             break;
         }
@@ -418,7 +405,6 @@ void VM::Execute()
         {
             auto idx = *frame->ip++;
             auto name = TO_STR_VALUE(frame->GetFnObject()->chunk.constants[idx])->value;
-
             auto builtinObj = BuiltinManager::GetInstance()->FindBuiltinObject(name);
             PUSH(builtinObj);
             break;
@@ -482,12 +468,7 @@ void VM::Execute()
             auto scopeDepth = *frame->ip++;
             auto index = *frame->ip++;
             auto isUpValue = *frame->ip++;
-            Value *slot = nullptr;
-            if (isUpValue)
-                slot = PEEK_CALL_FRAME_FROM_FRONT(scopeDepth)->slot + index;
-            else
-                slot = PEEK_CALL_FRAME_FROM_BACK(scopeDepth)->slot + index;
-
+            Value *slot = GET_LOCAL_VARIABLE_SLOT(scopeDepth, index, isUpValue);
             PUSH(Allocator::GetInstance()->CreateObject<RefObject>(slot));
             break;
         }
@@ -519,12 +500,7 @@ void VM::Execute()
 
             auto idxValue = POP();
 
-            Value *slot = nullptr;
-            if (isUpValue)
-                slot = PEEK_CALL_FRAME_FROM_FRONT(scopeDepth)->slot + index;
-            else
-                slot = PEEK_CALL_FRAME_FROM_BACK(scopeDepth)->slot + index;
-
+            Value *slot = GET_LOCAL_VARIABLE_SLOT(scopeDepth, index, isUpValue);
             slot = GetEndOfRefValue(slot);
 
             if (IS_ARRAY_VALUE(*slot))
@@ -555,9 +531,9 @@ void VM::Execute()
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
 void VM::RunJit(const CallFrame &frame)
 {
-    if (!Config::GetInstance()->IsUseJit())
-        return;
-    if (frame.fn->callCount < JIT_TRIGGER_COUNT || !frame.fn->probableReturnTypeSet)
+    if (!Config::GetInstance()->IsUseJit() ||
+        frame.fn->callCount < JIT_TRIGGER_COUNT ||
+        !frame.fn->probableReturnTypeSet)
         return;
 
     // get function name by hashing arguments
@@ -576,16 +552,15 @@ void VM::RunJit(const CallFrame &frame)
         auto iter = frame.fn->jitCache.find(paramTypeHash);
         if (iter == frame.fn->jitCache.end() && !frame.fn->probableReturnTypeSet->IsMultiplyType())
         {
-            frame.fn->jitCache[paramTypeHash] = nullptr;
+            frame.fn->jitCache[paramTypeHash] = false;
 
             m_Jit->ResetStatus();
-            auto llvmFn = m_Jit->Compile(frame, fnName);
-            if (!llvmFn)
+
+            frame.fn->jitCache[paramTypeHash] = m_Jit->Compile(frame, fnName);
+            if (frame.fn->jitCache[paramTypeHash] == false)
                 return;
-            else
-                frame.fn->jitCache[paramTypeHash] = llvmFn;
         }
-        else if (iter->second == nullptr) //means current paramTypeHash compile error,not try compiling anymore
+        else if (iter->second == false) //means current paramTypeHash compile error,not try compiling anymore
             return;
     }
 
@@ -633,16 +608,17 @@ void VM::RunJit(const CallFrame &frame)
 
         if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::NUM))
         {
-            RUN_WITH_RET(double, 0);
+            RUN_WITH_RET(Value *, nullptr);
             SET_STACK_TOP(prevCallFrame->slot - 1);
-            PUSH(ret);
+            if (ret && ret->IsValid())
+                PUSH(*ret);
+            else
+            {
+                auto rawDouble = reinterpret_cast<double *>(ret);
+                PUSH(*rawDouble);
+            }
         }
-        else if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::NIL))
-        {
-            RUN_WITHOUT_RET();
-            SET_STACK_TOP(prevCallFrame->slot - 1);
-            PUSH(Value());
-        }
+
         else if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::BOOL))
         {
             RUN_WITH_RET(bool, false);
@@ -672,6 +648,12 @@ void VM::RunJit(const CallFrame &frame)
             RUN_WITH_RET(RefObject *, nullptr);
             SET_STACK_TOP(prevCallFrame->slot - 1);
             PUSH(ret);
+        }
+        else if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::NIL))
+        {
+            RUN_WITHOUT_RET();
+            SET_STACK_TOP(prevCallFrame->slot - 1);
+            PUSH(Value());
         }
         else
         {

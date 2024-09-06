@@ -15,6 +15,11 @@ extern "C" COMPUTE_DUCK_API RefObject *CreateRefObject(Value *pointer)
     return Allocator::GetInstance()->CreateObject<RefObject>(pointer);
 }
 
+extern "C" COMPUTE_DUCK_API Value *GetLocalVariableSlot(int16_t scopeDepth, int16_t index, bool isUpValue)
+{
+    return Allocator::GetInstance()->GetLocalVariableSlot(scopeDepth, index, isUpValue);
+}
+
 void Allocator::Init()
 {
     m_FirstObject = nullptr;
@@ -115,6 +120,16 @@ void Allocator::StackTopJump(size_t slotCount)
 Value *Allocator::GetGlobalVariableRef(size_t index)
 {
     return &m_GlobalVariables[index];
+}
+
+Value *Allocator::GetLocalVariableSlot(int16_t scopeDepth, int16_t index, bool isUpValue)
+{
+    Value *slot = nullptr;
+    if (isUpValue == 1)
+        slot = PeekCallFrameFromFront(scopeDepth)->slot + index;
+    else
+        slot = PeekCallFrameFromBack(scopeDepth)->slot + index;
+    return slot;
 }
 
 void Allocator::Gc(bool isExitingVM)

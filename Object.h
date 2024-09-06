@@ -9,10 +9,6 @@
 #include <variant>
 #include <type_traits>
 
-#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-#include "llvm/IR/Function.h"
-#endif
-
 #define TO_STR_OBJ(obj) (static_cast<StrObject *>(obj))
 #define TO_ARRAY_OBJ(obj) (static_cast<ArrayObject *>(obj))
 #define TO_STRUCT_OBJ(obj) (static_cast<StructObject *>(obj))
@@ -151,7 +147,7 @@ struct FunctionObject : public Object
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     uint32_t callCount;
-    std::unordered_map<size_t,llvm::Function*> jitCache;
+    std::unordered_map<size_t,bool> jitCache;
     TypeSet *probableReturnTypeSet{ nullptr };//record function return types,some function with multiply return stmt may return mutiply types of value
     std::string uuid;
 #endif
