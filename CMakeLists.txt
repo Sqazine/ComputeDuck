@@ -19,7 +19,9 @@ option(COMPUTEDUCK_BUILD_WITH_LLVM "build llvm for jit engine" ON)
 option(COMPUTEDUCK_BUILD_WITH_SDL2 "build SDL2 third party for cdsdl2" ON) 
 option(COMPUTEDUCK_BUILD_WITH_OPENGL "build glad third party for cdopengl" ON)  
 
-source_group("examples" FILES)
+file(GLOB EXAMPLES "${CMAKE_SOURCE_DIR}/examples/*.cd")
+
+source_group("examples" FILES ${EXAMPLES})
 
 set(THIRD_PARTY_DIR "${CMAKE_SOURCE_DIR}/3rd")
 

@@ -59,7 +59,6 @@ struct COMPUTE_DUCK_API Value
     bool IsValid() const;
 
     ValueType type;
-
     union
     {
         double stored;

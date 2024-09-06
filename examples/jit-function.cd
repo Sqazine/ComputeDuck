@@ -223,3 +223,33 @@ while(i<100)
     println(a);
     i=i+1;
 }
+
+refLocal=function()
+{
+    a=100;
+    b = ref a;
+    println(b);
+};
+
+i=0;
+while(i<100)
+{
+    refLocal();
+    i=i+1;
+}
+
+refLocal2=function()
+{
+    a=100;
+    b=ref a;
+    c=1000;
+    d=ref c;
+    return a + b;
+};
+
+i=0;
+while(i<100)
+{
+    println(refLocal2());
+    i=i+1;
+}

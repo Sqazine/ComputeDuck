@@ -155,9 +155,9 @@ void Jit::CreateSetStackFunction()
 void Jit::CreateStackDecl()
 {
     m_Module->getOrInsertGlobal(g_StackStr, m_ValuePtrType);
-    auto globalVariable = m_Module->getNamedGlobal(g_StackStr);
-    globalVariable->setLinkage(llvm::GlobalVariable::ExternalLinkage);
-    globalVariable->setAlignment(llvm::MaybeAlign(8));
+    auto stackTop = m_Module->getNamedGlobal(g_StackStr);
+    stackTop->setLinkage(llvm::GlobalVariable::ExternalLinkage);
+    stackTop->setAlignment(llvm::MaybeAlign(8));
 }
 
 void Jit::ResetStatus()
@@ -167,7 +167,7 @@ void Jit::ResetStatus()
     m_StackTop = m_ValueStack;
 }
 
-llvm::Function *Jit::Compile(const CallFrame &frame, const std::string &fnName)
+bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
 {
     {
         m_Module->setSourceFileName(fnName);
@@ -800,7 +800,7 @@ llvm::Function *Jit::Compile(const CallFrame &frame, const std::string &fnName)
 
             auto iter = localVariables.find(name);
             if (iter == localVariables.end())
-            {
+            {           
                 auto alloc = m_Builder->CreateAlloca(value->getType());
                 m_Builder->CreateStore(value, alloc);
 
@@ -839,31 +839,19 @@ llvm::Function *Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 }
                 else // load from interpreter vm
                 {
-                    Value *slot = nullptr;
-                    if (isUpValue)
-                        slot = PEEK_CALL_FRAME_FROM_FRONT(scopeDepth)->slot + index;
-                    else
-                        slot = PEEK_CALL_FRAME_FROM_BACK(scopeDepth)->slot + index;
-
-                    auto constant = CreateLlvmValue(*slot);
-                    if (!constant)
-                        ERROR("Unsupported value type:%d", slot->type);
-
-                    auto alloc = m_Builder->CreateAlloca(constant->getType());
-                    m_Builder->CreateStore(constant, alloc);
+                    auto slot = m_Builder->CreateCall(m_Module->getFunction("GetLocalVariableSlot"), {llvm::ConstantInt::get(m_Int16Type, scopeDepth),
+                                                                                                      llvm::ConstantInt::get(m_Int16Type, index),
+                                                                                                      llvm::ConstantInt::get(m_BoolType, isUpValue)});
+                    
+                    auto alloc=m_Builder->CreateAlloca(slot->getType());
+                    m_Builder->CreateStore(slot,alloc);
 
                     localVariables[name] = alloc;
-
-                    auto load = m_Builder->CreateLoad(alloc->getAllocatedType(), alloc);
-
-                    Push(load);
+                    Push(slot);
                 }
             }
             else
-            {
-                auto load = m_Builder->CreateLoad(iter->second->getAllocatedType(), iter->second);
-                Push(load);
-            }
+                 Push(iter->second);
             break;
         }
         case OP_FUNCTION_CALL:
@@ -996,7 +984,34 @@ llvm::Function *Jit::Compile(const CallFrame &frame, const std::string &fnName)
         }
         case OP_REF_LOCAL:
         {
-            ERROR("Not finished yet,tag it as error");
+            auto scopeDepth = *ip++;
+            auto index = *ip++;
+            auto isUpValue = *ip++;
+
+            auto name = "localVar_" + std::to_string(scopeDepth) + "_" + std::to_string(index) + "_" + std::to_string(isUpValue);
+
+            auto iter = localVariables.find(name);
+            if (iter == localVariables.end()) // create from function argumenet
+            {
+                auto slot = m_Builder->CreateCall(m_Module->getFunction("GetLocalVariableSlot"), {llvm::ConstantInt::get(m_Int16Type, scopeDepth),
+                                                                                                  llvm::ConstantInt::get(m_Int16Type, index),
+                                                                                                  llvm::ConstantInt::get(m_BoolType, isUpValue)});
+                
+                auto alloc = m_Builder->CreateCall(m_Module->getFunction("CreateRefObject"), {slot});
+                Push(alloc);
+            }
+            else
+            {
+                if (iter->second->getType() != m_ValuePtrType)
+                {
+                   ERROR("Cannot refer jit internal variable");
+                }
+                else
+                {
+                    auto alloc = m_Builder->CreateCall(m_Module->getFunction("CreateRefObject"), {iter->second});
+                    Push(alloc);
+                }
+            }
             break;
         }
         case OP_REF_INDEX_GLOBAL:
@@ -1030,7 +1045,7 @@ llvm::Function *Jit::Compile(const CallFrame &frame, const std::string &fnName)
     m_Executor->AddModule(llvm::orc::ThreadSafeModule(std::move(m_Module), std::move(m_Context)));
     InitModuleAndPassManager();
 
-    return fn;
+    return true;
 }
 
 void Jit::InitModuleAndPassManager()
@@ -1103,43 +1118,48 @@ void Jit::InitModuleAndPassManager()
 
     llvm::FunctionType *createRefObjectFnType = llvm::FunctionType::get(m_RefObjectPtrType, {m_ValuePtrType}, false);
     m_Module->getOrInsertFunction("CreateRefObject", createRefObjectFnType);
+
+    llvm::FunctionType *getLocalVariableSlotFnType = llvm::FunctionType::get(m_ValuePtrType, {m_Int16Type, m_Int16Type, m_BoolType}, false);
+    m_Module->getOrInsertFunction("GetLocalVariableSlot", getLocalVariableSlotFnType);
 }
 
 llvm::Value *Jit::CreateLlvmValue(llvm::Value *v)
 {
+    auto valueType = v->getType();
+
     llvm::Value *vt = nullptr;
     llvm::Value *storedV = nullptr;
     llvm::Type *type = m_DoublePtrType;
-    if (v->getType() == m_DoubleType)
+    if (valueType == m_DoubleType)
     {
         vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::NUM));
         storedV = v;
     }
-    else if (v->getType() == m_Int64Type)
+    else if (valueType == m_Int64Type)
     {
         vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::NUM));
         storedV = m_Builder->CreateSIToFP(v, m_DoubleType);
     }
-    else if (v->getType() == m_BoolType)
+    else if (valueType == m_BoolType)
     {
         vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::BOOL));
         storedV = m_Builder->CreateUIToFP(v, m_DoubleType);
     }
-    else if (v->getType() == m_BoolPtrType)
+    else if (valueType == m_BoolPtrType)
     {
         vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::NIL));
         storedV = llvm::ConstantFP::get(m_DoubleType, 0.0);
     }
-    else if (v->getType() == m_ObjectPtrType || v->getType() == m_ArrayObjectPtrType)
+    else if (valueType == m_ObjectPtrType || valueType == m_ArrayObjectPtrType)
     {
         vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::OBJECT));
         type = m_ObjectPtrPtrType;
         auto castV = m_Builder->CreateBitCast(v, m_ObjectPtrType);
         storedV = castV;
     }
-    else if (v->getType()->isPointerTy())
+    else if (valueType->isPointerTy())
     {
-        auto vPtrType = static_cast<llvm::PointerType *>(v->getType());
+        auto vPtrType = static_cast<llvm::PointerType *>(valueType);
         if (vPtrType->getElementType()->isArrayTy())
         {
             auto vArrayType = static_cast<llvm::ArrayType *>(vPtrType->getElementType());
@@ -1147,10 +1167,8 @@ llvm::Value *Jit::CreateLlvmValue(llvm::Value *v)
             {
                 vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::OBJECT));
                 type = m_ObjectPtrPtrType;
-
                 // convert chars[] to i8*
                 auto charsPtr = m_Builder->CreateInBoundsGEP(vArrayType, v, {m_Builder->getInt64(0), m_Builder->getInt64(0)});
-
                 // create str object
                 auto strObject = m_Builder->CreateCall(m_Module->getFunction("CreateStrObject"), {charsPtr});
                 //to base ptr
