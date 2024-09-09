@@ -1,3 +1,5 @@
+println("getConstant() start");
+
 getConstant=function()
 {
     return 10;
@@ -10,6 +12,8 @@ while(i<100)
     i=i+1;
 }
 
+##################################################
+println("readBuiltin() start");
 
 readBuiltin=function()
 {
@@ -23,6 +27,9 @@ while(i<100)
     i=i+1;
 }
 
+##################################################
+println("getStrConstant() start");
+
 getStrConstant=function()
 {
 	return "Test3";
@@ -34,6 +41,10 @@ while(i<100)
     println(getStrConstant());
     i=i+1;
 }
+
+
+##################################################
+println("getGlob() start");
 
 str="Test4";
 getGlob=function()
@@ -48,6 +59,9 @@ while(i<100)
     i=i+1;
 }
 
+##################################################
+println("globBuiltin() start");
+
 str2="Test5";
 globBuiltin=function()
 {
@@ -60,6 +74,9 @@ while(i<100)
 	globBuiltin();
     i=i+1;
 }
+
+##################################################
+println("setGlob() start");
 
 str3="Test6";
 setGlob=function()
@@ -75,6 +92,9 @@ while(i<100)
     i=i+1;
 }
 
+##################################################
+println("setGlobArr() start");
+
 arr1=[1];
 setGlobArr=function()
 {
@@ -89,6 +109,9 @@ while(i<100)
     i=i+1;
 }
 
+##################################################
+println("setArr() start");
+
 setArr=function()
 {
     return [1,2,3];
@@ -101,6 +124,9 @@ while(i<100)
     i=i+1;
 }
 
+##################################################
+println("setArr2() start");
+
 setArr2=function(x)
 {
     return x;
@@ -112,6 +138,9 @@ while(i<100)
     println(setArr2([1,2,3,4]));
     i=i+1;
 }
+
+##################################################
+println("lam1() start");
 
 lam1=function()
 {
@@ -129,6 +158,8 @@ while(i<100)
     i=i+1;
 }
 
+##################################################
+println("lam2() start");
 
 lam2=function()
 {
@@ -146,6 +177,9 @@ while(i<100)
     i=i+1;
 }
 
+##################################################
+println("closure() start");
+
 closure=function()
 {
     a=1000;
@@ -162,6 +196,9 @@ while(i<100)
     println(closure());
     i=i+1;
 }
+
+##################################################
+println("closure2() start");
 
 closure2=function()
 {
@@ -181,6 +218,10 @@ while(i<100)
     i=i+1;
 }
 
+##################################################
+println("setArrElement() start");
+
+
 arrSet=[1,2];
 setArrElement=function()
 {
@@ -194,6 +235,9 @@ while(i<100)
     println(arrSet);
     i=i+1;
 }
+
+##################################################
+println("setArrElement2() start");
 
 arrSet2=[1,2];
 setArrElement2=function(v)
@@ -210,9 +254,13 @@ while(i<100)
 }
 
 a=10;
+##################################################
+println("setRef() start");
+
+glob=10;
 setRef=function()
 {
-	return ref a;
+	return ref glob;
 };
 
 i=0;
@@ -220,9 +268,12 @@ while(i<100)
 {
 	refer = setRef();
 	refer=100;
-    println(a);
+    println(glob);
     i=i+1;
 }
+
+##################################################
+println("refLocal() start");
 
 refLocal=function()
 {
@@ -238,13 +289,16 @@ while(i<100)
     i=i+1;
 }
 
+##################################################
+println("refLocal2() start");
+
 refLocal2=function()
 {
     a=100;
     b=ref a;
     c=1000;
     d=ref c;
-    return a + b;
+    return b + d;
 };
 
 i=0;
