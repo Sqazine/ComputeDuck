@@ -155,17 +155,17 @@ void VM::Execute()
         }
         case OP_DIV:
         {
-            COMMON_BINARY(/ );
+            COMMON_BINARY(/);
             break;
         }
         case OP_GREATER:
         {
-            COMPARE_BINARY(> );
+            COMPARE_BINARY(>);
             break;
         }
         case OP_LESS:
         {
-            COMPARE_BINARY(< );
+            COMPARE_BINARY(<);
             break;
         }
         case OP_EQUAL:
@@ -198,7 +198,7 @@ void VM::Execute()
         }
         case OP_OR:
         {
-            LOGIC_BINARY(|| );
+            LOGIC_BINARY(||);
             break;
         }
         case OP_BIT_AND:
@@ -208,7 +208,7 @@ void VM::Execute()
         }
         case OP_BIT_OR:
         {
-            BIT_BINARY(| );
+            BIT_BINARY(|);
             break;
         }
         case OP_BIT_XOR:
@@ -614,8 +614,8 @@ void VM::RunJit(const CallFrame &frame)
                 PUSH(*ret);
             else
             {
-                auto rawDouble = reinterpret_cast<double *>(ret);
-                PUSH(*rawDouble);
+                auto rawDouble = *reinterpret_cast<double *>(ret);
+                PUSH(rawDouble);
             }
         }
 

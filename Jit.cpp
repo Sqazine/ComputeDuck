@@ -851,7 +851,10 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 }
             }
             else
-                 Push(iter->second);
+            {
+                auto load = m_Builder->CreateLoad(iter->second->getAllocatedType(), iter->second);
+                Push(load);
+            }
             break;
         }
         case OP_FUNCTION_CALL:
