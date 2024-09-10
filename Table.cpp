@@ -11,34 +11,34 @@ Table::Table()
 
 Table::~Table()
 {
-    SAFE_DELETE_ARRAY(m_Entries);
+    m_Entries = nullptr;
     m_Count = 0;
     m_Capacity = 0;
 }
 
 bool Table::Set(StrObject *key, const Value &value)
 {
-    if (this->m_Count + 1 > this->m_Capacity * TABLE_MAX_LOAD)
+    if (m_Count + 1 > m_Capacity * TABLE_MAX_LOAD)
     {
-        int capacity = GROW_CAPACITY(this->m_Capacity);
-        this->AdjustCapacity(capacity);
+        size_t capacity = GROW_CAPACITY(m_Capacity);
+        AdjustCapacity(capacity);
     }
 
-    Entry *entry = FindEntry(this->m_Capacity, key);
+    Entry *entry = FindEntry(m_Capacity, key);
     bool isNewKey = entry->key == nullptr;
     if (isNewKey && IS_NIL_VALUE(entry->value))
-        this->m_Count++;
+        m_Count++;
 
     entry->key = key;
     entry->value = value;
     return isNewKey;
 }
 
-bool Table::Get(StrObject *key, Value& value)
+bool Table::Get(StrObject *key, Value &value)
 {
-    if (this->m_Count == 0)
+    if (m_Count == 0)
         return false;
-    Entry *entry = FindEntry(this->m_Capacity, key);
+    Entry *entry = FindEntry(m_Capacity, key);
     if (entry->key == nullptr)
         return false;
 
@@ -48,9 +48,9 @@ bool Table::Get(StrObject *key, Value& value)
 
 bool Table::Find(StrObject *key)
 {
-    if (this->m_Count == 0)
+    if (m_Count == 0)
         return false;
-    Entry *entry = FindEntry(this->m_Capacity, key);
+    Entry *entry = FindEntry(m_Capacity, key);
     if (entry->key == nullptr)
         return false;
     return true;
@@ -58,9 +58,9 @@ bool Table::Find(StrObject *key)
 
 bool Table::Delete(StrObject *key)
 {
-    if (this->m_Count == 0)
+    if (m_Count == 0)
         return false;
-    Entry *entry = FindEntry(this->m_Capacity, key);
+    Entry *entry = FindEntry(m_Capacity, key);
     if (entry->key == nullptr)
         return false;
     entry->key = nullptr;
@@ -70,9 +70,9 @@ bool Table::Delete(StrObject *key)
 
 void Table::Mark()
 {
-    for (int i = 0; i < this->m_Capacity; ++i)
+    for (size_t i = 0; i < m_Capacity; ++i)
     {
-        Entry *entry = &this->m_Entries[i];
+        Entry *entry = &m_Entries[i];
         if (entry->key)
             ObjectMark(entry->key);
         entry->value.Mark();
@@ -81,9 +81,9 @@ void Table::Mark()
 
 void Table::UnMark()
 {
-    for (int i = 0; i < this->m_Capacity; ++i)
+    for (size_t i = 0; i < m_Capacity; ++i)
     {
-        Entry *entry = &this->m_Entries[i];
+        Entry *entry = &m_Entries[i];
         if (entry->key)
             ObjectUnMark(entry->key);
         entry->value.UnMark();
@@ -134,28 +134,26 @@ Entry *Table::FindEntry(uint32_t capacity, StrObject *key)
 void Table::AdjustCapacity(uint32_t capacity)
 {
     Entry *entries = new Entry[capacity];
-    this->m_Count = 0;
-    for (int i = 0; i < capacity; ++i)
+    m_Count = 0;
+    for (size_t i = 0; i < capacity; ++i)
     {
         entries[i].key = nullptr;
         entries[i].value = Value();
     }
 
-    for (int i = 0; i < this->m_Capacity; ++i)
+    for (size_t i = 0; i < m_Capacity; ++i)
     {
-        Entry *entry = &this->m_Entries[i];
+        Entry *entry = &m_Entries[i];
         if (entry->key == nullptr)
             continue;
         Entry *dest = FindEntry(capacity, entry->key);
         dest->key = entry->key;
         dest->value = entry->value;
-        this->m_Count++;
+        m_Count++;
     }
 
-    SAFE_DELETE_ARRAY(m_Entries);
-
-    this->m_Entries = entries;
-    this->m_Capacity = capacity;
+    m_Entries = entries;
+    m_Capacity = capacity;
 }
 
 bool operator==(const Table &left, const Table &right)

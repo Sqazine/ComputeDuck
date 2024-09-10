@@ -160,11 +160,10 @@ struct FunctionObject : public Object
 
 struct StructObject : public Object
 {
-    StructObject() :Object(ObjectType::STRUCT){}
-    StructObject(const Table &membs) :Object(ObjectType::STRUCT), members(membs) {}
-    ~StructObject() = default;
+    StructObject(Table* membs) :Object(ObjectType::STRUCT), members(membs) {}
+    ~StructObject() { SAFE_DELETE(members); }
 
-    Table members;
+    Table* members;
 };
 
 using BuiltinFn = std::function<bool(Value *, uint8_t, Value &)>;

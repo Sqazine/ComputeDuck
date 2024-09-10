@@ -307,3 +307,24 @@ while(i<100)
     println(refLocal2());
     i=i+1;
 }
+
+##################################################
+println("createVec2tructInstance() start");
+
+struct Vec2
+{
+    x:0,
+    y:0
+}
+
+createVec2tructInstance=function()
+{
+    return Vec2;
+};
+
+i=0;
+while(i<100)
+{
+    println(createVec2tructInstance());
+    i=i+1;
+}

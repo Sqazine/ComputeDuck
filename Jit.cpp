@@ -3,6 +3,42 @@
 #include "BuiltinManager.h"
 #include "VM.h"
 
+extern "C" COMPUTE_DUCK_API StrObject *CreateStrObject(const char *v)
+{
+    return Allocator::GetInstance()->CreateObject<StrObject>(v);
+}
+
+extern "C" COMPUTE_DUCK_API ArrayObject *CreateArrayObject(Value *elements, uint32_t size)
+{
+    return Allocator::GetInstance()->CreateObject<ArrayObject>(elements, size);
+}
+
+extern "C" COMPUTE_DUCK_API RefObject *CreateRefObject(Value *pointer)
+{
+    return Allocator::GetInstance()->CreateObject<RefObject>(pointer);
+}
+
+extern "C" COMPUTE_DUCK_API StructObject *CreateStructObject(Table *table)
+{
+    return Allocator::GetInstance()->CreateObject<StructObject>(table);
+}
+
+extern "C" COMPUTE_DUCK_API Value *GetLocalVariableSlot(int16_t scopeDepth, int16_t index, bool isUpValue)
+{
+    return Allocator::GetInstance()->GetLocalVariableSlot(scopeDepth, index, isUpValue);
+}
+
+extern "C" COMPUTE_DUCK_API Table *CreateTable()
+{
+    return new Table();
+}
+
+extern "C" COMPUTE_DUCK_API bool TableSet(Table *table, StrObject *key, const Value &value)
+{
+    return table->Set(key, value);
+}
+
+
 Jit::OrcExecutor::OrcExecutor(std::unique_ptr<llvm::orc::ExecutionSession> es, llvm::orc::JITTargetMachineBuilder jtmb, llvm::DataLayout dl)
     : m_Es(std::move(es)), m_DataLayout(std::move(dl)), m_Mangle(*m_Es, m_DataLayout),
       m_ObjectLayer(*m_Es,
@@ -209,6 +245,8 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
         fnType = llvm::FunctionType::get(m_ArrayObjectPtrType, paramTypes, false);
     else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::REF))
         fnType = llvm::FunctionType::get(m_RefObjectPtrType, paramTypes, false);
+    else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::STRUCT))
+        fnType = llvm::FunctionType::get(m_StructObjectPtrType, paramTypes, false);
     else
         ERROR("Unknown return type");
 
@@ -232,10 +270,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto value = frame.fn->chunk.constants[idx];
 
             if (IS_FUNCTION_VALUE(value))
-            {
-                m_Module->getFunctionList().pop_back(); // pop current invalid function
-                ERROR("Not support jit compile for:%s", fnName.c_str());
-            }
+                ERROR("Not support jit compile for:%s", fnName.c_str())
             else
             {
                 auto llvmValue = CreateLlvmValue(value);
@@ -961,7 +996,25 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
         }
         case OP_STRUCT:
         {
-            ERROR("Not finished yet,tag it as error");
+            auto memberCount = *ip++;
+
+            auto tableInstancePtr=m_Builder->CreateCall(m_Module->getFunction("CreateTable"));
+
+            for (size_t i = 0; i < memberCount; ++i)
+            {
+                auto name = Pop().GetLlvmValue();
+                if (name->getType() == m_Int8PtrType)
+                    name = m_Builder->CreateCall(m_Module->getFunction("CreateStrObject"), { name });
+
+                auto value = Pop().GetLlvmValue();
+                if (value->getType() != m_ValueType)
+                    value = CreateLlvmValue(value);
+
+                m_Builder->CreateCall(m_Module->getFunction("TableSet"), { tableInstancePtr ,name, value });
+            }
+
+            auto structInstancePtr = m_Builder->CreateCall(m_Module->getFunction("CreateStructObject"), { tableInstancePtr });
+            Push(structInstancePtr);
             break;
         }
         case OP_GET_STRUCT:
@@ -1105,6 +1158,15 @@ void Jit::InitModuleAndPassManager()
         m_RefObjectPtrType = llvm::PointerType::get(m_RefObjectType, 0);
 
         m_BuiltinFunctionType = llvm::FunctionType::get(m_BoolType, {m_ValuePtrType, m_Int8Type, m_ValuePtrType}, false);
+
+        m_EntryType=llvm::StructType::create(*m_Context,{m_StrObjectPtrType,m_ValueType},"struct.Entry");
+        m_EntryPtrType=llvm::PointerType::get(m_EntryType,0);
+
+        m_TableType=llvm::StructType::create(*m_Context,{m_Int32Type,m_Int32Type,m_EntryPtrType},"struct.Table");
+        m_TablePtrType = llvm::PointerType::get(m_TableType, 0);
+
+        m_StructObjectType = llvm::StructType::create(*m_Context, { m_TableType }, "struct.StructObject");
+        m_StructObjectPtrType = llvm::PointerType::get(m_StructObjectType, 0);
     }
 
     llvm::FunctionType *mallocFnType = llvm::FunctionType::get(m_Int8PtrType, {m_Int64Type}, false);
@@ -1122,8 +1184,17 @@ void Jit::InitModuleAndPassManager()
     llvm::FunctionType *createRefObjectFnType = llvm::FunctionType::get(m_RefObjectPtrType, {m_ValuePtrType}, false);
     m_Module->getOrInsertFunction("CreateRefObject", createRefObjectFnType);
 
+    llvm::FunctionType *createStructObjectFnType = llvm::FunctionType::get(m_StructObjectPtrType, { m_TablePtrType }, false);
+    m_Module->getOrInsertFunction("CreateStructObject", createStructObjectFnType);
+
     llvm::FunctionType *getLocalVariableSlotFnType = llvm::FunctionType::get(m_ValuePtrType, {m_Int16Type, m_Int16Type, m_BoolType}, false);
     m_Module->getOrInsertFunction("GetLocalVariableSlot", getLocalVariableSlotFnType);
+
+    llvm::FunctionType *createTableFnType = llvm::FunctionType::get(m_TablePtrType, { }, false);
+    m_Module->getOrInsertFunction("CreateTable", createTableFnType);
+
+    llvm::FunctionType *tableSetFnType = llvm::FunctionType::get(m_BoolType, { m_TablePtrType,m_StrObjectPtrType,m_ValuePtrType }, false);
+    m_Module->getOrInsertFunction("TableSet", tableSetFnType);
 }
 
 llvm::Value *Jit::CreateLlvmValue(llvm::Value *v)
@@ -1160,24 +1231,15 @@ llvm::Value *Jit::CreateLlvmValue(llvm::Value *v)
         auto castV = m_Builder->CreateBitCast(v, m_ObjectPtrType);
         storedV = castV;
     }
-    else if (valueType->isPointerTy())
+    else if (valueType== m_Int8PtrType)
     {
-        auto vPtrType = static_cast<llvm::PointerType *>(valueType);
-        if (vPtrType->getElementType()->isArrayTy())
-        {
-            auto vArrayType = static_cast<llvm::ArrayType *>(vPtrType->getElementType());
-            if (vArrayType->getElementType() == m_Int8Type)
-            {
-                vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::OBJECT));
-                type = m_ObjectPtrPtrType;
-                // convert chars[] to i8*
-                auto charsPtr = m_Builder->CreateInBoundsGEP(vArrayType, v, {m_Builder->getInt64(0), m_Builder->getInt64(0)});
-                // create str object
-                auto strObject = m_Builder->CreateCall(m_Module->getFunction("CreateStrObject"), {charsPtr});
-                //to base ptr
-                storedV = m_Builder->CreateBitCast(strObject, m_ObjectPtrType);
-            }
-        }
+       vt = m_Builder->getInt8(std::underlying_type<ValueType>::type(ValueType::OBJECT));
+       type = m_ObjectPtrPtrType;
+       // create str object
+       auto strObject = m_Builder->CreateCall(m_Module->getFunction("CreateStrObject"), {v});
+       //to base ptr
+       storedV = m_Builder->CreateBitCast(strObject, m_ObjectPtrType);
+        
     }
 
     auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr);
@@ -1212,7 +1274,8 @@ llvm::Value *Jit::CreateLlvmValue(const Value &value)
     {
         auto str = TO_STR_VALUE(value)->value;
         llvm::Value *chars = m_Builder->CreateGlobalString(str);
-        return chars;
+        auto bitCast=m_Builder->CreateBitCast(chars,m_Int8PtrType);
+        return bitCast;
     }
     else
         return nullptr;

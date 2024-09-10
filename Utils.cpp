@@ -87,7 +87,7 @@ void RegisterDLLs(std::string rawDllPath)
 uint32_t HashString(char *str)
 {
     uint32_t hash = 2166136261u;
-    for (int i = 0; i < strlen(str); i++)
+    for (size_t i = 0; i < strlen(str); i++)
     {
         hash ^= (uint8_t)str[i];
         hash *= 16777619;

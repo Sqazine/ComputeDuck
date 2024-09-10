@@ -85,6 +85,7 @@ uint32_t HashString(char* str);
         printf("[file:%s,function:%s,line:%d]:", __FILE__, __FUNCTION__, __LINE__); \
         printf(__VA_ARGS__);                                                        \
         printf("\n");                                                               \
+        m_Module->getFunctionList().pop_back();                                    \
         return false;                                                               \
     } while (false);
 #else
