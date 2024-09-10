@@ -84,6 +84,17 @@ void RegisterDLLs(std::string rawDllPath)
 #endif
 }
 
+uint32_t HashString(char *str)
+{
+    uint32_t hash = 2166136261u;
+    for (int i = 0; i < strlen(str); i++)
+    {
+        hash ^= (uint8_t)str[i];
+        hash *= 16777619;
+    }
+    return hash;
+}
+
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
 std::string GenerateUUID()
 {

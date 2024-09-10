@@ -48,6 +48,7 @@ public:
         symbol.name = name;
         symbol.index = m_DefinitionCount;
         symbol.scopeDepth = m_ScopeDepth;
+        symbol.isStructSymbol=isStructSymbol;
 
         if (!m_Enclosing)
             symbol.scope = SymbolScope::GLOBAL;

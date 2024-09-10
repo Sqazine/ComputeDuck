@@ -58,6 +58,7 @@ set(ROOT_SRC Ast.h
              VM.h VM.cpp
              PreProcessor.h
              Config.cpp Config.h
+             Table.cpp Table.h
              SetLLVM.cmake)
 
 add_executable(${EXE_NAME} main.cpp ${EXAMPLES})

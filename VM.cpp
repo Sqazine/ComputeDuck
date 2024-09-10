@@ -411,20 +411,14 @@ void VM::Execute()
         }
         case OP_STRUCT:
         {
-            std::unordered_map<std::string, Value> members;
             auto memberCount = *frame->ip++;
-
-            auto tmpPtr = STACK_TOP(); // save the locale,to avoid gc system delete the tmp object before finish the struct instance creation
-
+            auto structInstance = Allocator::GetInstance()->CreateObject<StructObject>();
             for (int i = 0; i < memberCount; ++i)
             {
-                auto name = TO_STR_VALUE(*--tmpPtr)->value;
-                auto value = *--tmpPtr;
-                members[name] = value;
+                auto name = TO_STR_VALUE(POP());
+                auto value = POP();
+                structInstance->members.Set(name,value);
             }
-
-            auto structInstance = Allocator::GetInstance()->CreateObject<StructObject>(members);
-            SET_STACK_TOP(tmpPtr); // recover the locale
             PUSH(structInstance);
             break;
         }
@@ -435,10 +429,12 @@ void VM::Execute()
             if (IS_STR_VALUE(memberName))
             {
                 auto structInstance = TO_STRUCT_VALUE(instance);
-                auto iter = structInstance->members.find(TO_STR_VALUE(memberName)->value);
-                if (iter == structInstance->members.end())
+
+                Value value;
+                bool isSuccess = structInstance->members.Get(TO_STR_VALUE(memberName), value);
+                if (!isSuccess)
                     ASSERT("no member named:(%s) in struct instance:%s", memberName.Stringify().c_str(), instance.Stringify().c_str());
-                PUSH(iter->second);
+                PUSH(value);
             }
             break;
         }
@@ -450,10 +446,10 @@ void VM::Execute()
             auto value = POP();
             if (IS_STR_VALUE(memberName))
             {
-                auto iter = structInstance->members.find(TO_STR_VALUE(memberName)->value);
-                if (iter == structInstance->members.end())
+                bool isSuccess=structInstance->members.Get(TO_STR_VALUE(memberName));
+                if (!isSuccess)
                     ASSERT("no member named:(%s) in struct instance:(0x%s)", memberName.Stringify().c_str(), PointerAddressToString(structInstance).c_str());
-                structInstance->members[TO_STR_VALUE(memberName)->value] = value;
+                structInstance->members.Set(TO_STR_VALUE(memberName),value);
             }
             break;
         }

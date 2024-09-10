@@ -28,9 +28,13 @@ std::string ObjectStringify(Object *object
     }
     case ObjectType::STRUCT:
     {
+        auto structObj=TO_STRUCT_OBJ(object);
         std::string result = "struct instance(0x" + PointerAddressToString(object) + "):\n{\n";
-        for (const auto &[k, v] : TO_STRUCT_OBJ(object)->members)
-            result += k + ":" + v.Stringify() + "\n";
+        for (size_t i = 0; i < structObj->members.GetCapacity(); ++i)
+        {
+            if(structObj->members.IsValid(i))
+                result += ObjectStringify(structObj->members.GetEntries()[i].key) + ":" + structObj->members.GetEntries()[i].value.Stringify() + "\n";
+        }
         result = result.substr(0, result.size() - 1);
         result += "\n}\n";
         return result;
@@ -86,8 +90,7 @@ void ObjectMark(Object *object)
     }
     case ObjectType::STRUCT:
     {
-        for (const auto &[k, v] : TO_STRUCT_OBJ(object)->members)
-            v.Mark();
+        TO_STRUCT_OBJ(object)->members.Mark();
         break;
     }
     case ObjectType::REF:
@@ -129,8 +132,7 @@ void ObjectUnMark(Object *object)
     }
     case ObjectType::STRUCT:
     {
-        for (const auto &[k, v] : TO_STRUCT_OBJ(object)->members)
-            v.UnMark();
+        TO_STRUCT_OBJ(object)->members.UnMark();
         break;
     }
     case ObjectType::REF:
@@ -163,7 +165,7 @@ bool IsObjectsEqual(Object *left, Object *right)
     {
     case ObjectType::STR:
     {
-        return TO_STR_OBJ(left)->value == TO_STR_OBJ(right)->value;
+        return strcmp(TO_STR_OBJ(left)->value, TO_STR_OBJ(right)->value) == 0;
     }
     case ObjectType::ARRAY:
     {
@@ -176,13 +178,7 @@ bool IsObjectsEqual(Object *left, Object *right)
     }
     case ObjectType::STRUCT:
     {
-        for (const auto &[k1, v1] : TO_STRUCT_OBJ(left)->members)
-        {
-            auto iter = TO_STRUCT_OBJ(right)->members.find(k1);
-            if (iter == TO_STRUCT_OBJ(right)->members.end())
-                return false;
-        }
-        return true;
+        return TO_STRUCT_OBJ(left)->members== TO_STRUCT_OBJ(right)->members;
     }
     case ObjectType::REF:
     {

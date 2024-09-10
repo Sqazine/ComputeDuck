@@ -74,6 +74,8 @@ COMPUTE_DUCK_API std::string PointerAddressToString(void *pointer);
 
 COMPUTE_DUCK_API void RegisterDLLs(std::string rawDllPath);
 
+uint32_t HashString(char* str);
+
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
 
 #ifndef NDEBUG
