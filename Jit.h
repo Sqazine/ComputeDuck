@@ -192,32 +192,54 @@ private:
 
     std::string GetTypeName(llvm::Type *type);
 
+    llvm::StructType *m_UnionType{ nullptr };
+    
     llvm::StructType *m_ValueType{ nullptr };
     llvm::PointerType *m_ValuePtrType{ nullptr };
-    llvm::StructType *m_UnionType{ nullptr };
+    
     llvm::StructType *m_ObjectType{ nullptr };
-    llvm::StructType *m_StrObjectType{ nullptr };
-    llvm::StructType *m_ArrayObjectType{ nullptr };
-    llvm::StructType *m_RefObjectType{ nullptr };
+    
     llvm::PointerType *m_ObjectPtrType{ nullptr };
     llvm::PointerType *m_ObjectPtrPtrType{ nullptr };
+    
+    llvm::StructType *m_StrObjectType{ nullptr };
     llvm::PointerType *m_StrObjectPtrType{ nullptr };
+    
+    llvm::StructType *m_ArrayObjectType{ nullptr };
     llvm::PointerType *m_ArrayObjectPtrType{ nullptr };
+    
+    llvm::StructType *m_RefObjectType{ nullptr };
     llvm::PointerType *m_RefObjectPtrType{ nullptr };
+
+    llvm::StructType *m_StructObjectType{ nullptr };
+    llvm::PointerType *m_StructObjectPtrType{ nullptr };
+
     llvm::FunctionType *m_BuiltinFunctionType{ nullptr };
+    
     llvm::Type *m_Int8Type{ nullptr };
+    llvm::PointerType *m_Int8PtrType{ nullptr };
+    llvm::PointerType *m_Int8PtrPtrType{ nullptr };
+
     llvm::Type *m_BoolType{ nullptr };
+    llvm::PointerType *m_BoolPtrType{ nullptr };
+    
     llvm::Type *m_DoubleType{ nullptr };
+    llvm::PointerType *m_DoublePtrType{ nullptr };
+    
     llvm::Type *m_Int64Type{ nullptr };
+    llvm::PointerType *m_Int64PtrType{ nullptr };
+    
     llvm::Type *m_Int32Type{ nullptr };
+    llvm::PointerType *m_Int32PtrType{ nullptr };
+    
     llvm::Type *m_Int16Type{ nullptr };
     llvm::Type *m_VoidType{ nullptr };
-    llvm::PointerType *m_Int64PtrType{ nullptr };
-    llvm::PointerType *m_Int32PtrType{ nullptr };
-    llvm::PointerType *m_Int8PtrType{ nullptr };
-    llvm::PointerType *m_BoolPtrType{ nullptr };
-    llvm::PointerType *m_DoublePtrType{ nullptr };
-    llvm::PointerType *m_Int8PtrPtrType{ nullptr };
+
+    llvm::StructType *m_EntryType{ nullptr };
+    llvm::PointerType *m_EntryPtrType{ nullptr };
+
+    llvm::StructType *m_TableType{ nullptr };
+    llvm::PointerType *m_TablePtrType{ nullptr };
 
     StackValue *m_StackTop;
     StackValue m_ValueStack[STACK_MAX];

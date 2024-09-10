@@ -30,10 +30,10 @@ std::string ObjectStringify(Object *object
     {
         auto structObj=TO_STRUCT_OBJ(object);
         std::string result = "struct instance(0x" + PointerAddressToString(object) + "):\n{\n";
-        for (size_t i = 0; i < structObj->members.GetCapacity(); ++i)
+        for (size_t i = 0; i < structObj->members->GetCapacity(); ++i)
         {
-            if(structObj->members.IsValid(i))
-                result += ObjectStringify(structObj->members.GetEntries()[i].key) + ":" + structObj->members.GetEntries()[i].value.Stringify() + "\n";
+            if(structObj->members->IsValid(i))
+                result += ObjectStringify(structObj->members->GetEntries()[i].key) + ":" + structObj->members->GetEntries()[i].value.Stringify() + "\n";
         }
         result = result.substr(0, result.size() - 1);
         result += "\n}\n";
@@ -90,7 +90,7 @@ void ObjectMark(Object *object)
     }
     case ObjectType::STRUCT:
     {
-        TO_STRUCT_OBJ(object)->members.Mark();
+        TO_STRUCT_OBJ(object)->members->Mark();
         break;
     }
     case ObjectType::REF:
@@ -132,7 +132,7 @@ void ObjectUnMark(Object *object)
     }
     case ObjectType::STRUCT:
     {
-        TO_STRUCT_OBJ(object)->members.UnMark();
+        TO_STRUCT_OBJ(object)->members->UnMark();
         break;
     }
     case ObjectType::REF:
@@ -217,7 +217,7 @@ bool IsObjectsEqual(Object *left, Object *right)
 
 StrObject *StrAdd(StrObject *left, StrObject *right)
 {
-    int length = left->len + right->len;
+    size_t length = left->len + right->len;
     char *newStr = new char[length + 1];
     memcpy(newStr, left->value, left->len);
     memcpy(newStr + left->len, right->value, right->len);
@@ -227,7 +227,7 @@ StrObject *StrAdd(StrObject *left, StrObject *right)
 
 void StrInsert(StrObject *left, uint32_t idx, StrObject *right)
 {
-    int length = left->len + right->len;
+    size_t length = left->len + right->len;
     char *newStr = new char[length + 1];
     memset(newStr, '\0', sizeof(newStr));
     strncpy(newStr, left->value, idx);

@@ -97,8 +97,8 @@ private:
     CallFrame m_CallFrameStack[STACK_MAX]{};
 
     Object *m_FirstObject{nullptr};
-    int m_CurObjCount;
-    int m_MaxObjCount;
+    size_t m_CurObjCount;
+    size_t m_MaxObjCount;
 };
 
 #define GET_GLOBAL_VARIABLE_REF(x) (Allocator::GetInstance()->GetGlobalVariableRef(x)) 

@@ -1,25 +1,5 @@
 #include "Allocator.h"
 
-extern "C" COMPUTE_DUCK_API StrObject *CreateStrObject(const char *v)
-{
-    return Allocator::GetInstance()->CreateObject<StrObject>(v);
-}
-
-extern "C" COMPUTE_DUCK_API ArrayObject *CreateArrayObject(Value *elements, uint32_t size)
-{
-    return Allocator::GetInstance()->CreateObject<ArrayObject>(elements, size);
-}
-
-extern "C" COMPUTE_DUCK_API RefObject *CreateRefObject(Value *pointer)
-{
-    return Allocator::GetInstance()->CreateObject<RefObject>(pointer);
-}
-
-extern "C" COMPUTE_DUCK_API Value *GetLocalVariableSlot(int16_t scopeDepth, int16_t index, bool isUpValue)
-{
-    return Allocator::GetInstance()->GetLocalVariableSlot(scopeDepth, index, isUpValue);
-}
-
 void Allocator::Init()
 {
     m_FirstObject = nullptr;

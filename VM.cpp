@@ -411,14 +411,15 @@ void VM::Execute()
         }
         case OP_STRUCT:
         {
+            Table* members=new Table();
             auto memberCount = *frame->ip++;
-            auto structInstance = Allocator::GetInstance()->CreateObject<StructObject>();
-            for (int i = 0; i < memberCount; ++i)
+            for (auto slot = STACK_TOP(); slot >= STACK_TOP() - memberCount;)
             {
-                auto name = TO_STR_VALUE(POP());
-                auto value = POP();
-                structInstance->members.Set(name,value);
+                auto name = TO_STR_VALUE(*--slot);
+                auto value = *--slot;
+                members->Set(name,value);
             }
+            auto structInstance = Allocator::GetInstance()->CreateObject<StructObject>(members);
             PUSH(structInstance);
             break;
         }
@@ -431,7 +432,7 @@ void VM::Execute()
                 auto structInstance = TO_STRUCT_VALUE(instance);
 
                 Value value;
-                bool isSuccess = structInstance->members.Get(TO_STR_VALUE(memberName), value);
+                bool isSuccess = structInstance->members->Get(TO_STR_VALUE(memberName), value);
                 if (!isSuccess)
                     ASSERT("no member named:(%s) in struct instance:%s", memberName.Stringify().c_str(), instance.Stringify().c_str());
                 PUSH(value);
@@ -446,10 +447,10 @@ void VM::Execute()
             auto value = POP();
             if (IS_STR_VALUE(memberName))
             {
-                bool isSuccess=structInstance->members.Get(TO_STR_VALUE(memberName));
+                bool isSuccess=structInstance->members->Find(TO_STR_VALUE(memberName));
                 if (!isSuccess)
                     ASSERT("no member named:(%s) in struct instance:(0x%s)", memberName.Stringify().c_str(), PointerAddressToString(structInstance).c_str());
-                structInstance->members.Set(TO_STR_VALUE(memberName),value);
+                structInstance->members->Set(TO_STR_VALUE(memberName),value);
             }
             break;
         }
@@ -600,7 +601,7 @@ void VM::RunJit(const CallFrame &frame)
     //run jit function
     {
         auto curCallFrame = PEEK_CALL_FRAME_FROM_BACK(1);
-        auto prevCallFrame = POP_CALL_FRAME();
+        auto prevCallFrame = PEEK_CALL_FRAME_FROM_BACK(2);
 
         if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::NUM))
         {
@@ -642,6 +643,12 @@ void VM::RunJit(const CallFrame &frame)
         else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::REF))
         {
             RUN_WITH_RET(RefObject *, nullptr);
+            SET_STACK_TOP(prevCallFrame->slot - 1);
+            PUSH(ret);
+        }
+        else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::STRUCT))
+        {
+            RUN_WITH_RET(StructObject *, nullptr);
             SET_STACK_TOP(prevCallFrame->slot - 1);
             PUSH(ret);
         }
