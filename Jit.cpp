@@ -1095,7 +1095,7 @@ void Jit::InitModuleAndPassManager()
         m_ObjectType->setBody({m_Int8Type, m_BoolType, m_ObjectPtrType});
         m_ObjectPtrPtrType = llvm::PointerType::get(m_ObjectPtrType, 0);
 
-        m_StrObjectType = llvm::StructType::create(*m_Context, {m_ObjectType, m_Int8PtrType, m_Int32Type}, "struct.StrObject");
+        m_StrObjectType = llvm::StructType::create(*m_Context, {m_ObjectType, m_Int8PtrType, m_Int32Type,m_Int32Type}, "struct.StrObject");
         m_StrObjectPtrType = llvm::PointerType::get(m_StrObjectType, 0);
 
         m_ArrayObjectType = llvm::StructType::create(*m_Context, {m_ObjectType, m_ValuePtrType, m_Int32Type}, "struct.ArrayObject");

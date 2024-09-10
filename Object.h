@@ -3,11 +3,12 @@
 #include <string_view>
 #include <unordered_map>
 #include <functional>
-#include "Utils.h"
-#include "Value.h"
-#include "Chunk.h"
 #include <variant>
 #include <type_traits>
+#include "Utils.h"
+#include "Chunk.h"
+#include "Value.h"
+#include "Table.h"
 
 #define TO_STR_OBJ(obj) (static_cast<StrObject *>(obj))
 #define TO_ARRAY_OBJ(obj) (static_cast<ArrayObject *>(obj))
@@ -88,12 +89,14 @@ struct Object
 
 struct StrObject : public Object
 {
-    StrObject(char *v) :Object(ObjectType::STR), value(v), len(strlen(value)) {}
+    StrObject(char *v) :Object(ObjectType::STR), value(v), len(strlen(value)) { hash = HashString(value); }
     StrObject(const char *v) :Object(ObjectType::STR), len(strlen(v))
     {
         value = new char[len + 1];
         strcpy(value, v);
         value[len] = '\0';
+
+        hash= HashString(value);
     }
     ~StrObject()
     {
@@ -102,6 +105,8 @@ struct StrObject : public Object
 
     char *value;
     uint32_t len;
+    uint32_t hash;
+
 };
 
 struct ArrayObject : public Object
@@ -155,10 +160,11 @@ struct FunctionObject : public Object
 
 struct StructObject : public Object
 {
-    StructObject(const std::unordered_map<std::string, Value> &members) :Object(ObjectType::STRUCT), members(members) {}
+    StructObject() :Object(ObjectType::STRUCT){}
+    StructObject(const Table &membs) :Object(ObjectType::STRUCT), members(membs) {}
     ~StructObject() = default;
 
-    std::unordered_map<std::string, Value> members;
+    Table members;
 };
 
 using BuiltinFn = std::function<bool(Value *, uint8_t, Value &)>;
