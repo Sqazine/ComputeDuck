@@ -412,14 +412,17 @@ void VM::Execute()
         case OP_STRUCT:
         {
             Table* members=new Table();
-            auto memberCount = *frame->ip++;
-            for (auto slot = STACK_TOP(); slot >= STACK_TOP() - memberCount;)
+            auto memberCount =2 * (*frame->ip++);
+            for (auto slot = STACK_TOP(); slot > STACK_TOP() - memberCount;)
             {
                 auto name = TO_STR_VALUE(*--slot);
                 auto value = *--slot;
                 members->Set(name,value);
             }
             auto structInstance = Allocator::GetInstance()->CreateObject<StructObject>(members);
+            
+            STACK_TOP_JUMP_BACK(memberCount);
+            
             PUSH(structInstance);
             break;
         }
@@ -571,10 +574,20 @@ void VM::RunJit(const CallFrame &frame)
             double dArg0 = TO_NUM_VALUE(*arg0);               \
             ret = m_Jit->Run<type>(fnName, std::move(dArg0)); \
         }                                                     \
+        if (IS_BOOL_VALUE(*arg0))                             \
+        {                                                     \
+            bool bArg0 = TO_BOOL_VALUE(*arg0);                \
+            ret = m_Jit->Run<type>(fnName, std::move(bArg0)); \
+        }                                                     \
         else if (IS_ARRAY_VALUE(*arg0))                       \
         {                                                     \
             ArrayObject *aArg0 = TO_ARRAY_VALUE(*arg0);       \
             ret = m_Jit->Run<type>(fnName, std::move(aArg0)); \
+        }                                                     \
+        else if (IS_STRUCT_VALUE(*arg0))                      \
+        {                                                     \
+            StructObject *sArg0 = TO_STRUCT_VALUE(*arg0);     \
+            ret = m_Jit->Run<type>(fnName, std::move(sArg0)); \
         }                                                     \
     }                                                         \
     else                                                      \
@@ -601,66 +614,61 @@ void VM::RunJit(const CallFrame &frame)
     //run jit function
     {
         auto curCallFrame = PEEK_CALL_FRAME_FROM_BACK(1);
-        auto prevCallFrame = PEEK_CALL_FRAME_FROM_BACK(2);
 
         if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::NUM))
         {
-            RUN_WITH_RET(Value *, nullptr);
+            RUN_WITH_RET(double, 0);
+            auto prevCallFrame=POP_CALL_FRAME();
             SET_STACK_TOP(prevCallFrame->slot - 1);
-            if (ret && ret->IsValid())
-                PUSH(*ret);
-            else
-            {
-                auto rawDouble = *reinterpret_cast<double *>(ret);
-                PUSH(rawDouble);
-            }
+            PUSH(ret);
         }
 
         else if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::BOOL))
         {
             RUN_WITH_RET(bool, false);
+            auto prevCallFrame = POP_CALL_FRAME();
             SET_STACK_TOP(prevCallFrame->slot - 1);
             PUSH(ret);
         }
         else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::STR))
         {
-            RUN_WITH_RET(Value *, nullptr);
+            RUN_WITH_RET(const char *, nullptr);
+            auto prevCallFrame = POP_CALL_FRAME();
             SET_STACK_TOP(prevCallFrame->slot - 1);
-            if (ret && ret->IsValid())
-                PUSH(*ret);
-            else
-            {
-                auto rawChars = reinterpret_cast<const char *>(ret);
-                PUSH(Allocator::GetInstance()->CreateObject<StrObject>(rawChars));
-            }
+            PUSH(Allocator::GetInstance()->CreateObject<StrObject>(ret));
         }
         else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::ARRAY))
         {
             RUN_WITH_RET(ArrayObject *, nullptr);
+            auto prevCallFrame = POP_CALL_FRAME();
             SET_STACK_TOP(prevCallFrame->slot - 1);
             PUSH(ret);
         }
         else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::REF))
         {
             RUN_WITH_RET(RefObject *, nullptr);
+            auto prevCallFrame = POP_CALL_FRAME();
             SET_STACK_TOP(prevCallFrame->slot - 1);
             PUSH(ret);
         }
         else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::STRUCT))
         {
             RUN_WITH_RET(StructObject *, nullptr);
+            auto prevCallFrame = POP_CALL_FRAME();
             SET_STACK_TOP(prevCallFrame->slot - 1);
             PUSH(ret);
         }
         else if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::NIL))
         {
             RUN_WITHOUT_RET();
+            auto prevCallFrame = POP_CALL_FRAME();
             SET_STACK_TOP(prevCallFrame->slot - 1);
             PUSH(Value());
         }
         else
         {
             RUN_WITHOUT_RET();
+            auto prevCallFrame = POP_CALL_FRAME();
             SET_STACK_TOP(prevCallFrame->slot - 1);
         }
     }

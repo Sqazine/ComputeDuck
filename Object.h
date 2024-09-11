@@ -104,21 +104,21 @@ struct StrObject : public Object
     }
 
     char *value;
-    uint32_t len;
-    uint32_t hash;
+    size_t len;
+    size_t hash;
 
 };
 
 struct ArrayObject : public Object
 {
-    ArrayObject(Value *eles, uint32_t len) :Object(ObjectType::ARRAY), elements(eles), len(len) {}
+    ArrayObject(Value *eles, size_t len) :Object(ObjectType::ARRAY), elements(eles), len(len) {}
     ~ArrayObject()
     {
         // SAFE_DELETE_ARRAY(elements);
     }
 
     Value *elements;
-    uint32_t len;
+    size_t len;
 };
 
 struct RefObject : public Object

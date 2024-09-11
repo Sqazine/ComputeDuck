@@ -23,8 +23,7 @@
 
 #define BUILTIN_FN_PREFIX cd_builtin_fn_
 #define BUILTIN_FN_PREFIX_STR STR2(BUILTIN_FN_PREFIX)
-#define BUILTIN_FN(name) STR3(BUILTIN_FN_PREFIX) \
-##name
+#define BUILTIN_FN(name) STR3(BUILTIN_FN_PREFIX) ##name
 
 #define REGISTER_BUILTIN_VALUE(x) BuiltinManager::GetInstance()->Register(#x, Value((uint64_t)x))
 #define REGISTER_BUILTIN_FN(x) BuiltinManager::GetInstance()->Register<BuiltinFn>(#x, BUILTIN_FN(x))

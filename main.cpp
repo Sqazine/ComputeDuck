@@ -44,7 +44,7 @@ void Run(std::string_view content)
 #ifndef NDEBUG
 	auto str=ObjectStringify(fn, true);
     std::cout << str << std::endl;
-	WriteFile(Config::GetInstance()->GetExecuteFilePath()+"TmpDump.txt",str);
+	//WriteFile(Config::GetInstance()->GetExecuteFilePath()+"TmpDump.txt",str);
 #endif
 
 	for (auto stmt : stmts)
