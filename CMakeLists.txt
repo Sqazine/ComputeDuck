@@ -93,6 +93,9 @@ if(MSVC)
     target_compile_definitions(${LIB_NAME} PUBLIC NOMINMAX)
     target_compile_definitions(${EXE_NAME} PUBLIC NOMINMAX)
 
+    target_compile_definitions(${LIB_NAME} PUBLIC _CRT_SECURE_NO_WARNINGS)
+    target_compile_definitions(${EXE_NAME} PUBLIC _CRT_SECURE_NO_WARNINGS)
+
     target_compile_options(${LIB_NAME} PRIVATE "/wd4251;")
     target_compile_options(${EXE_NAME} PRIVATE "/wd4251;")
     set_property ( DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${EXE_NAME} )

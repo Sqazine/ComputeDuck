@@ -31,11 +31,6 @@ void Value::UnMark() const
         ObjectUnMark(object);
 }
 
-bool Value::IsValid() const
-{
-    return (type<=ValueType::OBJECT && type>=ValueType::NUM) && object;
-}
-
 bool operator==(const Value &left, const Value &right)
 {
     if (left.type != right.type)
@@ -46,9 +41,8 @@ bool operator==(const Value &left, const Value &right)
     case ValueType::NIL:
         return IS_NIL_VALUE(right);
     case ValueType::NUM:
-        return left.stored == TO_NUM_VALUE(right);
     case ValueType::BOOL:
-        return left.stored == TO_BOOL_VALUE(right);
+        return left.stored == TO_NUM_VALUE(right);
     case ValueType::OBJECT:
         return IsObjectsEqual(left.object, TO_OBJECT_VALUE(right));
     default:

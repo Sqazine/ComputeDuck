@@ -308,8 +308,8 @@ while(i<100)
     i=i+1;
 }
 
-##################################################
-println("createVec2tructInstance() start");
+#################################################
+println("createVec2Instance() start");
 
 struct Vec2
 {
@@ -317,7 +317,7 @@ struct Vec2
     y:0
 }
 
-createVec2tructInstance=function()
+createVec2Instance=function()
 {
     return Vec2;
 };
@@ -325,6 +325,28 @@ createVec2tructInstance=function()
 i=0;
 while(i<100)
 {
-    println(createVec2tructInstance());
+    println(createVec2Instance());
+    i=i+1;
+}
+
+##################################################
+println("getVec3X() start");
+
+struct Vec3
+{
+    x:0,
+    y:0,
+    z:100
+}
+
+getVec3X=function(v3)
+{
+    return v3.z;
+};
+
+i=0;
+while(i<100)
+{
+    println(getVec3X(Vec3));
     i=i+1;
 }
