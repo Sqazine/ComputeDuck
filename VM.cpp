@@ -552,15 +552,15 @@ void VM::RunJit(const CallFrame &frame)
         auto iter = frame.fn->jitCache.find(paramTypeHash);
         if (iter == frame.fn->jitCache.end() && !frame.fn->probableReturnTypeSet->IsMultiplyType())
         {
-            frame.fn->jitCache[paramTypeHash] = false;
+            frame.fn->jitCache[paramTypeHash] = JitCompileState::SUCCESS;
 
             m_Jit->ResetStatus();
 
             frame.fn->jitCache[paramTypeHash] = m_Jit->Compile(frame, fnName);
-            if (frame.fn->jitCache[paramTypeHash] == false)
+            if (frame.fn->jitCache[paramTypeHash] == JitCompileState::FAIL)
                 return;
         }
-        else if (iter->second == false) //means current paramTypeHash compile error,not try compiling anymore
+        else if (iter->second == JitCompileState::FAIL) //means current paramTypeHash compile error,not try compiling anymore
             return;
     }
 
