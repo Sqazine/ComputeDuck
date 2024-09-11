@@ -29,13 +29,6 @@
 #define REGISTER_BUILTIN_FN(x) BuiltinManager::GetInstance()->Register<BuiltinFn>(#x, BUILTIN_FN(x))
 
 constexpr uint32_t STACK_MAX = 512;
-constexpr uint32_t JIT_TRIGGER_COUNT = 2;
-
-enum JumpMode
-{
-    IF = 0,
-    WHILE = 1,
-};
 
 #define SAFE_DELETE(x)   \
     do                   \
@@ -78,18 +71,33 @@ uint32_t HashString(char* str);
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
 
 #ifndef NDEBUG
-#define ERROR(...)                                                                  \
+#define ERROR(state, ...)                                                                  \
     do                                                                              \
     {                                                                               \
         printf("[file:%s,function:%s,line:%d]:", __FILE__, __FUNCTION__, __LINE__); \
         printf(__VA_ARGS__);                                                        \
         printf("\n");                                                               \
         m_Module->getFunctionList().pop_back();                                    \
-        return false;                                                               \
+        return state;                                                               \
     } while (false);
 #else
 #define ERROR(...) return false;
 #endif
 
 std::string GenerateUUID();
+
+constexpr uint32_t JIT_TRIGGER_COUNT = 2;
+
+enum JumpMode
+{
+    IF = 0,
+    WHILE = 1,
+};
+
+enum class JitCompileState
+{
+    SUCCESS,
+    FAIL,
+    DEPEND,
+};
 #endif

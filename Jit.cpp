@@ -208,7 +208,7 @@ void Jit::ResetStatus()
     m_StackTop = m_ValueStack;
 }
 
-bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
+JitCompileState Jit::Compile(const CallFrame &frame, const std::string &fnName)
 {
     {
         m_Module->setSourceFileName(fnName);
@@ -255,7 +255,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
     else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::STRUCT))
         fnType = llvm::FunctionType::get(m_StructObjectPtrType, paramTypes, false);
     else
-        ERROR("Unknown return type");
+        ERROR(JitCompileState::FAIL,"Unknown return type");
 
     llvm::Function *fn = llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, fnName.c_str(), m_Module.get());
     fn->setDSOLocal(true);
@@ -277,12 +277,12 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto value = frame.fn->chunk.constants[idx];
 
             if (IS_FUNCTION_VALUE(value))
-                ERROR("Not support jit compile for:%s", fnName.c_str())
+                ERROR(JitCompileState::FAIL, "Not support jit compile for:%s", fnName.c_str())
             else
             {
                 auto llvmValue = CreateLlvmValue(value);
                 if (!llvmValue)
-                    ERROR("Unsupported value type:%d", value.type);
+                    ERROR(JitCompileState::FAIL,"Unsupported value type:%d", value.type);
 
                 Push(llvmValue);
             }
@@ -332,7 +332,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 }
             }
             else
-                ERROR("Invalid binary op:%s + %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ERROR(JitCompileState::FAIL,"Invalid binary op:%s + %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
 
             break;
         }
@@ -343,7 +343,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFSub(left, right));
             else
-                ERROR("Invalid binary op:%s - %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ERROR(JitCompileState::FAIL, "Invalid binary op:%s - %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
             break;
         }
         case OP_MUL:
@@ -353,7 +353,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFMul(left, right));
             else
-                ERROR("Invalid binary op:%s * %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ERROR(JitCompileState::FAIL, "Invalid binary op:%s * %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
             break;
         }
         case OP_DIV:
@@ -363,7 +363,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFDiv(left, right));
             else
-                ERROR("Invalid binary op:%s / %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ERROR(JitCompileState::FAIL, "Invalid binary op:%s / %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
             break;
         }
         case OP_LESS:
@@ -373,7 +373,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFCmpULT(left, right));
             else
-                ERROR("Invalid binary op:%s < %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ERROR(JitCompileState::FAIL, "Invalid binary op:%s < %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
             break;
         }
         case OP_GREATER:
@@ -383,7 +383,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFCmpUGT(left, right));
             else
-                ERROR("Invalid binary op:%s > %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ERROR(JitCompileState::FAIL, "Invalid binary op:%s > %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
             break;
         }
         case OP_NOT:
@@ -392,7 +392,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
             if (value->getType() == m_BoolType)
                 Push(m_Builder->CreateNot(value));
             else
-                ERROR("Invalid binary op:not %s.", GetTypeName(value->getType()).c_str());
+                ERROR(JitCompileState::FAIL, "Invalid binary op:not %s.", GetTypeName(value->getType()).c_str());
 
             break;
         }
@@ -402,7 +402,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
             if (value->getType() == m_DoubleType)
                 Push(m_Builder->CreateNeg(value));
             else
-                ERROR("Invalid binary op:- %s.", GetTypeName(value->getType()).c_str());
+                ERROR(JitCompileState::FAIL, "Invalid binary op:- %s.", GetTypeName(value->getType()).c_str());
 
             break;
         }
@@ -439,7 +439,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 }
             }
             else
-                ERROR("Invalid binary op:%s == %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ERROR(JitCompileState::FAIL, "Invalid binary op:%s == %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
 
             break;
         }
@@ -494,7 +494,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
             if (left->getType() == m_BoolType && right->getType() == m_BoolType)
                 Push(m_Builder->CreateLogicalAnd(left, right));
             else
-                ERROR("Invalid binary op:%s and %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ERROR(JitCompileState::FAIL, "Invalid binary op:%s and %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
 
             break;
         }
@@ -505,7 +505,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
             if (left->getType() == m_BoolType && right->getType() == m_BoolType)
                 Push(m_Builder->CreateLogicalAnd(left, right));
             else
-                ERROR("Invalid binary op:%s or %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ERROR(JitCompileState::FAIL, "Invalid binary op:%s or %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
 
             break;
         }
@@ -521,7 +521,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 Push(result);
             }
             else
-                ERROR("Invalid binary op:%s & %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ERROR(JitCompileState::FAIL, "Invalid binary op:%s & %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
 
             break;
         }
@@ -537,7 +537,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 Push(result);
             }
             else
-                ERROR("Invalid binary op:%s | %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ERROR(JitCompileState::FAIL, "Invalid binary op:%s | %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
 
             break;
         }
@@ -550,7 +550,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 Push(m_Builder->CreateXor(value, -1));
             }
             else
-                ERROR("Invalid binary op:~ %s.", GetTypeName(value->getType()).c_str());
+                ERROR(JitCompileState::FAIL, "Invalid binary op:~ %s.", GetTypeName(value->getType()).c_str());
 
             break;
         }
@@ -566,7 +566,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 Push(result);
             }
             else
-                ERROR("Invalid binary op:%s ^ %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+                ERROR(JitCompileState::FAIL, "Invalid binary op:%s ^ %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
 
             break;
         }
@@ -596,7 +596,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
             }
 
             if (!isSatis)
-                ERROR("Invalid index op: %s[%s]", GetTypeName(ds->getType()).c_str(), GetTypeName(index->getType()).c_str());
+                ERROR(JitCompileState::FAIL, "Invalid index op: %s[%s]", GetTypeName(ds->getType()).c_str(), GetTypeName(index->getType()).c_str());
 
             break;
         }
@@ -651,7 +651,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
             }
 
             if (!isSatis)
-                ERROR("Invalid index op: %s[%s]", GetTypeName(ds->getType()).c_str(), GetTypeName(index->getType()).c_str());
+                ERROR(JitCompileState::FAIL, "Invalid index op: %s[%s]", GetTypeName(ds->getType()).c_str(), GetTypeName(index->getType()).c_str());
             break;
         }
         case OP_JUMP_START:
@@ -837,7 +837,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
                     }
                 }
                 else
-                    ERROR("Not finished yet,tag it as error");
+                    ERROR(JitCompileState::FAIL, "Not finished yet,tag it as error");
             }
             break;
         }
@@ -962,19 +962,19 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
             }
             else
             {
-                auto fn = TO_FUNCTION_VALUE(fnSlot->GetVmValue());
+                auto vmFn = TO_FUNCTION_VALUE(fnSlot->GetVmValue());
 
                 size_t paramTypeHash = 0;
-                for (auto slot = m_StackTop - fn->parameterCount; slot < m_StackTop; ++slot)
+                for (auto slot = m_StackTop - vmFn->parameterCount; slot < m_StackTop; ++slot)
                 {
                     if (slot->GetLlvmValue()->getType() == m_DoubleType)
                         paramTypeHash ^= std::hash<ValueType>()(ValueType::NUM);
                 }
 
-                auto fnName = "function_" + fn->uuid + "_" + std::to_string(paramTypeHash);
+                auto fnName = "function_" + vmFn->uuid + "_" + std::to_string(paramTypeHash);
 
-                auto iter = fn->jitCache.find(paramTypeHash);
-                if (iter != fn->jitCache.end() && !fn->probableReturnTypeSet->IsMultiplyType())
+                auto iter = vmFn->jitCache.find(paramTypeHash);
+                if (iter != vmFn->jitCache.end() && !vmFn->probableReturnTypeSet->IsMultiplyType())
                 {
                     std::vector<llvm::Value *> args;
                     for (auto slot = m_StackTop - argCount; slot < m_StackTop; ++slot)
@@ -986,7 +986,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
                     Push(ret);
                 }
                 else
-                    ERROR("Not jitted function");
+                    ERROR(JitCompileState::DEPEND, "%s depends on another function %s",fn->getName(),vmFn->uuid);
             }
 
             break;
@@ -1043,7 +1043,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 memberName = m_Builder->CreateCall(m_Module->getFunction("CreateStrObject"), { memberName });
 
             if (memberName->getType() != m_StrObjectPtrType)
-                ERROR("Invalid member name of struct instance");
+                ERROR(JitCompileState::FAIL, "Invalid member name of struct instance");
 
             if(instance->getType()==m_ValuePtrType)
             {
@@ -1066,7 +1066,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
         }
         case OP_SET_STRUCT:
         {
-            ERROR("Not finished yet,tag it as error");
+            ERROR(JitCompileState::FAIL, "Not finished yet,tag it as error");
             break;
         }
         case OP_REF_GLOBAL:
@@ -1101,7 +1101,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
             else
             {
                 if (iter->second->getType() != m_ValuePtrType)
-                    ERROR("Cannot refer jit internal variable")
+                    ERROR(JitCompileState::FAIL, "Cannot refer jit internal variable")
                 else
                 {
                     auto alloc = m_Builder->CreateCall(m_Module->getFunction("CreateRefObject"), { iter->second });
@@ -1112,12 +1112,12 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
         }
         case OP_REF_INDEX_GLOBAL:
         {
-            ERROR("Not finished yet,tag it as error");
+            ERROR(JitCompileState::FAIL, "Not finished yet,tag it as error");
             break;
         }
         case OP_REF_INDEX_LOCAL:
         {
-            ERROR("Not finished yet,tag it as error");
+            ERROR(JitCompileState::FAIL, "Not finished yet,tag it as error");
             break;
         }
         case OP_SP_OFFSET:
@@ -1141,7 +1141,7 @@ bool Jit::Compile(const CallFrame &frame, const std::string &fnName)
     m_Executor->AddModule(llvm::orc::ThreadSafeModule(std::move(m_Module), std::move(m_Context)));
     InitModuleAndPassManager();
 
-    return true;
+    return JitCompileState::SUCCESS;
 }
 
 void Jit::InitModuleAndPassManager()

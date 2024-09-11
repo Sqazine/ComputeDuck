@@ -152,7 +152,7 @@ struct FunctionObject : public Object
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     uint32_t callCount;
-    std::unordered_map<size_t,bool> jitCache;
+    std::unordered_map<size_t, JitCompileState> jitCache;
     TypeSet *probableReturnTypeSet{ nullptr };//record function return types,some function with multiply return stmt may return mutiply types of value
     std::string uuid;
 #endif
