@@ -33,9 +33,9 @@
 
 #define TO_OBJECT_VALUE(v) ((v).object)
 
-enum class ValueType : uint8_t
+enum ValueType : uint8_t
 {
-    NIL,
+    NIL=0,
     NUM,
     BOOL,
     OBJECT

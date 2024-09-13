@@ -32,8 +32,12 @@ std::string ObjectStringify(Object *object
         std::string result = "struct instance(0x" + PointerAddressToString(object) + "):\n{\n";
         for (size_t i = 0; i < structObj->members->GetCapacity(); ++i)
         {
-            if(structObj->members->IsValid(i))
-                result += ObjectStringify(structObj->members->GetEntries()[i].key) + ":" + structObj->members->GetEntries()[i].value.Stringify() + "\n";
+            if (structObj->members->IsValid(i))
+            {
+                auto key= structObj->members->GetEntries()[i].key;
+                auto value= structObj->members->GetEntries()[i].value;
+                result += ObjectStringify(key) + ":" + value.Stringify() + "\n";
+            }
         }
         result = result.substr(0, result.size() - 1);
         result += "\n}\n";
@@ -69,7 +73,6 @@ std::string ObjectStringify(Object *object
     }
     default:
         ASSERT("Unknown object type");
-        return nullptr;
     }
 }
 
@@ -157,7 +160,7 @@ void ObjectUnMark(Object *object)
     }
 }
 
-bool IsObjectsEqual(Object *left, Object *right)
+bool IsObjectEqual(Object *left, Object *right)
 {
     if (left->type != right->type)
         return false;

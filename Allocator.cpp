@@ -112,6 +112,16 @@ Value *Allocator::GetLocalVariableSlot(int16_t scopeDepth, int16_t index, bool i
     return slot;
 }
 
+void Allocator::InsideJitExecutor()
+{
+    m_IsInsideJitExecutor=true;
+}
+
+void Allocator::OutsideJitExecutor()
+{
+    m_IsInsideJitExecutor=false;
+}
+
 void Allocator::Gc(bool isExitingVM)
 {
     auto objNum = m_CurObjCount;

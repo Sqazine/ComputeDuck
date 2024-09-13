@@ -50,7 +50,7 @@ public:
     template <class T, typename... Args>
     T *CreateObject(Args &&...params)
     {
-        if (m_CurObjCount >= m_MaxObjCount)
+        if (m_CurObjCount >= m_MaxObjCount && m_IsInsideJitExecutor == false)
             Gc();
 
         T *object = new T(std::forward<Args>(params)...);
@@ -81,6 +81,14 @@ public:
     Value *GetGlobalVariableRef(size_t index);
 
     Value* GetLocalVariableSlot(int16_t scopeDepth,int16_t index,bool isUpValue);
+
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+    void InsideJitExecutor();
+    void OutsideJitExecutor();
+private:
+    bool m_IsInsideJitExecutor{false};
+#endif
+
 private:
     Allocator() =default;
     ~Allocator() =default;
@@ -99,6 +107,7 @@ private:
     Object *m_FirstObject{nullptr};
     size_t m_CurObjCount;
     size_t m_MaxObjCount;
+
 };
 
 #define GET_GLOBAL_VARIABLE_REF(x) (Allocator::GetInstance()->GetGlobalVariableRef(x)) 

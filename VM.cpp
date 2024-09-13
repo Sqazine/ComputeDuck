@@ -359,10 +359,10 @@ void VM::Execute()
 
                 Value *slot = STACK_TOP() - argCount;
 
-                STACK_TOP_JUMP_BACK(argCount + 1);
-
                 Value returnValue;
                 auto hasRet = builtin->Get<BuiltinFn>()(slot, argCount, returnValue);
+
+                STACK_TOP_JUMP_BACK(argCount + 1);
 
                 if (hasRet)
                     PUSH(returnValue);
@@ -550,17 +550,16 @@ void VM::RunJit(const CallFrame &frame)
     // compile function
     {
         auto iter = frame.fn->jitCache.find(paramTypeHash);
-        if (iter == frame.fn->jitCache.end() && !frame.fn->probableReturnTypeSet->IsMultiplyType())
+        if ((iter == frame.fn->jitCache.end()  && !frame.fn->probableReturnTypeSet->IsMultiplyType()) || 
+             iter->second.state == JitCompileState::DEPEND)
         {
-            frame.fn->jitCache[paramTypeHash] = JitCompileState::SUCCESS;
-
             m_Jit->ResetStatus();
 
             frame.fn->jitCache[paramTypeHash] = m_Jit->Compile(frame, fnName);
-            if (frame.fn->jitCache[paramTypeHash] == JitCompileState::FAIL)
-                return;
+            iter = frame.fn->jitCache.find(paramTypeHash);
         }
-        else if (iter->second == JitCompileState::FAIL) //means current paramTypeHash compile error,not try compiling anymore
+        
+        if (iter->second.state != JitCompileState::SUCCESS) //means current paramTypeHash compile error,not try compiling anymore
             return;
     }
 
@@ -573,6 +572,16 @@ void VM::RunJit(const CallFrame &frame)
         {                                                     \
             double dArg0 = TO_NUM_VALUE(*arg0);               \
             ret = m_Jit->Run<type>(fnName, std::move(dArg0)); \
+        }                                                     \
+        if (IS_BOOL_VALUE(*arg0))                             \
+        {                                                     \
+            bool bArg0 = TO_BOOL_VALUE(*arg0);                \
+            ret = m_Jit->Run<type>(fnName, std::move(bArg0)); \
+        }                                                     \
+        if (IS_STR_VALUE(*arg0))                              \
+        {                                                     \
+            StrObject* sArg0 = TO_STR_VALUE(*arg0);           \
+            ret = m_Jit->Run<type>(fnName, std::move(sArg0)); \
         }                                                     \
         if (IS_BOOL_VALUE(*arg0))                             \
         {                                                     \
@@ -613,6 +622,8 @@ void VM::RunJit(const CallFrame &frame)
 
     //run jit function
     {
+        Allocator::GetInstance()->InsideJitExecutor();
+
         auto curCallFrame = PEEK_CALL_FRAME_FROM_BACK(1);
 
         if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::NUM))
@@ -632,10 +643,10 @@ void VM::RunJit(const CallFrame &frame)
         }
         else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::STR))
         {
-            RUN_WITH_RET(const char *, nullptr);
+            RUN_WITH_RET(StrObject*, nullptr);
             auto prevCallFrame = POP_CALL_FRAME();
             SET_STACK_TOP(prevCallFrame->slot - 1);
-            PUSH(Allocator::GetInstance()->CreateObject<StrObject>(ret));
+            PUSH(ret);
         }
         else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::ARRAY))
         {
@@ -671,6 +682,8 @@ void VM::RunJit(const CallFrame &frame)
             auto prevCallFrame = POP_CALL_FRAME();
             SET_STACK_TOP(prevCallFrame->slot - 1);
         }
+
+        Allocator::GetInstance()->OutsideJitExecutor();
     }
 }
 #endif
