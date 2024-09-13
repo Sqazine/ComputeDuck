@@ -112,6 +112,7 @@ Value *Allocator::GetLocalVariableSlot(int16_t scopeDepth, int16_t index, bool i
     return slot;
 }
 
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
 void Allocator::InsideJitExecutor()
 {
     m_IsInsideJitExecutor=true;
@@ -121,6 +122,7 @@ void Allocator::OutsideJitExecutor()
 {
     m_IsInsideJitExecutor=false;
 }
+#endif
 
 void Allocator::Gc(bool isExitingVM)
 {

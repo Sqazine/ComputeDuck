@@ -23,7 +23,7 @@
 
 #define BUILTIN_FN_PREFIX cd_builtin_fn_
 #define BUILTIN_FN_PREFIX_STR STR2(BUILTIN_FN_PREFIX)
-#define BUILTIN_FN(name) STR3(BUILTIN_FN_PREFIX) ##name
+#define BUILTIN_FN(name) STR3(BUILTIN_FN_PREFIX)##name
 
 #define REGISTER_BUILTIN_VALUE(x) BuiltinManager::GetInstance()->Register(#x, Value((uint64_t)x))
 #define REGISTER_BUILTIN_FN(x) BuiltinManager::GetInstance()->Register<BuiltinFn>(#x, BUILTIN_FN(x))
@@ -67,48 +67,3 @@ COMPUTE_DUCK_API std::string PointerAddressToString(void *pointer);
 COMPUTE_DUCK_API void RegisterDLLs(std::string rawDllPath);
 
 uint32_t HashString(char *str);
-
-#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-
-#ifndef NDEBUG
-#define ERROR(newState, ...)                                                                  \
-    do                                                                              \
-    {                                                                               \
-        printf("[file:%s,function:%s,line:%d]:", __FILE__, __FUNCTION__, __LINE__); \
-        printf(__VA_ARGS__);                                                        \
-        printf("\n");                                                               \
-        m_Module->getFunctionList().pop_back();                                    \
-        jitFnDecl.state=newState;\
-        return jitFnDecl;                                                               \
-    } while (false);
-#else
-#define ERROR(...) return false;
-#endif
-
-std::string GenerateUUID();
-
-constexpr uint32_t JIT_TRIGGER_COUNT = 2;
-
-enum JumpMode
-{
-    IF = 0,
-    WHILE = 1,
-};
-
-enum class JitCompileState
-{
-    SUCCESS,
-    FAIL,
-    DEPEND,
-};
-
-struct JitFnDecl
-{
-    JitFnDecl() = default;
-    ~JitFnDecl() = default;
-    uint8_t returnType{};
-    std::vector<uint8_t> paramTypes{};
-    JitCompileState state{JitCompileState::SUCCESS};
-};
-
-#endif

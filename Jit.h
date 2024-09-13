@@ -33,17 +33,11 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm-c/Core.h>
 #include <variant>
-
+#include "JitUtils.h"
 #include "Chunk.h"
 #include "Value.h"
 #include "Object.h"
 #include "Allocator.h"
-
-constexpr const char *g_GlobalVariablesStr = "m_GlobalVariables";
-constexpr const char *g_SetGlobalVariablesFnStr = "function_SetGlobalVariables";
-
-constexpr const char *g_StackStr = "m_ValueStack";
-constexpr const char *g_SetStackFnStr = "function_SetValueStack";
 
 class COMPUTE_DUCK_API Jit
 {
@@ -61,7 +55,7 @@ public:
 
         //set global variables
         {
-            auto symbol = m_ExitOnErr(m_Executor->LookUp(g_SetGlobalVariablesFnStr));
+            auto symbol = m_ExitOnErr(m_Executor->LookUp(SET_GLOBAL_VARIABLE_FN_STR));
             using SetGlobalVarFnType = void(*)(Value *);
             SetGlobalVarFnType setGlobalVarFn = reinterpret_cast<SetGlobalVarFnType>(symbol.getAddress());
             setGlobalVarFn(Allocator::GetInstance()->GetGlobalVariableRef(0));
@@ -69,7 +63,7 @@ public:
 
         // set stack
         {
-            auto symbol = m_ExitOnErr(m_Executor->LookUp(g_SetStackFnStr));
+            auto symbol = m_ExitOnErr(m_Executor->LookUp(SET_STACK_FN_STR));
             using SetStackFnType = void(*)(Value *);
             SetStackFnType setStackFn = reinterpret_cast<SetStackFnType>(symbol.getAddress());
             setStackFn(STACK_TOP());
@@ -120,14 +114,14 @@ private:
         llvm::orc::JITDylib &m_MainJD;
     };
 
-    template<typename VmType, typename LlvmType>
-    class VariantValue
+  
+    class StackValue
     {
     public:
-        VariantValue() = default;
-        VariantValue(LlvmType v) :stored(v) {}
-        VariantValue(const VmType &v) :stored(v) {}
-        ~VariantValue() = default;
+        StackValue() = default;
+        StackValue(llvm::Value *v) :stored(v) {}
+        StackValue(const Value &v) :stored(v) {}
+        ~StackValue() = default;
 
         bool IsLlvmValue() const
         {
@@ -139,21 +133,18 @@ private:
             return stored.index() == 0;
         }
 
-        LlvmType GetLlvmValue() const
+        llvm::Value *GetLlvmValue() const
         {
-            return std::get<LlvmType>(stored);
+            return std::get<llvm::Value *>(stored);
         }
 
-        const VmType &GetVmValue() const
+        const Value &GetVmValue() const
         {
-            return std::get<VmType>(stored);
+            return std::get<Value>(stored);
         }
-
     private:
-        std::variant<VmType, LlvmType> stored;
+        std::variant<Value, llvm::Value *> stored;
     };
-
-    using StackValue = VariantValue<Value, llvm::Value *>;
 
     struct JumpInstrSet
     {
@@ -190,6 +181,10 @@ private:
     StackValue Pop();
 
     std::string GetTypeName(llvm::Type *type);
+
+    std::pair<llvm::Type *, uint8_t> GetTypeFromValue(const Value &v);
+    llvm::Type *GetLlvmTypeFromValueType(uint8_t v);
+    uint8_t GetLlvmTypeFromValueType(llvm::Type *v);
 
     llvm::StructType *m_UnionType{ nullptr };
     

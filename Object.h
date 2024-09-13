@@ -4,11 +4,14 @@
 #include <unordered_map>
 #include <functional>
 #include <variant>
-#include <type_traits>
 #include "Utils.h"
 #include "Chunk.h"
 #include "Value.h"
 #include "Table.h"
+
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+#include "JitUtils.h"
+#endif
 
 #define TO_STR_OBJ(obj) (static_cast<StrObject *>(obj))
 #define TO_ARRAY_OBJ(obj) (static_cast<ArrayObject *>(obj))
@@ -33,48 +36,6 @@ enum ObjectType :uint8_t
     FUNCTION,
     BUILTIN,
 };
-
-#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-class TypeSet
-{
-public:
-    TypeSet() = default;
-    ~TypeSet() = default;
-
-    template <typename T>
-        requires(std::is_same_v<T, ValueType> || std::is_same_v<T, ObjectType>)
-    void Insert(T type)
-    {
-        m_ValueTypeSet.insert(static_cast<uint8_t>(type));
-    }
-
-    void Insert(const TypeSet* other)
-    {
-        if(other!=nullptr && !other->m_ValueTypeSet.empty())
-            m_ValueTypeSet.insert(other->m_ValueTypeSet.begin(),other->m_ValueTypeSet.end());
-    }
-
-    template<typename T>
-        requires(std::is_same_v<T, ValueType> || std::is_same_v<T, ObjectType>)
-    bool IsOnly(T t)
-    {
-        return m_ValueTypeSet.size() == 1 && m_ValueTypeSet.contains(static_cast<uint8_t>(t));
-    }
-
-    bool IsMultiplyType()
-    {
-        return m_ValueTypeSet.size() >= 2;
-    }
-
-    bool IsNone()
-    {
-        return m_ValueTypeSet.size() == 0;
-    }
-
-private:
-    std::set<uint8_t> m_ValueTypeSet{};
-};
-#endif
 
 struct Object
 {
