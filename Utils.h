@@ -66,19 +66,20 @@ COMPUTE_DUCK_API std::string PointerAddressToString(void *pointer);
 
 COMPUTE_DUCK_API void RegisterDLLs(std::string rawDllPath);
 
-uint32_t HashString(char* str);
+uint32_t HashString(char *str);
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
 
 #ifndef NDEBUG
-#define ERROR(state, ...)                                                                  \
+#define ERROR(newState, ...)                                                                  \
     do                                                                              \
     {                                                                               \
         printf("[file:%s,function:%s,line:%d]:", __FILE__, __FUNCTION__, __LINE__); \
         printf(__VA_ARGS__);                                                        \
         printf("\n");                                                               \
         m_Module->getFunctionList().pop_back();                                    \
-        return state;                                                               \
+        jitFnDecl.state=newState;\
+        return jitFnDecl;                                                               \
     } while (false);
 #else
 #define ERROR(...) return false;
@@ -100,4 +101,14 @@ enum class JitCompileState
     FAIL,
     DEPEND,
 };
+
+struct JitFnDecl
+{
+    JitFnDecl() = default;
+    ~JitFnDecl() = default;
+    uint8_t returnType{};
+    std::vector<uint8_t> paramTypes{};
+    JitCompileState state{JitCompileState::SUCCESS};
+};
+
 #endif

@@ -24,9 +24,9 @@
 #define IS_FUNCTION_OBJ(obj) (obj->type == ObjectType::FUNCTION)
 #define IS_BUILTIN_OBJ(obj) (obj->type == ObjectType::BUILTIN)
 
-enum class ObjectType :uint8_t
+enum ObjectType :uint8_t
 {
-    STR,
+    STR = ValueType::OBJECT + 1,
     ARRAY,
     STRUCT,
     REF,
@@ -45,7 +45,7 @@ public:
         requires(std::is_same_v<T, ValueType> || std::is_same_v<T, ObjectType>)
     void Insert(T type)
     {
-        m_ValueTypeSet.insert(type);
+        m_ValueTypeSet.insert(static_cast<uint8_t>(type));
     }
 
     void Insert(const TypeSet* other)
@@ -54,12 +54,11 @@ public:
             m_ValueTypeSet.insert(other->m_ValueTypeSet.begin(),other->m_ValueTypeSet.end());
     }
 
-
     template<typename T>
         requires(std::is_same_v<T, ValueType> || std::is_same_v<T, ObjectType>)
     bool IsOnly(T t)
     {
-        return m_ValueTypeSet.size() == 1 && m_ValueTypeSet.contains(t);
+        return m_ValueTypeSet.size() == 1 && m_ValueTypeSet.contains(static_cast<uint8_t>(t));
     }
 
     bool IsMultiplyType()
@@ -73,7 +72,7 @@ public:
     }
 
 private:
-    std::set<std::variant<ValueType, ObjectType>> m_ValueTypeSet{};
+    std::set<uint8_t> m_ValueTypeSet{};
 };
 #endif
 
@@ -152,7 +151,7 @@ struct FunctionObject : public Object
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     uint32_t callCount;
-    std::unordered_map<size_t, JitCompileState> jitCache;
+    std::unordered_map<size_t, JitFnDecl> jitCache;
     TypeSet *probableReturnTypeSet{ nullptr };//record function return types,some function with multiply return stmt may return mutiply types of value
     std::string uuid;
 #endif
@@ -237,7 +236,7 @@ COMPUTE_DUCK_API std::string ObjectStringify(Object *object
 COMPUTE_DUCK_API void ObjectMark(Object *object);
 COMPUTE_DUCK_API void ObjectUnMark(Object *object);
 
-COMPUTE_DUCK_API bool IsObjectsEqual(Object *left, Object *right);
+COMPUTE_DUCK_API bool IsObjectEqual(Object *left, Object *right);
 
 extern "C" COMPUTE_DUCK_API StrObject *StrAdd(StrObject *left, StrObject *right);
 extern "C" COMPUTE_DUCK_API void StrInsert(StrObject *left, uint32_t idx, StrObject *right);

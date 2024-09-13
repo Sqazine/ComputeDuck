@@ -44,7 +44,7 @@ bool operator==(const Value &left, const Value &right)
     case ValueType::BOOL:
         return left.stored == TO_NUM_VALUE(right);
     case ValueType::OBJECT:
-        return IsObjectsEqual(left.object, TO_OBJECT_VALUE(right));
+        return IsObjectEqual(left.object, TO_OBJECT_VALUE(right));
     default:
         return false;
     }

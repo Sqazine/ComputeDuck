@@ -52,7 +52,7 @@ public:
     ~Jit();
 
     void ResetStatus();
-    JitCompileState Compile(const CallFrame &frame, const std::string &fnName);
+    JitFnDecl Compile(const CallFrame &frame, const std::string &fnName);
 
     template<typename RetType, typename... Args>
     RetType Run(const std::string &name, Args &&...params)
@@ -75,8 +75,7 @@ public:
             setStackFn(STACK_TOP());
         }
 
-        auto tsm = llvm::orc::ThreadSafeModule(std::move(m_Module), std::move(m_Context));
-        m_ExitOnErr(m_Executor->AddModule(std::move(tsm), rt));
+        m_Executor->AddModule(llvm::orc::ThreadSafeModule(std::move(m_Module), std::move(m_Context)));
         InitModuleAndPassManager();
 
         auto symbol = m_ExitOnErr(m_Executor->LookUp(name));

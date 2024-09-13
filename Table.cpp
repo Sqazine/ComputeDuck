@@ -74,8 +74,10 @@ void Table::Mark()
     {
         Entry *entry = &m_Entries[i];
         if (entry->key)
+        {
             ObjectMark(entry->key);
-        entry->value.Mark();
+            entry->value.Mark();
+        }
     }
 }
 
