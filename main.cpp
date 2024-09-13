@@ -2,12 +2,13 @@
 #include <string_view>
 #include <filesystem>
 #include <cstring>
+#include "Config.h"
+#include "Allocator.h"
 #include "PreProcessor.h"
 #include "Parser.h"
 #include "Compiler.h"
 #include "BuiltinManager.h"
 #include "VM.h"
-#include "Config.h"
 
 PreProcessor *g_PreProcessor = nullptr;
 Parser *g_Parser = nullptr;
@@ -97,6 +98,7 @@ int32_t PrintUsage()
 	std::cout << "-f or --file:run source file with a valid file path,like : ComputeDuck -f examples/array.cd." << std::endl;
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
 	std::cout << "-nj or --no-jit:not use jit compiler" << std::endl;
+	std::cout << "-j or --jit:use jit compiler(default)" << std::endl;
 #endif
 	return EXIT_FAILURE;
 }

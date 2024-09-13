@@ -50,7 +50,11 @@ public:
     template <class T, typename... Args>
     T *CreateObject(Args &&...params)
     {
-        if (m_CurObjCount >= m_MaxObjCount && m_IsInsideJitExecutor == false)
+        if (m_CurObjCount >= m_MaxObjCount
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+        && m_IsInsideJitExecutor == false
+#endif
+        )
             Gc();
 
         T *object = new T(std::forward<Args>(params)...);

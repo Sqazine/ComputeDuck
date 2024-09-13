@@ -8,6 +8,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_EXTENSIONS OFF)
 
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/Bin/Debug)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Bin/Release)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/Bin/Debug)
@@ -15,13 +17,15 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Bin/Release)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/Bin/Debug)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Bin/Release)
 
-option(COMPUTEDUCK_BUILD_WITH_LLVM "build llvm for jit engine" ON)
+option(COMPUTEDUCK_BUILD_WITH_LLVM "build llvm for jit engine" OFF)
 option(COMPUTEDUCK_BUILD_WITH_SDL2 "build SDL2 third party for cdsdl2" ON) 
 option(COMPUTEDUCK_BUILD_WITH_OPENGL "build glad third party for cdopengl" ON)  
 
 file(GLOB EXAMPLES "${CMAKE_SOURCE_DIR}/examples/*.cd")
-
 source_group("examples" FILES ${EXAMPLES})
+
+set(EXE_NAME computeduck)
+add_executable(${EXE_NAME} main.cpp ${EXAMPLES})
 
 set(THIRD_PARTY_DIR "${CMAKE_SOURCE_DIR}/3rd")
 
@@ -31,10 +35,8 @@ else()
     set(LIB_NAME dycomputeduck)
 endif()
 
-set(EXE_NAME computeduck)
-
 if(COMPUTEDUCK_BUILD_WITH_SDL2)
-    add_subdirectory("${THIRD_PARTY_DIR}/SDL2")
+    add_subdirectory(${THIRD_PARTY_DIR}/SDL2)
     add_subdirectory(library/cdsdl2)
 endif()
 
@@ -61,8 +63,6 @@ set(ROOT_SRC Ast.h
              Table.cpp Table.h
              SetLLVM.cmake)
 
-add_executable(${EXE_NAME} main.cpp ${EXAMPLES})
-
 if(COMPUTEDUCK_BUILD_WITH_LLVM)
     include(SetLLVM.cmake)
 
@@ -74,7 +74,7 @@ if(COMPUTEDUCK_BUILD_WITH_LLVM)
     message(STATUS "LLVM_LIBS=${LLVM_LIBS}")
     message(STATUS "LLVM_GENERATE_DIR=${LLVM_GENERATE_DIR}")
     
-    list(APPEND ROOT_SRC Jit.h Jit.cpp)
+    list(APPEND ROOT_SRC Jit.h Jit.cpp JitUtils.h JitUtils.cpp)
     source_group("src" FILES ${ROOT_SRC})
     add_library(${LIB_NAME} SHARED ${ROOT_SRC})
     target_link_libraries(${LIB_NAME} PRIVATE ${LLVM_LIBS})

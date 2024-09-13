@@ -4,6 +4,11 @@
 #include "Config.h"
 #include "Allocator.h"
 
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+#include "JitUtils.h"
+#include "Jit.h"
+#endif
+
 VM::~VM()
 {
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
@@ -537,15 +542,8 @@ void VM::RunJit(const CallFrame &frame)
         return;
 
     // get function name by hashing arguments
-    size_t paramTypeHash = 0;
-    for (Value *slot = frame.slot; slot < frame.slot + frame.fn->parameterCount; ++slot)
-    {
-        paramTypeHash ^= std::hash<ValueType>()(slot->type);
-        if (IS_OBJECT_VALUE(*slot))
-            paramTypeHash ^= std::hash<ObjectType>()(TO_OBJECT_VALUE(*slot)->type);
-    }
-
-    auto fnName = "function_" + frame.fn->uuid + "_" + std::to_string(paramTypeHash);
+    size_t paramTypeHash = HashValueList(frame.slot, frame.slot + frame.fn->parameterCount);
+    auto fnName = GenerateFunctionName(frame.fn->uuid,frame.fn->probableReturnTypeSet->Hash(),paramTypeHash);
 
     // compile function
     {
