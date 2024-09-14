@@ -1,22 +1,22 @@
 #include "Lexer.h"
 
 const std::unordered_map<std::string, TokenType> keywords =
-    {
-        {"if", TokenType::IF},
-        {"else", TokenType::ELSE},
-        {"true", TokenType::TRUE},
-        {"false", TokenType::FALSE},
-        {"nil", TokenType::NIL},
-        {"while", TokenType::WHILE},
-        {"function", TokenType::FUNCTION},
-        {"return", TokenType::RETURN},
-        {"and", TokenType::AND},
-        {"or", TokenType::OR},
-        {"not", TokenType::NOT},
-        {"struct", TokenType::STRUCT},
-        {"ref", TokenType::REF},
-        {"dllimport", TokenType::DLLIMPORT},
-        {"import", TokenType::IMPORT},
+{
+    {"if", TokenType::IF},
+    {"else", TokenType::ELSE},
+    {"true", TokenType::TRUE},
+    {"false", TokenType::FALSE},
+    {"nil", TokenType::NIL},
+    {"while", TokenType::WHILE},
+    {"function", TokenType::FUNCTION},
+    {"return", TokenType::RETURN},
+    {"and", TokenType::AND},
+    {"or", TokenType::OR},
+    {"not", TokenType::NOT},
+    {"struct", TokenType::STRUCT},
+    {"ref", TokenType::REF},
+    {"dllimport", TokenType::DLLIMPORT},
+    {"import", TokenType::IMPORT},
 };
 
 Lexer::Lexer()
@@ -87,6 +87,7 @@ void Lexer::GenerateToken()
         break;
     case '\n':
         m_Line++;
+        m_Column = 0;
         break;
     case '+':
         AddToken(TokenType::PLUS);
@@ -116,7 +117,6 @@ void Lexer::GenerateToken()
     {
         while (!IsMatchCurChar('\n') && !IsAtEnd())
             GetCurCharAndStepOnce();
-        m_Line++;
         break;
     }
     case '!':
@@ -158,6 +158,7 @@ void Lexer::ResetStatus()
 {
     m_StartPos = m_CurPos = 0;
     m_Line = 1;
+    m_Column = 1;
     std::vector<Token>().swap(m_Tokens);
 }
 
@@ -169,7 +170,10 @@ bool Lexer::IsMatchCurCharAndStepOnce(char c)
 {
     bool result = GetCurChar() == c;
     if (result)
+    {
         m_CurPos++;
+        m_Column++;
+    }
     return result;
 }
 
@@ -181,16 +185,13 @@ bool Lexer::IsMatchNextCharAndStepOnce(char c)
 {
     bool result = GetNextChar() == c;
     if (result)
+    {
         m_CurPos++;
+        m_Column++;
+    }
     return result;
 }
 
-char Lexer::GetNextCharAndStepOnce()
-{
-    if (m_CurPos + 1 < m_Source.size())
-        return m_Source[++m_CurPos];
-    return '\0';
-}
 char Lexer::GetNextChar()
 {
     if (m_CurPos + 1 < m_Source.size())
@@ -200,7 +201,10 @@ char Lexer::GetNextChar()
 char Lexer::GetCurCharAndStepOnce()
 {
     if (!IsAtEnd())
+    {
+        m_Column++;
         return m_Source[m_CurPos++];
+    }
     return '\0';
 }
 
@@ -214,11 +218,11 @@ char Lexer::GetCurChar()
 void Lexer::AddToken(TokenType type)
 {
     auto literal = m_Source.substr(m_StartPos, m_CurPos - m_StartPos);
-    m_Tokens.emplace_back(type, literal, m_Line, m_FilePath);
+    m_Tokens.emplace_back(type, literal, m_Line, m_Column, m_FilePath);
 }
 void Lexer::AddToken(TokenType type, std::string_view literal)
 {
-    m_Tokens.emplace_back(type, literal, m_Line, m_FilePath);
+    m_Tokens.emplace_back(type, literal, m_Line, m_Column, m_FilePath);
 }
 
 bool Lexer::IsAtEnd()

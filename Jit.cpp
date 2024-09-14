@@ -996,7 +996,33 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         }
         case OP_SET_STRUCT:
         {
-            ERROR(JitCompileState::FAIL, "Not finished yet,tag it as error");
+            auto memberName = Pop().GetLlvmValue();
+            auto instance = Pop().GetLlvmValue();
+
+            auto value = Pop().GetLlvmValue();
+
+            if (memberName->getType() == m_Int8PtrType)
+                memberName = m_Builder->CreateCall(m_Module->getFunction(CREATE_STR_OBJECT_FN_NAME_STR), { memberName });
+
+            if (memberName->getType() != m_StrObjectPtrType)
+                ERROR(JitCompileState::FAIL, "Invalid member name of struct instance");
+
+                if(value->getType()!=m_ValuePtrType)
+                    value=CreateLlvmValue(value);
+
+            if (instance->getType() == m_ValuePtrType)
+            {
+                instance = m_Builder->CreateInBoundsGEP(m_ValueType, instance, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
+                instance = m_Builder->CreateBitCast(instance, m_ObjectPtrPtrType);
+                instance = m_Builder->CreateLoad(m_ObjectPtrType, instance);
+                instance = m_Builder->CreateBitCast(instance, m_StructObjectPtrType);
+            }
+
+            auto tablePtr = m_Builder->CreateInBoundsGEP(m_StructObjectType, instance, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
+            tablePtr = m_Builder->CreateLoad(m_TablePtrType, tablePtr);
+
+            m_Builder->CreateCall(m_Module->getFunction(TABLE_SET_IF_FOUND_FN_NAME_STR), { tablePtr,memberName,value });
+
             break;
         }
         case OP_REF_GLOBAL:
@@ -1088,94 +1114,102 @@ void Jit::InitModuleAndPassManager()
     m_FPM->add(llvm::createCFGSimplificationPass());
     m_FPM->doInitialization();
 
-    {
-        m_Int8Type = llvm::Type::getInt8Ty(*m_Context);
-        m_DoubleType = llvm::Type::getDoubleTy(*m_Context);
-        m_BoolType = llvm::Type::getInt1Ty(*m_Context);
-        m_Int64Type = llvm::Type::getInt64Ty(*m_Context);
-        m_Int32Type = llvm::Type::getInt32Ty(*m_Context);
-        m_Int16Type = llvm::Type::getInt16Ty(*m_Context);
-        m_VoidType = llvm::Type::getVoidTy(*m_Context);
-
-        m_Int64PtrType = llvm::PointerType::get(m_Int64Type, 0);
-        m_Int32PtrType = llvm::PointerType::get(m_Int32Type, 0);
-        m_Int8PtrType = llvm::PointerType::get(m_Int8Type, 0);
-        m_BoolPtrType = llvm::PointerType::get(m_BoolType, 0);
-        m_DoublePtrType = llvm::PointerType::get(m_DoubleType, 0);
-
-        m_Int8PtrPtrType = llvm::PointerType::get(m_Int8PtrType, 0);
-
-        m_UnionType = llvm::StructType::create(*m_Context, { m_DoubleType }, "union.anon");
-
-        m_ValueType = llvm::StructType::create(*m_Context, { m_Int8Type, m_UnionType }, "struct.Value");
-        m_ValuePtrType = llvm::PointerType::get(m_ValueType, 0);
-
-        m_ObjectType = llvm::StructType::create(*m_Context, "struct.Object");
-        m_ObjectPtrType = llvm::PointerType::get(m_ObjectType, 0);
-        m_ObjectType->setBody({ m_Int8Type, m_BoolType, m_ObjectPtrType });
-        m_ObjectPtrPtrType = llvm::PointerType::get(m_ObjectPtrType, 0);
-
-        m_StrObjectType = llvm::StructType::create(*m_Context, { m_ObjectType, m_Int8PtrType, m_Int32Type,m_Int32Type }, "struct.StrObject");
-        m_StrObjectPtrType = llvm::PointerType::get(m_StrObjectType, 0);
-
-        m_ArrayObjectType = llvm::StructType::create(*m_Context, { m_ObjectType, m_ValuePtrType, m_Int32Type }, "struct.ArrayObject");
-        m_ArrayObjectPtrType = llvm::PointerType::get(m_ArrayObjectType, 0);
-
-        m_RefObjectType = llvm::StructType::create(*m_Context, { m_ObjectType,m_ValuePtrType }, "struct.RefObject");
-        m_RefObjectPtrType = llvm::PointerType::get(m_RefObjectType, 0);
-
-        m_BuiltinFunctionType = llvm::FunctionType::get(m_BoolType, { m_ValuePtrType, m_Int8Type, m_ValuePtrType }, false);
-
-        m_EntryType = llvm::StructType::create(*m_Context, { m_StrObjectPtrType,m_ValueType }, "struct.Entry");
-        m_EntryPtrType = llvm::PointerType::get(m_EntryType, 0);
-
-        m_TableType = llvm::StructType::create(*m_Context, { m_Int32Type,m_Int32Type,m_EntryPtrType }, "struct.Table");
-        m_TablePtrType = llvm::PointerType::get(m_TableType, 0);
-
-        m_StructObjectType = llvm::StructType::create(*m_Context, { m_ObjectType,m_TablePtrType }, "struct.StructObject");
-        m_StructObjectPtrType = llvm::PointerType::get(m_StructObjectType, 0);
-    }
-
-    {
-        llvm::FunctionType *mallocFnType = llvm::FunctionType::get(m_Int8PtrType, { m_Int64Type }, false);
-        m_Module->getOrInsertFunction(MALLOC_FN_NAME_STR, mallocFnType);
-
-        llvm::FunctionType *strcmpFnType = llvm::FunctionType::get(m_Int32Type, { m_Int8PtrType, m_Int8PtrType }, false);
-        m_Module->getOrInsertFunction(STRCMP_FN_NAME_STR, strcmpFnType);
-
-        llvm::FunctionType *isObjectEqualFnType = llvm::FunctionType::get(m_BoolType, { m_ObjectPtrType, m_ObjectPtrType }, false);
-        m_Module->getOrInsertFunction(IS_OBJECT_EQUAL_FN_NAME_STR, isObjectEqualFnType);
-
-        llvm::FunctionType *strAddFnType = llvm::FunctionType::get(m_StrObjectPtrType, { m_StrObjectPtrType, m_StrObjectPtrType }, false);
-        m_Module->getOrInsertFunction(STR_ADD_FN_NAME_STR, strAddFnType);
-
-        llvm::FunctionType *createStrObjectFnType = llvm::FunctionType::get(m_StrObjectPtrType, { m_Int8PtrType }, false);
-        m_Module->getOrInsertFunction(CREATE_STR_OBJECT_FN_NAME_STR, createStrObjectFnType);
-
-        llvm::FunctionType *createArrayObjectFnType = llvm::FunctionType::get(m_ArrayObjectPtrType, { m_ValuePtrType, m_Int32Type }, false);
-        m_Module->getOrInsertFunction(CREATE_ARRAY_OBJECT_FN_NAME_STR, createArrayObjectFnType);
-
-        llvm::FunctionType *createRefObjectFnType = llvm::FunctionType::get(m_RefObjectPtrType, { m_ValuePtrType }, false);
-        m_Module->getOrInsertFunction(CREATE_REF_OBJECT_FN_NAME_STR, createRefObjectFnType);
-
-        llvm::FunctionType *createStructObjectFnType = llvm::FunctionType::get(m_StructObjectPtrType, { m_TablePtrType }, false);
-        m_Module->getOrInsertFunction(CREATE_STRUCT_OBJECT_FN_NAME_STR, createStructObjectFnType);
-
-        llvm::FunctionType *getLocalVariableSlotFnType = llvm::FunctionType::get(m_ValuePtrType, { m_Int16Type, m_Int16Type, m_BoolType }, false);
-        m_Module->getOrInsertFunction(GET_LOCAL_VARIABLE_SLOT_FN_NAME_STR, getLocalVariableSlotFnType);
-
-        llvm::FunctionType *createTableFnType = llvm::FunctionType::get(m_TablePtrType, { }, false);
-        m_Module->getOrInsertFunction(CREATE_TABLE_FN_NAME_STR, createTableFnType);
-
-        llvm::FunctionType *tableSetFnType = llvm::FunctionType::get(m_BoolType, { m_TablePtrType,m_StrObjectPtrType,m_ValuePtrType }, false);
-        m_Module->getOrInsertFunction(TABLE_SET_FN_NAME_STR, tableSetFnType);
-
-        llvm::FunctionType *tableGetFnType = llvm::FunctionType::get(m_BoolType, { m_TablePtrType,m_StrObjectPtrType,m_ValuePtrType }, false);
-        m_Module->getOrInsertFunction(TABLE_GET_FN_NAME_STR, tableGetFnType);
-    }
+    InitTypes();
+    InitInternalFunctions();
 
     CreateGlobalVariablesDecl();
     CreateStackDecl();
+}
+
+void Jit::InitTypes()
+{
+    m_Int8Type = llvm::Type::getInt8Ty(*m_Context);
+    m_DoubleType = llvm::Type::getDoubleTy(*m_Context);
+    m_BoolType = llvm::Type::getInt1Ty(*m_Context);
+    m_Int64Type = llvm::Type::getInt64Ty(*m_Context);
+    m_Int32Type = llvm::Type::getInt32Ty(*m_Context);
+    m_Int16Type = llvm::Type::getInt16Ty(*m_Context);
+    m_VoidType = llvm::Type::getVoidTy(*m_Context);
+
+    m_Int64PtrType = llvm::PointerType::get(m_Int64Type, 0);
+    m_Int32PtrType = llvm::PointerType::get(m_Int32Type, 0);
+    m_Int8PtrType = llvm::PointerType::get(m_Int8Type, 0);
+    m_BoolPtrType = llvm::PointerType::get(m_BoolType, 0);
+    m_DoublePtrType = llvm::PointerType::get(m_DoubleType, 0);
+
+    m_Int8PtrPtrType = llvm::PointerType::get(m_Int8PtrType, 0);
+
+    m_UnionType = llvm::StructType::create(*m_Context, { m_DoubleType }, "union.anon");
+
+    m_ValueType = llvm::StructType::create(*m_Context, { m_Int8Type, m_UnionType }, "struct.Value");
+    m_ValuePtrType = llvm::PointerType::get(m_ValueType, 0);
+
+    m_ObjectType = llvm::StructType::create(*m_Context, "struct.Object");
+    m_ObjectPtrType = llvm::PointerType::get(m_ObjectType, 0);
+    m_ObjectType->setBody({ m_Int8Type, m_BoolType, m_ObjectPtrType });
+    m_ObjectPtrPtrType = llvm::PointerType::get(m_ObjectPtrType, 0);
+
+    m_StrObjectType = llvm::StructType::create(*m_Context, { m_ObjectType, m_Int8PtrType, m_Int32Type,m_Int32Type }, "struct.StrObject");
+    m_StrObjectPtrType = llvm::PointerType::get(m_StrObjectType, 0);
+
+    m_ArrayObjectType = llvm::StructType::create(*m_Context, { m_ObjectType, m_ValuePtrType, m_Int32Type }, "struct.ArrayObject");
+    m_ArrayObjectPtrType = llvm::PointerType::get(m_ArrayObjectType, 0);
+
+    m_RefObjectType = llvm::StructType::create(*m_Context, { m_ObjectType,m_ValuePtrType }, "struct.RefObject");
+    m_RefObjectPtrType = llvm::PointerType::get(m_RefObjectType, 0);
+
+    m_BuiltinFunctionType = llvm::FunctionType::get(m_BoolType, { m_ValuePtrType, m_Int8Type, m_ValuePtrType }, false);
+
+    m_EntryType = llvm::StructType::create(*m_Context, { m_StrObjectPtrType,m_ValueType }, "struct.Entry");
+    m_EntryPtrType = llvm::PointerType::get(m_EntryType, 0);
+
+    m_TableType = llvm::StructType::create(*m_Context, { m_Int32Type,m_Int32Type,m_EntryPtrType }, "struct.Table");
+    m_TablePtrType = llvm::PointerType::get(m_TableType, 0);
+
+    m_StructObjectType = llvm::StructType::create(*m_Context, { m_ObjectType,m_TablePtrType }, "struct.StructObject");
+    m_StructObjectPtrType = llvm::PointerType::get(m_StructObjectType, 0);
+}
+
+void Jit::InitInternalFunctions()
+{
+    llvm::FunctionType *mallocFnType = llvm::FunctionType::get(m_Int8PtrType, { m_Int64Type }, false);
+    m_Module->getOrInsertFunction(MALLOC_FN_NAME_STR, mallocFnType);
+
+    llvm::FunctionType *strcmpFnType = llvm::FunctionType::get(m_Int32Type, { m_Int8PtrType, m_Int8PtrType }, false);
+    m_Module->getOrInsertFunction(STRCMP_FN_NAME_STR, strcmpFnType);
+
+    llvm::FunctionType *isObjectEqualFnType = llvm::FunctionType::get(m_BoolType, { m_ObjectPtrType, m_ObjectPtrType }, false);
+    m_Module->getOrInsertFunction(IS_OBJECT_EQUAL_FN_NAME_STR, isObjectEqualFnType);
+
+    llvm::FunctionType *strAddFnType = llvm::FunctionType::get(m_StrObjectPtrType, { m_StrObjectPtrType, m_StrObjectPtrType }, false);
+    m_Module->getOrInsertFunction(STR_ADD_FN_NAME_STR, strAddFnType);
+
+    llvm::FunctionType *createStrObjectFnType = llvm::FunctionType::get(m_StrObjectPtrType, { m_Int8PtrType }, false);
+    m_Module->getOrInsertFunction(CREATE_STR_OBJECT_FN_NAME_STR, createStrObjectFnType);
+
+    llvm::FunctionType *createArrayObjectFnType = llvm::FunctionType::get(m_ArrayObjectPtrType, { m_ValuePtrType, m_Int32Type }, false);
+    m_Module->getOrInsertFunction(CREATE_ARRAY_OBJECT_FN_NAME_STR, createArrayObjectFnType);
+
+    llvm::FunctionType *createRefObjectFnType = llvm::FunctionType::get(m_RefObjectPtrType, { m_ValuePtrType }, false);
+    m_Module->getOrInsertFunction(CREATE_REF_OBJECT_FN_NAME_STR, createRefObjectFnType);
+
+    llvm::FunctionType *createStructObjectFnType = llvm::FunctionType::get(m_StructObjectPtrType, { m_TablePtrType }, false);
+    m_Module->getOrInsertFunction(CREATE_STRUCT_OBJECT_FN_NAME_STR, createStructObjectFnType);
+
+    llvm::FunctionType *getLocalVariableSlotFnType = llvm::FunctionType::get(m_ValuePtrType, { m_Int16Type, m_Int16Type, m_BoolType }, false);
+    m_Module->getOrInsertFunction(GET_LOCAL_VARIABLE_SLOT_FN_NAME_STR, getLocalVariableSlotFnType);
+
+    llvm::FunctionType *createTableFnType = llvm::FunctionType::get(m_TablePtrType, { }, false);
+    m_Module->getOrInsertFunction(CREATE_TABLE_FN_NAME_STR, createTableFnType);
+
+    llvm::FunctionType *tableSetFnType = llvm::FunctionType::get(m_BoolType, { m_TablePtrType,m_StrObjectPtrType,m_ValuePtrType }, false);
+    m_Module->getOrInsertFunction(TABLE_SET_FN_NAME_STR, tableSetFnType);
+
+    llvm::FunctionType *tableSetIfFoundFnType = llvm::FunctionType::get(m_BoolType, { m_TablePtrType,m_StrObjectPtrType,m_ValuePtrType }, false);
+    m_Module->getOrInsertFunction(TABLE_SET_IF_FOUND_FN_NAME_STR, tableSetIfFoundFnType);
+
+    llvm::FunctionType *tableGetFnType = llvm::FunctionType::get(m_BoolType, { m_TablePtrType,m_StrObjectPtrType,m_ValuePtrType }, false);
+    m_Module->getOrInsertFunction(TABLE_GET_FN_NAME_STR, tableGetFnType);
 }
 
 llvm::Value *Jit::CreateLlvmValue(llvm::Value *v)
