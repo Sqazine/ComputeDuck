@@ -30,7 +30,7 @@ public:
         auto loc = SearchImportToken(tokens);
         if (loc == -1)
         {
-            tokens.emplace_back(TokenType::END, "END", 0, "RootFile");
+            tokens.emplace_back(TokenType::END, "END", 1,1, "RootFile");
             return tokens;
         }
 
@@ -72,7 +72,7 @@ public:
         for (const auto &t : tables)
             result.insert(result.end(), t.tokens.begin(), t.tokens.end());
 
-        result.emplace_back(TokenType::END, "END", 0, "RootFile");
+        result.emplace_back(TokenType::END, "END", 1,1, "RootFile");
         return result;
     }
 

@@ -45,6 +45,13 @@ extern "C" COMPUTE_DUCK_API bool TABLE_GET_FN_NAME(Table *table, StrObject *key,
     return table->Get(key, value);
 }
 
+extern "C" COMPUTE_DUCK_API bool TABLE_SET_IF_FOUND_FN_NAME(Table *table, StrObject *key, const Value &value)
+{
+    bool isSuccess = table->Find(key);
+    if (!isSuccess)
+        ASSERT("no member named:(%s)", ObjectStringify(key).c_str());
+    return table->Set(key, value);
+}
 
 void TypeSet::Insert(uint8_t type)
 {

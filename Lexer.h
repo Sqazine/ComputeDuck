@@ -26,7 +26,6 @@ private:
 	bool IsMatchNextChar(char c);
 	bool IsMatchNextCharAndStepOnce(char c);
 
-	char GetNextCharAndStepOnce();
 	char GetNextChar();
 	char GetCurCharAndStepOnce();
 	char GetCurChar();
@@ -47,6 +46,7 @@ private:
 	uint32_t m_StartPos;
 	uint32_t m_CurPos;
 	uint32_t m_Line;
+	uint32_t m_Column;
 	std::string m_Source;
 	std::vector<Token> m_Tokens;
 	std::string m_FilePath;
