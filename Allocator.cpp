@@ -34,6 +34,21 @@ void Allocator::ResetFrame()
     m_CallFrameTop = m_CallFrameStack;
 }
 
+RefObject *Allocator::CreateIndexRefObject(Value *ptr, const Value &idxValue)
+{
+    if (IS_ARRAY_VALUE(*ptr))
+    {
+        if (!IS_NUM_VALUE(idxValue))
+            ASSERT("Invalid idx for array,only integer is available.");
+        auto intIdx = TO_NUM_VALUE(idxValue);
+        if (intIdx < 0 || intIdx >= TO_ARRAY_VALUE(*ptr)->len)
+            ASSERT("Idx out of range.");
+        return Allocator::GetInstance()->CreateObject<RefObject>(&(TO_ARRAY_VALUE(*ptr)->elements[(uint64_t)intIdx]));
+    }
+    else
+        ASSERT("Invalid indexed reference type: %s not a array value.", ptr->Stringify().c_str());
+}
+
 void Allocator::Push(const Value &value)
 {
 #ifndef NDEBUG
@@ -85,11 +100,6 @@ Value *Allocator::GetStackTop() const
 void Allocator::SetStackTop(Value *slot)
 {
     m_StackTop = slot;
-}
-
-void Allocator::StackTopJumpBack(size_t slotCount)
-{
-    m_StackTop -= slotCount;
 }
 
 void Allocator::StackTopJump(size_t slotCount)

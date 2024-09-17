@@ -240,7 +240,7 @@ void VM::Execute()
 
             auto array = Allocator::GetInstance()->CreateObject<ArrayObject>(elements, numElements);
 
-            STACK_TOP_JUMP_BACK(numElements);
+            STACK_TOP_JUMP(-numElements);
 
             PUSH(array);
             break;
@@ -319,13 +319,10 @@ void VM::Execute()
             auto index = *frame->ip++;
             auto value = POP();
 
-            if (IS_REF_VALUE(value)) //get the actual value
-                value = GetEndOfRefValue(value);
-
             auto ptr = GET_GLOBAL_VARIABLE_REF(index);
 
             if (IS_REF_VALUE(*ptr)) // if is a reference object,then set the actual value which the reference object points
-                ptr = GetEndOfRefValue(ptr);
+                ptr = GetEndOfRefValuePtr(ptr);
             *ptr = value;
             break;
         }
@@ -367,7 +364,7 @@ void VM::Execute()
                 Value returnValue;
                 auto hasRet = builtin->Get<BuiltinFn>()(slot, argCount, returnValue);
 
-                STACK_TOP_JUMP_BACK(argCount + 1);
+                STACK_TOP_JUMP(-(argCount + 1));
 
                 if (hasRet)
                     PUSH(returnValue);
@@ -383,11 +380,8 @@ void VM::Execute()
             auto isUpValue = *frame->ip++;
             auto value = POP();
 
-            if (IS_REF_VALUE(value))
-                value = GetEndOfRefValue(value);
-
             Value *slot = GET_LOCAL_VARIABLE_SLOT(scopeDepth, index, isUpValue);
-            slot = GetEndOfRefValue(slot);
+            slot = GetEndOfRefValuePtr(slot);
             *slot = value;
             break;
         }
@@ -426,7 +420,7 @@ void VM::Execute()
             }
             auto structInstance = Allocator::GetInstance()->CreateObject<StructObject>(members);
             
-            STACK_TOP_JUMP_BACK(memberCount);
+            STACK_TOP_JUMP(-memberCount);
             
             PUSH(structInstance);
             break;
@@ -481,20 +475,8 @@ void VM::Execute()
         {
             auto index = *frame->ip++;
             auto idxValue = POP();
-
-            auto ptr = GetEndOfRefValue(GET_GLOBAL_VARIABLE_REF(index));
-
-            if (IS_ARRAY_VALUE(*ptr))
-            {
-                if (!IS_NUM_VALUE(idxValue))
-                    ASSERT("Invalid idx for array,only integer is available.");
-                auto intIdx = TO_NUM_VALUE(idxValue);
-                if (intIdx < 0 || intIdx >= TO_ARRAY_VALUE(*ptr)->len)
-                    ASSERT("Idx out of range.");
-                PUSH(Allocator::GetInstance()->CreateObject<RefObject>(&(TO_ARRAY_VALUE(*ptr)->elements[(uint64_t)intIdx])));
-            }
-            else
-                ASSERT("Invalid indexed reference type: %s not a array value.", ptr->Stringify().c_str());
+            auto ptr = GetEndOfRefValuePtr(GET_GLOBAL_VARIABLE_REF(index));
+            PUSH(Allocator::GetInstance()->CreateIndexRefObject(ptr,idxValue));
             break;
         }
         case OP_REF_INDEX_LOCAL:
@@ -504,21 +486,8 @@ void VM::Execute()
             auto isUpValue = *frame->ip++;
 
             auto idxValue = POP();
-
-            Value *slot = GET_LOCAL_VARIABLE_SLOT(scopeDepth, index, isUpValue);
-            slot = GetEndOfRefValue(slot);
-
-            if (IS_ARRAY_VALUE(*slot))
-            {
-                if (!IS_NUM_VALUE(idxValue))
-                    ASSERT("Invalid idx for array,only integer is available.");
-                auto intIdx = TO_NUM_VALUE(idxValue);
-                if (intIdx < 0 || intIdx >= TO_ARRAY_VALUE(*slot)->len)
-                    ASSERT("Idx out of range.");
-                PUSH(Allocator::GetInstance()->CreateObject<RefObject>(&(TO_ARRAY_VALUE(*slot)->elements[(uint64_t)intIdx])));
-            }
-            else
-                ASSERT("Invalid indexed reference type: %s not a array value.", slot->Stringify().c_str());
+            Value *slot = GetEndOfRefValuePtr(GET_LOCAL_VARIABLE_SLOT(scopeDepth, index, isUpValue));
+            PUSH(Allocator::GetInstance()->CreateIndexRefObject(slot, idxValue));
             break;
         }
         case OP_DLL_IMPORT:
