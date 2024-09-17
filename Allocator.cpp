@@ -64,7 +64,6 @@ Value Allocator::Pop()
     if (m_StackTop - m_ValueStack < 0)
         ASSERT("Stack Overflow");
 #endif
-    memset(m_StackTop,0,sizeof(Value));
     return *(--m_StackTop);
 }
 
@@ -75,7 +74,6 @@ void Allocator::PushCallFrame(const CallFrame &callFrame)
 
 CallFrame *Allocator::PopCallFrame()
 {
-    memset(m_CallFrameTop,0,sizeof(CallFrame));
     return --m_CallFrameTop;
 }
 
@@ -101,16 +99,12 @@ Value *Allocator::GetStackTop() const
 
 void Allocator::SetStackTop(Value *slot)
 {
-    if (slot < m_StackTop)
-        memset(slot,0,(m_StackTop-slot)*sizeof(Value));
     m_StackTop = slot;
 }
 
 void Allocator::StackTopJump(size_t slotCount)
 {
     m_StackTop += slotCount;
-    if(slotCount<0)
-        memset(m_StackTop,0,(-slotCount)*sizeof(Value));
 }
 
 Value *Allocator::GetGlobalVariableRef(size_t index)

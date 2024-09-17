@@ -109,11 +109,17 @@ std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
         case OP_RETURN:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_RETURN\t" << opcodes[++i] << std::endl;
             break;
+        case OP_DEF_GLOBAL:
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_DEF_GLOBAL\t" << opcodes[++i] << std::endl;
+            break;
         case OP_SET_GLOBAL:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_SET_GLOBAL\t" << opcodes[++i] << std::endl;
             break;
         case OP_GET_GLOBAL:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_GET_GLOBAL\t" << opcodes[++i] << std::endl;
+            break;
+        case OP_DEF_LOCAL:
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_DEF_LOCAL\t" << opcodes[++i] << "\t" << opcodes[++i] << "\t" << std::endl;
             break;
         case OP_SET_LOCAL:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_SET_LOCAL\t" << opcodes[++i] << "\t" << opcodes[++i] << "\t" << opcodes[++i] << std::endl;

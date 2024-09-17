@@ -714,6 +714,23 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 m_Builder->CreateRetVoid();
             break;
         }
+        case OP_DEF_GLOBAL:
+        {
+            auto index = *ip++;
+            auto v = Pop().GetLlvmValue();
+
+            auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(GLOBAL_VARIABLE_STR));
+            auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
+
+            if (v->getType() != m_ValueType)
+                v = CreateLlvmValue(v);
+
+            v = m_Builder->CreateBitCast(v, m_Int8PtrType);
+            globalVar = m_Builder->CreateBitCast(v, m_Int8PtrType);
+
+            m_Builder->CreateMemCpy(globalVar, llvm::MaybeAlign(8), v, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+            break;
+        }
         case OP_SET_GLOBAL:
         {
             auto index = *ip++;
@@ -723,13 +740,14 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
 
             if (v->getType() != m_ValueType)
-            {
-                auto cdValue = CreateLlvmValue(v);
-                m_Builder->CreateMemCpy(globalVar, llvm::MaybeAlign(8), cdValue, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
-            }
-            else
-                m_Builder->CreateStore(v, globalVar);
+                v = CreateLlvmValue(v);
 
+            globalVar = m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)), { globalVar });
+
+            v = m_Builder->CreateBitCast(v, m_Int8PtrType);
+            globalVar = m_Builder->CreateBitCast(v, m_Int8PtrType);
+
+            m_Builder->CreateMemCpy(globalVar, llvm::MaybeAlign(8), v, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
             break;
         }
         case OP_GET_GLOBAL:
@@ -760,6 +778,20 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             }
             break;
         }
+        case OP_DEF_LOCAL:
+        {
+            auto scopeDepth = *ip++;
+            auto index = *ip++;
+            auto value = Pop().GetLlvmValue();
+
+            auto name = GenerateLocalVarName(scopeDepth, index, 0);
+
+            auto alloc = m_Builder->CreateAlloca(value->getType());
+            m_Builder->CreateStore(value, alloc);
+
+            localVariables[name] = alloc;
+            break;
+        }
         case OP_SET_LOCAL:
         {
             auto scopeDepth = *ip++;
@@ -771,32 +803,24 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
 
             auto iter = localVariables.find(name);
             if (iter == localVariables.end())
+                ERROR(JitCompileState::FAIL, "Cannot find local variable:%s,maybe it is a upvalue.", name.c_str());
+            if (iter->second->getAllocatedType() == m_RefObjectPtrType)
             {
-                auto alloc = m_Builder->CreateAlloca(value->getType());
-                m_Builder->CreateStore(value, alloc);
+                if (value->getType() != m_ValuePtrType)
+                    value = CreateLlvmValue(value);
 
-                localVariables[name] = alloc;
+                auto load = m_Builder->CreateLoad(m_RefObjectPtrType, iter->second);
+                auto refValue = CreateLlvmValue(load);
+
+                auto actualValuePtr = m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)), { refValue });
+
+                auto valueBitCast = m_Builder->CreateBitCast(value, m_Int8PtrType);
+                auto actualValuePtrBitCast = m_Builder->CreateBitCast(actualValuePtr, m_Int8PtrType);
+
+                m_Builder->CreateMemCpy(actualValuePtrBitCast, llvm::MaybeAlign(8), valueBitCast, llvm::MaybeAlign(8), llvm::ConstantInt::get(m_Int64Type, sizeof(Value)));
             }
             else
-            {
-                if (iter->second->getAllocatedType() == m_RefObjectPtrType)
-                {
-                    if (value->getType() != m_ValuePtrType)
-                        value=CreateLlvmValue(value);
-
-                     auto load=m_Builder->CreateLoad(m_RefObjectPtrType,iter->second);
-                    auto refValue=CreateLlvmValue(load);
-
-                    auto actualValuePtr=m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)),{refValue});
-
-                    auto valueBitCast=m_Builder->CreateBitCast(value,m_Int8PtrType);
-                    auto actualValuePtrBitCast=m_Builder->CreateBitCast(actualValuePtr,m_Int8PtrType);
-
-                    m_Builder->CreateMemCpy(actualValuePtrBitCast,llvm::MaybeAlign(8),valueBitCast,llvm::MaybeAlign(8),llvm::ConstantInt::get(m_Int64Type,sizeof(Value)));
-                }
-                else
-                    m_Builder->CreateStore(value, iter->second);
-            }
+                m_Builder->CreateStore(value, iter->second);
 
             break;
         }
@@ -1095,12 +1119,12 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto index = *ip++;
             auto idxValue = Pop().GetLlvmValue();
 
-            if(idxValue->getType()!=m_ValuePtrType)
-                idxValue=CreateLlvmValue(idxValue);
+            if (idxValue->getType() != m_ValuePtrType)
+                idxValue = CreateLlvmValue(idxValue);
 
             auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(GLOBAL_VARIABLE_STR));
             auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
-           
+
 
             auto refObject = m_Builder->CreateCall(m_Module->getFunction(STR(CreateIndexRefObject)), { globalVar,idxValue });
             Push(refObject);
