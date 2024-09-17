@@ -233,7 +233,6 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         {
             auto left = Pop().GetLlvmValue();
             auto right = Pop().GetLlvmValue();
-            llvm::Value *result = nullptr;
 
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFAdd(left, right));
@@ -301,7 +300,6 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 Push(m_Builder->CreateNot(value));
             else
                 ERROR(JitCompileState::FAIL, "Invalid binary op:not %s.", GetTypeName(value->getType()).c_str());
-
             break;
         }
         case OP_MINUS:
@@ -311,7 +309,6 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 Push(m_Builder->CreateNeg(value));
             else
                 ERROR(JitCompileState::FAIL, "Invalid binary op:- %s.", GetTypeName(value->getType()).c_str());
-
             break;
         }
         case OP_EQUAL:
@@ -490,11 +487,8 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                     if (index->getType() == m_DoubleType)
                     {
                         isSatis = true;
-
                         auto iIndex = m_Builder->CreateFPToSI(index, m_Int64Type);
-
                         llvm::Value *memberAddr = m_Builder->CreateInBoundsGEP(vArrayType, ds, { m_Builder->getInt32(0), iIndex });
-
                         Push(memberAddr);
                     }
                 }
@@ -522,7 +516,6 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                     {
                         isSatis = true;
                         auto iIndex = m_Builder->CreateFPToSI(index, m_Int64Type);
-
                         llvm::Value *memberAddr = m_Builder->CreateInBoundsGEP(elementType, ds, { m_Builder->getInt32(0), iIndex });
                         m_Builder->CreateStore(v, memberAddr);
                     }
@@ -761,20 +754,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             {
                 auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(GLOBAL_VARIABLE_STR));
                 auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
-
-                if (globalVar && globalVar->getType()->isPointerTy())
-                {
-                    auto ptrType = static_cast<llvm::PointerType *>(globalVar->getType());
-                    if (ptrType->getElementType() == m_ValueType)
-                        Push(globalVar);
-                    else
-                    {
-                        auto v = m_Builder->CreateLoad(ptrType->getElementType(), globalVar);
-                        Push(v);
-                    }
-                }
-                else
-                    ERROR(JitCompileState::FAIL, "Not finished yet,tag it as error");
+                Push(globalVar);
             }
             break;
         }
@@ -809,15 +789,15 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 if (value->getType() != m_ValuePtrType)
                     value = CreateLlvmValue(value);
 
-                auto load = m_Builder->CreateLoad(m_RefObjectPtrType, iter->second);
-                auto refValue = CreateLlvmValue(load);
+                llvm::Value* refValue = m_Builder->CreateLoad(m_RefObjectPtrType, iter->second);
+                refValue = CreateLlvmValue(refValue);
 
-                auto actualValuePtr = m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)), { refValue });
+                refValue = m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)), { refValue });
 
-                auto valueBitCast = m_Builder->CreateBitCast(value, m_Int8PtrType);
-                auto actualValuePtrBitCast = m_Builder->CreateBitCast(actualValuePtr, m_Int8PtrType);
+                value = m_Builder->CreateBitCast(value, m_Int8PtrType);
+                refValue = m_Builder->CreateBitCast(refValue, m_Int8PtrType);
 
-                m_Builder->CreateMemCpy(actualValuePtrBitCast, llvm::MaybeAlign(8), valueBitCast, llvm::MaybeAlign(8), llvm::ConstantInt::get(m_Int64Type, sizeof(Value)));
+                m_Builder->CreateMemCpy(refValue, llvm::MaybeAlign(8), value, llvm::MaybeAlign(8), llvm::ConstantInt::get(m_Int64Type, sizeof(Value)));
             }
             else
                 m_Builder->CreateStore(value, iter->second);
@@ -928,7 +908,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 size_t paramTypeHash = 0;
                 for (auto slot = m_StackTop - vmFn->parameterCount; slot < m_StackTop; ++slot)
                 {
-                    auto vType = GetLlvmTypeFromValueType(slot->GetLlvmValue()->getType());
+                    auto vType = GetValueTypeFromLlvmType(slot->GetLlvmValue()->getType());
                     paramTypeHash ^= std::hash<uint8_t>()(vType);
                 }
 
@@ -1077,7 +1057,6 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         case OP_REF_GLOBAL:
         {
             auto index = *ip++;
-
             auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(GLOBAL_VARIABLE_STR));
             auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
             auto ref = m_Builder->CreateCall(m_Module->getFunction(STR(CreateRefObject)), { globalVar });
@@ -1092,26 +1071,29 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
 
             auto name = GenerateLocalVarName(scopeDepth, index, isUpValue);
 
+            llvm::Value* value=nullptr;
+
             auto iter = localVariables.find(name);
             if (iter == localVariables.end()) // create from function argumenet
             {
-                auto slot = m_Builder->CreateCall(m_Module->getFunction(STR(GetLocalVariableSlot)), { llvm::ConstantInt::get(m_Int16Type, scopeDepth),
+                value = m_Builder->CreateCall(m_Module->getFunction(STR(GetLocalVariableSlot)), { llvm::ConstantInt::get(m_Int16Type, scopeDepth),
                                                                                                   llvm::ConstantInt::get(m_Int16Type, index),
                                                                                                   llvm::ConstantInt::get(m_BoolType, isUpValue) });
 
-                auto alloc = m_Builder->CreateCall(m_Module->getFunction(STR(CreateRefObject)), { slot });
-                Push(alloc);
             }
             else
             {
-                if (iter->second->getType() != m_ValuePtrType)
-                    ERROR(JitCompileState::FAIL, "Cannot refer jit internal variable")
-                else
+                if (IsObjectType(iter->second->getAllocatedType()))
                 {
-                    auto alloc = m_Builder->CreateCall(m_Module->getFunction(STR(CreateRefObject)), { iter->second });
-                    Push(alloc);
+                    value = m_Builder->CreateLoad(iter->second->getAllocatedType(), iter->second);
+                    value = CreateLlvmValue(value);
                 }
+                else
+                    ERROR(JitCompileState::FAIL, "Cannot refer jit internal variable");
             }
+            value = m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)), { value });
+            value = m_Builder->CreateCall(m_Module->getFunction(STR(CreateRefObject)), { value });
+            Push(value);
             break;
         }
         case OP_REF_INDEX_GLOBAL:
@@ -1125,14 +1107,45 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(GLOBAL_VARIABLE_STR));
             auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
 
-
             auto refObject = m_Builder->CreateCall(m_Module->getFunction(STR(CreateIndexRefObject)), { globalVar,idxValue });
             Push(refObject);
             break;
         }
         case OP_REF_INDEX_LOCAL:
         {
-            ERROR(JitCompileState::FAIL, "Not finished yet,tag it as error");
+            auto scopeDepth = *ip++;
+            auto index = *ip++;
+            auto isUpValue = *ip++;
+
+            auto idxValue = Pop().GetLlvmValue();
+            if (idxValue->getType() != m_ValuePtrType)
+                idxValue = CreateLlvmValue(idxValue);
+
+            auto name = GenerateLocalVarName(scopeDepth, index, isUpValue);
+
+            llvm::Value* value=nullptr;
+
+            auto iter = localVariables.find(name);
+            if (iter == localVariables.end()) // create from function argumenet
+            {
+                value = m_Builder->CreateCall(m_Module->getFunction(STR(GetLocalVariableSlot)), { llvm::ConstantInt::get(m_Int16Type, scopeDepth),
+                                                                                                  llvm::ConstantInt::get(m_Int16Type, index),
+                                                                                                  llvm::ConstantInt::get(m_BoolType, isUpValue) });
+            }
+            else
+            {
+                if (IsObjectType(iter->second->getAllocatedType()))
+                {
+                    value=m_Builder->CreateLoad(iter->second->getAllocatedType(),iter->second);
+                    value=CreateLlvmValue(value);
+                }
+                else
+                    ERROR(JitCompileState::FAIL, "Cannot refer jit internal variable");
+            }
+
+            value=m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)),{value});
+            value = m_Builder->CreateCall(m_Module->getFunction(STR(CreateIndexRefObject)), { value,idxValue });
+            Push(value);
             break;
         }
         case OP_SP_OFFSET:
@@ -1429,12 +1442,25 @@ llvm::Type *Jit::GetLlvmTypeFromValueType(uint8_t v)
     case ObjectType::REF:
         return m_RefObjectPtrType;
     }
+
+    return nullptr;
 }
 
-uint8_t Jit::GetLlvmTypeFromValueType(llvm::Type *v)
+uint8_t Jit::GetValueTypeFromLlvmType(llvm::Type *v)
 {
     if (v == m_BoolPtrType)
         return ValueType::NIL;
     else if (v == m_DoubleType)
         return ValueType::NUM;
+    else if(v==m_BoolType)
+        return ValueType::BOOL;
+    else if(v==m_StrObjectPtrType || v== m_StrObjectType)
+        return ObjectType::STR;
+
+    return ValueType::NIL;
+}
+
+bool Jit::IsObjectType(llvm::Type *type)
+{
+    return type==m_ObjectPtrType||type==m_StrObjectPtrType || type==m_ArrayObjectPtrType||type==m_RefObjectPtrType||type==m_StructObjectPtrType;
 }

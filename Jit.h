@@ -186,7 +186,9 @@ private:
 
     std::pair<llvm::Type *, uint8_t> GetTypeFromValue(const Value &v);
     llvm::Type *GetLlvmTypeFromValueType(uint8_t v);
-    uint8_t GetLlvmTypeFromValueType(llvm::Type *v);
+    uint8_t GetValueTypeFromLlvmType(llvm::Type *v);
+
+    bool IsObjectType(llvm::Type* type);
 
     llvm::StructType *m_UnionType{ nullptr };
 
