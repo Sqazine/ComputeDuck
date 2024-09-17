@@ -522,6 +522,8 @@ void VM::RunJit(const CallFrame &frame)
         {
             m_Jit->ResetStatus();
 
+            frame.fn->jitCache[paramTypeHash]=JitFnDecl();
+
             frame.fn->jitCache[paramTypeHash] = m_Jit->Compile(frame, fnName);
             iter = frame.fn->jitCache.find(paramTypeHash);
         }

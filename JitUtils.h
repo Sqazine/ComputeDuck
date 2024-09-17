@@ -28,7 +28,7 @@ constexpr const char *GLOBAL_VARIABLE_STR = "m_GlobalVariables";
 constexpr const char *SET_GLOBAL_VARIABLE_FN_STR = "function_SetGlobalVariables";
 
 constexpr const char *STACK_STR = "m_ValueStack";
-constexpr const char *SET_STACK_FN_STR  = "function_SetValueStack";
+constexpr const char *SET_STACK_FN_STR = "function_SetValueStack";
 
 enum JumpMode
 {
@@ -47,7 +47,7 @@ struct JitFnDecl
 {
     JitFnDecl() = default;
     ~JitFnDecl() = default;
-    uint8_t returnType{};
+    uint8_t returnType{ 0 };
     std::vector<uint8_t> paramTypes{};
     JitCompileState state{ JitCompileState::SUCCESS };
 };
@@ -74,4 +74,4 @@ struct Value;
 
 size_t HashValueList(Value *start, Value *end);
 std::string GenerateFunctionName(const std::string &uuid, size_t returnHash, size_t paramHash);
-std::string GenerateLocalVarName(int16_t scopeDepth,int16_t index,int16_t isUpValue);
+std::string GenerateLocalVarName(int16_t scopeDepth, int16_t index, int16_t isUpValue);
