@@ -1,354 +1,354 @@
-#println("getConstant() start");
-#
-#getConstant=function()
-#{
-#    return 10;
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    println(getConstant());
-#    i=i+1;
-#}
-#
-###################################################
-#println("readBuiltin() start");
-#
-#readBuiltin=function()
-#{
-#    println(100);
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    readBuiltin();
-#    i=i+1;
-#}
-#
-###################################################
-#println("getStrConstant() start");
-#
-#getStrConstant=function()
-#{
-#	return "Test3";
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    println(getStrConstant());
-#    i=i+1;
-#}
-#
-#
-###################################################
-#println("getGlob() start");
-#
-#str="Test4";
-#getGlob=function()
-#{
-#	return str;
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    println(getGlob());
-#    i=i+1;
-#}
-#
-###################################################
-#println("globBuiltin() start");
-#
-#str2="Test5";
-#globBuiltin=function()
-#{
-#	println(str2);
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#	globBuiltin();
-#    i=i+1;
-#}
-#
+println("getConstant() start");
+
+getConstant=function()
+{
+    return 10;
+};
+
+i=0;
+while(i<100)
+{
+    println(getConstant());
+    i=i+1;
+}
+
 ##################################################
-#println("setGlob() start");
-#
-#str3="Test6";
-#setGlob=function()
-#{
-#    str3="Test7";
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#	setGlob();
-#    println(str3);
-#    i=i+1;
-#}
-#
-####################################################
-#println("setGlobArr() start");
-#
-#arr1=[1];
-#setGlobArr=function()
-#{
-#    arr1=[1,2];
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    println(arr1);
-#	setGlobArr();
-#    i=i+1;
-#}
-#
-###################################################
-#println("setArr() start");
-#
-#setArr=function()
-#{
-#    return [1,2,3];
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    println(setArr());
-#    i=i+1;
-#}
-#
-###################################################
-#println("setArr2() start");
-#
-#setArr2=function(x)
-#{
-#    return x;
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    println(setArr2([1,2,3,4]));
-#    i=i+1;
-#}
-#
-###################################################
-#println("lam1() start");
-#
-#lam1=function()
-#{
-#    x=function()
-#    {
-#        return 10;
-#    };
-#    return x();
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    println(lam1());
-#    i=i+1;
-#}
-#
-###################################################
-#println("lam2() start");
-#
-#lam2=function()
-#{
-#    x=function()
-#    {
-#        return 100;
-#    };
-#    return x;
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    println(lam2()());
-#    i=i+1;
-#}
-#
-###################################################
-#println("closure() start");
-#
-#closure=function()
-#{
-#    a=1000;
-#    x=function()
-#    {
-#        return a;
-#    };
-#    return x();
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    println(closure());
-#    i=i+1;
-#}
-#
-###################################################
-#println("closure2() start");
-#
-#closure2=function()
-#{
-#    a=10;
-#    x=function()
-#    {
-#        a=1000;
-#        return a;
-#    };
-#    return x();
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    println(closure2());
-#    i=i+1;
-#}
-#
-###################################################
-#println("setArrElement() start");
-#
-#
-#arrSet=[1,2];
-#setArrElement=function()
-#{
-#    arrSet[0]=100;
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#	setArrElement();
-#    println(arrSet);
-#    i=i+1;
-#}
-#
-###################################################
-#println("setArrElement2() start");
-#
-#arrSet2=[1,2];
-#setArrElement2=function(v)
-#{
-#    arrSet2[1]=v;
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#	setArrElement2(i);
-#    println(arrSet2);
-#    i=i+1;
-#}
-#
-###################################################
-#println("setRef() start");
-#
-#glob=10;
-#setRef=function()
-#{
-#	return ref glob;
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#	refer = setRef();
-#	refer=100;
-#    println(glob);
-#    i=i+1;
-#}
-#
+println("readBuiltin() start");
+
+readBuiltin=function()
+{
+    println(100);
+};
+
+i=0;
+while(i<100)
+{
+    readBuiltin();
+    i=i+1;
+}
+
 ##################################################
-#println("refLocal() start");
-#
-#refLocal=function()
-#{
-#    a=100;
-#    b = ref a;
-#    println(b);
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    refLocal();
-#    i=i+1;
-#}
-#
+println("getStrConstant() start");
+
+getStrConstant=function()
+{
+	return "Test3";
+};
+
+i=0;
+while(i<100)
+{
+    println(getStrConstant());
+    i=i+1;
+}
+
+
 ##################################################
-#println("refLocal2() start");
-#
-#refLocal2=function()
-#{
-#    a=100;
-#    b=ref a;
-#    c=1000;
-#    d=ref c;
-#    return b + d;
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    println(refLocal2());
-#    i=i+1;
-#}
-#
+println("getGlob() start");
+
+str="Test4";
+getGlob=function()
+{
+	return str;
+};
+
+i=0;
+while(i<100)
+{
+    println(getGlob());
+    i=i+1;
+}
+
 ##################################################
-#println("createVec2Instance() start");
-#
-#struct Vec2
-#{
-#    x:0,
-#    y:0
-#}
-#
-#createVec2Instance=function()
-#{
-#    return Vec2;
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    println(createVec2Instance());
-#    i=i+1;
-#}
-#
+println("globBuiltin() start");
+
+str2="Test5";
+globBuiltin=function()
+{
+	println(str2);
+};
+
+i=0;
+while(i<100)
+{
+	globBuiltin();
+    i=i+1;
+}
+
+#################################################
+println("setGlob() start");
+
+str3="Test6";
+setGlob=function()
+{
+    str3="Test7";
+};
+
+i=0;
+while(i<100)
+{
+	setGlob();
+    println(str3);
+    i=i+1;
+}
+
 ###################################################
-#println("getVec3Z() start");
-#
-#struct Vec3
-#{
-#    x:0,
-#    y:0,
-#    z:100
-#}
-#
-#getVec3Z=function(v3)
-#{
-#    return v3.z;
-#};
-#
-#i=0;
-#while(i<100)
-#{
-#    println(getVec3Z(Vec3));
-#    i=i+1;
-#}
+println("setGlobArr() start");
+
+arr1=[1];
+setGlobArr=function()
+{
+    arr1=[1,2];
+};
+
+i=0;
+while(i<100)
+{
+    println(arr1);
+	setGlobArr();
+    i=i+1;
+}
+
+##################################################
+println("setArr() start");
+
+setArr=function()
+{
+    return [1,2,3];
+};
+
+i=0;
+while(i<100)
+{
+    println(setArr());
+    i=i+1;
+}
+
+##################################################
+println("setArr2() start");
+
+setArr2=function(x)
+{
+    return x;
+};
+
+i=0;
+while(i<100)
+{
+    println(setArr2([1,2,3,4]));
+    i=i+1;
+}
+
+##################################################
+println("lam1() start");
+
+lam1=function()
+{
+    x=function()
+    {
+        return 10;
+    };
+    return x();
+};
+
+i=0;
+while(i<100)
+{
+    println(lam1());
+    i=i+1;
+}
+
+##################################################
+println("lam2() start");
+
+lam2=function()
+{
+    x=function()
+    {
+        return 100;
+    };
+    return x;
+};
+
+i=0;
+while(i<100)
+{
+    println(lam2()());
+    i=i+1;
+}
+
+##################################################
+println("closure() start");
+
+closure=function()
+{
+    a=1000;
+    x=function()
+    {
+        return a;
+    };
+    return x();
+};
+
+i=0;
+while(i<100)
+{
+    println(closure());
+    i=i+1;
+}
+
+##################################################
+println("closure2() start");
+
+closure2=function()
+{
+    a=10;
+    x=function()
+    {
+        a=1000;
+        return a;
+    };
+    return x();
+};
+
+i=0;
+while(i<100)
+{
+    println(closure2());
+    i=i+1;
+}
+
+##################################################
+println("setArrElement() start");
+
+
+arrSet=[1,2];
+setArrElement=function()
+{
+    arrSet[0]=100;
+};
+
+i=0;
+while(i<100)
+{
+	setArrElement();
+    println(arrSet);
+    i=i+1;
+}
+
+##################################################
+println("setArrElement2() start");
+
+arrSet2=[1,2];
+setArrElement2=function(v)
+{
+    arrSet2[1]=v;
+};
+
+i=0;
+while(i<100)
+{
+	setArrElement2(i);
+    println(arrSet2);
+    i=i+1;
+}
+
+##################################################
+println("setRef() start");
+
+glob=10;
+setRef=function()
+{
+	return ref glob;
+};
+
+i=0;
+while(i<100)
+{
+	refer = setRef();
+	refer=100;
+    println(glob);
+    i=i+1;
+}
+
+#################################################
+println("refLocal() start");
+
+refLocal=function()
+{
+    a=100;
+    b = ref a;
+    println(b);
+};
+
+i=0;
+while(i<100)
+{
+    refLocal();
+    i=i+1;
+}
+
+################################################
+println("refLocal2() start");
+
+refLocal2=function()
+{
+    a=100;
+    b=ref a;
+    c=1000;
+    d=ref c;
+    return b + d;
+};
+
+i=0;
+while(i<100)
+{
+    println(refLocal2());
+    i=i+1;
+}
+
+#################################################
+println("createVec2Instance() start");
+
+struct Vec2
+{
+    x:0,
+    y:0
+}
+
+createVec2Instance=function()
+{
+    return Vec2;
+};
+
+i=0;
+while(i<100)
+{
+    println(createVec2Instance());
+    i=i+1;
+}
+
+##################################################
+println("getVec3Z() start");
+
+struct Vec3
+{
+    x:0,
+    y:0,
+    z:100
+}
+
+getVec3Z=function(v3)
+{
+    return v3.z;
+};
+
+i=0;
+while(i<100)
+{
+    println(getVec3Z(Vec3));
+    i=i+1;
+}
 
 ##################################################
 println("setVec4X() start");
@@ -371,5 +371,23 @@ i=0;
 while(i<100)
 {
     println(setVec4X(Vec4));
+    i=i+1;
+}
+
+##################################################
+println("refIndexGlobal() start");
+
+globArray=[1,2,3,4];
+refIndexGlobal=function()
+{
+    globArrIdx=ref globArray[2];
+    globArrIdx=10000;
+    return globArray;
+};
+
+i=0;
+while(i<100)
+{
+    println(refIndexGlobal());
     i=i+1;
 }

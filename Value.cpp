@@ -64,7 +64,7 @@ Value FindActualValue(const Value &v)
     return value;
 }
 
-Value *GetEndOfRefValue(Value *v)
+Value *GetEndOfRefValuePtr(Value *v)
 {
     auto result = v;
     while (IS_REF_VALUE(*result))

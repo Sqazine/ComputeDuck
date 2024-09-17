@@ -5,52 +5,57 @@
 #include "Allocator.h"
 #include "Table.h"
 
-extern "C" COMPUTE_DUCK_API StrObject *CREATE_STR_OBJECT_FN_NAME(const char *v)
+extern "C" COMPUTE_DUCK_API StrObject *CreateStrObject(const char *v)
 {
     return Allocator::GetInstance()->CreateObject<StrObject>(v);
 }
 
-extern "C" COMPUTE_DUCK_API ArrayObject *CREATE_ARRAY_OBJECT_FN_NAME(Value *elements, uint32_t size)
+extern "C" COMPUTE_DUCK_API ArrayObject *CreateArrayObject(Value *elements, uint32_t size)
 {
     return Allocator::GetInstance()->CreateObject<ArrayObject>(elements, size);
 }
 
-extern "C" COMPUTE_DUCK_API RefObject *CREATE_REF_OBJECT_FN_NAME(Value *pointer)
+extern "C" COMPUTE_DUCK_API RefObject *CreateRefObject(Value *pointer)
 {
     return Allocator::GetInstance()->CreateObject<RefObject>(pointer);
 }
 
-extern "C" COMPUTE_DUCK_API StructObject *CREATE_STRUCT_OBJECT_FN_NAME(Table *table)
+extern "C" COMPUTE_DUCK_API StructObject *CreateStructObject(Table *table)
 {
     return Allocator::GetInstance()->CreateObject<StructObject>(table);
 }
 
-extern "C" COMPUTE_DUCK_API Value *GET_LOCAL_VARIABLE_SLOT_FN_NAME(int16_t scopeDepth, int16_t index, bool isUpValue)
+extern "C" COMPUTE_DUCK_API Value *GetLocalVariableSlot(int16_t scopeDepth, int16_t index, bool isUpValue)
 {
     return Allocator::GetInstance()->GetLocalVariableSlot(scopeDepth, index, isUpValue);
 }
 
-extern "C" COMPUTE_DUCK_API Table *CREATE_TABLE_FN_NAME()
+extern "C" COMPUTE_DUCK_API Table *CreateTable()
 {
     return new Table();
 }
 
-extern "C" COMPUTE_DUCK_API bool TABLE_SET_FN_NAME(Table *table, StrObject *key, const Value &value)
+extern "C" COMPUTE_DUCK_API bool TableSet(Table *table, StrObject *key, const Value &value)
 {
     return table->Set(key, value);
 }
 
-extern "C" COMPUTE_DUCK_API bool TABLE_GET_FN_NAME(Table *table, StrObject *key, Value &value)
+extern "C" COMPUTE_DUCK_API bool TableGet(Table *table, StrObject *key, Value &value)
 {
     return table->Get(key, value);
 }
 
-extern "C" COMPUTE_DUCK_API bool TABLE_SET_IF_FOUND_FN_NAME(Table *table, StrObject *key, const Value &value)
+extern "C" COMPUTE_DUCK_API bool TableSetIfFound(Table *table, StrObject *key, const Value &value)
 {
     bool isSuccess = table->Find(key);
     if (!isSuccess)
         ASSERT("no member named:(%s)", ObjectStringify(key).c_str());
     return table->Set(key, value);
+}
+
+extern "C" COMPUTE_DUCK_API RefObject *CreateIndexRefObject(Value* ptr,const Value& v)
+{
+    return Allocator::GetInstance()->CreateIndexRefObject(ptr,v);
 }
 
 void TypeSet::Insert(uint8_t type)

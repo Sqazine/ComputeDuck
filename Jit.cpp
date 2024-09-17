@@ -238,7 +238,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFAdd(left, right));
             else if (left->getType() == m_StrObjectPtrType && right->getType() == m_StrObjectPtrType)
-                Push(m_Builder->CreateCall(m_Module->getFunction(STR_ADD_FN_NAME_STR), { left,right }));
+                Push(m_Builder->CreateCall(m_Module->getFunction(STR(StrAdd)), { left,right }));
             else
                 ERROR(JitCompileState::FAIL, "Invalid binary op:%s + %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
 
@@ -340,7 +340,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                         right = m_Builder->CreateLoad(m_ObjectPtrType, right);
                     }
 
-                    auto ret = m_Builder->CreateCall(m_Module->getFunction(IS_OBJECT_EQUAL_FN_NAME_STR), { left,right });
+                    auto ret = m_Builder->CreateCall(m_Module->getFunction(STR(IsObjectEqual)), { left,right });
                 }
             }
             else
@@ -371,7 +371,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
 
             llvm::Value *alloc = m_Builder->CreateAlloca(m_ValuePtrType);
 
-            auto mallocation = m_Builder->CreateCall(m_Module->getFunction(MALLOC_FN_NAME_STR), { llvm::ConstantInt::get(m_Int64Type, numElements * sizeof(Value)) });
+            auto mallocation = m_Builder->CreateCall(m_Module->getFunction(STR(malloc)), { llvm::ConstantInt::get(m_Int64Type, numElements * sizeof(Value)) });
             auto arrayObjectBitCast = m_Builder->CreateBitCast(mallocation, m_ValuePtrType);
             m_Builder->CreateStore(arrayObjectBitCast, alloc);
 
@@ -386,7 +386,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 m_Builder->CreateMemCpy(addrBitCast, llvm::MaybeAlign(sizeof(Value)), eleBitCast, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
             }
 
-            auto arrayObject = m_Builder->CreateCall(m_Module->getFunction(CREATE_ARRAY_OBJECT_FN_NAME_STR), { load, llvm::ConstantInt::get(m_Int32Type, numElements) });
+            auto arrayObject = m_Builder->CreateCall(m_Module->getFunction(STR(CreateArrayObject)), { load, llvm::ConstantInt::get(m_Int32Type, numElements) });
             arrayObjectBitCast = m_Builder->CreateBitCast(arrayObject, m_ObjectPtrType);
 
             Push(arrayObjectBitCast);
@@ -699,6 +699,13 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                         value = m_Builder->CreateLoad(m_ObjectPtrType, value);
                         value = m_Builder->CreateBitCast(value, m_StrObjectPtrType);
                     }
+                    else if (currentCompileFunction->getReturnType() == m_ArrayObjectPtrType)
+                    {
+                        value = m_Builder->CreateInBoundsGEP(m_ValueType, value, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
+                        value = m_Builder->CreateBitCast(value, m_ObjectPtrPtrType);
+                        value = m_Builder->CreateLoad(m_ObjectPtrType, value);
+                        value = m_Builder->CreateBitCast(value, m_ArrayObjectPtrType);
+                    }
                 }
 
                 m_Builder->CreateRet(value);
@@ -771,7 +778,25 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 localVariables[name] = alloc;
             }
             else
-                m_Builder->CreateStore(value, iter->second);
+            {
+                if (iter->second->getAllocatedType() == m_RefObjectPtrType)
+                {
+                    if (value->getType() != m_ValuePtrType)
+                        value=CreateLlvmValue(value);
+
+                     auto load=m_Builder->CreateLoad(m_RefObjectPtrType,iter->second);
+                    auto refValue=CreateLlvmValue(load);
+
+                    auto actualValuePtr=m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)),{refValue});
+
+                    auto valueBitCast=m_Builder->CreateBitCast(value,m_Int8PtrType);
+                    auto actualValuePtrBitCast=m_Builder->CreateBitCast(actualValuePtr,m_Int8PtrType);
+
+                    m_Builder->CreateMemCpy(actualValuePtrBitCast,llvm::MaybeAlign(8),valueBitCast,llvm::MaybeAlign(8),llvm::ConstantInt::get(m_Int64Type,sizeof(Value)));
+                }
+                else
+                    m_Builder->CreateStore(value, iter->second);
+            }
 
             break;
         }
@@ -803,7 +828,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 }
                 else // load from interpreter vm
                 {
-                    auto slot = m_Builder->CreateCall(m_Module->getFunction(GET_LOCAL_VARIABLE_SLOT_FN_NAME_STR), { llvm::ConstantInt::get(m_Int16Type, scopeDepth),
+                    auto slot = m_Builder->CreateCall(m_Module->getFunction(STR(GetLocalVariableSlot)), { llvm::ConstantInt::get(m_Int16Type, scopeDepth),
                                                                                                       llvm::ConstantInt::get(m_Int16Type, index),
                                                                                                       llvm::ConstantInt::get(m_BoolType, isUpValue) });
 
@@ -945,22 +970,22 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         {
             auto memberCount = *ip++;
 
-            auto tableInstancePtr = m_Builder->CreateCall(m_Module->getFunction(CREATE_TABLE_FN_NAME_STR));
+            auto tableInstancePtr = m_Builder->CreateCall(m_Module->getFunction(STR(CreateTable)));
 
             for (size_t i = 0; i < memberCount; ++i)
             {
                 auto name = Pop().GetLlvmValue();
                 if (name->getType() == m_Int8PtrType)
-                    name = m_Builder->CreateCall(m_Module->getFunction(CREATE_STR_OBJECT_FN_NAME_STR), { name });
+                    name = m_Builder->CreateCall(m_Module->getFunction(STR(CreateStrObject)), { name });
 
                 auto value = Pop().GetLlvmValue();
                 if (value->getType() != m_ValueType)
                     value = CreateLlvmValue(value);
 
-                m_Builder->CreateCall(m_Module->getFunction(TABLE_SET_FN_NAME_STR), { tableInstancePtr ,name, value });
+                m_Builder->CreateCall(m_Module->getFunction(STR(TableSet)), { tableInstancePtr ,name, value });
             }
 
-            auto structInstancePtr = m_Builder->CreateCall(m_Module->getFunction(CREATE_STRUCT_OBJECT_FN_NAME_STR), { tableInstancePtr });
+            auto structInstancePtr = m_Builder->CreateCall(m_Module->getFunction(STR(CreateStructObject)), { tableInstancePtr });
             Push(structInstancePtr);
             break;
         }
@@ -970,7 +995,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto instance = Pop().GetLlvmValue();
 
             if (memberName->getType() == m_Int8PtrType)
-                memberName = m_Builder->CreateCall(m_Module->getFunction(CREATE_STR_OBJECT_FN_NAME_STR), { memberName });
+                memberName = m_Builder->CreateCall(m_Module->getFunction(STR(CreateStrObject)), { memberName });
 
             if (memberName->getType() != m_StrObjectPtrType)
                 ERROR(JitCompileState::FAIL, "Invalid member name of struct instance");
@@ -988,7 +1013,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
 
             auto resultValuePtr = m_Builder->CreateAlloca(m_ValueType);
 
-            m_Builder->CreateCall(m_Module->getFunction(TABLE_GET_FN_NAME_STR), { tablePtr,memberName,resultValuePtr });
+            m_Builder->CreateCall(m_Module->getFunction(STR(TableGet)), { tablePtr,memberName,resultValuePtr });
 
             Push(resultValuePtr);
 
@@ -1002,13 +1027,13 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto value = Pop().GetLlvmValue();
 
             if (memberName->getType() == m_Int8PtrType)
-                memberName = m_Builder->CreateCall(m_Module->getFunction(CREATE_STR_OBJECT_FN_NAME_STR), { memberName });
+                memberName = m_Builder->CreateCall(m_Module->getFunction(STR(CreateStrObject)), { memberName });
 
             if (memberName->getType() != m_StrObjectPtrType)
                 ERROR(JitCompileState::FAIL, "Invalid member name of struct instance");
 
-                if(value->getType()!=m_ValuePtrType)
-                    value=CreateLlvmValue(value);
+            if (value->getType() != m_ValuePtrType)
+                value = CreateLlvmValue(value);
 
             if (instance->getType() == m_ValuePtrType)
             {
@@ -1021,7 +1046,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto tablePtr = m_Builder->CreateInBoundsGEP(m_StructObjectType, instance, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
             tablePtr = m_Builder->CreateLoad(m_TablePtrType, tablePtr);
 
-            m_Builder->CreateCall(m_Module->getFunction(TABLE_SET_IF_FOUND_FN_NAME_STR), { tablePtr,memberName,value });
+            m_Builder->CreateCall(m_Module->getFunction(STR(TableSetIfFound)), { tablePtr,memberName,value });
 
             break;
         }
@@ -1031,9 +1056,8 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
 
             auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(GLOBAL_VARIABLE_STR));
             auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
-
-            auto alloc = m_Builder->CreateCall(m_Module->getFunction(CREATE_REF_OBJECT_FN_NAME_STR), { globalVar });
-            Push(alloc);
+            auto ref = m_Builder->CreateCall(m_Module->getFunction(STR(CreateRefObject)), { globalVar });
+            Push(ref);
             break;
         }
         case OP_REF_LOCAL:
@@ -1047,11 +1071,11 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto iter = localVariables.find(name);
             if (iter == localVariables.end()) // create from function argumenet
             {
-                auto slot = m_Builder->CreateCall(m_Module->getFunction(GET_LOCAL_VARIABLE_SLOT_FN_NAME_STR), { llvm::ConstantInt::get(m_Int16Type, scopeDepth),
+                auto slot = m_Builder->CreateCall(m_Module->getFunction(STR(GetLocalVariableSlot)), { llvm::ConstantInt::get(m_Int16Type, scopeDepth),
                                                                                                   llvm::ConstantInt::get(m_Int16Type, index),
                                                                                                   llvm::ConstantInt::get(m_BoolType, isUpValue) });
 
-                auto alloc = m_Builder->CreateCall(m_Module->getFunction(CREATE_REF_OBJECT_FN_NAME_STR), { slot });
+                auto alloc = m_Builder->CreateCall(m_Module->getFunction(STR(CreateRefObject)), { slot });
                 Push(alloc);
             }
             else
@@ -1060,7 +1084,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                     ERROR(JitCompileState::FAIL, "Cannot refer jit internal variable")
                 else
                 {
-                    auto alloc = m_Builder->CreateCall(m_Module->getFunction(CREATE_REF_OBJECT_FN_NAME_STR), { iter->second });
+                    auto alloc = m_Builder->CreateCall(m_Module->getFunction(STR(CreateRefObject)), { iter->second });
                     Push(alloc);
                 }
             }
@@ -1068,7 +1092,18 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         }
         case OP_REF_INDEX_GLOBAL:
         {
-            ERROR(JitCompileState::FAIL, "Not finished yet,tag it as error");
+            auto index = *ip++;
+            auto idxValue = Pop().GetLlvmValue();
+
+            if(idxValue->getType()!=m_ValuePtrType)
+                idxValue=CreateLlvmValue(idxValue);
+
+            auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(GLOBAL_VARIABLE_STR));
+            auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
+           
+
+            auto refObject = m_Builder->CreateCall(m_Module->getFunction(STR(CreateIndexRefObject)), { globalVar,idxValue });
+            Push(refObject);
             break;
         }
         case OP_REF_INDEX_LOCAL:
@@ -1172,44 +1207,51 @@ void Jit::InitTypes()
 
 void Jit::InitInternalFunctions()
 {
-    llvm::FunctionType *mallocFnType = llvm::FunctionType::get(m_Int8PtrType, { m_Int64Type }, false);
-    m_Module->getOrInsertFunction(MALLOC_FN_NAME_STR, mallocFnType);
 
-    llvm::FunctionType *strcmpFnType = llvm::FunctionType::get(m_Int32Type, { m_Int8PtrType, m_Int8PtrType }, false);
-    m_Module->getOrInsertFunction(STRCMP_FN_NAME_STR, strcmpFnType);
+    llvm::FunctionType *fnType = llvm::FunctionType::get(m_Int8PtrType, { m_Int64Type }, false);
+    m_Module->getOrInsertFunction(STR(malloc), fnType);
 
-    llvm::FunctionType *isObjectEqualFnType = llvm::FunctionType::get(m_BoolType, { m_ObjectPtrType, m_ObjectPtrType }, false);
-    m_Module->getOrInsertFunction(IS_OBJECT_EQUAL_FN_NAME_STR, isObjectEqualFnType);
+    fnType = llvm::FunctionType::get(m_Int32Type, { m_Int8PtrType, m_Int8PtrType }, false);
+    m_Module->getOrInsertFunction(STR(strcmp), fnType);
 
-    llvm::FunctionType *strAddFnType = llvm::FunctionType::get(m_StrObjectPtrType, { m_StrObjectPtrType, m_StrObjectPtrType }, false);
-    m_Module->getOrInsertFunction(STR_ADD_FN_NAME_STR, strAddFnType);
+    fnType = llvm::FunctionType::get(m_BoolType, { m_ObjectPtrType, m_ObjectPtrType }, false);
+    m_Module->getOrInsertFunction(STR(IsObjectEqual), fnType);
 
-    llvm::FunctionType *createStrObjectFnType = llvm::FunctionType::get(m_StrObjectPtrType, { m_Int8PtrType }, false);
-    m_Module->getOrInsertFunction(CREATE_STR_OBJECT_FN_NAME_STR, createStrObjectFnType);
+    fnType = llvm::FunctionType::get(m_StrObjectPtrType, { m_StrObjectPtrType, m_StrObjectPtrType }, false);
+    m_Module->getOrInsertFunction(STR(StrAdd), fnType);
 
-    llvm::FunctionType *createArrayObjectFnType = llvm::FunctionType::get(m_ArrayObjectPtrType, { m_ValuePtrType, m_Int32Type }, false);
-    m_Module->getOrInsertFunction(CREATE_ARRAY_OBJECT_FN_NAME_STR, createArrayObjectFnType);
+    fnType = llvm::FunctionType::get(m_StrObjectPtrType, { m_Int8PtrType }, false);
+    m_Module->getOrInsertFunction(STR(CreateStrObject), fnType);
 
-    llvm::FunctionType *createRefObjectFnType = llvm::FunctionType::get(m_RefObjectPtrType, { m_ValuePtrType }, false);
-    m_Module->getOrInsertFunction(CREATE_REF_OBJECT_FN_NAME_STR, createRefObjectFnType);
+    fnType = llvm::FunctionType::get(m_ArrayObjectPtrType, { m_ValuePtrType, m_Int32Type }, false);
+    m_Module->getOrInsertFunction(STR(CreateArrayObject), fnType);
 
-    llvm::FunctionType *createStructObjectFnType = llvm::FunctionType::get(m_StructObjectPtrType, { m_TablePtrType }, false);
-    m_Module->getOrInsertFunction(CREATE_STRUCT_OBJECT_FN_NAME_STR, createStructObjectFnType);
+    fnType = llvm::FunctionType::get(m_RefObjectPtrType, { m_ValuePtrType }, false);
+    m_Module->getOrInsertFunction(STR(CreateRefObject), fnType);
 
-    llvm::FunctionType *getLocalVariableSlotFnType = llvm::FunctionType::get(m_ValuePtrType, { m_Int16Type, m_Int16Type, m_BoolType }, false);
-    m_Module->getOrInsertFunction(GET_LOCAL_VARIABLE_SLOT_FN_NAME_STR, getLocalVariableSlotFnType);
+    fnType = llvm::FunctionType::get(m_StructObjectPtrType, { m_TablePtrType }, false);
+    m_Module->getOrInsertFunction(STR(CreateStructObject), fnType);
 
-    llvm::FunctionType *createTableFnType = llvm::FunctionType::get(m_TablePtrType, { }, false);
-    m_Module->getOrInsertFunction(CREATE_TABLE_FN_NAME_STR, createTableFnType);
+    fnType = llvm::FunctionType::get(m_ValuePtrType, { m_Int16Type, m_Int16Type, m_BoolType }, false);
+    m_Module->getOrInsertFunction(STR(GetLocalVariableSlot), fnType);
 
-    llvm::FunctionType *tableSetFnType = llvm::FunctionType::get(m_BoolType, { m_TablePtrType,m_StrObjectPtrType,m_ValuePtrType }, false);
-    m_Module->getOrInsertFunction(TABLE_SET_FN_NAME_STR, tableSetFnType);
+    fnType = llvm::FunctionType::get(m_TablePtrType, { }, false);
+    m_Module->getOrInsertFunction(STR(CreateTable), fnType);
 
-    llvm::FunctionType *tableSetIfFoundFnType = llvm::FunctionType::get(m_BoolType, { m_TablePtrType,m_StrObjectPtrType,m_ValuePtrType }, false);
-    m_Module->getOrInsertFunction(TABLE_SET_IF_FOUND_FN_NAME_STR, tableSetIfFoundFnType);
+    fnType = llvm::FunctionType::get(m_RefObjectPtrType, { m_ValuePtrType,m_ValuePtrType }, false);
+    m_Module->getOrInsertFunction(STR(CreateIndexRefObject), fnType);
 
-    llvm::FunctionType *tableGetFnType = llvm::FunctionType::get(m_BoolType, { m_TablePtrType,m_StrObjectPtrType,m_ValuePtrType }, false);
-    m_Module->getOrInsertFunction(TABLE_GET_FN_NAME_STR, tableGetFnType);
+    fnType = llvm::FunctionType::get(m_BoolType, { m_TablePtrType,m_StrObjectPtrType,m_ValuePtrType }, false);
+    m_Module->getOrInsertFunction(STR(TableSet), fnType);
+
+    fnType = llvm::FunctionType::get(m_BoolType, { m_TablePtrType,m_StrObjectPtrType,m_ValuePtrType }, false);
+    m_Module->getOrInsertFunction(STR(TableSetIfFound), fnType);
+
+    fnType = llvm::FunctionType::get(m_BoolType, { m_TablePtrType,m_StrObjectPtrType,m_ValuePtrType }, false);
+    m_Module->getOrInsertFunction(STR(TableGet), fnType);
+
+    fnType = llvm::FunctionType::get(m_ValuePtrType, { m_ValuePtrType }, false);
+    m_Module->getOrInsertFunction(STR(GetEndOfRefValuePtr), fnType);
 }
 
 llvm::Value *Jit::CreateLlvmValue(llvm::Value *v)
@@ -1255,7 +1297,7 @@ llvm::Value *Jit::CreateLlvmValue(llvm::Value *v)
         vt = m_Builder->getInt8(ValueType::OBJECT);
         type = m_ObjectPtrPtrType;
         // create str object
-        auto strObject = m_Builder->CreateCall(m_Module->getFunction(CREATE_STR_OBJECT_FN_NAME_STR), { v });
+        auto strObject = m_Builder->CreateCall(m_Module->getFunction(STR(CreateStrObject)), { v });
         //to base ptr
         storedV = m_Builder->CreateBitCast(strObject, m_ObjectPtrType);
 
@@ -1294,7 +1336,7 @@ llvm::Value *Jit::CreateLlvmValue(const Value &value)
         auto str = TO_STR_VALUE(value)->value;
         llvm::Value *strObject = m_Builder->CreateGlobalString(str);
         strObject = m_Builder->CreateBitCast(strObject, m_Int8PtrType);
-        strObject = m_Builder->CreateCall(m_Module->getFunction(CREATE_STR_OBJECT_FN_NAME_STR), { strObject });
+        strObject = m_Builder->CreateCall(m_Module->getFunction(STR(CreateStrObject)), { strObject });
         return strObject;
     }
     else

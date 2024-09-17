@@ -66,6 +66,8 @@ public:
         return object;
     }
 
+    RefObject* CreateIndexRefObject(Value* ptr,const Value& idxValue);
+
     void Push(const Value &value);
     Value Pop();
 
@@ -79,7 +81,6 @@ public:
     Value *GetStackTop() const;
     void SetStackTop(Value *slot);
 
-    void StackTopJumpBack(size_t slotCount);
     void StackTopJump(size_t slotCount);
 
     Value *GetGlobalVariableRef(size_t index);
@@ -126,6 +127,5 @@ private:
 #define GET_LOCAL_VARIABLE_SLOT(d,idx,isUpV) (Allocator::GetInstance()->GetLocalVariableSlot(d,idx,isUpV))
 
 #define STACK_TOP() (Allocator::GetInstance()->GetStackTop())
-#define STACK_TOP_JUMP_BACK(x) (Allocator::GetInstance()->StackTopJumpBack(x))
 #define STACK_TOP_JUMP(x) (Allocator::GetInstance()->StackTopJump(x))
 #define SET_STACK_TOP(x) (Allocator::GetInstance()->SetStackTop(x))
