@@ -397,7 +397,6 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 Push(m_Builder->CreateLogicalAnd(left, right));
             else
                 ERROR(JitCompileState::FAIL, "Invalid binary op:%s and %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
-
             break;
         }
         case OP_OR:
@@ -408,7 +407,6 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 Push(m_Builder->CreateLogicalAnd(left, right));
             else
                 ERROR(JitCompileState::FAIL, "Invalid binary op:%s or %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
-
             break;
         }
         case OP_BIT_AND:
@@ -424,7 +422,6 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             }
             else
                 ERROR(JitCompileState::FAIL, "Invalid binary op:%s & %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
-
             break;
         }
         case OP_BIT_OR:
@@ -440,7 +437,6 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             }
             else
                 ERROR(JitCompileState::FAIL, "Invalid binary op:%s | %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
-
             break;
         }
         case OP_BIT_NOT:
@@ -453,7 +449,6 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             }
             else
                 ERROR(JitCompileState::FAIL, "Invalid binary op:~ %s.", GetTypeName(value->getType()).c_str());
-
             break;
         }
         case OP_BIT_XOR:
@@ -469,7 +464,6 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             }
             else
                 ERROR(JitCompileState::FAIL, "Invalid binary op:%s ^ %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
-
             break;
         }
         case OP_GET_INDEX:
@@ -496,7 +490,6 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
 
             if (!isSatis)
                 ERROR(JitCompileState::FAIL, "Invalid index op: %s[%s]", GetTypeName(ds->getType()).c_str(), GetTypeName(index->getType()).c_str());
-
             break;
         }
         case OP_SET_INDEX:
@@ -642,7 +635,6 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 m_Builder->SetInsertPoint(instrSet.endBranch);
                 branchState = BranchState::WHILE_END;
             }
-
             break;
         }
         case OP_JUMP_END:
@@ -668,7 +660,6 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             }
 
             m_JumpInstrSetTable.pop_back();
-
             break;
         }
         case OP_RETURN:
@@ -789,7 +780,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 if (value->getType() != m_ValuePtrType)
                     value = CreateLlvmValue(value);
 
-                llvm::Value* refValue = m_Builder->CreateLoad(m_RefObjectPtrType, iter->second);
+                llvm::Value *refValue = m_Builder->CreateLoad(m_RefObjectPtrType, iter->second);
                 refValue = CreateLlvmValue(refValue);
 
                 refValue = m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)), { refValue });
@@ -947,7 +938,6 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 else
                     ERROR(JitCompileState::DEPEND, "%s depends on another function %s", currentCompileFunction->getName().str().c_str(), vmFn->uuid.c_str());
             }
-
             break;
         }
         case OP_GET_BUILTIN:
@@ -1020,7 +1010,6 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             m_Builder->CreateCall(m_Module->getFunction(STR(TableGet)), { tablePtr,memberName,resultValuePtr });
 
             Push(resultValuePtr);
-
             break;
         }
         case OP_SET_STRUCT:
@@ -1071,7 +1060,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
 
             auto name = GenerateLocalVarName(scopeDepth, index, isUpValue);
 
-            llvm::Value* value=nullptr;
+            llvm::Value *value = nullptr;
 
             auto iter = localVariables.find(name);
             if (iter == localVariables.end()) // create from function argumenet
@@ -1107,7 +1096,8 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(GLOBAL_VARIABLE_STR));
             auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
 
-            auto refObject = m_Builder->CreateCall(m_Module->getFunction(STR(CreateIndexRefObject)), { globalVar,idxValue });
+            auto refObject = m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)), { globalVar });
+            refObject = m_Builder->CreateCall(m_Module->getFunction(STR(CreateIndexRefObject)), { globalVar,idxValue });
             Push(refObject);
             break;
         }
@@ -1123,7 +1113,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
 
             auto name = GenerateLocalVarName(scopeDepth, index, isUpValue);
 
-            llvm::Value* value=nullptr;
+            llvm::Value *value = nullptr;
 
             auto iter = localVariables.find(name);
             if (iter == localVariables.end()) // create from function argumenet
@@ -1136,14 +1126,14 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             {
                 if (IsObjectType(iter->second->getAllocatedType()))
                 {
-                    value=m_Builder->CreateLoad(iter->second->getAllocatedType(),iter->second);
-                    value=CreateLlvmValue(value);
+                    value = m_Builder->CreateLoad(iter->second->getAllocatedType(), iter->second);
+                    value = CreateLlvmValue(value);
                 }
                 else
                     ERROR(JitCompileState::FAIL, "Cannot refer jit internal variable");
             }
 
-            value=m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)),{value});
+            value = m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)), { value });
             value = m_Builder->CreateCall(m_Module->getFunction(STR(CreateIndexRefObject)), { value,idxValue });
             Push(value);
             break;
@@ -1244,7 +1234,6 @@ void Jit::InitTypes()
 
 void Jit::InitInternalFunctions()
 {
-
     llvm::FunctionType *fnType = llvm::FunctionType::get(m_Int8PtrType, { m_Int64Type }, false);
     m_Module->getOrInsertFunction(STR(malloc), fnType);
 
@@ -1452,15 +1441,24 @@ uint8_t Jit::GetValueTypeFromLlvmType(llvm::Type *v)
         return ValueType::NIL;
     else if (v == m_DoubleType)
         return ValueType::NUM;
-    else if(v==m_BoolType)
+    else if (v == m_BoolType)
         return ValueType::BOOL;
-    else if(v==m_StrObjectPtrType || v== m_StrObjectType)
+    else if (v == m_StrObjectPtrType || v == m_StrObjectType)
         return ObjectType::STR;
-
+    else if (v == m_ArrayObjectPtrType || v == m_ArrayObjectType)
+        return ObjectType::ARRAY;
+    else if (v == m_RefObjectPtrType || v == m_RefObjectType)
+        return ObjectType::REF;
+    else if (v == m_StructObjectPtrType || v == m_StructObjectType)
+        return ObjectType::REF;
     return ValueType::NIL;
 }
 
 bool Jit::IsObjectType(llvm::Type *type)
 {
-    return type==m_ObjectPtrType||type==m_StrObjectPtrType || type==m_ArrayObjectPtrType||type==m_RefObjectPtrType||type==m_StructObjectPtrType;
+    return type == m_ObjectPtrType ||
+        type == m_StrObjectPtrType ||
+        type == m_ArrayObjectPtrType ||
+        type == m_RefObjectPtrType ||
+        type == m_StructObjectPtrType;
 }
