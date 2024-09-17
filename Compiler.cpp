@@ -360,8 +360,12 @@ void Compiler::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state)
     else
     {
         if (!isFound)
+        {
             symbol = m_SymbolTable->Define(expr->literal);
-        StoreSymbol(symbol);
+            DefineSymbol(symbol);
+        }
+        else
+            StoreSymbol(symbol);
     }
 }
 
@@ -547,6 +551,24 @@ uint32_t Compiler::EmitConstant(const Value &value)
 void Compiler::ModifyOpCode(uint32_t pos, int16_t opcode)
 {
     CurChunk().opCodes[pos] = opcode;
+}
+
+void Compiler::DefineSymbol(const Symbol &symbol)
+{
+    switch (symbol.scope)
+    {
+    case SymbolScope::GLOBAL:
+        Emit(OP_DEF_GLOBAL);
+        Emit(symbol.index);
+        break;
+    case SymbolScope::LOCAL:
+        Emit(OP_DEF_LOCAL);
+        Emit(symbol.scopeDepth);
+        Emit(symbol.index);
+        break;
+    default:
+        break;
+    }
 }
 
 void Compiler::LoadSymbol(const Symbol &symbol)

@@ -59,6 +59,7 @@ private:
 
     void ModifyOpCode(uint32_t pos, int16_t opcode);
 
+    void DefineSymbol(const Symbol &symbol);
     void LoadSymbol(const Symbol &symbol);
     void StoreSymbol(const Symbol &symbol);
 

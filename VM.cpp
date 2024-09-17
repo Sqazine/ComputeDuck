@@ -314,15 +314,20 @@ void VM::Execute()
             break;
         }
 #endif
+        case OP_DEF_GLOBAL:
+        {
+            auto index = *frame->ip++;
+            auto value = POP();
+            auto ptr = GET_GLOBAL_VARIABLE_REF(index);
+            *ptr = value;
+            break;
+        }
         case OP_SET_GLOBAL:
         {
             auto index = *frame->ip++;
             auto value = POP();
-
             auto ptr = GET_GLOBAL_VARIABLE_REF(index);
-
-            if (IS_REF_VALUE(*ptr)) // if is a reference object,then set the actual value which the reference object points
-                ptr = GetEndOfRefValuePtr(ptr);
+            ptr = GetEndOfRefValuePtr(ptr);
             *ptr = value;
             break;
         }
@@ -373,13 +378,21 @@ void VM::Execute()
                 ASSERT("Calling not a function or a builtinFn");
             break;
         }
+        case OP_DEF_LOCAL:
+        {
+            auto scopeDepth = *frame->ip++;
+            auto index = *frame->ip++;
+            auto value = POP();
+            Value *slot = GET_LOCAL_VARIABLE_SLOT(scopeDepth, index, 0);
+            *slot = value;
+            break;
+        }
         case OP_SET_LOCAL:
         {
             auto scopeDepth = *frame->ip++;
             auto index = *frame->ip++;
             auto isUpValue = *frame->ip++;
             auto value = POP();
-
             Value *slot = GET_LOCAL_VARIABLE_SLOT(scopeDepth, index, isUpValue);
             slot = GetEndOfRefValuePtr(slot);
             *slot = value;
