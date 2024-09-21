@@ -23,10 +23,7 @@ private:
 
 	bool IsMatchCurChar(char c);
 	bool IsMatchCurCharAndStepOnce(char c);
-	bool IsMatchNextChar(char c);
-	bool IsMatchNextCharAndStepOnce(char c);
 
-	char GetNextChar();
 	char GetCurCharAndStepOnce();
 	char GetCurChar();
 
