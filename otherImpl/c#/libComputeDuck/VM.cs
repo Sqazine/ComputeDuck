@@ -329,6 +329,13 @@ namespace ComputeDuck
                             frame.ip = address + 1;
                             break;
                         }
+                    case (int)OpCode.OP_DEF_GLOBAL:
+                        {
+                            var index = frame.fn.chunk.opCodes[frame.ip++];
+                            var obj = Pop();
+                            m_GlobalVariables[index] = obj;
+                            break;
+                        }
                     case (int)OpCode.OP_SET_GLOBAL:
                         {
                             var index = frame.fn.chunk.opCodes[frame.ip++];
@@ -336,16 +343,13 @@ namespace ComputeDuck
 
                             if (m_GlobalVariables[index].type == ObjectType.REF)
                             {
-                                var gRefObj = m_GlobalVariables[index];
-                                var gRefAddress = new IntPtr(-1);
-                                while (gRefObj.type == ObjectType.REF)
-                                {
-                                    gRefAddress = ((RefObject)gRefObj).pointer;
-                                    gRefObj = SearchObjectByAddress(((RefObject)gRefObj).pointer);
-                                }
-                                AssignObjectByAddress(gRefAddress, obj);
+                                var refObj = m_GlobalVariables[index];
+                                var address = new IntPtr(-1);
+                                GetEndOfRefObject(ref refObj,ref address);
 
-                                var refObjs = SearchRefObjectListByAddress(gRefAddress);
+                                AssignObjectByAddress(address, obj);
+
+                                var refObjs = SearchRefObjectListByAddress(address);
                                 for (int i = 0; i < refObjs.Count; ++i)
                                     ((RefObject)refObjs[i]).pointer = obj.GetAddress();
                             }
@@ -390,6 +394,16 @@ namespace ComputeDuck
                                 Utils.Assert("Calling not a function or a builtinFn");
                             break;
                         }
+                    case (int)OpCode.OP_DEF_LOCAL:
+                        {
+                            var scopeDepth = frame.fn.chunk.opCodes[frame.ip++];
+                            var index = frame.fn.chunk.opCodes[frame.ip++];
+                         
+                            var obj = Pop();
+                            var slot = GetLocalVariableSlot(scopeDepth, index, 0);
+                            m_ObjectStack[slot] = obj;
+                            break;
+                        }
                     case (int)OpCode.OP_SET_LOCAL:
                         {
                             var scopeDepth = frame.fn.chunk.opCodes[frame.ip++];
@@ -398,24 +412,16 @@ namespace ComputeDuck
 
                             var obj = Pop();
 
-                            int slot;
-                            if (isUpValue == 1)
-                                slot = PeekCallFrameFromFront(scopeDepth).slot + index;
-                            else
-                                slot = PeekCallFrameFromBack(scopeDepth).slot + index;
+                            int slot= GetLocalVariableSlot(scopeDepth,index,isUpValue);
 
                             if (m_ObjectStack[slot].type == ObjectType.REF)
                             {
-                                var lRefObj = m_ObjectStack[slot];
-                                var lRefAddress = new IntPtr(-1);
-                                while (lRefObj.type == ObjectType.REF)
-                                {
-                                    lRefAddress = ((RefObject)lRefObj).pointer;
-                                    lRefObj = SearchObjectByAddress(((RefObject)lRefObj).pointer);
-                                }
-                                AssignObjectByAddress(lRefAddress, obj);
+                                var refObj = m_ObjectStack[slot];
+                                var address = new IntPtr(-1);
+                                GetEndOfRefObject(ref refObj, ref address);
+                                AssignObjectByAddress(address, obj);
 
-                                var refObjs = SearchRefObjectListByAddress(lRefAddress);
+                                var refObjs = SearchRefObjectListByAddress(address);
                                 for (int i = 0; i < refObjs.Count; ++i)
                                     ((RefObject)refObjs[i]).pointer = obj.GetAddress();
                                 ((RefObject)m_ObjectStack[slot]).pointer = obj.GetAddress();
@@ -433,12 +439,7 @@ namespace ComputeDuck
                             var index = frame.fn.chunk.opCodes[frame.ip++];
                             var isUpValue = frame.fn.chunk.opCodes[frame.ip++];
 
-                            int slot;
-                            if (isUpValue == 1)
-                                slot = PeekCallFrameFromFront(scopeDepth).slot + index;
-                            else
-                                slot = PeekCallFrameFromBack(scopeDepth).slot + index;
-
+                            int slot= GetLocalVariableSlot(scopeDepth,index,isUpValue);
                             Push(m_ObjectStack[slot]);
                             break;
                         }
@@ -480,8 +481,8 @@ namespace ComputeDuck
                             var memberName = Pop();
                             var instance = Pop();
 
-                            while (instance.type == ObjectType.REF)
-                                instance = SearchObjectByAddress(((RefObject)instance).pointer);
+                            instance=GetEndOfRefObject(instance); 
+
                             if (memberName.type == ObjectType.STR)
                             {
                                 var obj = ((StructObject)instance).members.GetValueOrDefault(((StrObject)memberName).value, new NilObject());
@@ -496,8 +497,7 @@ namespace ComputeDuck
                             var memberName = Pop();
                             var instance = Pop();
 
-                            while (instance.type == ObjectType.REF)
-                                instance = SearchObjectByAddress(((RefObject)instance).pointer);
+                            instance = GetEndOfRefObject(instance);
                             var obj = Pop();
                             if (memberName.type == ObjectType.STR)
                             {
@@ -521,12 +521,8 @@ namespace ComputeDuck
                             var index = frame.fn.chunk.opCodes[frame.ip++];
                             var isUpValue = frame.fn.chunk.opCodes[frame.ip++];
 
-                            int slot;
-                            if (isUpValue == 1)
-                                slot = PeekCallFrameFromFront(scopeDepth).slot + index;
-                            else
-                                slot = PeekCallFrameFromBack(scopeDepth).slot + index;
-
+                            int slot = GetLocalVariableSlot(scopeDepth, index, isUpValue);
+                           
                             Push(new RefObject(m_ObjectStack[slot].GetAddress()));
 
                             break;
@@ -536,19 +532,8 @@ namespace ComputeDuck
                             var index = frame.fn.chunk.opCodes[frame.ip++];
                             var idxValue = Pop();
 
-                            var obj = m_GlobalVariables[index];
-                            while (obj.type == ObjectType.REF)
-                                obj = SearchObjectByAddress(((RefObject)obj).pointer);
-
-                            if (obj.type == ObjectType.ARRAY)
-                            {
-                                if (idxValue.type != ObjectType.NUM)
-                                    Utils.Assert("Invalid idx for array,only integer is available.");
-                                if (((NumObject)idxValue).value < 0 || ((NumObject)idxValue).value >= ((ArrayObject)obj).elements.Count)
-                                    Utils.Assert("Idx out of range.");
-                                Push(new RefObject(((ArrayObject)obj).elements[(int)((NumObject)idxValue).value].GetAddress()));
-                            }
-
+                            var obj = GetEndOfRefObject(m_GlobalVariables[index]);
+                            Push(CreateIndexRefObject(obj, idxValue));
                             break;
                         }
                     case (int)OpCode.OP_REF_INDEX_LOCAL:
@@ -557,28 +542,10 @@ namespace ComputeDuck
                             var index = frame.fn.chunk.opCodes[frame.ip++];
                             var isUpValue = frame.fn.chunk.opCodes[frame.ip++];
 
+                            int slot = GetLocalVariableSlot(scopeDepth, index, isUpValue);
                             var idxValue = Pop();
-
-                            int slot;
-                            if (isUpValue == 1)
-                                slot = PeekCallFrameFromFront(scopeDepth).slot + index;
-                            else
-                                slot = PeekCallFrameFromBack(scopeDepth).slot + index;
-
-                            while (m_ObjectStack[slot].type == ObjectType.REF)
-                                m_ObjectStack[slot] = SearchObjectByAddress(((RefObject)m_ObjectStack[slot]).pointer);
-
-                            if (m_ObjectStack[slot].type == ObjectType.ARRAY)
-                            {
-                                if (idxValue.type != ObjectType.NUM)
-                                    Utils.Assert("Invalid idx for array,only integer is available.");
-                                if (((NumObject)idxValue).value < 0 || ((NumObject)idxValue).value >= ((ArrayObject)m_ObjectStack[slot]).elements.Count)
-                                    Utils.Assert("Idx out of range.");
-                                Push(new RefObject(((ArrayObject)m_ObjectStack[slot]).elements[(int)((NumObject)idxValue).value].GetAddress()));
-                            }
-                            else
-                                Utils.Assert("Invalid indexed reference type:" + m_ObjectStack[slot].ToString() + " not a array value.");
-
+                            var obj = GetEndOfRefObject(m_ObjectStack[slot]);
+                            Push(CreateIndexRefObject(obj, idxValue));
                             break;
                         }
                     case (int)OpCode.OP_DLL_IMPORT:
@@ -624,6 +591,31 @@ namespace ComputeDuck
             return m_CallFrames[m_CallFrameTop - distance];
         }
 
+        private int GetLocalVariableSlot(int scopeDepth,int index,int isUpValue)
+        {
+            int slot;
+            if (isUpValue == 1)
+                slot = PeekCallFrameFromFront(scopeDepth).slot + index;
+            else
+                slot = PeekCallFrameFromBack(scopeDepth).slot + index;
+            return slot;
+        }
+
+        private RefObject CreateIndexRefObject(Object obj,Object idxValue)
+        {
+            if (obj.type == ObjectType.ARRAY)
+            {
+                if (idxValue.type != ObjectType.NUM)
+                    Utils.Assert("Invalid idx for array,only integer is available.");
+                if (((NumObject)idxValue).value < 0 || ((NumObject)idxValue).value >= ((ArrayObject)obj).elements.Count)
+                    Utils.Assert("Idx out of range.");
+                return new RefObject(((ArrayObject)obj).elements[(int)((NumObject)idxValue).value].GetAddress());
+            }
+            else
+                Utils.Assert("Invalid indexed reference type:" +obj.ToString() + " not a array value.");
+            return null;
+        }
+
         private Object FindActualObject(Object obj)
         {
             var actual = obj;
@@ -634,6 +626,23 @@ namespace ComputeDuck
                 actual = ((BuiltinObject)actual).GetBuiltinVar();
 
             return actual;
+        }
+
+        private void GetEndOfRefObject(ref Object obj,ref IntPtr address)
+        {
+            while (obj.type == ObjectType.REF)
+            {
+                address = ((RefObject)obj).pointer;
+                obj = SearchObjectByAddress(((RefObject)obj).pointer);
+            }
+        }
+
+        private Object GetEndOfRefObject(Object obj)
+        {
+            var refObj = obj;
+            while (refObj.type == ObjectType.REF)
+                refObj = SearchObjectByAddress(((RefObject)refObj).pointer);
+            return refObj;
         }
 
         private Object SearchObjectByAddress(IntPtr address)

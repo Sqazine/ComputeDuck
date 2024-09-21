@@ -45,28 +45,29 @@ namespace ComputeDuck
         REF,           // ref
         DLLIMPORT,     // dllimport
         IMPORT,        // import
-
         END
     }
 
     public class Token
     {
-        public Token(TokenType type, string literal, int line, string filePath)
+        public Token(TokenType type, string literal, int line, int column, string filePath)
         {
             this.literal = literal;
             this.type = type;
             this.line = line;
+            this.column = column;
             this.filePath = filePath;
         }
 
         public string Stringify()
         {
-            return this.literal + "," + this.line.ToString();
+            return this.literal + "," + this.line.ToString() + "," + this.column.ToString();
         }
 
         public string filePath;
         public TokenType type;
         public string literal;
         public int line;
+        public int column;
     }
 }

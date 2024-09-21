@@ -27,6 +27,7 @@ namespace ComputeDuck
         {
             m_StartPos = m_CurPos = 0;
             m_Line = 1;
+            m_Column = 1;
             m_Tokens = new List<Token>();
         }
 
@@ -75,6 +76,7 @@ namespace ComputeDuck
                     break;
                 case '\n':
                     m_Line++;
+                    m_Column = 1;
                     break;
                 case '+':
                     AddToken(TokenType.PLUS);
@@ -104,7 +106,6 @@ namespace ComputeDuck
                     {
                         while (!IsMatchCurChar('\n') && !IsAtEnd())
                             GetCurCharAndStepOnce();
-                        m_Line++;
                         break;
                     }
                 case '!':
@@ -149,39 +150,20 @@ namespace ComputeDuck
         {
             bool result = GetCurChar() == c;
             if (result)
+            {
                 m_CurPos++;
+                m_Column++;
+            }
             return result;
         }
 
-        private bool IsMatchNextChar(char c)
-        {
-            return GetNextChar() == c;
-        }
-
-        private bool IsMatchNextCharAndStepOnce(char c)
-        {
-            bool result = GetNextChar() == c;
-            if (result)
-                m_CurPos++;
-            return result;
-        }
-
-        private char GetNextCharAndStepOnce()
-        {
-            if (m_CurPos + 1 < m_Source.Length)
-                return m_Source[++m_CurPos];
-            return '\0';
-        }
-        private char GetNextChar()
-        {
-            if (m_CurPos + 1 < m_Source.Length)
-                return m_Source[m_CurPos + 1];
-            return '\0';
-        }
         private char GetCurCharAndStepOnce()
         {
             if (!IsAtEnd())
+            {
+                m_Column++;
                 return m_Source[m_CurPos++];
+            }
             return '\0';
         }
         private char GetCurChar()
@@ -194,11 +176,11 @@ namespace ComputeDuck
         private void AddToken(TokenType type)
         {
             var literal = m_Source.Substring(m_StartPos, m_CurPos - m_StartPos);
-            m_Tokens.Add(new Token(type, literal, m_Line, m_FilePath));
+            m_Tokens.Add(new Token(type, literal, m_Line,m_Column, m_FilePath));
         }
         private void AddToken(TokenType type, string literal)
         {
-            m_Tokens.Add(new Token(type, literal, m_Line, m_FilePath));
+            m_Tokens.Add(new Token(type, literal, m_Line, m_Column, m_FilePath));
         }
 
         private bool IsAtEnd()
@@ -273,6 +255,7 @@ namespace ComputeDuck
         private int m_StartPos;
         private int m_CurPos;
         private int m_Line;
+        private int m_Column;
         private string m_Source;
         private List<Token> m_Tokens;
 

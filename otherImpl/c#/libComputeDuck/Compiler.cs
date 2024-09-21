@@ -110,7 +110,7 @@ namespace ComputeDuck
         }
         void CompileWhileStmt(WhileStmt stmt)
         {
-            EnterScope()
+            EnterScope();
 
             var jumpAddress = CurChunk().opCodes.Count - 1;
             CompileExpr(stmt.condition);
@@ -346,8 +346,12 @@ namespace ComputeDuck
             else
             {
                 if (!isFound)
+                {
                     symbol = m_SymbolTable.Define(expr.literal);
-                StoreSymbol(symbol);
+                    DefineSymbol(symbol);
+                }
+                else
+                    StoreSymbol(symbol);
             }
         }
         void CompileFunctionExpr(FunctionExpr expr)
@@ -526,6 +530,23 @@ namespace ComputeDuck
                 m_SymbolTable.DefineBuiltin(k);
         }
         
+        void DefineSymbol(Symbol symbol)
+        {
+            switch (symbol.scope)
+            {
+                case SymbolScope.GLOBAL:
+                    Emit((int)OpCode.OP_DEF_GLOBAL);
+                    Emit(symbol.index);
+                    break;
+                case SymbolScope.LOCAL:
+                    Emit((int)OpCode.OP_DEF_LOCAL);
+                    Emit(symbol.scopeDepth);
+                    Emit(symbol.index);
+                    break;
+                default:
+                    break;
+            }
+        }
         void LoadSymbol(Symbol symbol)
         {
             switch (symbol.scope)
