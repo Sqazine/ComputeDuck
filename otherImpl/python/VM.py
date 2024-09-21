@@ -73,7 +73,7 @@ class VM:
                     return
 
                 self.__stackTop = callFrame.slot-1
-                
+
                 if returnCount == 1:
                     self.__push(object)
 
@@ -246,19 +246,21 @@ class VM:
                 else:
                     error("Invalid index op:" + ds.__str__() +
                           "[" + index.__str__() + "]")
-            
+
             elif instruction == OpCode.OP_SET_INDEX:
                 index = self.__pop()
                 ds = self.__pop()
-                v=self.__pop()
+                v = self.__pop()
                 if ds.type == ObjectType.ARRAY and index.type == ObjectType.NUM:
                     i = int(index.value)
                     if i < 0 or i >= len(ds.elements):
-                        error("Invalid index:"+str(i)+" outside of array's:"+str(len(ds.elements)))
+                        error("Invalid index:"+str(i) +
+                              " outside of array's:"+str(len(ds.elements)))
                     else:
-                        ds.elements[i]=v
+                        ds.elements[i] = v
                 else:
-                    error("Invalid index op:" + ds.__str__() + "[" + index.__str__() + "]")
+                    error("Invalid index op:" + ds.__str__() +
+                          "[" + index.__str__() + "]")
 
             elif instruction == OpCode.OP_JUMP_IF_FALSE:
                 address = frame.fn.chunk.opCodes[frame.ip]
@@ -273,22 +275,23 @@ class VM:
                 address = frame.fn.chunk.opCodes[frame.ip]
                 frame.ip = address+1
 
+            elif instruction == OpCode.OP_DEF_GLOBAL:
+                index = frame.fn.chunk.opCodes[frame.ip]
+                frame.ip += 1
+                obj = self.__pop()
+                self.__globalVariables[index] = obj
+
             elif instruction == OpCode.OP_SET_GLOBAL:
                 index = frame.fn.chunk.opCodes[frame.ip]
                 frame.ip += 1
                 obj = self.__pop()
 
                 if self.__globalVariables[index].type == ObjectType.REF:
-                    gRefObj = self.__globalVariables[index]
-                    gRefAddress = -1
-                    while gRefObj.type == ObjectType.REF:
-                        gRefAddress = gRefObj.pointer
-                        gRefObj = self.__search_object_by_address(
-                            gRefObj.pointer)
-                    self.__assign_object_by_address(gRefAddress, obj)
+                    refObj, address = self.__get_end_of_ref_object(
+                        self.__globalVariables[index])
+                    self.__assign_object_by_address(address, obj)
 
-                    refObjs = self.__search_ref_object_list_by_address(
-                        gRefAddress)
+                    refObjs = self.__search_ref_object_list_by_address(address)
                     for i in range(0, len(refObjs)):
                         refObjs[i].pointer = id(obj)
 
@@ -327,6 +330,17 @@ class VM:
                 else:
                     error("Calling not a function or a builtinFn")
 
+            elif instruction == OpCode.OP_DEF_LOCAL:
+                scopeDepth = frame.fn.chunk.opCodes[frame.ip]
+                frame.ip += 1
+                index = frame.fn.chunk.opCodes[frame.ip]
+                frame.ip += 1
+
+                obj = self.__pop()
+
+                slot = self.__peek_call_frame_from_back(scopeDepth).slot+index
+                self.__objectStack[slot] = obj
+
             elif instruction == OpCode.OP_SET_LOCAL:
                 scopeDepth = frame.fn.chunk.opCodes[frame.ip]
                 frame.ip += 1
@@ -337,24 +351,17 @@ class VM:
 
                 obj = self.__pop()
 
-                if isUpValue:
-                    slot = self.__peek_call_frame_from_front(
-                        scopeDepth).slot+index
-                else:
-                    slot = self.__peek_call_frame_from_back(
-                        scopeDepth).slot+index
+                slot = self.__get_local_variable_slot(
+                    scopeDepth, index, isUpValue)
 
                 if self.__objectStack[slot].type == ObjectType.REF:
-                    lRefObj = self.__objectStack[slot]
-                    lRefAddress = -1
-                    while lRefObj.type == ObjectType.REF:
-                        lRefAddress = lRefObj.pointer
-                        lRefObj = self.__search_object_by_address(
-                            lRefObj.pointer)
-                    self.__assign_object_by_address(lRefAddress, obj)
+                    refObj = self.__objectStack[slot]
+                    refObj, refAddress = self.__get_end_of_ref_object(refObj)
+
+                    self.__assign_object_by_address(refAddress, obj)
 
                     refObjs = self.__search_ref_object_list_by_address(
-                        lRefAddress)
+                        refAddress)
                     for i in range(0, len(refObjs)):
                         refObjs[i].pointer = id(obj)
 
@@ -372,12 +379,9 @@ class VM:
                 isUpValue = frame.fn.chunk.opCodes[frame.ip]
                 frame.ip += 1
 
-                if isUpValue:
-                    slot = self.__peek_call_frame_from_front(
-                        scopeDepth).slot+index
-                else:
-                    slot = self.__peek_call_frame_from_back(
-                        scopeDepth).slot+index
+                slot = self.__get_local_variable_slot(
+                    scopeDepth, index, isUpValue)
+
                 self.__push(self.__objectStack[slot])
 
             elif instruction == OpCode.OP_SP_OFFSET:
@@ -449,12 +453,8 @@ class VM:
                 isUpValue = frame.fn.chunk.opCodes[frame.ip]
                 frame.ip += 1
 
-                if isUpValue:
-                    slot = self.__peek_call_frame_from_front(
-                        scopeDepth).slot+index
-                else:
-                    slot = self.__peek_call_frame_from_back(
-                        scopeDepth).slot+index
+                slot = self.__get_local_variable_slot(
+                    scopeDepth, index, isUpValue)
 
                 self.__push(RefObject(id(self.__objectStack[slot])))
 
@@ -463,49 +463,26 @@ class VM:
                 frame.ip += 1
                 idxValue = self.__pop()
 
-                obj = self.__globalVariables[index]
-                while obj.type == ObjectType.REF:
-                    obj = self.__search_object_by_address(obj.pointer)
+                obj, _ = self.__get_end_of_ref_object(
+                    self.__globalVariables[index])
 
-                if obj.type == ObjectType.ARRAY:
-                    if idxValue.type != ObjectType.NUM:
-                        error("Invalid idx for array,only integer is available.")
-                    if idxValue.value < 0 or idxValue.value >= len(obj.elements):
-                        error("Idx out of range.")
-                    self.__push(
-                        RefObject(id(obj.elements[int(idxValue.value)])))
+                self.__push(self.__create_index_ref_object(obj, idxValue))
 
             elif instruction == OpCode.OP_REF_INDEX_LOCAL:
                 scopeDepth = frame.fn.chunk.opCodes[frame.ip]
                 frame.ip += 1
                 index = frame.fn.chunk.opCodes[frame.ip]
                 frame.ip += 1
-                isUpValue = frame.fn.chunk.opCode[frame.ip]
+                isUpValue = frame.fn.chunk.opCodes[frame.ip]
                 frame.ip += 1
 
                 idxValue = self.__pop()
+                slot = self.__get_local_variable_slot(
+                    scopeDepth, index, isUpValue)
+                obj, _ = self.__get_end_of_ref_object(self.__objectStack[slot])
 
-                if isUpValue:
-                    slot = self.__peek_call_frame_from_front(
-                        scopeDepth).slot+index
-                else:
-                    slot = self.__peek_call_frame_from_back(
-                        scopeDepth).slot+index
+                self.__push(self.__create_index_ref_object(obj, idxValue))
 
-                while self.__objectStack[slot].type == ObjectType.REF:
-                    self.__objectStack[slot] = self.__search_object_by_address(
-                        self.__objectStack[slot].pointer)
-
-                if self.__objectStack[slot].type == ObjectType.ARRAY:
-                    if idxValue.type != ObjectType.NUM:
-                        error("Invalid idx for array,only integer is available.")
-                    if idxValue.value < 0 or idxValue.value >= len(self.__objectStack[slot].elements):
-                        error("Idx out of range.")
-                    self.__push(
-                        RefObject(id(self.__objectStack[slot].elements[idxValue])))
-                else:
-                    error("Invalid indexed reference type:" +
-                          self.__objectStack[slot].__str__()+" not a array value.")
             elif instruction == OpCode.OP_DLL_IMPORT:
                 name = self.__pop().value
                 register_dlls(name)
@@ -532,6 +509,17 @@ class VM:
     def __peek_call_frame_from_back(self, distance: int) -> CallFrame:
         return self.__callFrameStack[self.__callFrameTop - distance]
 
+    def __create_index_ref_object(self, obj: Object, idxValue: Object) -> RefObject:
+        if obj.type == ObjectType.ARRAY:
+            if idxValue.type != ObjectType.NUM:
+                error("Invalid idx for array,only integer is available.")
+            if idxValue.value < 0 or idxValue.value >= len(obj.elements):
+                error("Idx out of range.")
+            return RefObject(id(obj.elements[int(idxValue.value)]))
+        else:
+            error("Invalid indexed reference type:" +
+                  obj.__str__()+" not a array value.")
+
     def __find_actual_object(self, obj):
         # find actual object of RefObject or BuiltinVariable
         actual = obj
@@ -540,6 +528,14 @@ class VM:
         if actual.type == ObjectType.BUILTIN:
             actual = actual.data
         return actual
+
+    def __get_end_of_ref_object(self, obj: Object):
+        address = -1
+        refObj = obj
+        while refObj.type == ObjectType.REF:
+            address = refObj.pointer
+            refObj = self.__search_object_by_address(refObj.pointer)
+        return refObj, address
 
     def __search_object_by_address(self, address):
         return ctypes.cast(address, ctypes.py_object).value
@@ -612,3 +608,9 @@ class VM:
             elif self.__objectStack[p].type == ObjectType.REF:
                 if self.__objectStack[p].pointer == originAddress:
                     self.__objectStack[p].pointer = newAddress
+
+    def __get_local_variable_slot(self, scopeDepth, index, isUpValue) -> Object:
+        if isUpValue:
+            return self.__peek_call_frame_from_front(scopeDepth).slot+index
+        else:
+            return self.__peek_call_frame_from_back(scopeDepth).slot+index

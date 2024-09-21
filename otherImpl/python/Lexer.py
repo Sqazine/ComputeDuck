@@ -24,6 +24,7 @@ class Lexer:
     __startPos: int = 0
     __curPos: int = 0
     __line: int = 1
+    __column: int = 1
     __source: str = ""
     __tokens: list[Token] = []
     __filePath: str = ""
@@ -44,6 +45,7 @@ class Lexer:
     def __reset_status(self) -> None:
         self.__startPos = self.__curPos = 0
         self.__line = 1
+        self.__column = 1
         self.__tokens = []
         self.__source = ""
 
@@ -54,6 +56,7 @@ class Lexer:
         result = self.__get_cur_char() == c
         if result:
             self.__curPos += 1
+            self.__column += 1
         return result
 
     def __get_cur_char_and_step_once(self):
@@ -61,6 +64,7 @@ class Lexer:
         if not self.__is_at_end():
             res = self.__source[self.__curPos]
             self.__curPos += 1
+            self.__column += 1
         return res
 
     def __get_cur_char(self):
@@ -73,7 +77,7 @@ class Lexer:
         if (literal == None):
             literal = self.__source[self.__startPos:self.__curPos]
         self.__tokens.append(
-            Token(type, literal, self.__line, self.__filePath))
+            Token(type, literal, self.__line, self.__column, self.__filePath))
 
     def __is_at_end(self) -> bool:
         return self.__curPos >= len(self.__source)
@@ -141,10 +145,11 @@ class Lexer:
             self.__add_token(TokenType.SEMICOLON)
         elif c == '\"':
             self.__string()
-        elif c == ' ' or c == ' \t' or c == '\r':
+        elif c == ' ' or c == '\t' or c == '\r':
             pass
         elif c == '\n':
             self.__line += 1
+            self.__column = 1
         elif c == '+':
             self.__add_token(TokenType.PLUS)
         elif c == '-':
@@ -164,7 +169,6 @@ class Lexer:
         elif c == '#':
             while (not self.__is_match_cur_char('\n')) and (not self.__is_at_end()):
                 self.__get_cur_char_and_step_once()
-            self.__line += 1
         elif c == '!':
             if self.__is_match_cur_char_and_step_once('='):
                 self.__add_token(TokenType.BANG_EQUAL)

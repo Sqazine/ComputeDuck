@@ -12,10 +12,12 @@ parser = Parser()
 compiler = Compiler()
 vm = VM()
 
-def set_base_path(path:str):
+
+def set_base_path(path: str):
     gBuiltinManager.set_execute_file_path(os.path.dirname(path)+"/")
 
-def run(content:str):
+
+def run(content: str):
     tokens = preProcessor.pre_process(content)
     for token in tokens:
         print(token)
@@ -25,23 +27,24 @@ def run(content:str):
     fn = compiler.compile(stmts)
 
     print(fn.str_with_chunk())
-    
+
     vm.run(fn)
 
-def repl(path:str):
+
+def repl(path: str):
     set_base_path(path)
 
-    allLines=""
+    allLines = ""
 
     print("> ", end="")
     line = input()
     while (True):
         if line == "clear":
-            allLines=""
-        elif line=="exit":
+            allLines = ""
+        elif line == "exit":
             return
         else:
-            allLines+=line
+            allLines += line
             run(allLines)
         print("> ", end="")
         line = input()
@@ -53,24 +56,27 @@ def run_file(filePath):
     content = read_file(filePath)
     run(content)
 
+
 def print_usage():
     print("Usage: ComputeDuck [option]:")
     print("-h or --help:show usage info.")
     print("-f or --file:run source file with a valid file path,like : python3 main.py -f examples/array.cd.")
     exit(1)
 
+
 if __name__ == "__main__":
-    sourceFilePath=""
-    for i in range(0,len(sys.argv)):
-        if sys.argv[i]=="-f" or sys.argv[i]== "--file":
-            if i+1<len(sys.argv):
-                sourceFilePath=sys.argv[i+1]
+    sourceFilePath = ""
+
+    for i in range(0, len(sys.argv)):
+        if sys.argv[i] == "-f" or sys.argv[i] == "--file":
+            if i+1 < len(sys.argv):
+                sourceFilePath = sys.argv[i+1]
             else:
                 print_usage()
-        if sys.argv[i]=="-h" or sys.argv[i]=="--help":
+        if sys.argv[i] == "-h" or sys.argv[i] == "--help":
             print_usage()
 
-    if sourceFilePath!="":
+    if sourceFilePath != "":
         run_file(sourceFilePath)
     else:
         repl(sys.argv[0])

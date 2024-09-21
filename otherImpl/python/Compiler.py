@@ -266,7 +266,9 @@ class Compiler:
         else:
             if isFound == False:
                 symbol = self.__symbolTable.Define(expr.literal)
-            self.__store_symbol(symbol)
+                self.__define_symbol(symbol)
+            else:
+                self.__store_symbol(symbol)
 
     def __compile_function_expr(self, stmt: FunctionExpr) -> None:
         self.__enter_scope()
@@ -400,6 +402,15 @@ class Compiler:
 
     def __modify_opcode(self, pos: int, opcode: int) -> None:
         self.__cur_chunk().opCodes[pos] = opcode
+
+    def __define_symbol(self, symbol: Symbol) -> None:
+        if symbol.scope == SymbolScope.GLOBAL:
+            self.__emit(OpCode.OP_DEF_GLOBAL)
+            self.__emit(symbol.index)
+        elif symbol.scope == SymbolScope.LOCAL:
+            self.__emit(OpCode.OP_DEF_LOCAL)
+            self.__emit(symbol.scopeDepth)
+            self.__emit(symbol.index)
 
     def __load_symbol(self, symbol: Symbol) -> None:
         if symbol.scope == SymbolScope.GLOBAL:

@@ -19,25 +19,27 @@ class OpCode(IntEnum):
     OP_BIT_XOR=15,
     OP_JUMP_IF_FALSE=16,
     OP_JUMP=17,
-    OP_SET_GLOBAL=18,
-    OP_GET_GLOBAL=19,
-    OP_SET_LOCAL=20,
-    OP_GET_LOCAL=21,
-    OP_ARRAY=22,
-    OP_GET_INDEX=23,
-    OP_SET_INDEX=24,
-    OP_FUNCTION_CALL=25,
-    OP_RETURN=26,
-    OP_GET_BUILTIN=27,
-    OP_STRUCT=28,
-    OP_GET_STRUCT=29,
-    OP_SET_STRUCT=30,
-    OP_REF_GLOBAL=31,
-    OP_REF_LOCAL=32,
-    OP_REF_INDEX_GLOBAL=33,
-    OP_REF_INDEX_LOCAL=34,
-    OP_SP_OFFSET=35,
-    OP_DLL_IMPORT=36
+    OP_DEF_GLOBAL=18,
+    OP_SET_GLOBAL=19,
+    OP_GET_GLOBAL=20,
+    OP_DEF_LOCAL=21,
+    OP_SET_LOCAL=22,
+    OP_GET_LOCAL=23,
+    OP_ARRAY=24,
+    OP_GET_INDEX=25,
+    OP_SET_INDEX=26,
+    OP_FUNCTION_CALL=27,
+    OP_RETURN=28,
+    OP_GET_BUILTIN=29,
+    OP_STRUCT=30,
+    OP_GET_STRUCT=31,
+    OP_SET_STRUCT=32,
+    OP_REF_GLOBAL=33,
+    OP_REF_LOCAL=34,
+    OP_REF_INDEX_GLOBAL=35,
+    OP_REF_INDEX_LOCAL=36,
+    OP_SP_OFFSET=37,
+    OP_DLL_IMPORT=38
 
 class Chunk:
     opCodes:list[int]
@@ -120,6 +122,10 @@ class Chunk:
                 count=opcodes[i+1]
                 result+=("%8d\tOP_RETURN\t%d\n" % (i,count))
                 i=i+1
+            elif opcodes[i]==OpCode.OP_DEF_GLOBAL:
+                pos=opcodes[i+1]
+                result+=("%8d\tOP_DEF_GLOBAL\t%d\n" % (i,pos))
+                i=i+1
             elif opcodes[i]==OpCode.OP_SET_GLOBAL:
                 pos=opcodes[i+1]
                 result+=("%8d\tOP_SET_GLOBAL\t%d\n" % (i,pos))
@@ -128,6 +134,11 @@ class Chunk:
                 pos=opcodes[i+1]
                 result+=("%8d\tOP_GET_GLOBAL\t%d\n" % (i,pos))
                 i=i+1
+            elif opcodes[i]==OpCode.OP_DEF_LOCAL:
+                scopeDepth=opcodes[i+1]
+                index=opcodes[i+2]
+                result+=("%8d\OP_DEF_LOCAL\t%d\t%d\n" % (i,scopeDepth,index))
+                i=i+2
             elif opcodes[i]==OpCode.OP_SET_LOCAL:
                 scopeDepth=opcodes[i+1]
                 index=opcodes[i+2]
