@@ -80,24 +80,24 @@ class Parser:
 
         self.__precedence = {
             TokenType.EQUAL: Precedence.ASSIGN,
-           	TokenType.EQUAL_EQUAL: Precedence.EQUAL,
-           	TokenType.BANG_EQUAL: Precedence.EQUAL,
-           	TokenType.LESS: Precedence.COMPARE,
-           	TokenType.LESS_EQUAL: Precedence.COMPARE,
-           	TokenType.GREATER: Precedence.COMPARE,
-           	TokenType.GREATER_EQUAL: Precedence.COMPARE,
-           	TokenType.PLUS: Precedence.ADD_PLUS,
-           	TokenType.MINUS: Precedence.ADD_PLUS,
-           	TokenType.ASTERISK: Precedence.MUL_DIV,
-           	TokenType.SLASH: Precedence.MUL_DIV,
-           	TokenType.LBRACKET: Precedence.INFIX,
-           	TokenType.LPAREN: Precedence.INFIX,
-           	TokenType.AND: Precedence.AND,
-           	TokenType.OR: Precedence.OR,
-           	TokenType.DOT: Precedence.INFIX,
-           	TokenType.AMPERSAND: Precedence.BIT_AND,
-           	TokenType.VBAR: Precedence.BIT_OR,
-           	TokenType.CARET: Precedence.BIT_XOR,
+            TokenType.EQUAL_EQUAL: Precedence.EQUAL,
+            TokenType.BANG_EQUAL: Precedence.EQUAL,
+            TokenType.LESS: Precedence.COMPARE,
+            TokenType.LESS_EQUAL: Precedence.COMPARE,
+            TokenType.GREATER: Precedence.COMPARE,
+            TokenType.GREATER_EQUAL: Precedence.COMPARE,
+            TokenType.PLUS: Precedence.ADD_PLUS,
+            TokenType.MINUS: Precedence.ADD_PLUS,
+            TokenType.ASTERISK: Precedence.MUL_DIV,
+            TokenType.SLASH: Precedence.MUL_DIV,
+            TokenType.LBRACKET: Precedence.INFIX,
+            TokenType.LPAREN: Precedence.INFIX,
+            TokenType.AND: Precedence.AND,
+            TokenType.OR: Precedence.OR,
+            TokenType.DOT: Precedence.INFIX,
+            TokenType.AMPERSAND: Precedence.BIT_AND,
+            TokenType.VBAR: Precedence.BIT_OR,
+            TokenType.CARET: Precedence.BIT_XOR,
         }
 
     def parse(self, tokens: list[Token]) -> list[Stmt]:
@@ -173,32 +173,32 @@ class Parser:
         self.__consume(TokenType.RETURN, "Expecr 'return' keyword")
         expr = None
         if not self.__is_match_cur_token(TokenType.SEMICOLON):
-           expr = self.__parse_expr()
+            expr = self.__parse_expr()
         self.__consume(TokenType.SEMICOLON, "Expect ';' after return stmt.")
         return ReturnStmt(expr)
 
     def __parse_if_stmt(self) -> Stmt:
-       self.__consume(TokenType.IF, "Expect 'if' key word.")
-       self.__consume(TokenType.LPAREN, "Expect '(' after 'if'.")
+        self.__consume(TokenType.IF, "Expect 'if' key word.")
+        self.__consume(TokenType.LPAREN, "Expect '(' after 'if'.")
 
-       condition = self.__parse_expr()
-       self.__consume(TokenType.RPAREN, "Expect ')' after if condition")
+        condition = self.__parse_expr()
+        self.__consume(TokenType.RPAREN, "Expect ')' after if condition")
 
-       thenBranch = self.__parse_stmt()
+        thenBranch = self.__parse_stmt()
 
-       elseBranch = None
-       if self.__is_match_cur_token_and_step_once(TokenType.ELSE):
-           elseBranch = self.__parse_stmt()
+        elseBranch = None
+        if self.__is_match_cur_token_and_step_once(TokenType.ELSE):
+            elseBranch = self.__parse_stmt()
 
-       return IfStmt(condition, thenBranch, elseBranch)
+        return IfStmt(condition, thenBranch, elseBranch)
 
     def __parse_scope_stmt(self) -> Stmt:
-       self.__consume(TokenType.LBRACE, "Expect '{'.")
-       scopeStmt = ScopeStmt([])
-       while (not self.__is_match_cur_token(TokenType.RBRACE)):
-           scopeStmt.stmts.append(self.__parse_stmt())
-       self.__consume(TokenType.RBRACE, "Expect '}'.")
-       return scopeStmt
+        self.__consume(TokenType.LBRACE, "Expect '{'.")
+        scopeStmt = ScopeStmt([])
+        while (not self.__is_match_cur_token(TokenType.RBRACE)):
+            scopeStmt.stmts.append(self.__parse_stmt())
+        self.__consume(TokenType.RBRACE, "Expect '}'.")
+        return scopeStmt
 
     def __parse_while_stmt(self) -> Stmt:
         self.__consume(TokenType.WHILE, "Expect 'while' keyword.")
