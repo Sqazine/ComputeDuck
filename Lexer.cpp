@@ -1,22 +1,22 @@
 #include "Lexer.h"
 
 const std::unordered_map<std::string, TokenType> keywords =
-{
-    {"if", TokenType::IF},
-    {"else", TokenType::ELSE},
-    {"true", TokenType::TRUE},
-    {"false", TokenType::FALSE},
-    {"nil", TokenType::NIL},
-    {"while", TokenType::WHILE},
-    {"function", TokenType::FUNCTION},
-    {"return", TokenType::RETURN},
-    {"and", TokenType::AND},
-    {"or", TokenType::OR},
-    {"not", TokenType::NOT},
-    {"struct", TokenType::STRUCT},
-    {"ref", TokenType::REF},
-    {"dllimport", TokenType::DLLIMPORT},
-    {"import", TokenType::IMPORT},
+    {
+        {"if", TokenType::IF},
+        {"else", TokenType::ELSE},
+        {"true", TokenType::TRUE},
+        {"false", TokenType::FALSE},
+        {"nil", TokenType::NIL},
+        {"while", TokenType::WHILE},
+        {"function", TokenType::FUNCTION},
+        {"return", TokenType::RETURN},
+        {"and", TokenType::AND},
+        {"or", TokenType::OR},
+        {"not", TokenType::NOT},
+        {"struct", TokenType::STRUCT},
+        {"ref", TokenType::REF},
+        {"dllimport", TokenType::DLLIMPORT},
+        {"import", TokenType::IMPORT},
 };
 
 Lexer::Lexer()
@@ -87,7 +87,7 @@ void Lexer::GenerateToken()
         break;
     case '\n':
         m_Line++;
-        m_Column = 0;
+        m_Column = 1;
         break;
     case '+':
         AddToken(TokenType::PLUS);
@@ -177,27 +177,6 @@ bool Lexer::IsMatchCurCharAndStepOnce(char c)
     return result;
 }
 
-bool Lexer::IsMatchNextChar(char c)
-{
-    return GetNextChar() == c;
-}
-bool Lexer::IsMatchNextCharAndStepOnce(char c)
-{
-    bool result = GetNextChar() == c;
-    if (result)
-    {
-        m_CurPos++;
-        m_Column++;
-    }
-    return result;
-}
-
-char Lexer::GetNextChar()
-{
-    if (m_CurPos + 1 < m_Source.size())
-        return m_Source[m_CurPos + 1];
-    return '\0';
-}
 char Lexer::GetCurCharAndStepOnce()
 {
     if (!IsAtEnd())
