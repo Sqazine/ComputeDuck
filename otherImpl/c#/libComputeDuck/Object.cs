@@ -222,9 +222,9 @@ namespace ComputeDuck
             this.pointer = pointer;
         }
 
-        public override string ToString()
+        public override string? ToString()
         {
-            return GCHandle.FromIntPtr(pointer).Target.ToString();
+            return GCHandle.FromIntPtr(pointer).Target?.ToString();
         }
 
         public override bool IsEqualTo(Object other)
@@ -322,6 +322,7 @@ namespace ComputeDuck
         private Object? var = null;
         private BuiltinFn? fn = null;
         private NativeData? data = null;
+        private object fn1;
 
         public BuiltinObject(Object var)
           : base(ObjectType.BUILTIN)
@@ -340,7 +341,6 @@ namespace ComputeDuck
         {
             this.data = data;
         }
-
         public bool IsNativeData()
         {
             return data != null;

@@ -7,19 +7,17 @@ namespace ComputeDuck
     {
         private static BuiltinManager? instance = null;
         public Dictionary<string,BuiltinObject> m_Builtins;
-        private string m_CurExecuteFilePath;
-
 
         private BuiltinManager()
         {
             m_Builtins = new Dictionary<string, BuiltinObject>();
 
-            Register("print", _Print);
-            Register("println", _Println);
-            Register("sizeof", _SizeOf);
-            Register("insert", _Insert);
-            Register("erase", _Erase);
-            Register("clock", _Clock);
+            Register("print", Print);
+            Register("println", Println);
+            Register("sizeof", SizeOf);
+            Register("insert", Insert);
+            Register("erase", Erase);
+            Register("clock", Clock);
         }
 
         public static BuiltinManager GetInstance()
@@ -43,17 +41,7 @@ namespace ComputeDuck
             m_Builtins[name] = new BuiltinObject(obj);
         }
 
-        public void SetExecuteFilePath(string path)
-        {
-            m_CurExecuteFilePath = path;
-        }
-
-        public string ToFullPath(string path)
-        {
-            return m_CurExecuteFilePath + path;
-        }
-
-        private (bool,Object?) _Print(List<Object> args)
+        private (bool,Object?) Print(List<Object> args)
         {
             if (args.Count == 0)
                 return (false,null);
@@ -61,7 +49,7 @@ namespace ComputeDuck
             return (false, null);
         }
 
-        private (bool, Object?) _Println(List<Object> args)
+        private (bool, Object?) Println(List<Object> args)
         {
             if (args.Count == 0)
                 return (false, null);
@@ -69,7 +57,7 @@ namespace ComputeDuck
             return (false, null);
         }
 
-        private (bool, Object?) _SizeOf(List<Object> args)
+        private (bool, Object?) SizeOf(List<Object> args)
         {
             Object? result = null;
             if (args.Count == 0 || args.Count > 1)
@@ -84,7 +72,7 @@ namespace ComputeDuck
             return (true,result);
         }
 
-        private (bool, Object?) _Insert(List<Object> args)
+        private (bool, Object?) Insert(List<Object> args)
         {
             if (args.Count == 0 || args.Count != 3)
                 Utils.Assert("[Native function 'insert']:Expect 3 arguments,the arg0 must be array or string object.The arg1 is the index object.The arg2 is the value object.");
@@ -116,7 +104,7 @@ namespace ComputeDuck
             return (false, null);
         }
 
-        private (bool, Object?) _Erase(List<Object> args)
+        private (bool, Object?) Erase(List<Object> args)
         {
             if (args.Count == 0 || args.Count != 2)
                 Utils.Assert("[Native function 'erase']:Expect 2 arguments,the arg0 must be array or string object..The arg1 is the corresponding index object.");
@@ -149,7 +137,7 @@ namespace ComputeDuck
             return (false, null);
         }
 
-        private (bool, Object?) _Clock(List<Object> args)
+        private (bool, Object?) Clock(List<Object> args)
         {
             long currentTicks = DateTime.Now.Ticks;
             DateTime dtFrom = new DateTime(1970, 1, 1, 0, 0, 0, 0);

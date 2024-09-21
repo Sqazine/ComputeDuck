@@ -1,3 +1,4 @@
+using ComputeDuck;
 using System.Collections.Generic;
 
 namespace ComputeDuck
@@ -24,7 +25,7 @@ namespace ComputeDuck
 
             if (loc == -1)
             {
-                tokens.Add(new Token(TokenType.END, "END", 0, "RootFile"));
+                tokens.Add(new Token(TokenType.END, "END", 0, 0, "RootFile"));
                 return tokens;
             }
 
@@ -34,7 +35,7 @@ namespace ComputeDuck
             {
                 foreach (var path in tables[i].importedFilePaths)
                 {
-                    var fullPath=BuiltinManager.GetInstance().ToFullPath(path);
+                    var fullPath = Config.GetInstance().ToFullPath(path);
                     var toks = m_Lexer.GenerateTokens(Utils.ReadFile(fullPath), path);
 
                     var alreadyExists = false;
@@ -67,7 +68,7 @@ namespace ComputeDuck
             foreach (var t in tables)
                 for (int i = 0; i < t.tokens.Count; ++i)
                     result.Add(t.tokens[i]);
-            result.Add(new Token(TokenType.END, "END", 0, "RootFile"));
+            result.Add(new Token(TokenType.END, "END", 0, 0, "RootFile"));
             return result;
         }
 

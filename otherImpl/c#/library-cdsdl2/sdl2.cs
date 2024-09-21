@@ -149,7 +149,7 @@ public class cdsdl2
             if (args[0].type != ObjectType.STR)
                 Utils.Assert("Invalid str data.");
 
-            var fullPath = BuiltinManager.GetInstance().ToFullPath(((StrObject)args[0]).value);
+            var fullPath = Config.GetInstance().ToFullPath(((StrObject)args[0]).value);
 
             var surface = SDL.SDL_LoadBMP(fullPath);
 

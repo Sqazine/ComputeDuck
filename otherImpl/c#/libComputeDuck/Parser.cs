@@ -418,7 +418,7 @@ namespace ComputeDuck
                 return GetCurTokenAndStepOnce();
             Utils.Assert("[line " + (GetCurToken().line).ToString() + "]:" + errMsg);
             //avoid warning
-            return new Token(TokenType.END, "", 0, "RootFile");
+            return new Token(TokenType.END, "", 0,0, "RootFile");
         }
 
         private static bool IsAtEnd()

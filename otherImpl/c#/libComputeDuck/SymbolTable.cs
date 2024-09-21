@@ -97,7 +97,7 @@ namespace ComputeDuck
                (isFound,symbol) = enclosing.Resolve(name);
                 if (!isFound)
                     return (false,null);
-                if (symbol.scope == SymbolScope.GLOBAL || symbol.scope == SymbolScope.BUILTIN)
+                if (symbol?.scope == SymbolScope.GLOBAL || symbol?.scope == SymbolScope.BUILTIN)
                     return (true,symbol);
 
                 symbol.isUpValue = 1;
@@ -109,7 +109,7 @@ namespace ComputeDuck
             return (false,null);
         }
 
-        public SymbolTable enclosing;
+        public SymbolTable? enclosing;
         public Dictionary<string, Symbol> symbolMaps;
         public int definitionCount;
         public int scopeDepth;
