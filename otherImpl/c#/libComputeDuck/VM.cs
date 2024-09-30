@@ -620,7 +620,7 @@ namespace ComputeDuck
         {
             var actual = obj;
             while (actual.type == ObjectType.REF)
-                actual = SearchObjectByAddress(((RefObject)actual).pointer);
+                actual = Utils.SearchObjectByAddress(((RefObject)actual).pointer);
 
             if (actual.type == ObjectType.BUILTIN && ((BuiltinObject)actual).IsBuiltinVar())
                 actual = ((BuiltinObject)actual).GetBuiltinVar();
@@ -633,7 +633,7 @@ namespace ComputeDuck
             while (obj.type == ObjectType.REF)
             {
                 address = ((RefObject)obj).pointer;
-                obj = SearchObjectByAddress(((RefObject)obj).pointer);
+                obj = Utils.SearchObjectByAddress(((RefObject)obj).pointer);
             }
         }
 
@@ -641,14 +641,8 @@ namespace ComputeDuck
         {
             var refObj = obj;
             while (refObj.type == ObjectType.REF)
-                refObj = SearchObjectByAddress(((RefObject)refObj).pointer);
+                refObj = Utils.SearchObjectByAddress(((RefObject)refObj).pointer);
             return refObj;
-        }
-
-        private Object SearchObjectByAddress(IntPtr address)
-        {
-            Object obj = GCHandle.FromIntPtr(address).Target as Object;
-            return obj;
         }
 
         private void AssignObjectByAddress(IntPtr address, Object obj)

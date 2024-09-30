@@ -10,11 +10,14 @@
 
   <ItemGroup>
     <Compile Remove="libComputeDuck\**" />
+    <Compile Remove="library-cdopengl\**" />
     <Compile Remove="library-cdsdl2\**" />
     <Compile Remove="library-sdl2\**" />
     <EmbeddedResource Remove="libComputeDuck\**" />
+    <EmbeddedResource Remove="library-cdopengl\**" />
     <EmbeddedResource Remove="library-cdsdl2\**" />
     <None Remove="libComputeDuck\**" />
+    <None Remove="library-cdopengl\**" />
     <None Remove="library-cdsdl2\**" />
   </ItemGroup>
 
