@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace ComputeDuck
 {
@@ -79,6 +80,12 @@ namespace ComputeDuck
 
             MethodInfo meth = type.GetMethod("RegisterBuiltins");
             meth.Invoke(null, null);
+        }
+
+        public static Object SearchObjectByAddress(IntPtr address)
+        {
+            Object obj = GCHandle.FromIntPtr(address).Target as Object;
+            return obj;
         }
     }
 }

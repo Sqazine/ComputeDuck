@@ -8,6 +8,205 @@ public class cdsdl2
     {
         return;
     }
+
+    private static (bool, Object?) SDLInitWrapper(List<Object> args)
+    {
+        var ret = SDL.SDL_Init(SDL.SDL_INIT_EVERYTHING);
+        var result = new NumObject(ret);
+        return (true, result);
+    }
+
+    private static (bool, Object?) SDLQuitWrapper(List<Object> args)
+    {
+        SDL.SDL_Quit();
+        return (false, null);
+    }
+
+
+    private static (bool, Object?) SDLCreateWindowWrapper(List<Object> args)
+    {
+        var window = SDL.SDL_CreateWindow(
+               ((StrObject)args[0]).value,
+               (int)((NumObject)((BuiltinObject)args[1]).GetBuiltinVar()).value,
+               (int)((NumObject)((BuiltinObject)args[2]).GetBuiltinVar()).value,
+               (int)((NumObject)args[3]).value,
+               (int)((NumObject)args[4]).value,
+               (SDL.SDL_WindowFlags)((NumObject)args[5]).value
+               );
+
+        var builtinData = new BuiltinObject(new NativeData(window, (object? nativeData) =>
+        {
+            SDL.SDL_DestroyWindow((nint)nativeData);
+        }));
+
+        return (true, builtinData);
+    }
+
+    private static (bool, Object?) SDLPollEventWrapper(List<Object> args)
+    {
+        SDL.SDL_Event e = new SDL.SDL_Event();
+        SDL.SDL_PollEvent(out e);
+        BuiltinObject builtinData = new BuiltinObject(new NativeData(e, null));
+        return (true, builtinData);
+    }
+
+    private static (bool, Object?) SDLGetEventTypeWrapper(List<Object> args)
+    {
+        if (args[0].type != ObjectType.BUILTIN)
+            Utils.Assert("Invalid builtin object.");
+        var builtinData = (BuiltinObject)args[0];
+
+        if (!(builtinData.GetNativeData().nativeData is SDL.SDL_Event))
+            Utils.Assert("Invalid SDL_Event object.");
+
+        SDL.SDL_Event e = (SDL.SDL_Event)builtinData.GetNativeData().nativeData;
+
+        return (true, new NumObject((double)e.type));
+    }
+
+    private static (bool, Object?) SDLCreateRendererWrapper(List<Object> args)
+    {
+        if (args[0].type != ObjectType.BUILTIN)
+            Utils.Assert("Invalid builtin data.");
+        var builtinData = (BuiltinObject)args[0];
+
+        if (!(builtinData.GetNativeData().nativeData is nint))
+            Utils.Assert("Invalid SDL_Window object.");
+
+        var window = builtinData.GetNativeData().nativeData;
+        var renderer = SDL.SDL_CreateRenderer((nint)window, -1, SDL.SDL_RendererFlags.SDL_RENDERER_ACCELERATED | SDL.SDL_RendererFlags.SDL_RENDERER_PRESENTVSYNC);
+        var r = new BuiltinObject(new NativeData(renderer, (object? nativeData) =>
+        {
+            SDL.SDL_DestroyRenderer((nint)nativeData);
+        }));
+
+        return (true, r);
+    }
+
+    private static (bool, Object?) SDLLoadBMPWrapper(List<Object> args)
+    {
+        if (args[0].type != ObjectType.STR)
+            Utils.Assert("Invalid str data.");
+
+        var fullPath = Config.GetInstance().ToFullPath(((StrObject)args[0]).value);
+
+        var surface = SDL.SDL_LoadBMP(fullPath);
+
+        var r = new BuiltinObject(new NativeData(surface, (object? nativeData) =>
+        {
+            SDL.SDL_FreeSurface((nint)nativeData);
+        }));
+
+        return (true, r);
+    }
+
+    private static (bool, Object?) SDLCreateTextureFromSurfaceWrapper(List<Object> args)
+    {
+        if (args[0].type != ObjectType.BUILTIN || args[1].type != ObjectType.BUILTIN)
+            Utils.Assert("Invalid builtin value of SDL_CreateTextureFromSurface(args[0] or args[1]).");
+        var renderer = (nint)((BuiltinObject)args[0]).GetNativeData().nativeData;
+        var surface = (nint)((BuiltinObject)args[1]).GetNativeData().nativeData;
+
+        var texture = SDL.SDL_CreateTextureFromSurface(renderer, surface);
+
+        var r = new BuiltinObject(new NativeData(texture, (object? nativeData) =>
+        {
+            SDL.SDL_DestroyTexture((nint)nativeData);
+        }));
+
+        return (true, r);
+    }
+
+    private static (bool, Object?) SDLRenderClearWrapper(List<Object> args)
+    {
+        if (args[0].type != ObjectType.BUILTIN)
+            Utils.Assert("Invalid builtin value of SDL_RenderClear(args[0]).");
+        var renderer = (nint)((BuiltinObject)args[0]).GetNativeData().nativeData;
+        SDL.SDL_RenderClear(renderer);
+
+        return (false, null);
+    }
+
+    private static (bool, Object?) SDLRenderCopyWrapper(List<Object> args)
+    {
+        if (args[0].type != ObjectType.BUILTIN || args[1].type != ObjectType.BUILTIN)
+            Utils.Assert("Invalid builtin value of SDL_RenderCopy(args[0] or args[1]).");
+        var renderer = (nint)((BuiltinObject)args[0]).GetNativeData().nativeData;
+        var texture = (nint)((BuiltinObject)args[1]).GetNativeData().nativeData;
+
+        nint src = IntPtr.Zero;
+        nint dst = src;
+
+        var ret = SDL.SDL_RenderCopy(renderer, texture, src, dst);
+        return (true, new NumObject(ret));
+    }
+
+    private static (bool, Object?) SDLRenderPresentWrapper(List<Object> args)
+    {
+        if (args[0].type != ObjectType.BUILTIN)
+            Utils.Assert("Invalid builtin value of SDL_RenderClear(args[0]).");
+        var renderer = (nint)((BuiltinObject)args[0]).GetNativeData().nativeData;
+        SDL.SDL_RenderPresent(renderer);
+
+        return (false, null);
+    }
+
+    private static (bool, Object?) SDLGLSetAttributeWrapper(List<Object> args)
+    {
+        if (args[0].type != ObjectType.BUILTIN)
+            Utils.Assert("Invalid builtin value of SDL_GL_SetAttribute(args[0]).");
+
+        if (args[1].type != ObjectType.BUILTIN && args[1].type != ObjectType.NUM)
+            Utils.Assert("Invalid builtin value or num value of SDL_GL_SetAttribute(args[1]).");
+
+        int flag0 = (int)((NumObject)(((BuiltinObject)args[0]).GetBuiltinVar())).value;
+
+        int flag1 = 0;
+        if (args[1].type == ObjectType.BUILTIN)
+            flag1 = (int)((NumObject)(((BuiltinObject)args[0]).GetBuiltinVar())).value;
+        else
+            flag1 = (int)((NumObject)args[1]).value;
+
+        var result = (double)SDL.SDL_GL_SetAttribute((SDL.SDL_GLattr)flag0, flag1);
+        return (true, new NumObject(result));
+    }
+
+    private static (bool, Object?) SDLGLSwapWindow(List<Object> args)
+    {
+        if (args[0].type != ObjectType.BUILTIN)
+            Utils.Assert("Invalid builtin value of SDL_GL_SwapWindow(args[0]).");
+
+        var windowHandle = ((BuiltinObject)args[0]).GetNativeData().As<IntPtr>();
+        SDL.SDL_GL_SwapWindow(windowHandle);
+
+        return (false, null);
+    }
+
+    private static (bool, Object?) SDLGLCreateContextWrapper(List<Object> args)
+    {
+        if (args[0].type != ObjectType.BUILTIN)
+            Utils.Assert("Invalid builtin value of SDL_GL_CreateContext(args[0]).");
+
+        var windowHandle = ((BuiltinObject)args[0]).GetNativeData().As<IntPtr>();
+        var ctx = SDL.SDL_GL_CreateContext(windowHandle);
+
+        BuiltinObject builtinData = new BuiltinObject(new NativeData(ctx, (object? nativeData) =>
+        {
+            SDL.SDL_GL_DeleteContext((nint)nativeData);
+        }));
+
+        return (true, builtinData);
+    }
+
+    private static (bool, Object?) SDLGLSetSwapIntervalWrapper(List<Object> args)
+    {
+        if (args[0].type != ObjectType.NUM)
+            Utils.Assert("Invalid builtin value of SDL_GL_SetSwapInterval(args[0]).");
+
+        SDL.SDL_GL_SetSwapInterval((int)((NumObject)(args[0])).value);
+        return (false, null);
+    }
+
     public static void RegisterBuiltins()
     {
         BuiltinManager.GetInstance().Register("SDL_INIT_AUDIO", new NumObject(SDL.SDL_INIT_AUDIO));
@@ -71,146 +270,21 @@ public class cdsdl2
         BuiltinManager.GetInstance().Register("SDL_GL_CONTEXT_PROFILE_COMPATIBILITY", new NumObject((uint)SDL.SDL_GLprofile.SDL_GL_CONTEXT_PROFILE_COMPATIBILITY));
         BuiltinManager.GetInstance().Register("SDL_GL_CONTEXT_PROFILE_ES", new NumObject((uint)SDL.SDL_GLprofile.SDL_GL_CONTEXT_PROFILE_ES));
 
-        BuiltinManager.GetInstance().Register("SDL_Init", (List<Object> args) =>
-        {
-            var ret = SDL.SDL_Init(SDL.SDL_INIT_EVERYTHING);
-            var result = new NumObject(ret);
-            return (true, result);
-        });
-
-        BuiltinManager.GetInstance().Register("SDL_Quit", (List<Object> args) =>
-        {
-            SDL.SDL_Quit();
-            return (false, null);
-        });
-
-        BuiltinManager.GetInstance().Register("SDL_CreateWindow", (List<Object> args) =>
-        {
-            var window = SDL.SDL_CreateWindow(
-                 ((StrObject)args[0]).value,
-                 (int)((NumObject)((BuiltinObject)args[1]).GetBuiltinVar()).value,
-                 (int)((NumObject)((BuiltinObject)args[2]).GetBuiltinVar()).value,
-                 (int)((NumObject)args[3]).value,
-                 (int)((NumObject)args[4]).value,
-                 (SDL.SDL_WindowFlags)((NumObject)args[5]).value
-                 );
-
-            var builtinData = new BuiltinObject(new NativeData(window, (object? nativeData) =>
-            {
-                SDL.SDL_DestroyWindow((nint)nativeData);
-            }));
-
-            return (true, builtinData);
-        });
-
-        BuiltinManager.GetInstance().Register("SDL_PollEvent", (List<Object> args) =>
-        {
-            SDL.SDL_Event e = new SDL.SDL_Event();
-            SDL.SDL_PollEvent(out e);
-            BuiltinObject builtinData = new BuiltinObject(new NativeData(e, null));
-            return (true, builtinData);
-        });
-
-        BuiltinManager.GetInstance().Register("SDL_GetEventType", (List<Object> args) =>
-        {
-            if (args[0].type != ObjectType.BUILTIN)
-                Utils.Assert("Invalid builtin object.");
-            var builtinData = (BuiltinObject)args[0];
-
-            if (!(builtinData.GetNativeData().nativeData is SDL.SDL_Event))
-                Utils.Assert("Invalid SDL_Event object.");
-
-            SDL.SDL_Event e = (SDL.SDL_Event)builtinData.GetNativeData().nativeData;
-
-            return (true, new NumObject((double)e.type));
-        });
-
-        BuiltinManager.GetInstance().Register("SDL_CreateRenderer", (List<Object> args) =>
-       {
-           if (args[0].type != ObjectType.BUILTIN)
-               Utils.Assert("Invalid builtin data.");
-           var builtinData = (BuiltinObject)args[0];
-
-           if (!(builtinData.GetNativeData().nativeData is nint))
-               Utils.Assert("Invalid SDL_Window object.");
-
-           var window = builtinData.GetNativeData().nativeData;
-           var renderer = SDL.SDL_CreateRenderer((nint)window, -1, SDL.SDL_RendererFlags.SDL_RENDERER_ACCELERATED | SDL.SDL_RendererFlags.SDL_RENDERER_PRESENTVSYNC);
-           var r = new BuiltinObject(new NativeData(renderer, (object? nativeData) =>
-           {
-               SDL.SDL_DestroyRenderer((nint)nativeData);
-           }));
-
-           return (true, r);
-       });
-
-        BuiltinManager.GetInstance().Register("SDL_LoadBMP", (List<Object> args) =>
-        {
-            if (args[0].type != ObjectType.STR)
-                Utils.Assert("Invalid str data.");
-
-            var fullPath = Config.GetInstance().ToFullPath(((StrObject)args[0]).value);
-
-            var surface = SDL.SDL_LoadBMP(fullPath);
-
-            var r = new BuiltinObject(new NativeData(surface, (object? nativeData) =>
-            {
-                SDL.SDL_FreeSurface((nint)nativeData);
-            }));
-           
-            return (true, r);
-        });
-
-        BuiltinManager.GetInstance().Register("SDL_CreateTextureFromSurface", (List<Object> args) =>
-       {
-           if (args[0].type != ObjectType.BUILTIN || args[1].type != ObjectType.BUILTIN)
-               Utils.Assert("Invalid builtin value of SDL_CreateTextureFromSurface(args[0] or args[1]).");
-           var renderer = (nint)((BuiltinObject)args[0]).GetNativeData().nativeData;
-           var surface = (nint)((BuiltinObject)args[1]).GetNativeData().nativeData;
-
-           var texture = SDL.SDL_CreateTextureFromSurface(renderer, surface);
-
-           var r = new BuiltinObject(new NativeData(texture, (object? nativeData) =>
-           {
-               SDL.SDL_DestroyTexture((nint)nativeData);
-           }));
-         
-           return (true, r);
-       });
-
-        BuiltinManager.GetInstance().Register("SDL_RenderClear", (List<Object> args) =>
-              {
-                  if (args[0].type != ObjectType.BUILTIN)
-                      Utils.Assert("Invalid builtin value of SDL_RenderClear(args[0]).");
-                  var renderer = (nint)((BuiltinObject)args[0]).GetNativeData().nativeData;
-                  SDL.SDL_RenderClear(renderer);
-
-                  return (false, null);
-              });
-
-        BuiltinManager.GetInstance().Register("SDL_RenderCopy", (List<Object> args) =>
-        {
-            if (args[0].type != ObjectType.BUILTIN || args[1].type != ObjectType.BUILTIN)
-                Utils.Assert("Invalid builtin value of SDL_RenderCopy(args[0] or args[1]).");
-            var renderer = (nint)((BuiltinObject)args[0]).GetNativeData().nativeData;
-            var texture = (nint)((BuiltinObject)args[1]).GetNativeData().nativeData;
-
-            nint src = IntPtr.Zero;
-            nint dst = src;
-
-            var ret = SDL.SDL_RenderCopy(renderer, texture, src, dst);
-            return (true, new NumObject(ret));
-        });
-
-        BuiltinManager.GetInstance().Register("SDL_RenderPresent", (List<Object> args) =>
-              {
-                  if (args[0].type != ObjectType.BUILTIN)
-                      Utils.Assert("Invalid builtin value of SDL_RenderClear(args[0]).");
-                  var renderer = (nint)((BuiltinObject)args[0]).GetNativeData().nativeData;
-                  SDL.SDL_RenderPresent(renderer);
-
-                  return (false, null);
-              });
+        BuiltinManager.GetInstance().Register("SDL_Init", SDLInitWrapper);
+        BuiltinManager.GetInstance().Register("SDL_Quit", SDLQuitWrapper);
+        BuiltinManager.GetInstance().Register("SDL_CreateWindow", SDLCreateWindowWrapper);
+        BuiltinManager.GetInstance().Register("SDL_PollEvent", SDLPollEventWrapper);
+        BuiltinManager.GetInstance().Register("SDL_GetEventType", SDLGetEventTypeWrapper);
+        BuiltinManager.GetInstance().Register("SDL_CreateRenderer", SDLCreateRendererWrapper);
+        BuiltinManager.GetInstance().Register("SDL_LoadBMP", SDLLoadBMPWrapper);
+        BuiltinManager.GetInstance().Register("SDL_CreateTextureFromSurface", SDLCreateTextureFromSurfaceWrapper);
+        BuiltinManager.GetInstance().Register("SDL_RenderClear", SDLRenderClearWrapper);
+        BuiltinManager.GetInstance().Register("SDL_RenderCopy", SDLRenderCopyWrapper);
+        BuiltinManager.GetInstance().Register("SDL_RenderPresent", SDLRenderPresentWrapper);
+        BuiltinManager.GetInstance().Register("SDL_GL_SetAttribute", SDLGLSetAttributeWrapper);
+        BuiltinManager.GetInstance().Register("SDL_GL_SwapWindow", SDLGLSwapWindow);
+        BuiltinManager.GetInstance().Register("SDL_GL_CreateContext", SDLGLCreateContextWrapper);
+        BuiltinManager.GetInstance().Register("SDL_GL_SetSwapInterval", SDLGLSetSwapIntervalWrapper);
 
     }
 }
