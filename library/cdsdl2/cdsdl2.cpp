@@ -153,15 +153,15 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_GL_SetAttribute)(Value *args, ui
     if (!IS_BUILTIN_VALUE(args[1]) && !IS_NUM_VALUE(args[1]))
         ASSERT("Invalid builtin value or num value of SDL_GL_SetAttribute(args[1]).");
 
-    auto flags0 = (int)TO_NUM_VALUE(TO_BUILTIN_VALUE(args[0])->Get<Value>());
+    auto flag0 = (int)TO_NUM_VALUE(TO_BUILTIN_VALUE(args[0])->Get<Value>());
 
-    int flags1 = 0;
+    int flag1 = 0;
     if (IS_BUILTIN_VALUE(args[1]))
-        flags1 = (int)TO_NUM_VALUE(TO_BUILTIN_VALUE(args[1])->Get<Value>());
+        flag1 = (int)TO_NUM_VALUE(TO_BUILTIN_VALUE(args[1])->Get<Value>());
     else if (IS_NUM_VALUE(args[1]))
-        flags1 = (int)TO_NUM_VALUE(args[1]);
+        flag1 = (int)TO_NUM_VALUE(args[1]);
 
-    result = (double)SDL_GL_SetAttribute((SDL_GLattr)flags0, flags1);
+    result = (double)SDL_GL_SetAttribute((SDL_GLattr)flag0, flag1);
     return true;
 }
 
