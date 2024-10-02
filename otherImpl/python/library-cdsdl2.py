@@ -2,7 +2,7 @@ from BuiltinManager import *
 from Object import *
 import ctypes
 import sdl2
-
+from Config import gConfig
 
 def sdl_init_wrapper(args: list[Object]):
     ret = sdl2.SDL_Init(sdl2.SDL_INIT_EVERYTHING)
@@ -76,7 +76,7 @@ def sdl_load_bmp_wrapper(args: list[Object]):
     if args[0].type != ObjectType.STR:
         error("Invalid str value.")
 
-    fullPath = gBuiltinManager.to_full_path(args[0].value)
+    fullPath = gConfig.to_full_path(args[0].value)
     arg0 = ctypes.string_at(ctypes.c_char_p(fullPath.encode('utf-8')))
     surface = sdl2.SDL_LoadBMP(arg0)
     result = BuiltinObject(surface, sdl_free_surface_wrapper)
@@ -89,8 +89,7 @@ def sdlDestroyTextureWrapper(data: any):
 
 def sdlCreateTextureFromSurfaceWrapper(args: list[Object]):
     if args[0].type != ObjectType.BUILTIN or args[1].type != ObjectType.BUILTIN:
-        error(
-            "Invalid builtin value of SDL_CreateTextureFromSurface(args[0] or args[1])")
+        error("Invalid builtin value of SDL_CreateTextureFromSurface(args[0] or args[1])")
 
     renderer = args[0].data
     surface = args[1].data
@@ -129,17 +128,16 @@ def sdl_render_present_wrapper(args: list[Object]):
 def sdl_gl_set_attribute_wrapper(args: list[Object]):
     if args[0].type != ObjectType.BUILTIN:
         error("Invalid builtin value of SDL_GL_SetAttribute(args[0]).")
-    if args[1].type != ObjectType.BUILTIN and args[1].type != type != ObjectType.NUM:
-        error(
-            "Invalid builtin value or num value of SDL_GL_SetAttribute(args[1]).")
+    if args[1].type != ObjectType.BUILTIN and args[1].type != ObjectType.NUM:
+        error("Invalid builtin value or num value of SDL_GL_SetAttribute(args[1]).")
 
-    flags0 = args[0].data
+    flags0 = args[0].data.value
     flags1 = 0
     if args[1].type == ObjectType.BUILTIN:
         flags1 = args[1].data.value
     elif args[1].type == ObjectType.NUM:
         flags1 = args[1].value
-    result = sdl2.SDL_GL_SetAttribute(flags0, flags1)
+    result = NumObject(sdl2.SDL_GL_SetAttribute(int(flags0), int(flags1)))
     return True, result
 
 
@@ -175,118 +173,63 @@ def sdl_gl_set_swap_interval_wrapper(args: list[Object]):
 def register_builtins() -> None:
     gBuiltinManager.register("SDL_INIT_AUDIO", NumObject(sdl2.SDL_INIT_AUDIO))
     gBuiltinManager.register("SDL_INIT_VIDEO", NumObject(sdl2.SDL_INIT_VIDEO))
-    gBuiltinManager.register(
-        "SDL_INIT_JOYSTICK", NumObject(sdl2.SDL_INIT_JOYSTICK))
-    gBuiltinManager.register(
-        "SDL_INIT_HAPTIC", NumObject(sdl2.SDL_INIT_HAPTIC))
-    gBuiltinManager.register("SDL_INIT_GAMECONTROLLER",
-                             NumObject(sdl2.SDL_INIT_GAMECONTROLLER))
-    gBuiltinManager.register(
-        "SDL_INIT_EVENTS", NumObject(sdl2.SDL_INIT_EVENTS))
-    gBuiltinManager.register("SDL_INIT_NOPARACHUTE",
-                             NumObject(sdl2.SDL_INIT_NOPARACHUTE))
-    gBuiltinManager.register("SDL_INIT_EVERYTHING",
-                             NumObject(sdl2.SDL_INIT_EVERYTHING))
+    gBuiltinManager.register("SDL_INIT_JOYSTICK", NumObject(sdl2.SDL_INIT_JOYSTICK))
+    gBuiltinManager.register("SDL_INIT_HAPTIC", NumObject(sdl2.SDL_INIT_HAPTIC))
+    gBuiltinManager.register("SDL_INIT_GAMECONTROLLER",NumObject(sdl2.SDL_INIT_GAMECONTROLLER))
+    gBuiltinManager.register("SDL_INIT_EVENTS", NumObject(sdl2.SDL_INIT_EVENTS))
+    gBuiltinManager.register("SDL_INIT_NOPARACHUTE",NumObject(sdl2.SDL_INIT_NOPARACHUTE))
+    gBuiltinManager.register("SDL_INIT_EVERYTHING",NumObject(sdl2.SDL_INIT_EVERYTHING))
     gBuiltinManager.register("SDL_QUIT", NumObject(sdl2.SDL_QUIT))
-    gBuiltinManager.register("SDL_WINDOWPOS_CENTERED",
-                             NumObject(sdl2.SDL_WINDOWPOS_CENTERED))
-    gBuiltinManager.register("SDL_WINDOW_FULLSCREEN",
-                             NumObject(sdl2.SDL_WINDOW_FULLSCREEN))
-    gBuiltinManager.register(
-        "SDL_WINDOW_OPENGL", NumObject(sdl2.SDL_WINDOW_OPENGL))
-    gBuiltinManager.register(
-        "SDL_WINDOW_SHOWN", NumObject(sdl2.SDL_WINDOW_SHOWN))
-    gBuiltinManager.register(
-        "SDL_WINDOW_HIDDEN", NumObject(sdl2.SDL_WINDOW_HIDDEN))
-    gBuiltinManager.register("SDL_WINDOW_BORDERLESS",
-                             NumObject(sdl2.SDL_WINDOW_BORDERLESS))
-    gBuiltinManager.register("SDL_WINDOW_RESIZABLE",
-                             NumObject(sdl2.SDL_WINDOW_RESIZABLE))
-    gBuiltinManager.register("SDL_WINDOW_MINIMIZED",
-                             NumObject(sdl2.SDL_WINDOW_MINIMIZED))
-    gBuiltinManager.register("SDL_WINDOW_MAXIMIZED",
-                             NumObject(sdl2.SDL_WINDOW_MAXIMIZED))
-    gBuiltinManager.register("SDL_WINDOW_MOUSE_GRABBED",
-                             NumObject(sdl2.SDL_WINDOW_MOUSE_GRABBED))
-    gBuiltinManager.register("SDL_WINDOW_INPUT_FOCUS",
-                             NumObject(sdl2.SDL_WINDOW_INPUT_FOCUS))
-    gBuiltinManager.register("SDL_WINDOW_FULLSCREEN_DESKTOP", NumObject(
-        sdl2.SDL_WINDOW_FULLSCREEN_DESKTOP))
-    gBuiltinManager.register("SDL_WINDOW_ALLOW_HIGHDPI",
-                             NumObject(sdl2.SDL_WINDOW_ALLOW_HIGHDPI))
-    gBuiltinManager.register("SDL_WINDOW_MOUSE_CAPTURE",
-                             NumObject(sdl2.SDL_WINDOW_MOUSE_CAPTURE))
-    gBuiltinManager.register("SDL_WINDOW_ALWAYS_ON_TOP",
-                             NumObject(sdl2.SDL_WINDOW_ALWAYS_ON_TOP))
-    gBuiltinManager.register("SDL_WINDOW_SKIP_TASKBAR",
-                             NumObject(sdl2.SDL_WINDOW_SKIP_TASKBAR))
-    gBuiltinManager.register("SDL_WINDOW_UTILITY",
-                             NumObject(sdl2.SDL_WINDOW_UTILITY))
-    gBuiltinManager.register("SDL_WINDOW_TOOLTIP",
-                             NumObject(sdl2.SDL_WINDOW_TOOLTIP))
-    gBuiltinManager.register("SDL_WINDOW_POPUP_MENU",
-                             NumObject(sdl2.SDL_WINDOW_POPUP_MENU))
-    gBuiltinManager.register("SDL_WINDOW_KEYBOARD_GRABBED", NumObject(
-        sdl2.SDL_WINDOW_KEYBOARD_GRABBED))
+    gBuiltinManager.register("SDL_WINDOWPOS_CENTERED",NumObject(sdl2.SDL_WINDOWPOS_CENTERED))
+    gBuiltinManager.register("SDL_WINDOW_FULLSCREEN",NumObject(sdl2.SDL_WINDOW_FULLSCREEN))
+    gBuiltinManager.register("SDL_WINDOW_OPENGL", NumObject(sdl2.SDL_WINDOW_OPENGL))
+    gBuiltinManager.register("SDL_WINDOW_SHOWN", NumObject(sdl2.SDL_WINDOW_SHOWN))
+    gBuiltinManager.register("SDL_WINDOW_HIDDEN", NumObject(sdl2.SDL_WINDOW_HIDDEN))
+    gBuiltinManager.register("SDL_WINDOW_BORDERLESS",NumObject(sdl2.SDL_WINDOW_BORDERLESS))
+    gBuiltinManager.register("SDL_WINDOW_RESIZABLE",NumObject(sdl2.SDL_WINDOW_RESIZABLE))
+    gBuiltinManager.register("SDL_WINDOW_MINIMIZED",NumObject(sdl2.SDL_WINDOW_MINIMIZED))
+    gBuiltinManager.register("SDL_WINDOW_MAXIMIZED",NumObject(sdl2.SDL_WINDOW_MAXIMIZED))
+    gBuiltinManager.register("SDL_WINDOW_MOUSE_GRABBED",NumObject(sdl2.SDL_WINDOW_MOUSE_GRABBED))
+    gBuiltinManager.register("SDL_WINDOW_INPUT_FOCUS",NumObject(sdl2.SDL_WINDOW_INPUT_FOCUS))
+    gBuiltinManager.register("SDL_WINDOW_FULLSCREEN_DESKTOP", NumObject(sdl2.SDL_WINDOW_FULLSCREEN_DESKTOP))
+    gBuiltinManager.register("SDL_WINDOW_ALLOW_HIGHDPI",NumObject(sdl2.SDL_WINDOW_ALLOW_HIGHDPI))
+    gBuiltinManager.register("SDL_WINDOW_MOUSE_CAPTURE",NumObject(sdl2.SDL_WINDOW_MOUSE_CAPTURE))
+    gBuiltinManager.register("SDL_WINDOW_ALWAYS_ON_TOP",NumObject(sdl2.SDL_WINDOW_ALWAYS_ON_TOP))
+    gBuiltinManager.register("SDL_WINDOW_SKIP_TASKBAR",NumObject(sdl2.SDL_WINDOW_SKIP_TASKBAR))
+    gBuiltinManager.register("SDL_WINDOW_UTILITY",NumObject(sdl2.SDL_WINDOW_UTILITY))
+    gBuiltinManager.register("SDL_WINDOW_TOOLTIP",NumObject(sdl2.SDL_WINDOW_TOOLTIP))
+    gBuiltinManager.register("SDL_WINDOW_POPUP_MENU",NumObject(sdl2.SDL_WINDOW_POPUP_MENU))
+    gBuiltinManager.register("SDL_WINDOW_KEYBOARD_GRABBED", NumObject(sdl2.SDL_WINDOW_KEYBOARD_GRABBED))
 
-    gBuiltinManager.register(
-        "SDL_GL_RED_SIZE", NumObject(sdl2.SDL_GL_RED_SIZE))
-    gBuiltinManager.register(
-        "SDL_GL_GREEN_SIZE", NumObject(sdl2.SDL_GL_GREEN_SIZE))
-    gBuiltinManager.register(
-        "SDL_GL_BLUE_SIZE", NumObject(sdl2.SDL_GL_BLUE_SIZE))
-    gBuiltinManager.register(
-        "SDL_GL_ALPHA_SIZE", NumObject(sdl2.SDL_GL_ALPHA_SIZE))
-    gBuiltinManager.register("SDL_GL_BUFFER_SIZE",
-                             NumObject(sdl2.SDL_GL_BUFFER_SIZE))
-    gBuiltinManager.register("SDL_GL_DOUBLEBUFFER",
-                             NumObject(sdl2.SDL_GL_DOUBLEBUFFER))
-    gBuiltinManager.register(
-        "SDL_GL_DEPTH_SIZE", NumObject(sdl2.SDL_GL_DEPTH_SIZE))
-    gBuiltinManager.register("SDL_GL_STENCIL_SIZE",
-                             NumObject(sdl2.SDL_GL_STENCIL_SIZE))
-    gBuiltinManager.register("SDL_GL_ACCUM_RED_SIZE",
-                             NumObject(sdl2.SDL_GL_ACCUM_RED_SIZE))
-    gBuiltinManager.register("SDL_GL_ACCUM_GREEN_SIZE",
-                             NumObject(sdl2.SDL_GL_ACCUM_GREEN_SIZE))
-    gBuiltinManager.register("SDL_GL_ACCUM_BLUE_SIZE",
-                             NumObject(sdl2.SDL_GL_ACCUM_BLUE_SIZE))
-    gBuiltinManager.register("SDL_GL_ACCUM_ALPHA_SIZE",
-                             NumObject(sdl2.SDL_GL_ACCUM_ALPHA_SIZE))
+    gBuiltinManager.register("SDL_GL_RED_SIZE", NumObject(sdl2.SDL_GL_RED_SIZE))
+    gBuiltinManager.register("SDL_GL_GREEN_SIZE", NumObject(sdl2.SDL_GL_GREEN_SIZE))
+    gBuiltinManager.register("SDL_GL_BLUE_SIZE", NumObject(sdl2.SDL_GL_BLUE_SIZE))
+    gBuiltinManager.register("SDL_GL_ALPHA_SIZE", NumObject(sdl2.SDL_GL_ALPHA_SIZE))
+    gBuiltinManager.register("SDL_GL_BUFFER_SIZE",NumObject(sdl2.SDL_GL_BUFFER_SIZE))
+    gBuiltinManager.register("SDL_GL_DOUBLEBUFFER",NumObject(sdl2.SDL_GL_DOUBLEBUFFER))
+    gBuiltinManager.register("SDL_GL_DEPTH_SIZE", NumObject(sdl2.SDL_GL_DEPTH_SIZE))
+    gBuiltinManager.register("SDL_GL_STENCIL_SIZE",NumObject(sdl2.SDL_GL_STENCIL_SIZE))
+    gBuiltinManager.register("SDL_GL_ACCUM_RED_SIZE",NumObject(sdl2.SDL_GL_ACCUM_RED_SIZE))
+    gBuiltinManager.register("SDL_GL_ACCUM_GREEN_SIZE",NumObject(sdl2.SDL_GL_ACCUM_GREEN_SIZE))
+    gBuiltinManager.register("SDL_GL_ACCUM_BLUE_SIZE",NumObject(sdl2.SDL_GL_ACCUM_BLUE_SIZE))
+    gBuiltinManager.register("SDL_GL_ACCUM_ALPHA_SIZE",NumObject(sdl2.SDL_GL_ACCUM_ALPHA_SIZE))
     gBuiltinManager.register("SDL_GL_STEREO", NumObject(sdl2.SDL_GL_STEREO))
-    gBuiltinManager.register("SDL_GL_MULTISAMPLEBUFFERS",
-                             NumObject(sdl2.SDL_GL_MULTISAMPLEBUFFERS))
-    gBuiltinManager.register("SDL_GL_MULTISAMPLESAMPLES",
-                             NumObject(sdl2.SDL_GL_MULTISAMPLESAMPLES))
-    gBuiltinManager.register("SDL_GL_ACCELERATED_VISUAL",
-                             NumObject(sdl2.SDL_GL_ACCELERATED_VISUAL))
-    gBuiltinManager.register("SDL_GL_RETAINED_BACKING",
-                             NumObject(sdl2.SDL_GL_RETAINED_BACKING))
-    gBuiltinManager.register("SDL_GL_CONTEXT_MAJOR_VERSION", NumObject(
-        sdl2.SDL_GL_CONTEXT_MAJOR_VERSION))
-    gBuiltinManager.register("SDL_GL_CONTEXT_MINOR_VERSION", NumObject(
-        sdl2.SDL_GL_CONTEXT_MINOR_VERSION))
-    gBuiltinManager.register("SDL_GL_CONTEXT_EGL",
-                             NumObject(sdl2.SDL_GL_CONTEXT_EGL))
-    gBuiltinManager.register("SDL_GL_CONTEXT_FLAGS",
-                             NumObject(sdl2.SDL_GL_CONTEXT_FLAGS))
-    gBuiltinManager.register("SDL_GL_CONTEXT_PROFILE_MASK", NumObject(
-        sdl2.SDL_GL_CONTEXT_PROFILE_MASK))
-    gBuiltinManager.register("SDL_GL_SHARE_WITH_CURRENT_CONTEXT", NumObject(
-        sdl2.SDL_GL_SHARE_WITH_CURRENT_CONTEXT))
-    gBuiltinManager.register("SDL_GL_FRAMEBUFFER_SRGB_CAPABLE", NumObject(
-        sdl2.SDL_GL_FRAMEBUFFER_SRGB_CAPABLE))
-    gBuiltinManager.register("SDL_GL_CONTEXT_RELEASE_BEHAVIOR", NumObject(
-        sdl2.SDL_GL_CONTEXT_RELEASE_BEHAVIOR))
-    gBuiltinManager.register("SDL_GL_CONTEXT_RESET_NOTIFICATION", NumObject(
-        sdl2.SDL_GL_CONTEXT_RESET_NOTIFICATION))
-
-    gBuiltinManager.register("SDL_GL_CONTEXT_PROFILE_CORE", NumObject(
-        sdl2.SDL_GL_CONTEXT_PROFILE_CORE))
-    gBuiltinManager.register("SDL_GL_CONTEXT_PROFILE_COMPATIBILITY", NumObject(
-        sdl2.SDL_GL_CONTEXT_PROFILE_COMPATIBILITY))
-    gBuiltinManager.register("SDL_GL_CONTEXT_PROFILE_ES",
-                             NumObject(sdl2.SDL_GL_CONTEXT_PROFILE_ES))
+    gBuiltinManager.register("SDL_GL_MULTISAMPLEBUFFERS",NumObject(sdl2.SDL_GL_MULTISAMPLEBUFFERS))
+    gBuiltinManager.register("SDL_GL_MULTISAMPLESAMPLES",NumObject(sdl2.SDL_GL_MULTISAMPLESAMPLES))
+    gBuiltinManager.register("SDL_GL_ACCELERATED_VISUAL",NumObject(sdl2.SDL_GL_ACCELERATED_VISUAL))
+    gBuiltinManager.register("SDL_GL_RETAINED_BACKING",NumObject(sdl2.SDL_GL_RETAINED_BACKING))
+    gBuiltinManager.register("SDL_GL_CONTEXT_MAJOR_VERSION", NumObject(sdl2.SDL_GL_CONTEXT_MAJOR_VERSION))
+    gBuiltinManager.register("SDL_GL_CONTEXT_MINOR_VERSION", NumObject(sdl2.SDL_GL_CONTEXT_MINOR_VERSION))
+    gBuiltinManager.register("SDL_GL_CONTEXT_EGL",NumObject(sdl2.SDL_GL_CONTEXT_EGL))
+    gBuiltinManager.register("SDL_GL_CONTEXT_FLAGS",NumObject(sdl2.SDL_GL_CONTEXT_FLAGS))
+    gBuiltinManager.register("SDL_GL_CONTEXT_PROFILE_MASK", NumObject(sdl2.SDL_GL_CONTEXT_PROFILE_MASK))
+    gBuiltinManager.register("SDL_GL_SHARE_WITH_CURRENT_CONTEXT", NumObject(sdl2.SDL_GL_SHARE_WITH_CURRENT_CONTEXT))
+    gBuiltinManager.register("SDL_GL_FRAMEBUFFER_SRGB_CAPABLE", NumObject(sdl2.SDL_GL_FRAMEBUFFER_SRGB_CAPABLE))
+    gBuiltinManager.register("SDL_GL_CONTEXT_RELEASE_BEHAVIOR", NumObject(sdl2.SDL_GL_CONTEXT_RELEASE_BEHAVIOR))
+    gBuiltinManager.register("SDL_GL_CONTEXT_RESET_NOTIFICATION", NumObject(sdl2.SDL_GL_CONTEXT_RESET_NOTIFICATION))
+    gBuiltinManager.register("SDL_GL_CONTEXT_PROFILE_CORE", NumObject(sdl2.SDL_GL_CONTEXT_PROFILE_CORE))
+    gBuiltinManager.register("SDL_GL_CONTEXT_PROFILE_COMPATIBILITY", NumObject(sdl2.SDL_GL_CONTEXT_PROFILE_COMPATIBILITY))
+    gBuiltinManager.register("SDL_GL_CONTEXT_PROFILE_ES",NumObject(sdl2.SDL_GL_CONTEXT_PROFILE_ES))
 
     gBuiltinManager.register("SDL_Init", sdl_init_wrapper)
     gBuiltinManager.register("SDL_Quit", sdl_quit_wrapper)
@@ -295,15 +238,11 @@ def register_builtins() -> None:
     gBuiltinManager.register("SDL_GetEventType", sdl_get_event_type_wrapper)
     gBuiltinManager.register("SDL_CreateRenderer", sdl_create_renderer_wrapper)
     gBuiltinManager.register("SDL_LoadBMP", sdl_load_bmp_wrapper)
-    gBuiltinManager.register(
-        "SDL_CreateTextureFromSurface", sdlCreateTextureFromSurfaceWrapper)
+    gBuiltinManager.register("SDL_CreateTextureFromSurface", sdlCreateTextureFromSurfaceWrapper)
     gBuiltinManager.register("SDL_RenderClear", sdl_render_clear_wrapper)
     gBuiltinManager.register("SDL_RenderCopy", sdl_render_copy_wrapper)
     gBuiltinManager.register("SDL_RenderPresent", sdl_render_present_wrapper)
-    gBuiltinManager.register("SDL_GL_SetAttribute",
-                             sdl_gl_set_attribute_wrapper)
+    gBuiltinManager.register("SDL_GL_SetAttribute",sdl_gl_set_attribute_wrapper)
     gBuiltinManager.register("SDL_GL_SwapWindow", sdl_gl_swap_window_wrapper)
-    gBuiltinManager.register("SDL_GL_CreateContext",
-                             sdl_gl_create_context_wrapper)
-    gBuiltinManager.register("SDL_GL_SetSwapInterval",
-                             sdl_gl_set_swap_interval_wrapper)
+    gBuiltinManager.register("SDL_GL_CreateContext",sdl_gl_create_context_wrapper)
+    gBuiltinManager.register("SDL_GL_SetSwapInterval",sdl_gl_set_swap_interval_wrapper)

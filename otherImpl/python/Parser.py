@@ -206,8 +206,7 @@ class Parser:
 
         condition = self.__parse_expr()
 
-        self.__consume(TokenType.RPAREN,
-                       "Expect ')' after while stmt's condition")
+        self.__consume(TokenType.RPAREN,"Expect ')' after while stmt's condition")
 
         body = self.__parse_stmt()
 
@@ -329,8 +328,7 @@ class Parser:
             while self.__is_match_cur_token_and_step_once(TokenType.COMMA):
                 idenExpr = self.__parse_identifier_expr()
                 funcExpr.parameters.append(idenExpr)
-        self.__consume(TokenType.RPAREN,
-                       "Expect ')' after function expr's '('")
+        self.__consume(TokenType.RPAREN,"Expect ')' after function expr's '('")
         funcExpr.body = self.__parse_scope_stmt()
 
         self.__functionScopeDepth -= 1
@@ -370,8 +368,7 @@ class Parser:
 
     def __parse_dll_import_expr(self) -> Expr:
         self.__consume(TokenType.DLLIMPORT, "Expect 'dllimport' keyword")
-        self.__consume(TokenType.LPAREN,
-                       "Expect '(' after 'dllimport' keyword")
+        self.__consume(TokenType.LPAREN,"Expect '(' after 'dllimport' keyword")
 
         path = self.__consume(TokenType.STRING, "Expect dll path").literal
 

@@ -5,7 +5,7 @@ from Compiler import Compiler
 from VM import VM
 from PreProcessor import PreProcessor
 from Utils import read_file
-from BuiltinManager import gBuiltinManager
+from Config import gConfig
 
 preProcessor = PreProcessor()
 parser = Parser()
@@ -14,7 +14,7 @@ vm = VM()
 
 
 def set_base_path(path: str):
-    gBuiltinManager.set_execute_file_path(os.path.dirname(path)+"/")
+    gConfig.set_execute_file_path(os.path.dirname(path)+"/")
 
 
 def run(content: str):

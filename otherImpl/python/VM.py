@@ -1,6 +1,4 @@
-import ctypes
 from Utils import error
-from Chunk import Chunk
 from Chunk import OpCode
 from Object import *
 from BuiltinManager import *
@@ -93,8 +91,7 @@ class VM:
                 elif left.type == ObjectType.STR and right.type == ObjectType.STR:
                     self.__push(StrObject(left.value+right.value))
                 else:
-                    error("Invalid binary op:" +
-                          left.__str__() + "+" + right.__str__())
+                    error("Invalid binary op:" + left.__str__() + "+" + right.__str__())
 
             elif instruction == OpCode.OP_SUB:
                 left = self.__find_actual_object(self.__pop())
@@ -103,8 +100,7 @@ class VM:
                 if left.type == ObjectType.NUM and right.type == ObjectType.NUM:
                     self.__push(NumObject(left.value-right.value))
                 else:
-                    error("Invalid binary op:" +
-                          left.__str__()+"-"+right.__str__())
+                    error("Invalid binary op:" + left.__str__()+"-"+right.__str__())
 
             elif instruction == OpCode.OP_MUL:
                 left = self.__find_actual_object(self.__pop())
@@ -113,8 +109,7 @@ class VM:
                 if left.type == ObjectType.NUM and right.type == ObjectType.NUM:
                     self.__push(NumObject(left.value*right.value))
                 else:
-                    error("Invalid binary op:" +
-                          left.__str__()+"*"+right.__str__())
+                    error("Invalid binary op:" + left.__str__()+"*"+right.__str__())
 
             elif instruction == OpCode.OP_DIV:
                 left = self.__find_actual_object(self.__pop())
@@ -123,8 +118,7 @@ class VM:
                 if left.type == ObjectType.NUM and right.type == ObjectType.NUM:
                     self.__push(NumObject(left.value/right.value))
                 else:
-                    error("Invalid binary op:" +
-                          left.__str__()+"/"+right.__str__())
+                    error("Invalid binary op:" + left.__str__()+"/"+right.__str__())
 
             elif instruction == OpCode.OP_GREATER:
                 left = self.__find_actual_object(self.__pop())
@@ -161,7 +155,7 @@ class VM:
                 obj = self.__find_actual_object(self.__pop())
                 if obj.type != ObjectType.NUM:
                     error("Invalid op:'-'"+obj.__str__())
-                self.__push(-obj.value)
+                self.__push(NumObject(-obj.value))
 
             elif instruction == OpCode.OP_AND:
                 left = self.__find_actual_object(self.__pop())
@@ -170,8 +164,7 @@ class VM:
                 if left.type == ObjectType.BOOL and right.type == ObjectType.BOOL:
                     self.__push(BoolObject(left.value and right.value))
                 else:
-                    error("Invalid op:" + left.__str__() +
-                          " and " + right.__str__())
+                    error("Invalid op:" + left.__str__() + " and " + right.__str__())
 
             elif instruction == OpCode.OP_OR:
                 left = self.__find_actual_object(self.__pop())
@@ -180,8 +173,7 @@ class VM:
                 if left.type == ObjectType.BOOL and right.type == ObjectType.BOOL:
                     self.__push(BoolObject(left.value or right.value))
                 else:
-                    error("Invalid op:" + left.__str__() +
-                          " or " + right.__str__())
+                    error("Invalid op:" + left.__str__() + " or " + right.__str__())
 
             elif instruction == OpCode.OP_BIT_AND:
                 left = self.__find_actual_object(self.__pop())
@@ -190,8 +182,7 @@ class VM:
                 if left.type == ObjectType.NUM and right.type == ObjectType.NUM:
                     self.__push(NumObject(int(left.value) & int(right.value)))
                 else:
-                    error("Invalid op:" + left.__str__() +
-                          " & " + right.__str__())
+                    error("Invalid op:" + left.__str__() + " & " + right.__str__())
 
             elif instruction == OpCode.OP_BIT_OR:
                 left = self.__find_actual_object(self.__pop())
@@ -200,8 +191,7 @@ class VM:
                 if left.type == ObjectType.NUM and right.type == ObjectType.NUM:
                     self.__push(NumObject(int(left.value) | int(right.value)))
                 else:
-                    error("Invalid op:" + left.__str__() +
-                          " | " + right.__str__())
+                    error("Invalid op:" + left.__str__() + " | " + right.__str__())
 
             elif instruction == OpCode.OP_BIT_XOR:
                 left = self.__find_actual_object(self.__pop())
@@ -210,8 +200,7 @@ class VM:
                 if left.type == ObjectType.NUM and right.type == ObjectType.NUM:
                     self.__push(NumObject(int(left.value) ^ int(right.value)))
                 else:
-                    error("Invalid op:" + left.__str__() +
-                          " ^ " + right.__str__())
+                    error("Invalid op:" + left.__str__() + " ^ " + right.__str__())
 
             elif instruction == OpCode.OP_BIT_NOT:
                 obj = self.__find_actual_object(self.__pop())
@@ -230,9 +219,8 @@ class VM:
 
                 for i in range(0, numElements):
                     elements[i] = self.__objectStack[self.__stackTop+i]
-
-                array = ArrayObject(elements)
-                self.__push(array)
+                    
+                self.__push(ArrayObject(elements))
 
             elif instruction == OpCode.OP_GET_INDEX:
                 index = self.__pop()
@@ -244,8 +232,7 @@ class VM:
                     else:
                         self.__push(ds.elements[i])
                 else:
-                    error("Invalid index op:" + ds.__str__() +
-                          "[" + index.__str__() + "]")
+                    error("Invalid index op:" + ds.__str__() + "[" + index.__str__() + "]")
 
             elif instruction == OpCode.OP_SET_INDEX:
                 index = self.__pop()
@@ -254,20 +241,18 @@ class VM:
                 if ds.type == ObjectType.ARRAY and index.type == ObjectType.NUM:
                     i = int(index.value)
                     if i < 0 or i >= len(ds.elements):
-                        error("Invalid index:"+str(i) +
-                              " outside of array's:"+str(len(ds.elements)))
+                        error("Invalid index:" + str(i) + " outside of array's:" + str(len(ds.elements)))
                     else:
                         ds.elements[i] = v
                 else:
-                    error("Invalid index op:" + ds.__str__() +
-                          "[" + index.__str__() + "]")
+                    error("Invalid index op:" + ds.__str__() + "[" + index.__str__() + "]")
 
             elif instruction == OpCode.OP_JUMP_IF_FALSE:
                 address = frame.fn.chunk.opCodes[frame.ip]
                 frame.ip += 1
                 obj = self.__pop()
                 if obj.type != ObjectType.BOOL:
-                    error("The if condition not a boolean value:"+obj.__str__())
+                    error("The if condition not a boolean value:" + obj.__str__())
                 if obj.value != True:
                     frame.ip = address+1
 
@@ -313,8 +298,7 @@ class VM:
                 obj = self.__objectStack[self.__stackTop-1-argCount]
                 if obj.type == ObjectType.FUNCTION:
                     if argCount != obj.parameterCount:
-                        error("Non matching function parameters for calling arguments,parameter count:" +
-                              obj.parameterCount + ",argument count:" + argCount)
+                        error("Non matching function parameters for calling arguments,parameter count:" + obj.parameterCount + ",argument count:" + argCount)
                     callFrame = CallFrame(obj, self.__stackTop-argCount)
                     self.__push_call_frame(callFrame)
                     self.__stackTop = callFrame.slot+obj.localVarCount
@@ -416,9 +400,8 @@ class VM:
             elif instruction == OpCode.OP_GET_STRUCT:
                 memberName = self.__pop()
                 instance = self.__pop()
-                while instance.type == ObjectType.REF:
-                    instance = self.__search_object_by_address(
-                        instance.pointer)
+                instance, _ = self.__get_end_of_ref_object(instance)
+
                 if memberName.type == ObjectType.STR:
                     iter = instance.members.get(memberName.value, None)
                     if iter == None:
@@ -429,9 +412,8 @@ class VM:
             elif instruction == OpCode.OP_SET_STRUCT:
                 memberName = self.__pop()
                 instance = self.__pop()
-                while instance.type == ObjectType.REF:
-                    instance = self.__search_object_by_address(
-                        instance.pointer)
+                instance = self.__get_end_of_ref_object(instance)
+
                 obj = self.__pop()
                 if memberName.type == ObjectType.STR:
                     iter = instance.members.get(memberName.value, None)
@@ -522,9 +504,7 @@ class VM:
 
     def __find_actual_object(self, obj):
         # find actual object of RefObject or BuiltinVariable
-        actual = obj
-        while actual.type == ObjectType.REF:
-            actual = self.__search_object_by_address(actual.pointer)
+        actual, _ = self.__get_end_of_ref_object(obj)
         if actual.type == ObjectType.BUILTIN:
             actual = actual.data
         return actual
@@ -534,11 +514,8 @@ class VM:
         refObj = obj
         while refObj.type == ObjectType.REF:
             address = refObj.pointer
-            refObj = self.__search_object_by_address(refObj.pointer)
+            refObj = search_object_by_address(refObj.pointer)
         return refObj, address
-
-    def __search_object_by_address(self, address):
-        return ctypes.cast(address, ctypes.py_object).value
 
     def __assign_object_by_address(self, address, obj: Object):
         for i in range(0, len(self.__globalVariables)):

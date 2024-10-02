@@ -16,6 +16,8 @@ A C-like syntax Scripting toy language
 ## Environment
 1. C++ compiler(>=17)
 2. CMake(>=3.10)
+3. Python(>=3.10)
+4. C#(>=.NetCore 6.0)
 
 #### Build
 ```sh
@@ -43,10 +45,16 @@ cmake -build .
 
 # Python build:
 # for sdl2.cd example
-pip install pysdl2-dll
-pip install pysdl2
+pip install pysdl2-dll==2.30.2
+pip install PySDL2==0.9.16
 # for sdl2-opengl example
-pip install pyopengl
+pip install PyOpenGL==3.1.6
+pip install PyOpenGL_accelerate==3.1.6
+# or 
+pip install -r otherImpl/python/requirements.txt
+
+# C#(.NetCore 6.0) build:
+#just open otherImpl/c#/ComputeDuck.sln
 ```
 
 ## Examples
@@ -503,7 +511,7 @@ SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
 SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
 SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
 SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-#not work on WSL2 linux subsystem
+#not work on WSL2 linux subsystem,need to comment the follow two lines
 SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
 SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 1);
 

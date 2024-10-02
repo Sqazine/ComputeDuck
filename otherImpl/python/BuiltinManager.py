@@ -1,57 +1,47 @@
 from Object import *
 from Utils import *
 import time
-import os
+
 
 class BuiltinManager(object):
-    __instance=None
-    builtinObjects:dict[str,BuiltinObject]={}
-
-    __cur_execute_file_path:str
+    __instance = None
+    builtinObjects: dict[str, BuiltinObject] = {}
 
     def __new__(cls, *args, **kw):
         if not cls.__instance:
-            cls.__instance = super(BuiltinManager, cls).__new__(cls, *args, **kw)
+            cls.__instance = super(
+                BuiltinManager, cls).__new__(cls, *args, **kw)
         return cls.__instance
-    
-    def __init__(self) -> None:
-        self.register("print",self.__print)
-        self.register("println",self.__println)
-        self.register("sizeof",self.__sizeof)
-        self.register("insert",self.__insert)
-        self.register("erase",self.__erase)
-        self.register("clock",self.__clock)
 
-    def __del__(self)->None:
+    def __init__(self) -> None:
+        self.register("print", self.__print)
+        self.register("println", self.__println)
+        self.register("sizeof", self.__sizeof)
+        self.register("insert", self.__insert)
+        self.register("erase", self.__erase)
+        self.register("clock", self.__clock)
+
+    def __del__(self) -> None:
         self.builtinObjects.clear()
 
-    def register(self,name:str,obj:Object)->None:
+    def register(self, name: str, obj: Object) -> None:
         if name in self.builtinObjects:
             error("Redefined builtin:"+name)
-        self.builtinObjects[name]=BuiltinObject(obj)
+        self.builtinObjects[name] = BuiltinObject(obj)
 
-    def set_execute_file_path(self,path:str):
-        self.__cur_execute_file_path=path
-
-    def to_full_path(self,path:str)->str:
-        fullPath=path
-        if not os.path.isabs(fullPath):
-            fullPath=self.__cur_execute_file_path+fullPath
-        return fullPath
-
-    def __println(self,args: list[Object]):
+    def __println(self, args: list[Object]):
         if len(args) == 0:
-            return False,None
+            return False, None
         print(args[0])
-        return False,None
+        return False, None
 
-    def __print(self,args: list[Object]) :
+    def __print(self, args: list[Object]):
         if len(args) == 0:
-            return False,None
+            return False, None
         print(args[0], end="")
-        return False,None
+        return False, None
 
-    def __sizeof(self,args: list[Object]):
+    def __sizeof(self, args: list[Object]):
         if len(args) == 0 or len(args) > 1:
             error("Native function 'siezeof':Expect a argument.")
         if args[0].type == ObjectType.ARRAY:
@@ -60,33 +50,29 @@ class BuiltinManager(object):
             result = NumObject(len(args[0].value))
         else:
             error("[Native function 'sizeof']:Expect a array or string argument.")
-        return True,result
+        return True, result
 
-
-    def __insert(self,args: list[Object]):
+    def __insert(self, args: list[Object]):
         if len(args) == 0 or len(args) != 3:
             error("[Native function 'insert']:Expect 3 arguments,the arg0 must be array,table or string obj.The arg1 is the index obj.The arg2 is the value obj.")
 
         if args[0].type == ObjectType.ARRAY:
             if args[1].type != ObjectType.NUM:
-                error(
-                    "[Native function 'insert']:Arg1 must be integer type while insert to a array")
+                error("[Native function 'insert']:Arg1 must be integer type while insert to a array")
             iIndex = args[1].value
             if iIndex < 0 or iIndex >= len(args[0].elements):
                 error("[Native function 'insert']:Index out of array's range")
             args[0].elements.insert(iIndex, args[2])
         elif args[0].type == ObjectType.STR:
             if args[1].type != ObjectType.NUM:
-                error(
-                    "[Native function 'insert']:Arg1 must be integer type while insert to a string")
+                error("[Native function 'insert']:Arg1 must be integer type while insert to a string")
             iIndex = args[1].value
             if iIndex < 0 or iIndex >= len(args[0].values):
                 error("[Native function 'insert']:Index out of array's range")
             args[0].values.insert(iIndex, args[2].__str__())
-        return False,None
+        return False, None
 
-
-    def __erase(self,args: list[Object] ) :
+    def __erase(self, args: list[Object]):
         if len(args) or len(args) != 2:
             error("[Native function 'erase']:Expect 2 arguments,the arg0 must be array,table or string obj.The arg1 is the corresponding index obj.")
 
@@ -106,11 +92,11 @@ class BuiltinManager(object):
             args[0].values.pop(iIndex)
         else:
             error("[Native function 'erase']:Expect a array,table ot string argument.")
-        return False,None
+        return False, None
 
-
-    def __clock(self,args: list[Object] ):
+    def __clock(self, args: list[Object]):
         result = NumObject(time.perf_counter())
-        return True,result
+        return True, result
 
-gBuiltinManager=BuiltinManager()
+
+gBuiltinManager = BuiltinManager()
