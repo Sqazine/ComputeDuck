@@ -1,5 +1,6 @@
 import importlib
 import sys
+import ctypes
 
 
 def error(msg):
@@ -20,3 +21,7 @@ def register_dlls(dllPath):
         return True
     mod = importlib.import_module(dllPath)
     mod.register_builtins()
+
+
+def search_object_by_address(address):
+    return ctypes.cast(address, ctypes.py_object).value

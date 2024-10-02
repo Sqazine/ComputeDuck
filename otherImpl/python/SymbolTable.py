@@ -48,7 +48,7 @@ class SymbolTable:
             symbol.scope = SymbolScope.LOCAL
 
         if self.symbolMaps.get(name, None) != None:
-            error("Redefined variable:("+name+") in current context.")
+            error("Redefined variable:(" + name + ") in current context.")
 
         self.symbolMaps[name] = symbol
         self.definitionCount += 1

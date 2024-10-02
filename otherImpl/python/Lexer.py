@@ -117,8 +117,7 @@ class Lexer:
             error("[line " + self.__line + "]:Uniterminated string.")
         self.__get_cur_char_and_step_once()  # eat the second '\"'
 
-        self.__add_token(TokenType.STRING,
-                         self.__source[self.__startPos+1:self.__curPos-1])
+        self.__add_token(TokenType.STRING,self.__source[self.__startPos+1:self.__curPos-1])
 
     def __generate_token(self):
         c = self.__get_cur_char_and_step_once()

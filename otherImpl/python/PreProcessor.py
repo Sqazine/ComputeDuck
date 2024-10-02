@@ -2,7 +2,7 @@ from Token import *
 from Lexer import *
 from Utils import *
 from operator import attrgetter
-from BuiltinManager import gBuiltinManager
+from Config import gConfig
 
 
 class TokenBlockTable:
@@ -30,7 +30,7 @@ class PreProcessor:
 
         for t in tables:
             for path in t.importedFilePaths:
-                absPath = gBuiltinManager.to_full_path(path)
+                absPath = gConfig.to_full_path(path)
                 toks = self.__lexer.generate_tokens(read_file(absPath), path)
 
                 alreadyExists = False
@@ -68,20 +68,16 @@ class PreProcessor:
 
         while loc != -1:
             if tokens[loc+1].type != TokenType.LPAREN:
-                error("[line "+str(tokens[loc+1].line) +
-                      "]:Expect '(' after import keyword.")
+                error("[line "+str(tokens[loc+1].line) + "]:Expect '(' after import keyword.")
 
             if tokens[loc+2].type != TokenType.STRING:
-                error("[line "+str(tokens[loc+2].line) +
-                      "]:Expect file path after import stmt's '('.")
+                error("[line "+str(tokens[loc+2].line) + "]:Expect file path after import stmt's '('.")
 
             if tokens[loc+3].type != TokenType.RPAREN:
-                error("[line "+str(tokens[loc+3].line) +
-                      "]:Expect ')' after import stmt's file path.")
+                error("[line "+str(tokens[loc+3].line) + "]:Expect ')' after import stmt's file path.")
 
             if tokens[loc+4].type != TokenType.SEMICOLON:
-                error("[line "+str(tokens[loc+4].line) +
-                      "]:Expect ';' after the end of import stmt.")
+                error("[line "+str(tokens[loc+4].line) + "]:Expect ';' after the end of import stmt.")
 
             importedFilePaths.append(tokens[loc+2].literal)
             del tokens[loc:loc+5]

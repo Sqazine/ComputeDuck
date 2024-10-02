@@ -1,0 +1,4 @@
+ pysdl2-dll==2.30.2
+ PySDL2==0.9.16
+ PyOpenGL==3.1.6
+ PyOpenGL_accelerate==3.1.6
