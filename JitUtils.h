@@ -6,18 +6,28 @@
 #include <set>
 
 #ifndef NDEBUG
-#define ERROR(newState, ...)                                                        \
-    do                                                                              \
-    {                                                                               \
-        printf("[file:%s,function:%s,line:%d]:", __FILE__, __FUNCTION__, __LINE__); \
-        printf(__VA_ARGS__);                                                        \
-        printf("\n");                                                               \
-        m_Module->getFunctionList().pop_back();                                     \
-        jitFnDecl.state = newState;                                                 \
-        return jitFnDecl;                                                           \
+#define ERROR(newState, ...)                                                                        \
+    do                                                                                              \
+    {                                                                                               \
+        printf("[file:%s,function:%s,line:%d]:", __FILE__, __FUNCTION__, __LINE__);                 \
+        printf(__VA_ARGS__);                                                                        \
+        printf("\n");                                                                               \
+        auto &basicBlockListFront = m_Module->getFunctionList().back().getBasicBlockList().front(); \
+        if (!m_Module->getFunctionList().empty() && basicBlockListFront.empty())                    \
+            m_Module->getFunctionList().pop_back();                                                 \
+        jitFnDecl.state = newState;                                                                 \
+        return jitFnDecl;                                                                           \
     } while (false);
 #else
-#define ERROR(...) return false;
+#define ERROR(...)                                                                                  \
+    do                                                                                              \
+    {                                                                                               \
+        auto &basicBlockListFront = m_Module->getFunctionList().back().getBasicBlockList().front(); \
+        if (!m_Module->getFunctionList().empty() && basicBlockListFront.empty())                    \
+            m_Module->getFunctionList().pop_back();                                                 \
+        jitFnDecl.state = newState;                                                                 \
+        return jitFnDecl;                                                                           \
+    } while (false);
 #endif
 
 std::string GenerateUUID();
@@ -47,9 +57,9 @@ struct JitFnDecl
 {
     JitFnDecl() = default;
     ~JitFnDecl() = default;
-    uint8_t returnType{ 0 };
+    uint8_t returnType{0};
     std::vector<uint8_t> paramTypes{};
-    JitCompileState state{ JitCompileState::SUCCESS };
+    JitCompileState state{JitCompileState::SUCCESS};
 };
 
 class TypeSet

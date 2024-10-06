@@ -200,7 +200,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glCreateShader)(Value *args, uint8_t
 }
 extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glShaderSource)(Value *args, uint8_t argCount, Value &result)
 {
-    if (!IS_NUM_VALUE(args[0]) || IS_NUM_VALUE(args[1]) || !IS_REF_VALUE(args[2]) || !(IS_REF_VALUE(args[3]) || IS_NIL_VALUE(args[3])))
+    if (!IS_NUM_VALUE(args[0]) || !IS_NUM_VALUE(args[1]) || !IS_REF_VALUE(args[2]) || !(IS_REF_VALUE(args[3]) || IS_NIL_VALUE(args[3])))
         ASSERT("Invalid value of glShaderSource(args[0],args[1],args[2],args[3]).");
 
     auto arg0 = (GLuint)TO_NUM_VALUE(args[0]);
