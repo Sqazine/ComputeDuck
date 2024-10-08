@@ -31,7 +31,7 @@ struct CallFrame
         return fn;
     }
 
-    FunctionObject *fn;
+    FunctionObject *fn{ nullptr };
     int16_t *ip{ nullptr };
     Value *slot{ nullptr };
 };
@@ -52,9 +52,9 @@ public:
     {
         if (m_CurObjCount >= m_MaxObjCount
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-        && m_IsInsideJitExecutor == false
+            && m_IsInsideJitExecutor == false
 #endif
-        )
+            )
             Gc();
 
         T *object = new T(std::forward<Args>(params)...);
@@ -66,7 +66,7 @@ public:
         return object;
     }
 
-    RefObject* CreateIndexRefObject(Value* ptr,const Value& idxValue);
+    RefObject *CreateIndexRefObject(Value *ptr, const Value &idxValue);
 
     void Push(const Value &value);
     Value Pop();
@@ -85,33 +85,33 @@ public:
 
     Value *GetGlobalVariableRef(size_t index);
 
-    Value* GetLocalVariableSlot(int16_t scopeDepth,int16_t index,bool isUpValue);
+    Value *GetLocalVariableSlot(int16_t scopeDepth, int16_t index, bool isUpValue);
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     void InsideJitExecutor();
     void OutsideJitExecutor();
 private:
-    bool m_IsInsideJitExecutor{false};
+    bool m_IsInsideJitExecutor{ false };
 #endif
 
 private:
-    Allocator() =default;
-    ~Allocator() =default;
+    Allocator() = default;
+    ~Allocator() = default;
 
     void DeleteObject(Object *object);
     void Gc(bool isExitingVM = false);
 
     Value m_GlobalVariables[STACK_MAX];
 
-    Value *m_StackTop{nullptr};
+    Value *m_StackTop{ nullptr };
     Value m_ValueStack[STACK_MAX]{};
 
-    CallFrame *m_CallFrameTop{nullptr};
+    CallFrame *m_CallFrameTop{ nullptr };
     CallFrame m_CallFrameStack[STACK_MAX]{};
 
-    Object *m_FirstObject{nullptr};
-    size_t m_CurObjCount;
-    size_t m_MaxObjCount;
+    Object *m_FirstObject{ nullptr };
+    size_t m_CurObjCount{ 0 };
+    size_t m_MaxObjCount{ 0 };
 
 };
 

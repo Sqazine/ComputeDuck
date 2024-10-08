@@ -10,6 +10,11 @@
 #include "Object.h"
 #include "Utils.h"
 #include "Chunk.h"
+#include "Allocator.h"
+
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+#include "Jit.h"
+#endif
 
 class COMPUTE_DUCK_API VM
 {
@@ -23,7 +28,10 @@ private:
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     void RunJit(const struct CallFrame& frame);
+    template<typename T>
+    void ExecuteJitFunction(const CallFrame& frame,const std::string& fnName);
     class Jit *m_Jit{ nullptr };
 #endif
 };
 
+#include "VM.inl"
