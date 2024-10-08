@@ -33,6 +33,7 @@
 std::string GenerateUUID();
 
 constexpr uint32_t JIT_TRIGGER_COUNT = 2;
+constexpr uint8_t JIT_FUNCTION_MAX_PARAMETER_COUNT = 5;
 
 constexpr const char *GLOBAL_VARIABLE_STR = "m_GlobalVariables";
 constexpr const char *SET_GLOBAL_VARIABLE_FN_STR = "function_SetGlobalVariables";

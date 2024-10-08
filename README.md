@@ -37,7 +37,6 @@ apt install libx11-dev libxext-dev libxtst-dev libxrender-dev libxmu-dev libxmuu
 # C++ build:
 git clone https://github.com/Sqazine/ComputeDuck.git
 git submodule update --init --recursive
-cd computeduck/cpp
 mkdir build
 cd build 
 cmake ..

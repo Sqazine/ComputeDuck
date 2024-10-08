@@ -160,17 +160,17 @@ void VM::Execute()
         }
         case OP_DIV:
         {
-            COMMON_BINARY(/);
+            COMMON_BINARY(/ );
             break;
         }
         case OP_GREATER:
         {
-            COMPARE_BINARY(>);
+            COMPARE_BINARY(> );
             break;
         }
         case OP_LESS:
         {
-            COMPARE_BINARY(<);
+            COMPARE_BINARY(< );
             break;
         }
         case OP_EQUAL:
@@ -203,7 +203,7 @@ void VM::Execute()
         }
         case OP_OR:
         {
-            LOGIC_BINARY(||);
+            LOGIC_BINARY(|| );
             break;
         }
         case OP_BIT_AND:
@@ -213,7 +213,7 @@ void VM::Execute()
         }
         case OP_BIT_OR:
         {
-            BIT_BINARY(|);
+            BIT_BINARY(| );
             break;
         }
         case OP_BIT_XOR:
@@ -423,18 +423,18 @@ void VM::Execute()
         }
         case OP_STRUCT:
         {
-            Table* members=new Table();
-            auto memberCount =2 * (*frame->ip++);
+            Table *members = new Table();
+            auto memberCount = 2 * (*frame->ip++);
             for (auto slot = STACK_TOP(); slot > STACK_TOP() - memberCount;)
             {
                 auto name = TO_STR_VALUE(*--slot);
                 auto value = *--slot;
-                members->Set(name,value);
+                members->Set(name, value);
             }
             auto structInstance = Allocator::GetInstance()->CreateObject<StructObject>(members);
-            
+
             STACK_TOP_JUMP(-memberCount);
-            
+
             PUSH(structInstance);
             break;
         }
@@ -462,10 +462,10 @@ void VM::Execute()
             auto value = POP();
             if (IS_STR_VALUE(memberName))
             {
-                bool isSuccess=structInstance->members->Find(TO_STR_VALUE(memberName));
+                bool isSuccess = structInstance->members->Find(TO_STR_VALUE(memberName));
                 if (!isSuccess)
                     ASSERT("no member named:(%s) in struct instance:(0x%s)", memberName.Stringify().c_str(), PointerAddressToString(structInstance).c_str());
-                structInstance->members->Set(TO_STR_VALUE(memberName),value);
+                structInstance->members->Set(TO_STR_VALUE(memberName), value);
             }
             break;
         }
@@ -489,7 +489,7 @@ void VM::Execute()
             auto index = *frame->ip++;
             auto idxValue = POP();
             auto ptr = GetEndOfRefValuePtr(GET_GLOBAL_VARIABLE_REF(index));
-            PUSH(Allocator::GetInstance()->CreateIndexRefObject(ptr,idxValue));
+            PUSH(Allocator::GetInstance()->CreateIndexRefObject(ptr, idxValue));
             break;
         }
         case OP_REF_INDEX_LOCAL:
@@ -520,152 +520,59 @@ void VM::RunJit(const CallFrame &frame)
 {
     if (!Config::GetInstance()->IsUseJit() ||
         frame.fn->callCount < JIT_TRIGGER_COUNT ||
-        !frame.fn->probableReturnTypeSet)
+        !frame.fn->probableReturnTypeSet ||
+        frame.fn->parameterCount > JIT_FUNCTION_MAX_PARAMETER_COUNT)
         return;
 
     // get function name by hashing arguments
     size_t paramTypeHash = HashValueList(frame.slot, frame.slot + frame.fn->parameterCount);
-    auto fnName = GenerateFunctionName(frame.fn->uuid,frame.fn->probableReturnTypeSet->Hash(),paramTypeHash);
+    auto fnName = GenerateFunctionName(frame.fn->uuid, frame.fn->probableReturnTypeSet->Hash(), paramTypeHash);
 
-    // compile function
+    // compile jit function
     {
         auto iter = frame.fn->jitCache.find(paramTypeHash);
-        if ((iter == frame.fn->jitCache.end()  && !frame.fn->probableReturnTypeSet->IsMultiplyType()) || 
-             iter->second.state == JitCompileState::DEPEND)
+        if ((iter == frame.fn->jitCache.end() && !frame.fn->probableReturnTypeSet->IsMultiplyType()) ||
+            iter->second.state == JitCompileState::DEPEND)
         {
             m_Jit->ResetStatus();
 
-            frame.fn->jitCache[paramTypeHash]=JitFnDecl();
+            frame.fn->jitCache[paramTypeHash] = JitFnDecl();
 
             frame.fn->jitCache[paramTypeHash] = m_Jit->Compile(frame, fnName);
             iter = frame.fn->jitCache.find(paramTypeHash);
         }
-        
+
         if (iter->second.state != JitCompileState::SUCCESS) //means current paramTypeHash compile error,not try compiling anymore
             return;
     }
 
-#define RUN_WITH_RET(type, initializer)                       \
-    type ret = initializer;                                   \
-    if (frame.fn->parameterCount == 1)                        \
-    {                                                         \
-        auto arg0 = curCallFrame->slot + 0;                   \
-        if (IS_NUM_VALUE(*arg0))                              \
-        {                                                     \
-            double dArg0 = TO_NUM_VALUE(*arg0);               \
-            ret = m_Jit->Run<type>(fnName, std::move(dArg0)); \
-        }                                                     \
-        if (IS_BOOL_VALUE(*arg0))                             \
-        {                                                     \
-            bool bArg0 = TO_BOOL_VALUE(*arg0);                \
-            ret = m_Jit->Run<type>(fnName, std::move(bArg0)); \
-        }                                                     \
-        if (IS_STR_VALUE(*arg0))                              \
-        {                                                     \
-            StrObject* sArg0 = TO_STR_VALUE(*arg0);           \
-            ret = m_Jit->Run<type>(fnName, std::move(sArg0)); \
-        }                                                     \
-        if (IS_BOOL_VALUE(*arg0))                             \
-        {                                                     \
-            bool bArg0 = TO_BOOL_VALUE(*arg0);                \
-            ret = m_Jit->Run<type>(fnName, std::move(bArg0)); \
-        }                                                     \
-        else if (IS_ARRAY_VALUE(*arg0))                       \
-        {                                                     \
-            ArrayObject *aArg0 = TO_ARRAY_VALUE(*arg0);       \
-            ret = m_Jit->Run<type>(fnName, std::move(aArg0)); \
-        }                                                     \
-        else if (IS_STRUCT_VALUE(*arg0))                      \
-        {                                                     \
-            StructObject *sArg0 = TO_STRUCT_VALUE(*arg0);     \
-            ret = m_Jit->Run<type>(fnName, std::move(sArg0)); \
-        }                                                     \
-    }                                                         \
-    else                                                      \
-        ret = m_Jit->Run<type>(fnName);
 
-#define RUN_WITHOUT_RET()                               \
-    if (frame.fn->parameterCount == 1)                  \
-    {                                                   \
-        auto arg0 = curCallFrame->slot + 0;             \
-        if (IS_NUM_VALUE(*arg0))                        \
-        {                                               \
-            double dArg0 = TO_NUM_VALUE(*arg0);         \
-            m_Jit->Run<void>(fnName, std::move(dArg0)); \
-        }                                               \
-        else if (IS_ARRAY_VALUE(*arg0))                 \
-        {                                               \
-            auto aArg0 = TO_ARRAY_VALUE(*arg0);         \
-            m_Jit->Run<void>(fnName, std::move(aArg0)); \
-        }                                               \
-    }                                                   \
-    else                                                \
-        m_Jit->Run<void>(fnName);
-
-    //run jit function
+    //execute jit function
     {
         Allocator::GetInstance()->InsideJitExecutor();
 
-        auto curCallFrame = PEEK_CALL_FRAME_FROM_BACK(1);
-
         if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::NUM))
-        {
-            RUN_WITH_RET(double, 0);
-            auto prevCallFrame=POP_CALL_FRAME();
-            SET_STACK_TOP(prevCallFrame->slot - 1);
-            PUSH(ret);
-        }
-
+            ExecuteJitFunction<double>(frame, fnName);
         else if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::BOOL))
-        {
-            RUN_WITH_RET(bool, false);
-            auto prevCallFrame = POP_CALL_FRAME();
-            SET_STACK_TOP(prevCallFrame->slot - 1);
-            PUSH(ret);
-        }
+            ExecuteJitFunction<bool>(frame, fnName);
         else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::STR))
-        {
-            RUN_WITH_RET(StrObject*, nullptr);
-            auto prevCallFrame = POP_CALL_FRAME();
-            SET_STACK_TOP(prevCallFrame->slot - 1);
-            PUSH(ret);
-        }
+            ExecuteJitFunction<StrObject *>(frame, fnName);
         else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::ARRAY))
-        {
-            RUN_WITH_RET(ArrayObject *, nullptr);
-            auto prevCallFrame = POP_CALL_FRAME();
-            SET_STACK_TOP(prevCallFrame->slot - 1);
-            PUSH(ret);
-        }
+            ExecuteJitFunction<ArrayObject *>(frame, fnName);
         else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::REF))
-        {
-            RUN_WITH_RET(RefObject *, nullptr);
-            auto prevCallFrame = POP_CALL_FRAME();
-            SET_STACK_TOP(prevCallFrame->slot - 1);
-            PUSH(ret);
-        }
+            ExecuteJitFunction<RefObject *>(frame, fnName);
         else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::STRUCT))
-        {
-            RUN_WITH_RET(StructObject *, nullptr);
-            auto prevCallFrame = POP_CALL_FRAME();
-            SET_STACK_TOP(prevCallFrame->slot - 1);
-            PUSH(ret);
-        }
+            ExecuteJitFunction<StructObject *>(frame, fnName);
         else if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::NIL))
         {
-            RUN_WITHOUT_RET();
-            auto prevCallFrame = POP_CALL_FRAME();
-            SET_STACK_TOP(prevCallFrame->slot - 1);
+            ExecuteJitFunction<void>(frame, fnName);
             PUSH(Value());
         }
         else
-        {
-            RUN_WITHOUT_RET();
-            auto prevCallFrame = POP_CALL_FRAME();
-            SET_STACK_TOP(prevCallFrame->slot - 1);
-        }
+            ExecuteJitFunction<void>(frame, fnName);
 
         Allocator::GetInstance()->OutsideJitExecutor();
     }
 }
+
 #endif

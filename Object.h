@@ -103,6 +103,7 @@ struct FunctionObject : public Object
     {
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
         SAFE_DELETE(probableReturnTypeSet);
+        jitCache.clear();
 #endif
     }
 
