@@ -91,37 +91,53 @@ void VM::Execute()
         }
         case OP_ADD:
         {
-            PUSH(ValueAdd(POP(), POP()));
+            auto l = POP();
+            auto r = POP();
+            Value ret;
+            ValueAdd(l, r, ret);
+            PUSH(ret);
             break;
         }
         case OP_SUB:
         {
-            PUSH(ValueSub(POP(), POP()));
+            auto l = POP();
+            auto r = POP();
+            PUSH(ValueSub(l, r));
             break;
         }
         case OP_MUL:
         {
-            PUSH(ValueMul(POP(), POP()));
+            auto l = POP();
+            auto r = POP();
+            PUSH(ValueMul(l, r));
             break;
         }
         case OP_DIV:
         {
-            PUSH(ValueDiv(POP(), POP()));
+            auto l = POP();
+            auto r = POP();
+            PUSH(ValueDiv(l, r));
             break;
         }
         case OP_GREATER:
         {
-            PUSH(ValueGreater(POP(), POP()));
+            auto l = POP();
+            auto r = POP();
+            PUSH(ValueGreater(l, r));
             break;
         }
         case OP_LESS:
         {
-            PUSH(ValueLess(POP(), POP()));
+            auto l = POP();
+            auto r = POP();
+            PUSH(ValueLess(l, r));
             break;
         }
         case OP_EQUAL:
         {
-            PUSH(ValueEqual(POP(), POP()));
+            auto l = POP();
+            auto r = POP();
+            PUSH(ValueEqual(l, r));
             break;
         }
         case OP_NOT:
@@ -136,27 +152,37 @@ void VM::Execute()
         }
         case OP_AND:
         {
-            PUSH(ValueLogicAnd(POP(), POP()));
+            auto l = POP();
+            auto r = POP();
+            PUSH(ValueLogicAnd(l, r));
             break;
         }
         case OP_OR:
         {
-            PUSH(ValueLogicOr(POP(), POP()));
+            auto l = POP();
+            auto r = POP();
+            PUSH(ValueLogicOr(l, r));
             break;
         }
         case OP_BIT_AND:
         {
-            PUSH(ValueBitAnd(POP(), POP()));
+            auto l = POP();
+            auto r = POP();
+            PUSH(ValueBitAnd(l, r));
             break;
         }
         case OP_BIT_OR:
         {
-            PUSH(ValueBitOr(POP(), POP()));
+            auto l = POP();
+            auto r = POP();
+            PUSH(ValueBitOr(l, r));
             break;
         }
         case OP_BIT_XOR:
         {
-            PUSH(ValueBitXor(POP(), POP()));
+            auto l = POP();
+            auto r = POP();
+            PUSH(ValueBitXor(l, r));
             break;
         }
         case OP_BIT_NOT:
@@ -184,18 +210,9 @@ void VM::Execute()
         {
             auto index = POP();
             auto ds = POP();
-
-            if (IS_ARRAY_VALUE(ds) && IS_NUM_VALUE(index))
-            {
-                auto array = TO_ARRAY_VALUE(ds);
-                auto i = (size_t)TO_NUM_VALUE(index);
-                if (i < 0 || i >= array->len)
-                    PUSH(Value());
-                else
-                    PUSH(array->elements[i]);
-            }
-            else
-                ASSERT("Invalid index op: %s[%s]", ds.Stringify().c_str(), index.Stringify().c_str());
+            Value ret;
+            GetArrayObjectElement(ds, index, ret);
+            PUSH(ret);
             break;
         }
         case OP_SET_INDEX:
@@ -376,7 +393,8 @@ void VM::Execute()
         case OP_GET_STRUCT:
         {
             auto memberName = POP();
-            auto instance = GetEndOfRefValue(POP());
+            Value instance;
+            GetEndOfRefValue(POP(), instance);
             if (IS_STR_VALUE(memberName))
             {
                 auto structInstance = TO_STRUCT_VALUE(instance);
@@ -392,7 +410,8 @@ void VM::Execute()
         case OP_SET_STRUCT:
         {
             auto memberName = POP();
-            auto instance = GetEndOfRefValue(POP());
+            Value instance;
+            GetEndOfRefValue(POP(), instance);
             auto structInstance = TO_STRUCT_VALUE(instance);
             auto value = POP();
             if (IS_STR_VALUE(memberName))
