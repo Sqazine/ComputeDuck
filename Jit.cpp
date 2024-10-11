@@ -239,7 +239,18 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             else if (left->getType() == m_StrObjectPtrType && right->getType() == m_StrObjectPtrType)
                 Push(m_Builder->CreateCall(m_Module->getFunction(STR(StrAdd)), { left,right }));
             else
-                ERROR(JitCompileState::FAIL, "Invalid binary op:%s + %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                if (left->getType() != m_ValuePtrType)
+                    left = CreateLlvmValue(left);
+                if (right->getType() != m_ValuePtrType)
+                    right = CreateLlvmValue(right);
+
+                auto result=m_Builder->CreateAlloca(m_ValueType);
+
+                m_Builder->CreateCall(m_Module->getFunction(STR(ValueAdd)), { left,right,result });
+                
+                Push(result);
+            }
 
             break;
         }
@@ -250,7 +261,15 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFSub(left, right));
             else
-                ERROR(JitCompileState::FAIL, "Invalid binary op:%s - %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                if (left->getType() != m_ValuePtrType)
+                    left = CreateLlvmValue(left);
+                if (right->getType() != m_ValuePtrType)
+                    right = CreateLlvmValue(right);
+
+                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueSub)), { left,right });
+                Push(call);
+            }
             break;
         }
         case OP_MUL:
@@ -260,7 +279,15 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFMul(left, right));
             else
-                ERROR(JitCompileState::FAIL, "Invalid binary op:%s * %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                if (left->getType() != m_ValuePtrType)
+                    left = CreateLlvmValue(left);
+                if (right->getType() != m_ValuePtrType)
+                    right = CreateLlvmValue(right);
+
+                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueMul)), { left,right });
+                Push(call);
+            }
             break;
         }
         case OP_DIV:
@@ -270,7 +297,15 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFDiv(left, right));
             else
-                ERROR(JitCompileState::FAIL, "Invalid binary op:%s / %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                if (left->getType() != m_ValuePtrType)
+                    left = CreateLlvmValue(left);
+                if (right->getType() != m_ValuePtrType)
+                    right = CreateLlvmValue(right);
+
+                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueDiv)), { left,right });
+                Push(call);
+            }
             break;
         }
         case OP_LESS:
@@ -280,7 +315,15 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFCmpULT(left, right));
             else
-                ERROR(JitCompileState::FAIL, "Invalid binary op:%s < %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                if (left->getType() != m_ValuePtrType)
+                    left = CreateLlvmValue(left);
+                if (right->getType() != m_ValuePtrType)
+                    right = CreateLlvmValue(right);
+
+                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueLess)), { left,right });
+                Push(call);
+            }
             break;
         }
         case OP_GREATER:
@@ -290,7 +333,15 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFCmpUGT(left, right));
             else
-                ERROR(JitCompileState::FAIL, "Invalid binary op:%s > %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                if (left->getType() != m_ValuePtrType)
+                    left = CreateLlvmValue(left);
+                if (right->getType() != m_ValuePtrType)
+                    right = CreateLlvmValue(right);
+
+                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueGreater)), { left,right });
+                Push(call);
+            }
             break;
         }
         case OP_NOT:
@@ -299,7 +350,13 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             if (value->getType() == m_BoolType)
                 Push(m_Builder->CreateNot(value));
             else
-                ERROR(JitCompileState::FAIL, "Invalid binary op:not %s.", GetTypeName(value->getType()).c_str());
+            {
+                if (value->getType() != m_ValuePtrType)
+                    value = CreateLlvmValue(value);
+
+                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueLogicNot)), { value });
+                Push(call);
+            }
             break;
         }
         case OP_MINUS:
@@ -308,40 +365,34 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             if (value->getType() == m_DoubleType)
                 Push(m_Builder->CreateNeg(value));
             else
-                ERROR(JitCompileState::FAIL, "Invalid binary op:- %s.", GetTypeName(value->getType()).c_str());
+            {
+                if (value->getType() != m_ValuePtrType)
+                    value = CreateLlvmValue(value);
+
+                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueMinus)), { value });
+                Push(call);
+            }
             break;
         }
         case OP_EQUAL:
         {
             auto left = Pop().GetLlvmValue();
             auto right = Pop().GetLlvmValue();
-            if (left->getType() == right->getType())
-            {
-                if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
-                    Push(m_Builder->CreateFCmpUEQ(left, right));
-                else if (left->getType() == m_BoolType && right->getType() == m_BoolType)
-                    Push(m_Builder->CreateICmpEQ(left, right));
-                else
-                {
-                    if (left->getType() == m_ValuePtrType)
-                    {
-                        left = m_Builder->CreateInBoundsGEP(m_ValueType, left, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
-                        left = m_Builder->CreateBitCast(left, m_ObjectPtrPtrType);
-                        left = m_Builder->CreateLoad(m_ObjectPtrType, left);
-                    }
 
-                    if (right->getType() == m_ValuePtrType)
-                    {
-                        right = m_Builder->CreateInBoundsGEP(m_ValueType, right, { m_Builder->getInt32(0), m_Builder->getInt32(1) });
-                        right = m_Builder->CreateBitCast(right, m_ObjectPtrPtrType);
-                        right = m_Builder->CreateLoad(m_ObjectPtrType, right);
-                    }
-
-                    auto ret = m_Builder->CreateCall(m_Module->getFunction(STR(IsObjectEqual)), { left,right });
-                }
-            }
+            if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
+                Push(m_Builder->CreateFCmpUEQ(left, right));
+            else if (left->getType() == m_BoolType && right->getType() == m_BoolType)
+                Push(m_Builder->CreateICmpEQ(left, right));
             else
-                ERROR(JitCompileState::FAIL, "Invalid binary op:%s == %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                if (left->getType() != m_ValuePtrType)
+                    left = CreateLlvmValue(left);
+                if (right->getType() != m_ValuePtrType)
+                    right = CreateLlvmValue(right);
+
+                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueGreater)), { left,right });
+                Push(call);
+            }
 
             break;
         }
@@ -396,7 +447,15 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             if (left->getType() == m_BoolType && right->getType() == m_BoolType)
                 Push(m_Builder->CreateLogicalAnd(left, right));
             else
-                ERROR(JitCompileState::FAIL, "Invalid binary op:%s and %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                if (left->getType() != m_ValuePtrType)
+                    left = CreateLlvmValue(left);
+                if (right->getType() != m_ValuePtrType)
+                    right = CreateLlvmValue(right);
+
+                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueLogicAnd)), { left,right });
+                Push(call);
+            }
             break;
         }
         case OP_OR:
@@ -406,7 +465,15 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             if (left->getType() == m_BoolType && right->getType() == m_BoolType)
                 Push(m_Builder->CreateLogicalAnd(left, right));
             else
-                ERROR(JitCompileState::FAIL, "Invalid binary op:%s or %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                if (left->getType() != m_ValuePtrType)
+                    left = CreateLlvmValue(left);
+                if (right->getType() != m_ValuePtrType)
+                    right = CreateLlvmValue(right);
+
+                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueLogicOr)), { left,right });
+                Push(call);
+            }
             break;
         }
         case OP_BIT_AND:
@@ -421,7 +488,15 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 Push(result);
             }
             else
-                ERROR(JitCompileState::FAIL, "Invalid binary op:%s & %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                if (left->getType() != m_ValuePtrType)
+                    left = CreateLlvmValue(left);
+                if (right->getType() != m_ValuePtrType)
+                    right = CreateLlvmValue(right);
+
+                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueBitAnd)), { left,right });
+                Push(call);
+            }
             break;
         }
         case OP_BIT_OR:
@@ -436,19 +511,33 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 Push(result);
             }
             else
-                ERROR(JitCompileState::FAIL, "Invalid binary op:%s | %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                if (left->getType() != m_ValuePtrType)
+                    left = CreateLlvmValue(left);
+                if (right->getType() != m_ValuePtrType)
+                    right = CreateLlvmValue(right);
+
+                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueBitOr)), { left,right });
+                Push(call);
+            }
             break;
         }
         case OP_BIT_NOT:
         {
             auto value = Pop().GetLlvmValue();
-            if (value->getType() == m_BoolType)
+            if (value->getType() == m_DoubleType)
             {
                 value = m_Builder->CreateFPToSI(value, m_Int64Type);
                 Push(m_Builder->CreateXor(value, -1));
             }
             else
-                ERROR(JitCompileState::FAIL, "Invalid binary op:~ %s.", GetTypeName(value->getType()).c_str());
+            {
+                if (value->getType() != m_ValuePtrType)
+                    value = CreateLlvmValue(value);
+
+                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueBitNot)), { value });
+                Push(call);
+            }
             break;
         }
         case OP_BIT_XOR:
@@ -463,7 +552,15 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 Push(result);
             }
             else
-                ERROR(JitCompileState::FAIL, "Invalid binary op:%s ^ %s.", GetTypeName(left->getType()).c_str(), GetTypeName(right->getType()).c_str());
+            {
+                if (left->getType() != m_ValuePtrType)
+                    left = CreateLlvmValue(left);
+                if (right->getType() != m_ValuePtrType)
+                    right = CreateLlvmValue(right);
+
+                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueBitXor)), { left,right });
+                Push(call);
+            }
             break;
         }
         case OP_GET_INDEX:
@@ -485,6 +582,18 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                         llvm::Value *memberAddr = m_Builder->CreateInBoundsGEP(vArrayType, ds, { m_Builder->getInt32(0), iIndex });
                         Push(memberAddr);
                     }
+                }
+                else if (ds->getType() == m_ArrayObjectPtrType && index->getType() == m_DoubleType)
+                {
+                    ds = CreateLlvmValue(ds);
+                    index = CreateLlvmValue(index);
+
+                    auto result = m_Builder->CreateAlloca(m_ValueType, nullptr);
+
+                    m_Builder->CreateCall(m_Module->getFunction(STR(GetArrayObjectElement)), { ds,index,result });
+
+                    Push(result);
+                    isSatis = true;
                 }
             }
 
@@ -867,7 +976,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                             argsV.emplace_back(v);
                     }
 
-                    m_StackTop = m_StackTop-(argCount+1);
+                    m_StackTop = m_StackTop - (argCount + 1);
 
                     auto valueArrayType = llvm::ArrayType::get(m_ValueType, argsV.size());
 
@@ -1284,6 +1393,32 @@ void Jit::InitInternalFunctions()
 
     fnType = llvm::FunctionType::get(m_ValuePtrType, { m_ValuePtrType }, false);
     m_Module->getOrInsertFunction(STR(GetEndOfRefValuePtr), fnType);
+
+    fnType = llvm::FunctionType::get(m_VoidType, { m_ValuePtrType,m_ValuePtrType ,m_ValuePtrType }, false);
+    m_Module->getOrInsertFunction(STR(ValueAdd), fnType);
+    m_Module->getOrInsertFunction(STR(GetArrayObjectElement), fnType);
+
+    fnType = llvm::FunctionType::get(m_DoubleType, { m_ValuePtrType,m_ValuePtrType }, false);
+    m_Module->getOrInsertFunction(STR(ValueSub), fnType);
+    m_Module->getOrInsertFunction(STR(ValueMul), fnType);
+    m_Module->getOrInsertFunction(STR(ValueDiv), fnType);
+    m_Module->getOrInsertFunction(STR(ValueBitAnd), fnType);
+    m_Module->getOrInsertFunction(STR(ValueBitOr), fnType);
+    m_Module->getOrInsertFunction(STR(ValueBitXor), fnType);
+
+    fnType = llvm::FunctionType::get(m_BoolType, { m_ValuePtrType,m_ValuePtrType }, false);
+    m_Module->getOrInsertFunction(STR(ValueGreater), fnType);
+    m_Module->getOrInsertFunction(STR(ValueLess), fnType);
+    m_Module->getOrInsertFunction(STR(ValueEqual), fnType);
+    m_Module->getOrInsertFunction(STR(ValueLogicAnd), fnType);
+    m_Module->getOrInsertFunction(STR(ValueLogicOr), fnType);
+
+    fnType = llvm::FunctionType::get(m_BoolType, { m_ValuePtrType }, false);
+    m_Module->getOrInsertFunction(STR(ValueLogicNot), fnType);
+
+    fnType = llvm::FunctionType::get(m_DoubleType, { m_ValuePtrType }, false);
+    m_Module->getOrInsertFunction(STR(ValueBitNot), fnType);
+    m_Module->getOrInsertFunction(STR(ValueMinus), fnType);
 }
 
 llvm::Value *Jit::CreateLlvmValue(llvm::Value *v)

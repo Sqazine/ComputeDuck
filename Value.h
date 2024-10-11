@@ -67,27 +67,29 @@ struct COMPUTE_DUCK_API Value
 bool operator==(const Value &left, const Value &right);
 bool operator!=(const Value &left, const Value &right);
 
-extern "C" COMPUTE_DUCK_API Value FindActualValue(const Value &v);
+extern "C" COMPUTE_DUCK_API void FindActualValue(const Value &v,Value& result);
 extern "C" COMPUTE_DUCK_API Value *GetEndOfRefValuePtr(Value *v);
-extern "C" COMPUTE_DUCK_API Value GetEndOfRefValue(const Value &v);
+extern "C" COMPUTE_DUCK_API void GetEndOfRefValue(const Value &v, Value &result);
 
 
-extern "C" COMPUTE_DUCK_API Value ValueAdd(const Value &l,const Value& r);
-extern "C" COMPUTE_DUCK_API Value ValueSub(const Value &l,const Value& r);
-extern "C" COMPUTE_DUCK_API Value ValueMul(const Value &l,const Value& r);
-extern "C" COMPUTE_DUCK_API Value ValueDiv(const Value &l,const Value& r);
+extern "C" COMPUTE_DUCK_API void ValueAdd(const Value &l,const Value& r,Value& result);
+extern "C" COMPUTE_DUCK_API double ValueSub(const Value &l, const Value &r);
+extern "C" COMPUTE_DUCK_API double ValueMul(const Value &l, const Value &r);
+extern "C" COMPUTE_DUCK_API double ValueDiv(const Value &l, const Value &r);
 
-extern "C" COMPUTE_DUCK_API Value ValueGreater(const Value &l,const Value& r);
-extern "C" COMPUTE_DUCK_API Value ValueLess(const Value &l,const Value& r);
-extern "C" COMPUTE_DUCK_API Value ValueEqual(const Value &l,const Value& r);
+extern "C" COMPUTE_DUCK_API bool ValueGreater(const Value &l, const Value &r);
+extern "C" COMPUTE_DUCK_API bool ValueLess(const Value &l, const Value &r);
+extern "C" COMPUTE_DUCK_API bool ValueEqual(const Value &l, const Value &r);
 
-extern "C" COMPUTE_DUCK_API Value ValueLogicAnd(const Value &l,const Value& r);
-extern "C" COMPUTE_DUCK_API Value ValueLogicOr(const Value &l,const Value& r);
+extern "C" COMPUTE_DUCK_API bool ValueLogicAnd(const Value &l, const Value &r);
+extern "C" COMPUTE_DUCK_API bool ValueLogicOr(const Value &l, const Value &r);
 
-extern "C" COMPUTE_DUCK_API Value ValueBitAnd(const Value &l,const Value& r);
-extern "C" COMPUTE_DUCK_API Value ValueBitOr(const Value &l,const Value& r);
-extern "C" COMPUTE_DUCK_API Value ValueBitXor(const Value &l,const Value& r);
+extern "C" COMPUTE_DUCK_API double ValueBitAnd(const Value &l, const Value &r);
+extern "C" COMPUTE_DUCK_API double ValueBitOr(const Value &l, const Value &r);
+extern "C" COMPUTE_DUCK_API double ValueBitXor(const Value &l, const Value &r);
 
-extern "C" COMPUTE_DUCK_API Value ValueLogicNot(const Value &l);
-extern "C" COMPUTE_DUCK_API Value ValueBitNot(const Value &l);
-extern "C" COMPUTE_DUCK_API Value ValueMinus(const Value &l);
+extern "C" COMPUTE_DUCK_API bool ValueLogicNot(const Value &l);
+extern "C" COMPUTE_DUCK_API double ValueBitNot(const Value &l);
+extern "C" COMPUTE_DUCK_API double ValueMinus(const Value &l);
+
+extern "C" COMPUTE_DUCK_API void GetArrayObjectElement(const Value& ds, const Value & index,Value& result);

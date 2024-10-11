@@ -54,12 +54,11 @@ bool operator!=(const Value &left, const Value &right)
     return !(left == right);
 }
 
-Value FindActualValue(const Value &v)
+void FindActualValue(const Value &v, Value &result)
 {
-    auto value = GetEndOfRefValue(v);
-    if (IS_BUILTIN_VALUE(value) && TO_BUILTIN_VALUE(value)->Is<Value>())
-        value = TO_BUILTIN_VALUE(value)->Get<Value>();
-    return value;
+    GetEndOfRefValue(v, result);
+    if (IS_BUILTIN_VALUE(result) && TO_BUILTIN_VALUE(result)->Is<Value>())
+        result = TO_BUILTIN_VALUE(result)->Get<Value>();
 }
 
 Value *GetEndOfRefValuePtr(Value *v)
@@ -70,20 +69,20 @@ Value *GetEndOfRefValuePtr(Value *v)
     return result;
 }
 
-Value GetEndOfRefValue(const Value &v)
+void GetEndOfRefValue(const Value &v, Value &result)
 {
-    auto value = v;
-    while (IS_REF_VALUE(value))
-        value = *TO_REF_VALUE(value)->pointer;
-    return value;
+    result = v;
+    while (IS_REF_VALUE(result))
+        result = *TO_REF_VALUE(result)->pointer;
 }
 
 //  - * /
 #define COMMON_BINARY(l, op, r)                                                                               \
     do                                                                                                        \
     {                                                                                                         \
-        auto left = FindActualValue(l);                                                                       \
-        auto right = FindActualValue(r);                                                                      \
+        Value left, right;                                                                                    \
+        FindActualValue(l, left);                                                                             \
+        FindActualValue(r, right);                                                                            \
         if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                                        \
             return (TO_NUM_VALUE(left) op TO_NUM_VALUE(right));                                               \
         else                                                                                                  \
@@ -91,25 +90,27 @@ Value GetEndOfRefValue(const Value &v)
     } while (0);
 
 // > >= < <=
-#define COMPARE_BINARY(l, op, r)                                                             \
-    do                                                                                       \
-    {                                                                                        \
-        Value left = FindActualValue(l);                                                     \
-        Value right = FindActualValue(r);                                                    \
-        if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                       \
-            return (TO_NUM_VALUE(left) op TO_NUM_VALUE(right) ? Value(true) : Value(false)); \
-        else                                                                                 \
-            return (false);                                                                  \
+#define COMPARE_BINARY(l, op, r)                                               \
+    do                                                                         \
+    {                                                                          \
+        Value left, right;                                                     \
+        FindActualValue(l, left);                                              \
+        FindActualValue(r, right);                                             \
+        if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                         \
+            return (TO_NUM_VALUE(left) op TO_NUM_VALUE(right) ? true : false); \
+        else                                                                   \
+            return (false);                                                    \
     } while (0);
 
 // and or
 #define LOGIC_BINARY(l, op, r)                                                                         \
     do                                                                                                 \
     {                                                                                                  \
-        Value left = FindActualValue(l);                                                               \
-        Value right = FindActualValue(r);                                                              \
+        Value left, right;                                                                             \
+        FindActualValue(l, left);                                                                      \
+        FindActualValue(r, right);                                                                     \
         if (IS_BOOL_VALUE(right) && IS_BOOL_VALUE(left))                                               \
-            return (TO_BOOL_VALUE(left) op TO_BOOL_VALUE(right) ? Value(true) : Value(false));         \
+            return (TO_BOOL_VALUE(left) op TO_BOOL_VALUE(right) ? true : false);                       \
         else                                                                                           \
             ASSERT("Invalid op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
     } while (0);
@@ -117,103 +118,122 @@ Value GetEndOfRefValue(const Value &v)
 #define BIT_BINARY(l, op, r)                                                                           \
     do                                                                                                 \
     {                                                                                                  \
-        Value left = FindActualValue(l);                                                               \
-        Value right = FindActualValue(r);                                                              \
+        Value left, right;                                                                             \
+        FindActualValue(l, left);                                                                      \
+        FindActualValue(r, right);                                                                     \
         if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                                 \
             return ((uint64_t)TO_NUM_VALUE(left) op(uint64_t) TO_NUM_VALUE(right));                    \
         else                                                                                           \
             ASSERT("Invalid op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
     } while (0);
 
-COMPUTE_DUCK_API Value ValueAdd(const Value &l, const Value &r)
+COMPUTE_DUCK_API void ValueAdd(const Value &l, const Value &r, Value &result)
 {
-    auto left = FindActualValue(l);
-    auto right = FindActualValue(r);
+    Value left, right;
+    FindActualValue(l, left);
+    FindActualValue(r, right);
     if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))
-        return (TO_NUM_VALUE(left) + TO_NUM_VALUE(right));
+        result = (TO_NUM_VALUE(left) + TO_NUM_VALUE(right));
     else if (IS_STR_VALUE(right) && IS_STR_VALUE(left))
-        return (StrAdd(TO_STR_VALUE(left), TO_STR_VALUE(right)));
+        result = (StrAdd(TO_STR_VALUE(left), TO_STR_VALUE(right)));
     else
         ASSERT("Invalid binary op:%s+%s", left.Stringify().c_str(), right.Stringify().c_str());
 }
 
-COMPUTE_DUCK_API Value ValueSub(const Value &l, const Value &r)
+COMPUTE_DUCK_API double ValueSub(const Value &l, const Value &r)
 {
     COMMON_BINARY(l, -, r);
 }
 
-COMPUTE_DUCK_API Value ValueMul(const Value &l, const Value &r)
+COMPUTE_DUCK_API double ValueMul(const Value &l, const Value &r)
 {
     COMMON_BINARY(l, *, r);
 }
 
-COMPUTE_DUCK_API Value ValueDiv(const Value &l, const Value &r)
+COMPUTE_DUCK_API double ValueDiv(const Value &l, const Value &r)
 {
     COMMON_BINARY(l, /, r);
 }
 
-COMPUTE_DUCK_API Value ValueGreater(const Value &l, const Value &r)
+COMPUTE_DUCK_API bool ValueGreater(const Value &l, const Value &r)
 {
     COMPARE_BINARY(l, >, r);
 }
 
-COMPUTE_DUCK_API Value ValueLess(const Value &l, const Value &r)
+COMPUTE_DUCK_API bool ValueLess(const Value &l, const Value &r)
 {
     COMPARE_BINARY(l, <, r);
 }
 
-COMPUTE_DUCK_API Value ValueEqual(const Value &l, const Value &r)
+COMPUTE_DUCK_API bool ValueEqual(const Value &l, const Value &r)
 {
-    Value left = FindActualValue(l);
-    Value right = FindActualValue(r);
+    Value left, right;
+    FindActualValue(l, left);
+    FindActualValue(r, right);
     return left == right;
 }
 
-COMPUTE_DUCK_API Value ValueLogicAnd(const Value &l, const Value &r)
+COMPUTE_DUCK_API bool ValueLogicAnd(const Value &l, const Value &r)
 {
     LOGIC_BINARY(l, &&, r);
 }
 
-COMPUTE_DUCK_API Value ValueLogicOr(const Value &l, const Value &r)
+COMPUTE_DUCK_API bool ValueLogicOr(const Value &l, const Value &r)
 {
     LOGIC_BINARY(l, ||, r);
 }
 
-COMPUTE_DUCK_API Value ValueBitAnd(const Value &l, const Value &r)
+COMPUTE_DUCK_API double ValueBitAnd(const Value &l, const Value &r)
 {
     BIT_BINARY(l, &, r);
 }
 
-COMPUTE_DUCK_API Value ValueBitOr(const Value &l, const Value &r)
+COMPUTE_DUCK_API double ValueBitOr(const Value &l, const Value &r)
 {
     BIT_BINARY(l, &, r);
 }
 
-COMPUTE_DUCK_API Value ValueBitXor(const Value &l, const Value &r)
+COMPUTE_DUCK_API double ValueBitXor(const Value &l, const Value &r)
 {
     BIT_BINARY(l, ^, r);
 }
 
-COMPUTE_DUCK_API Value ValueLogicNot(const Value &l)
+COMPUTE_DUCK_API bool ValueLogicNot(const Value &l)
 {
-    auto value = FindActualValue(l);
+    Value value;
+    FindActualValue(l, value);
     if (!IS_BOOL_VALUE(value))
         ASSERT("Invalid op:'!' %s", value.Stringify().c_str());
     return (!TO_BOOL_VALUE(value));
 }
 
-COMPUTE_DUCK_API Value ValueBitNot(const Value &l)
+COMPUTE_DUCK_API double ValueBitNot(const Value &l)
 {
-    Value value = FindActualValue(l);
+    Value value;
+    FindActualValue(l, value);
     if (!IS_NUM_VALUE(value))
         ASSERT("Invalid op:~ %s", value.Stringify().c_str());
     return (~(uint64_t)TO_NUM_VALUE(value));
 }
 
-COMPUTE_DUCK_API Value ValueMinus(const Value &l)
+COMPUTE_DUCK_API double ValueMinus(const Value &l)
 {
-    auto value = FindActualValue(l);
+    Value value;
+    FindActualValue(l, value);
     if (!IS_NUM_VALUE(value))
         ASSERT("Invalid op:'-' %s", value.Stringify().c_str());
     return (-TO_NUM_VALUE(value));
+}
+
+COMPUTE_DUCK_API void GetArrayObjectElement(const Value &ds, const Value &index, Value &result)
+{
+    if (IS_ARRAY_VALUE(ds) && IS_NUM_VALUE(index))
+    {
+        auto array = TO_ARRAY_VALUE(ds);
+        auto i = (size_t)TO_NUM_VALUE(index);
+        if (!(i < 0 || i >= array->len))
+            result = array->elements[i];
+    }
+    else
+        ASSERT("Invalid index op: %s[%s]", ds.Stringify().c_str(), index.Stringify().c_str());
 }
