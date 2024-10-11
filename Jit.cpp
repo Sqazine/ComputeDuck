@@ -867,6 +867,8 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                             argsV.emplace_back(v);
                     }
 
+                    m_StackTop = m_StackTop-(argCount+1);
+
                     auto valueArrayType = llvm::ArrayType::get(m_ValueType, argsV.size());
 
                     auto arg0 = m_Builder->CreateAlloca(valueArrayType);
@@ -1161,6 +1163,10 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
 
 void Jit::InitModuleAndPassManager()
 {
+    m_FPM.reset(nullptr);
+    m_Module.reset(nullptr);
+    m_Context.reset(nullptr);
+
     m_Context = std::make_unique<llvm::LLVMContext>();
 
     m_Module = std::make_unique<llvm::Module>("ComputeDuck LLVM JIT", *m_Context);

@@ -12,9 +12,7 @@
         printf("[file:%s,function:%s,line:%d]:", __FILE__, __FUNCTION__, __LINE__);                 \
         printf(__VA_ARGS__);                                                                        \
         printf("\n");                                                                               \
-        auto &basicBlockListFront = m_Module->getFunctionList().back().getBasicBlockList().front(); \
-        if (!m_Module->getFunctionList().empty() && basicBlockListFront.empty())                    \
-            m_Module->getFunctionList().pop_back();                                                 \
+        InitModuleAndPassManager();                                                                 \
         jitFnDecl.state = newState;                                                                 \
         return jitFnDecl;                                                                           \
     } while (false);
@@ -22,9 +20,7 @@
 #define ERROR(...)                                                                                  \
     do                                                                                              \
     {                                                                                               \
-        auto &basicBlockListFront = m_Module->getFunctionList().back().getBasicBlockList().front(); \
-        if (!m_Module->getFunctionList().empty() && basicBlockListFront.empty())                    \
-            m_Module->getFunctionList().pop_back();                                                 \
+        InitModuleAndPassManager();                                                                 \
         jitFnDecl.state = newState;                                                                 \
         return jitFnDecl;                                                                           \
     } while (false);
@@ -33,7 +29,7 @@
 std::string GenerateUUID();
 
 constexpr uint32_t JIT_TRIGGER_COUNT = 2;
-constexpr uint8_t JIT_FUNCTION_MAX_PARAMETER_COUNT = 5;
+constexpr uint8_t JIT_FUNCTION_MAX_PARAMETER_COUNT = 6;
 
 constexpr const char *GLOBAL_VARIABLE_STR = "m_GlobalVariables";
 constexpr const char *SET_GLOBAL_VARIABLE_FN_STR = "function_SetGlobalVariables";
