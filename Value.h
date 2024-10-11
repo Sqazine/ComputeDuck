@@ -70,3 +70,24 @@ bool operator!=(const Value &left, const Value &right);
 extern "C" COMPUTE_DUCK_API Value FindActualValue(const Value &v);
 extern "C" COMPUTE_DUCK_API Value *GetEndOfRefValuePtr(Value *v);
 extern "C" COMPUTE_DUCK_API Value GetEndOfRefValue(const Value &v);
+
+
+extern "C" COMPUTE_DUCK_API Value ValueAdd(const Value &l,const Value& r);
+extern "C" COMPUTE_DUCK_API Value ValueSub(const Value &l,const Value& r);
+extern "C" COMPUTE_DUCK_API Value ValueMul(const Value &l,const Value& r);
+extern "C" COMPUTE_DUCK_API Value ValueDiv(const Value &l,const Value& r);
+
+extern "C" COMPUTE_DUCK_API Value ValueGreater(const Value &l,const Value& r);
+extern "C" COMPUTE_DUCK_API Value ValueLess(const Value &l,const Value& r);
+extern "C" COMPUTE_DUCK_API Value ValueEqual(const Value &l,const Value& r);
+
+extern "C" COMPUTE_DUCK_API Value ValueLogicAnd(const Value &l,const Value& r);
+extern "C" COMPUTE_DUCK_API Value ValueLogicOr(const Value &l,const Value& r);
+
+extern "C" COMPUTE_DUCK_API Value ValueBitAnd(const Value &l,const Value& r);
+extern "C" COMPUTE_DUCK_API Value ValueBitOr(const Value &l,const Value& r);
+extern "C" COMPUTE_DUCK_API Value ValueBitXor(const Value &l,const Value& r);
+
+extern "C" COMPUTE_DUCK_API Value ValueLogicNot(const Value &l);
+extern "C" COMPUTE_DUCK_API Value ValueBitNot(const Value &l);
+extern "C" COMPUTE_DUCK_API Value ValueMinus(const Value &l);

@@ -37,53 +37,6 @@ void VM::Run(FunctionObject *fn)
 
 void VM::Execute()
 {
-    //  - * /
-#define COMMON_BINARY(op)                                                                                     \
-    do                                                                                                        \
-    {                                                                                                         \
-        auto left = FindActualValue(POP());                                                                   \
-        auto right = FindActualValue(POP());                                                                  \
-        if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                                        \
-            PUSH(TO_NUM_VALUE(left) op TO_NUM_VALUE(right));                                                  \
-        else                                                                                                  \
-            ASSERT("Invalid binary op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
-    } while (0);
-
-// > >= < <=
-#define COMPARE_BINARY(op)                                                                \
-    do                                                                                    \
-    {                                                                                     \
-        Value left = FindActualValue(POP());                                              \
-        Value right = FindActualValue(POP());                                             \
-        if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                    \
-            PUSH(TO_NUM_VALUE(left) op TO_NUM_VALUE(right) ? Value(true) : Value(false)); \
-        else                                                                              \
-            PUSH(false);                                                                  \
-    } while (0);
-
-// and or
-#define LOGIC_BINARY(op)                                                                               \
-    do                                                                                                 \
-    {                                                                                                  \
-        Value left = FindActualValue(POP());                                                           \
-        Value right = FindActualValue(POP());                                                          \
-        if (IS_BOOL_VALUE(right) && IS_BOOL_VALUE(left))                                               \
-            PUSH(TO_BOOL_VALUE(left) op TO_BOOL_VALUE(right) ? Value(true) : Value(false));            \
-        else                                                                                           \
-            ASSERT("Invalid op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
-    } while (0);
-
-#define BIT_BINARY(op)                                                                                 \
-    do                                                                                                 \
-    {                                                                                                  \
-        Value left = FindActualValue(POP());                                                           \
-        Value right = FindActualValue(POP());                                                          \
-        if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                                 \
-            PUSH((uint64_t)TO_NUM_VALUE(left) op(uint64_t) TO_NUM_VALUE(right));                       \
-        else                                                                                           \
-            ASSERT("Invalid op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
-    } while (0);
-
     while (1)
     {
         auto frame = PEEK_CALL_FRAME_FROM_BACK(1);
@@ -138,95 +91,77 @@ void VM::Execute()
         }
         case OP_ADD:
         {
-            Value left = FindActualValue(POP());
-            Value right = FindActualValue(POP());
-            if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))
-                PUSH(TO_NUM_VALUE(left) + TO_NUM_VALUE(right));
-            else if (IS_STR_VALUE(right) && IS_STR_VALUE(left))
-                PUSH(StrAdd(TO_STR_VALUE(left), TO_STR_VALUE(right)));
-            else
-                ASSERT("Invalid binary op:%s+%s", left.Stringify().c_str(), right.Stringify().c_str());
+            PUSH(ValueAdd(POP(), POP()));
             break;
         }
         case OP_SUB:
         {
-            COMMON_BINARY(-);
+            PUSH(ValueSub(POP(), POP()));
             break;
         }
         case OP_MUL:
         {
-            COMMON_BINARY(*);
+            PUSH(ValueMul(POP(), POP()));
             break;
         }
         case OP_DIV:
         {
-            COMMON_BINARY(/ );
+            PUSH(ValueDiv(POP(), POP()));
             break;
         }
         case OP_GREATER:
         {
-            COMPARE_BINARY(> );
+            PUSH(ValueGreater(POP(), POP()));
             break;
         }
         case OP_LESS:
         {
-            COMPARE_BINARY(< );
+            PUSH(ValueLess(POP(), POP()));
             break;
         }
         case OP_EQUAL:
         {
-            Value left = FindActualValue(POP());
-            Value right = FindActualValue(POP());
-            PUSH(left == right);
+            PUSH(ValueEqual(POP(), POP()));
             break;
         }
         case OP_NOT:
         {
-            auto value = FindActualValue(POP());
-            if (!IS_BOOL_VALUE(value))
-                ASSERT("Invalid op:'!' %s", value.Stringify().c_str());
-            PUSH(!TO_BOOL_VALUE(value));
+            PUSH(ValueLogicNot(POP()));
             break;
         }
         case OP_MINUS:
         {
-            auto value = FindActualValue(POP());
-            if (!IS_NUM_VALUE(value))
-                ASSERT("Invalid op:'-' %s", value.Stringify().c_str());
-            PUSH(-TO_NUM_VALUE(value));
+            PUSH(ValueMinus(POP()));
             break;
         }
         case OP_AND:
         {
-            LOGIC_BINARY(&&);
+            PUSH(ValueLogicAnd(POP(), POP()));
             break;
         }
         case OP_OR:
         {
-            LOGIC_BINARY(|| );
+            PUSH(ValueLogicOr(POP(), POP()));
             break;
         }
         case OP_BIT_AND:
         {
-            BIT_BINARY(&);
+            PUSH(ValueBitAnd(POP(), POP()));
             break;
         }
         case OP_BIT_OR:
         {
-            BIT_BINARY(| );
+            PUSH(ValueBitOr(POP(), POP()));
             break;
         }
         case OP_BIT_XOR:
         {
-            BIT_BINARY(^);
+            PUSH(ValueBitXor(POP(), POP()));
             break;
         }
         case OP_BIT_NOT:
         {
-            Value value = FindActualValue(POP());
-            if (!IS_NUM_VALUE(value))
-                ASSERT("Invalid op:~ %s", value.Stringify().c_str());
-            PUSH(~(uint64_t)TO_NUM_VALUE(value));
+            PUSH(ValueBitNot(POP()));
             break;
         }
         case OP_ARRAY:
