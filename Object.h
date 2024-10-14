@@ -198,7 +198,7 @@ COMPUTE_DUCK_API std::string ObjectStringify(Object *object
 COMPUTE_DUCK_API void ObjectMark(Object *object);
 COMPUTE_DUCK_API void ObjectUnMark(Object *object);
 
-COMPUTE_DUCK_API bool IsObjectEqual(Object *left, Object *right);
+extern "C" COMPUTE_DUCK_API bool IsObjectEqual(Object *left, Object *right);
 
 extern "C" COMPUTE_DUCK_API StrObject *StrAdd(StrObject *left, StrObject *right);
 extern "C" COMPUTE_DUCK_API void StrInsert(StrObject *left, uint32_t idx, StrObject *right);
