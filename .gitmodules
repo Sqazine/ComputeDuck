@@ -1,8 +1,0 @@
-[submodule "3rd/SDL2"]
-	path = 3rd/SDL2
-	url = https://github.com/libsdl-org/SDL.git
-	branch = release-2.28.x
-[submodule "3rd/llvm"]
-	path = 3rd/llvm
-	url = https://github.com/llvm/llvm-project.git
-	branch = release/14.x

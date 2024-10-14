@@ -1,3 +1,5 @@
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+
 #include "Jit.h"
 #include "Allocator.h"
 #include "BuiltinManager.h"
@@ -1603,3 +1605,5 @@ bool Jit::IsObjectType(llvm::Type *type)
         type == m_RefObjectPtrType ||
         type == m_StructObjectPtrType;
 }
+
+#endif

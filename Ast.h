@@ -36,7 +36,7 @@ enum class AstType
 struct AstNode
 {
 	AstNode(AstType type) : type(type) {}
-	virtual ~AstNode() {}
+	virtual ~AstNode() = default;
 
 	virtual std::string Stringify() = 0;
 
@@ -46,7 +46,7 @@ struct AstNode
 struct Expr : public AstNode
 {
 	Expr(AstType type) : AstNode(type) {}
-	virtual ~Expr() {}
+	virtual ~Expr() = default;
 
 	virtual std::string Stringify() = 0;
 };
@@ -55,7 +55,7 @@ struct NumExpr : public Expr
 {
 	NumExpr() : Expr(AstType::NUM), value(0.0) {}
 	NumExpr(double value) : Expr(AstType::NUM), value(value) {}
-	~NumExpr() override {}
+	~NumExpr() override = default;
 
 	std::string Stringify() override { return std::to_string(value); }
 
@@ -66,7 +66,7 @@ struct StrExpr : public Expr
 {
 	StrExpr() : Expr(AstType::STR) {}
 	StrExpr(std::string_view str) : Expr(AstType::STR), value(str) {}
-	~StrExpr() override {}
+	~StrExpr() override = default;
 
 	std::string Stringify() override { return "\"" + value + "\""; }
 
@@ -76,7 +76,7 @@ struct StrExpr : public Expr
 struct NilExpr : public Expr
 {
 	NilExpr() : Expr(AstType::NIL) {}
-	~NilExpr() override {}
+	~NilExpr() override = default;
 
 	std::string Stringify() override { return "nil"; }
 };
@@ -85,7 +85,7 @@ struct BoolExpr : public Expr
 {
 	BoolExpr() : Expr(AstType::BOOL), value(false) {}
 	BoolExpr(bool value) : Expr(AstType::BOOL), value(value) {}
-	~BoolExpr() override {}
+	~BoolExpr() override = default;
 
 	std::string Stringify() override { return value ? "true" : "false"; }
 	bool value;
@@ -95,7 +95,7 @@ struct IdentifierExpr : public Expr
 {
 	IdentifierExpr() : Expr(AstType::IDENTIFIER) {}
 	IdentifierExpr(std::string_view literal) : Expr(AstType::IDENTIFIER), literal(literal) {}
-	~IdentifierExpr() override {}
+	~IdentifierExpr() override = default;
 
 	std::string Stringify() override { return literal; }
 
@@ -106,10 +106,7 @@ struct ArrayExpr : public Expr
 {
 	ArrayExpr() : Expr(AstType::ARRAY) {}
 	ArrayExpr(std::vector<Expr *> elements) : Expr(AstType::ARRAY), elements(elements) {}
-	~ArrayExpr() override
-	{
-		std::vector<Expr *>().swap(elements);
-	}
+	~ArrayExpr() override { std::vector<Expr *>().swap(elements); }
 
 	std::string Stringify() override
 	{
@@ -132,10 +129,7 @@ struct GroupExpr : public Expr
 {
 	GroupExpr() : Expr(AstType::GROUP), expr(nullptr) {}
 	GroupExpr(Expr *expr) : Expr(AstType::GROUP), expr(expr) {}
-	~GroupExpr() override
-	{
-		SAFE_DELETE(expr);
-	}
+	~GroupExpr() override { SAFE_DELETE(expr); }
 
 	std::string Stringify() override { return "(" + expr->Stringify() + ")"; }
 
@@ -146,10 +140,7 @@ struct PrefixExpr : public Expr
 {
 	PrefixExpr() : Expr(AstType::PREFIX), right(nullptr) {}
 	PrefixExpr(std::string_view op, Expr *right) : Expr(AstType::PREFIX), op(op), right(right) {}
-	~PrefixExpr() override
-	{
-		SAFE_DELETE(right);
-	}
+	~PrefixExpr() override { SAFE_DELETE(right); }
 
 	std::string Stringify() override { return op + right->Stringify(); }
 
@@ -193,10 +184,7 @@ struct RefExpr : public Expr
 {
 	RefExpr() : Expr(AstType::REF), refExpr(nullptr) {}
 	RefExpr(Expr *refExpr) : Expr(AstType::REF), refExpr(refExpr) {}
-	~RefExpr() override
-	{
-		SAFE_DELETE(refExpr);
-	}
+	~RefExpr() override { SAFE_DELETE(refExpr); }
 	std::string Stringify() override { return "ref " + refExpr->Stringify(); }
 
 	Expr *refExpr;
@@ -250,9 +238,7 @@ struct DllImportExpr : public Expr
 {
 	DllImportExpr() : Expr(AstType::DLL_IMPORT) {}
 	DllImportExpr(std::string_view path) : Expr(AstType::DLL_IMPORT), dllPath(path) {}
-	~DllImportExpr() override
-	{
-	}
+	~DllImportExpr() override = default;
 
 	std::string Stringify() override { return "dllimport(\"" + dllPath + "\")"; }
 
@@ -271,10 +257,7 @@ struct ExprStmt : public Stmt
 {
 	ExprStmt() : Stmt(AstType::EXPR), expr(nullptr) {}
 	ExprStmt(Expr *expr) : Stmt(AstType::EXPR), expr(expr) {}
-	~ExprStmt() override
-	{
-		SAFE_DELETE(expr);
-	}
+	~ExprStmt() override { SAFE_DELETE(expr); }
 
 	std::string Stringify() override { return expr->Stringify() + ";"; }
 
@@ -285,10 +268,7 @@ struct ReturnStmt : public Stmt
 {
 	ReturnStmt() : Stmt(AstType::RETURN), expr(nullptr) {}
 	ReturnStmt(Expr *expr) : Stmt(AstType::RETURN), expr(expr) {}
-	~ReturnStmt() override
-	{
-		SAFE_DELETE(expr);
-	}
+	~ReturnStmt() override { SAFE_DELETE(expr); }
 
 	std::string Stringify() override { return "return " + expr->Stringify() + ";"; }
 
@@ -351,7 +331,6 @@ struct FunctionExpr : public Expr
 	~FunctionExpr() override
 	{
 		std::vector<IdentifierExpr *>().swap(parameters);
-
 		SAFE_DELETE(body);
 	}
 
@@ -414,10 +393,7 @@ struct StructStmt : public Stmt
 {
 	StructStmt() : Stmt(AstType::STRUCT), body(new StructExpr()) {}
 	StructStmt(std::string_view name, StructExpr *body) : Stmt(AstType::STRUCT), name(name), body(body) {}
-	~StructStmt() override
-	{
-		SAFE_DELETE(body);
-	}
+	~StructStmt() override { SAFE_DELETE(body); }
 
 	std::string Stringify() override
 	{

@@ -1,0 +1,4 @@
+a = 10;
+b = "test";
+c = true == false;
+d = 1+2*3;

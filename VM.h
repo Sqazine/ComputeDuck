@@ -34,4 +34,6 @@ private:
 #endif
 };
 
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
 #include "VM.inl"
+#endif

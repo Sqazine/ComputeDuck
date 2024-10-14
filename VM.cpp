@@ -225,7 +225,7 @@ void VM::Execute()
                 auto array = TO_ARRAY_VALUE(ds);
                 auto i = (size_t)TO_NUM_VALUE(index);
                 if (i < 0 || i >= array->len)
-                    ASSERT("Invalid index:%d outside of array's size:%d", i, array->len)
+                    ASSERT("Invalid index:%ld outside of array's size:%ld", i, array->len)
                 else
                     array->elements[i] = v;
             }

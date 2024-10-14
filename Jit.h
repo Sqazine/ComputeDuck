@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+
 #include <llvm/ADT/APFloat.h>
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/IR/BasicBlock.h>
@@ -255,3 +257,5 @@ private:
     std::unique_ptr<OrcExecutor> m_Executor;
     std::unique_ptr<llvm::legacy::FunctionPassManager> m_FPM;
 };
+
+#endif

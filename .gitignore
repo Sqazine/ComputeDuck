@@ -12,6 +12,7 @@ _deps
 build/
 .vscode
 TmpDump.txt
+3rd/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -1,4 +1,7 @@
 #pragma once
+
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+
 #include <cstdint>
 #include <vector>
 #include <string>
@@ -17,7 +20,7 @@
         return jitFnDecl;                                                                           \
     } while (false);
 #else
-#define ERROR(...)                                                                                  \
+#define ERROR(newState, ...)                                                                                  \
     do                                                                                              \
     {                                                                                               \
         InitModuleAndPassManager();                                                                 \
@@ -25,8 +28,6 @@
         return jitFnDecl;                                                                           \
     } while (false);
 #endif
-
-std::string GenerateUUID();
 
 constexpr uint32_t JIT_TRIGGER_COUNT = 2;
 constexpr uint8_t JIT_FUNCTION_MAX_PARAMETER_COUNT = 6;
@@ -79,6 +80,9 @@ private:
 
 struct Value;
 
+std::string GenerateUUID();
 size_t HashValueList(Value *start, Value *end);
 std::string GenerateFunctionName(const std::string &uuid, size_t returnHash, size_t paramHash);
 std::string GenerateLocalVarName(int16_t scopeDepth, int16_t index, int16_t isUpValue);
+
+#endif

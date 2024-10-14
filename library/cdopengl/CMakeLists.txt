@@ -1,8 +1,12 @@
-if(MSVC)
-    set(CD_OPENGL_LIB_NAME libcdopengl)
-else()
-    set(CD_OPENGL_LIB_NAME cdopengl)
+
+if(WIN32)
+    # Prefix all shared libraries with 'lib'.
+    set(CMAKE_SHARED_LIBRARY_PREFIX "lib")
+    # Prefix all static libraries with 'lib'.
+    set(CMAKE_STATIC_LIBRARY_PREFIX "lib")
 endif()
+
+set(CD_OPENGL_LIB_NAME cdopengl)
 
 file(GLOB glad "${CMAKE_CURRENT_SOURCE_DIR}/glad/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/glad/*.c")
 add_library(${CD_OPENGL_LIB_NAME} SHARED  cdopengl.h  cdopengl.cpp ${glad})

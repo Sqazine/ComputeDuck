@@ -264,7 +264,10 @@ void Lexer::String()
     while (!IsMatchCurChar('\"') && !IsAtEnd())
     {
         if (IsMatchCurChar('\n'))
+        {
             m_Line++;
+            m_Column=1;
+        }
         GetCurCharAndStepOnce();
     }
 
