@@ -5,18 +5,16 @@ std::string Value::Stringify() const
 {
     switch (type)
     {
-    case ValueType::NIL:
-        return "nil";
     case ValueType::NUM:
         return std::to_string(stored);
     case ValueType::BOOL:
         return stored == 1.0 ? "true" : "false";
     case ValueType::OBJECT:
         return ObjectStringify(object);
+    case ValueType::NIL:
     default:
         return "nil";
     }
-    return "nil";
 }
 
 void Value::Mark() const
@@ -190,7 +188,7 @@ COMPUTE_DUCK_API double ValueBitAnd(const Value &l, const Value &r)
 
 COMPUTE_DUCK_API double ValueBitOr(const Value &l, const Value &r)
 {
-    BIT_BINARY(l, &, r);
+    BIT_BINARY(l, |, r);
 }
 
 COMPUTE_DUCK_API double ValueBitXor(const Value &l, const Value &r)

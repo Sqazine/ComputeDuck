@@ -10,3 +10,19 @@ upvalue=function(x)
 };
 
 println(upvalue(100));
+
+fn = function(a,b)
+{
+    a = 10;
+    {
+        b = 10 + a;
+        fn2 = function(x)
+        {
+            return x+b;
+        };
+        return fn2;
+    }
+    
+};
+
+println(fn(10,20)(30));

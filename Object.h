@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <cstring>
 #include <string_view>
 #include <unordered_map>
 #include <functional>
@@ -58,10 +59,7 @@ struct StrObject : public Object
 
         hash= HashString(value);
     }
-    ~StrObject()
-    {
-        SAFE_DELETE_ARRAY(value);
-    }
+    ~StrObject() { SAFE_DELETE_ARRAY(value); }
 
     char *value;
     size_t len;
@@ -72,10 +70,7 @@ struct StrObject : public Object
 struct ArrayObject : public Object
 {
     ArrayObject(Value *eles, size_t len) :Object(ObjectType::ARRAY), elements(eles), len(len) {}
-    ~ArrayObject()
-    {
-        // SAFE_DELETE_ARRAY(elements);
-    }
+    ~ArrayObject() = default;
 
     Value *elements;
     size_t len;
@@ -198,7 +193,7 @@ COMPUTE_DUCK_API std::string ObjectStringify(Object *object
 COMPUTE_DUCK_API void ObjectMark(Object *object);
 COMPUTE_DUCK_API void ObjectUnMark(Object *object);
 
-COMPUTE_DUCK_API bool IsObjectEqual(Object *left, Object *right);
+extern "C" COMPUTE_DUCK_API bool IsObjectEqual(Object *left, Object *right);
 
 extern "C" COMPUTE_DUCK_API StrObject *StrAdd(StrObject *left, StrObject *right);
 extern "C" COMPUTE_DUCK_API void StrInsert(StrObject *left, uint32_t idx, StrObject *right);

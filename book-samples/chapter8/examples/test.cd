@@ -1,0 +1,29 @@
+a=10;
+{
+    a=20;
+    print a;#20
+} 
+
+{
+    b=a;
+    b=30;
+    print b;#30
+} 
+
+print a;#20
+print b;# Error!
+
+
+{
+    b=20;
+    {
+        c=30;
+        print c;#30
+        {
+            d=40;
+            print d;#40
+        }
+        print d;# Error!
+    } 
+    print b;#80
+}

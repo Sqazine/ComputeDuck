@@ -206,20 +206,11 @@ Expr *ConstantFolder::ConstantFold(Expr *expr)
             else if (infix->op == "/")
                 newExpr = new NumExpr(((NumExpr *)infix->left)->value / ((NumExpr *)infix->right)->value);
             else if (infix->op == "&")
-            {
-                auto v = (int64_t)((NumExpr *)infix->left)->value & (int64_t)((NumExpr *)infix->right)->value;
-                newExpr = new NumExpr((double)v);
-            }
+                newExpr = new NumExpr((double)((int64_t)((NumExpr *)infix->left)->value & (int64_t)((NumExpr *)infix->right)->value));
             else if (infix->op == "|")
-            {
-                auto v = (int64_t)((NumExpr *)infix->left)->value | (int64_t)((NumExpr *)infix->right)->value;
-                newExpr = new NumExpr((double)v);
-            }
+                newExpr = new NumExpr((double)((int64_t)((NumExpr *)infix->left)->value | (int64_t)((NumExpr *)infix->right)->value));
             else if (infix->op == "^")
-            {
-                auto v = (int64_t)((NumExpr *)infix->left)->value ^ (int64_t)((NumExpr *)infix->right)->value;
-                newExpr = new NumExpr((double)v);
-            }
+                newExpr = new NumExpr((double)((int64_t)((NumExpr *)infix->left)->value ^ (int64_t)((NumExpr *)infix->right)->value));
             else if (infix->op == "==")
                 newExpr = new BoolExpr(((NumExpr *)infix->left)->value == ((NumExpr *)infix->right)->value);
             else if (infix->op == "!=")

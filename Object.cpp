@@ -2,17 +2,15 @@
 
 std::string ObjectStringify(Object *object
 #ifndef NDEBUG
-    , bool printChunkIfIsFunctionObject
+                            ,
+                            bool printChunkIfIsFunctionObject
 #endif
 )
 {
     switch (object->type)
     {
     case ObjectType::STR:
-    {
-        auto strObj = TO_STR_OBJ(object);
         return TO_STR_OBJ(object)->value;
-    }
     case ObjectType::ARRAY:
     {
         auto arrObj = TO_ARRAY_OBJ(object);
@@ -28,14 +26,14 @@ std::string ObjectStringify(Object *object
     }
     case ObjectType::STRUCT:
     {
-        auto structObj=TO_STRUCT_OBJ(object);
+        auto structObj = TO_STRUCT_OBJ(object);
         std::string result = "struct instance(0x" + PointerAddressToString(object) + "):\n{\n";
         for (size_t i = 0; i < structObj->members->GetCapacity(); ++i)
         {
             if (structObj->members->IsValid(i))
             {
-                auto key= structObj->members->GetEntries()[i].key;
-                auto value= structObj->members->GetEntries()[i].value;
+                auto key = structObj->members->GetEntries()[i].key;
+                auto value = structObj->members->GetEntries()[i].value;
                 result += ObjectStringify(key) + ":" + value.Stringify() + "\n";
             }
         }
@@ -44,9 +42,7 @@ std::string ObjectStringify(Object *object
         return result;
     }
     case ObjectType::REF:
-    {
         return TO_REF_OBJ(object)->pointer->Stringify();
-    }
     case ObjectType::FUNCTION:
     {
         std::string result = "function(0x" + PointerAddressToString(object) + ")";
@@ -81,10 +77,6 @@ void ObjectMark(Object *object)
     object->marked = true;
     switch (object->type)
     {
-    case ObjectType::STR:
-    {
-        break;
-    }
     case ObjectType::ARRAY:
     {
         for (int32_t i = 0; i < TO_ARRAY_OBJ(object)->len; ++i)
@@ -113,6 +105,7 @@ void ObjectMark(Object *object)
             TO_BUILTIN_OBJ(object)->Get<Value>().Mark();
         break;
     }
+    case ObjectType::STR:
     default:
         break;
     }
@@ -123,10 +116,6 @@ void ObjectUnMark(Object *object)
     object->marked = false;
     switch (object->type)
     {
-    case ObjectType::STR:
-    {
-        break;
-    }
     case ObjectType::ARRAY:
     {
         for (int32_t i = 0; i < TO_ARRAY_OBJ(object)->len; ++i)
@@ -155,6 +144,7 @@ void ObjectUnMark(Object *object)
             TO_BUILTIN_OBJ(object)->Get<Value>().UnMark();
         break;
     }
+    case ObjectType::STR:
     default:
         break;
     }
@@ -167,9 +157,7 @@ bool IsObjectEqual(Object *left, Object *right)
     switch (left->type)
     {
     case ObjectType::STR:
-    {
-        return strcmp(TO_STR_OBJ(left)->value, TO_STR_OBJ(right)->value) == 0;
-    }
+        return TO_STR_OBJ(left)->hash == TO_STR_OBJ(right)->hash;
     case ObjectType::ARRAY:
     {
         if (TO_ARRAY_OBJ(left)->len != TO_ARRAY_OBJ(right)->len)
@@ -180,13 +168,9 @@ bool IsObjectEqual(Object *left, Object *right)
         return true;
     }
     case ObjectType::STRUCT:
-    {
-        return TO_STRUCT_OBJ(left)->members== TO_STRUCT_OBJ(right)->members;
-    }
+        return TO_STRUCT_OBJ(left)->members == TO_STRUCT_OBJ(right)->members;
     case ObjectType::REF:
-    {
         return *TO_REF_OBJ(left)->pointer == *TO_REF_OBJ(right)->pointer;
-    }
     case ObjectType::FUNCTION:
     {
         if (TO_FUNCTION_OBJ(left)->chunk.opCodes.size() != TO_FUNCTION_OBJ(right)->chunk.opCodes.size())
@@ -217,7 +201,6 @@ bool IsObjectEqual(Object *left, Object *right)
     }
 }
 
-
 StrObject *StrAdd(StrObject *left, StrObject *right)
 {
     size_t length = left->len + right->len;
@@ -232,7 +215,7 @@ void StrInsert(StrObject *left, uint32_t idx, StrObject *right)
 {
     size_t length = left->len + right->len;
     char *newStr = new char[length + 1];
-    memset(newStr, '\0', sizeof(newStr));
+    memset(newStr, '\0', length + 1);
     strncpy(newStr, left->value, idx);
     newStr = strcat(newStr, right->value);
     newStr = strcat(newStr, left->value + idx);

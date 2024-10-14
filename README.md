@@ -19,14 +19,13 @@ A C-like syntax Scripting toy language
 3. Python(>=3.10)
 4. C#(>=.NetCore 6.0)
 
-#### Build
+### How to Build
+
+C++ build:
 ```sh
-#run opengl example on linux,you need to install required libraries:
-install opengl(linux only)
+#on my ubuntu wsl2 environment,i need to install this(opengl and x11) to run sdl2 and opengl example
 sudo apt-get install build-essential
 sudo apt-get install libgl1-mesa-dev
-
-install x11(linux only)
 sudo apt-get install xorg
 sudo apt-get install xauth
 sudo apt-get install openbox
@@ -36,391 +35,104 @@ apt install libx11-dev libxext-dev libxtst-dev libxrender-dev libxmu-dev libxmuu
 
 # C++ build:
 git clone https://github.com/Sqazine/ComputeDuck.git
-git submodule update --init --recursive
 mkdir build
 cd build 
 cmake ..
 cmake -build .
+```
 
-# Python build:
-# for sdl2.cd example
+If you want to build opengl example,you need to open COMPUTEDUCK_BUILD_WITHOPENGL:
+```sh
+cmake -DCOMPUTEDUCK_BUILD_WITHOPENGL=ON ..
+```
+
+If you want to build cdsdl2(SDL2 C++ binding library),you need to:
+1. Download SDL2.28.2 from [github](https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.28.2.zip)
+2. Extract SDL-release-2.28.2.zip
+3. cmake variable COMPUTEDUCK_BUILD_WITH_SDL2=ON,SDL2_ROOT_DIR=yourpath/to/SDL-release-2.28.2,like:
+
+```sh
+cmake -DCOMPUTEDUCK_BUILD_WITH_SDL2=ON -DSDL2_ROOT_DIR=yourpath/to/SDL-release-2.28.2
+```
+
+If you want to build JIT(LLVM implementation):
+
+If you already have llvm 14.x installed, you can use prebuilt binary:
+
+1. set cmake variable COMPUTEDUCK_BUILD_WITH_LLVM=PREBUILT,and set LLVM_DIR=yourpath/to/llvmPrebuiltBinary/lib/cmake/llvm (which LLVMConfig.cmake file located folder).like:
+
+```sh
+cmake -DCOMPUTEDUCK_BUILD_WITH_LLVM=PREBUILT -DLLVM_DIR=yourpath/to/llvmPrebuiltBinary/lib/cmake/llvm
+```
+
+If you want to build llvm 14.x from source:
+
+1. download llvm 14.x from [github](https://github.com/llvm/llvm-project/archive/refs/heads/release/14.x.zip) or [gitee(zh-cn)](https://gitee.com/mirrors/LLVM/repository/archive/release/14.x.zip)
+2. Extract llvm-release-14.x.zip
+3. cmake variable COMPUTEDUCK_BUILD_WITH_LLVM=ON,LLVM_ROOT_DIR=yourpath/to/llvm-release-14.x,like:
+
+```sh
+cmake -DCOMPUTEDUCK_BUILD_WITH_LLVM=SOURCE -DLLVM_ROOT_DIR=yourpath/to/llvm-release-14.x
+```
+
+(MY OPINION:Why did I choose such a cumbersome third-party library reference method, because I think LLVM and SDL are both options for ComputeDuck projects and should not be forced to be submodules)
+
+Python build:
+```sh
+#dependencies
+# for SDL2 and opengl external libraries
 pip install pysdl2-dll==2.30.2
 pip install PySDL2==0.9.16
-# for sdl2-opengl example
 pip install PyOpenGL==3.1.6
 pip install PyOpenGL_accelerate==3.1.6
-# or 
+
+# or using requirements.txt
 pip install -r otherImpl/python/requirements.txt
 
-# C#(.NetCore 6.0) build:
-#just open otherImpl/c#/ComputeDuck.sln
+#in terminal:
+#execute source file
+python3 main.py -f examples/array.cd.
+#repl mode
+python3 main.py
 ```
+
+C#(.NetCore 6.0) build:
+```sh
+#just open otherImpl/c#/ComputeDuck.sln
+# all external dependencies will be downloaded automatically.
+```
+
+## Features
+
+Variable declaration
+
+Compound Statement
+
+Reference
+
+Function
+
+Upvalue
+
+Array
+
+If-else
+
+Loop
+
+Struct
+
+Anonymous Struct(similar to javascript's Object)
+
+File import
+
+C++ dynamic library import
+
+Jit(LLVM implementation)
 
 ## Examples
-#### Variable declaration
-```sh
-a=10;
-b=a;
-c;
-b=20;
-println(a);#10
-println(b);#20
-println(c);#nil
-```
-#### Function
-```sh
-add=function(x,y){
-    return x+y;
-};
 
-c=add(1.000000,2.000000);
-println(c);#3.000000
-
-println("hello world!");#The function that outputs to the console
-
-a=[1,2,3];#array
-sizeof(a);#get the size of array
-```
-#### Array
-```sh
-
-add=function(vec1,vec2){
-    return [vec1[0]+vec2[0],vec1[1]+vec2[1]];
-};
-
-sub=function(vec1,vec2){
-    return [vec1[0]-vec2[0],vec1[1]-vec2[1]];
-};
-
-vec1=[3,3];
-vec2=[2,2];
-
-vec3=add(vec1,vec2);
-
-println(vec3);#[5.000000,5.000000]
-```
-
-#### If-else
-```sh
-a=10;
-b=a;
-b=20;
-println(a);#10.000000
-println(b);#20.000000
-
-if(b<a)
-    b=a;
-else 
-{
-    a=b;
-}
-
-println(a);#20.000000
-println(b);#20.000000
-
-
-if(a>100)
-    a=100;
-else if(a>50)
-    a=50;
-else if(a>30)
-    a=30;
-else a=5; 
-
-println(a);#5.000000
-
-if(b>a)
-   if(a==100)
-        a=1000;
-    else 
-        a=500;
-else 
-    a=300;
-
-println(a);#500.000000
-```
-
-#### Loop
-```sh
-a=0;
-
-while(a<100)
-{
-    println(a);
-    a=a+1;
-}
-
-# 0.000000
-#...
-#...
-#...
-# 99.000000
-```
-
-#### Struct
-```sh
-struct Vec2
-{
-    x:0,
-    y:0
-}
-struct Vec3
-{
-    vec2:Vec2,
-    z:0
-}
-struct Vec4
-{
-    vec3:Vec3,
-    w:0
-}
-a=Vec4;
-a.vec3.vec2.x=1000;
-println(a);
-#struct
-#{
-#    vec3=struct
-#         {
-#            z=0.000000
-#           vec2=struct
-#                 {
-#                    x=1000.000000
-#                    y=0.000000
-#                 }
-#         }
-#   w=0.000000
-#}
-println(a.vec3.vec2.x);# 1000.000000
-```
-
-#### LinkedList
-```sh
-struct Node
-{
-    v:0,
-    next:nil,
-}
-
-head=Node;
-
-e=head;
-i=1;
-while(i<10)
-{
-    e2=Node;
-    e2.v=i;
-
-    e.next=e2;
-
-    e=e.next;
-
-    i=i+1;
-}
-
-println(head);
-
-#struct{
-#  v=0.000000
-#  next=struct
-#  {
-#    v=1.000000
-#    next=struct
-#    {
-#      v=2.000000
-#      next=struct
-#      {
-#        v=3.000000
-#        next=struct
-#        {
-#          v=4.000000
-#          next=struct
-#          {
-#            v=5.000000
-#            next=struct
-#            {
-#              v=6.000000
-#              next=struct
-#              {
-#                v=7.000000
-#                next=struct
-#                {
-#                  v=8.000000
-#                  next=struct
-#                  {
-#                    v=9.000000
-#                    next=nil
-#                  }
-#                }
-#              }
-#            }
-#          }
-#        }
-#      }
-#    }
-#  }
-#}
-```
-
-#### Fibonacci numbers
-```sh
-fib=function(x)
-{
-    if(x==0) 
-        return 0;
-    else if(x==1) 
-        return 1;
-    else 
-        return fib(x-1)+fib(x-2);
-};
-a=fib(10);
-println(a);#55
-```
-
-#### OOP simulate
-```sh
-struct ShapeVtbl
-{
-    area:nil,
-}
-
-struct Shape
-{
-    vptr:ShapeVtbl,
-    super,
-    x:0,
-    y:0;
-}
-
-ShapeCtor=function(self,x,y)
-{
-    self.x=x;
-    self.y=y;
-    self.vptr.area=lambda(self)
-    {
-        return 0;
-    };
-};
-
-ShapeArea=function(self)
-{
-    if(self.super==nil)
-        return self.vptr.area(self);
-    return self.super.vptr.area(self);
-};
-
-s1=Shape;
-ShapeCtor(ref s1,10,10);
-println(s1);#struct instance Shape:
-            #   vptr=struct instance ShapeVtbl:
-            #       area=lambda:0
-            #super=nil
-            #x=10.0
-            #y=10.0
-println(ShapeArea(s1));#0.0
-
-
-struct Rectangle
-{
-    super:Shape,
-    width,
-    height
-}
-
-RectangleCtor=function(self,x,y,w,h)
-{
-    ShapeCtor(self.super,x,y);
-    self.width=w;
-    self.height=h;
-    self.super.vptr.area=lambda(self)
-    {
-        return self.width*self.height;
-    };
-};
-
-r1=Rectangle;
-RectangleCtor(ref r1,10,10,3,5);
-println(r1);#struct instance Rectangle:
-            #super=struct instance Shape:
-            #        vptr=struct instance ShapeVtbl:
-            #                area=lambda:1
-            #        super=nil
-            #        x=10.0
-            #        y=10.0
-            #width=3.0
-            #height=5.0
-
-println(ShapeArea(r1));#15
-```
-
-#### Anonymous Struct(similar to javascript's Object)
-```sh
-a={
-    x:10,
-    y:20
-};
-
-println(a);
-#struct instance:
-#{
-#y:20.000000
-#x:10.000000
-#}
-
-```
-
-#### External file import
-```sh
-# vec2.cd
-struct Vec2
-{
-    x:0,
-    y:0
-}
-
-# vec3.cd 
-import("vec2.cd");
-
-struct Vec3
-{
-    vec2:Vec2,
-    z:0
-}
-
-# vec4.cd
-import("vec2.cd");
-struct Vec4
-{
-    vec2:Vec2,
-    z:0
-    w:0
-}
-
-# vec5.cd
-import("vec4.cd");
-struct Vec5
-{
-    vec4:Vec4,
-    j:0
-}
-
-# vec-import.cd 
-import("vec3.cd");
-import("vec4.cd");
-import("vec2.cd");
-import("vec5.cd");
-
-a=Vec4;
-b=Vec3;
-c=Vec2;
-d=Vec5;
-
-println(a);
-println(b);
-println(c);
-println(d);
-```
-
-14. Import 3th-party dll library
+#### [Create window and show an image using SDL2](examples/sdl2.cd)
 ```sh
 dllimport("sdl2");
 
@@ -465,7 +177,7 @@ SDL_Quit();
 
 ![](screenshots/Image.png)
 
-#### OpenGL example
+#### [SDL2 and opengl example](examples/sdl2-opengl.cd)
 ```sh
 dllimport("cdsdl2");
 dllimport("cdopengl");
@@ -607,5 +319,3 @@ This project is licensed under the Apache-2.0 License, see the details[LICENSE](
 [issues-url]: https://img.shields.io/github/issues/Sqazine/ComputeDuck.svg
 [license-shield]: https://img.shields.io/github/license/Sqazine/ComputeDuck.svg?style=flat-square
 [license-url]: https://github.com/Sqazine/ComputeDuck/blob/master/LICENSE
-
-
