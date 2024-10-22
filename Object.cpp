@@ -232,7 +232,7 @@ void StrInsert(StrObject *left, uint32_t idx, StrObject *right)
 {
     size_t length = left->len + right->len;
     char *newStr = new char[length + 1];
-    memset(newStr, '\0', sizeof(newStr));
+    memset(newStr, '\0', length + 1);
     strncpy(newStr, left->value, idx);
     newStr = strcat(newStr, right->value);
     newStr = strcat(newStr, left->value + idx);

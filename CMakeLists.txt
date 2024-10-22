@@ -57,7 +57,7 @@ set(ROOT_SRC Ast.h
              Utils.h Utils.cpp
              Value.cpp Value.h
              BuiltinManager.cpp BuiltinManager.h
-             VM.h VM.cpp VM.inl
+             VM.h VM.cpp
              PreProcessor.h
              Config.cpp Config.h
              Table.cpp Table.h
@@ -99,4 +99,7 @@ if(MSVC)
     target_compile_options(${LIB_NAME} PRIVATE "/wd4251;" "/bigobj;")
     target_compile_options(${EXE_NAME} PRIVATE "/wd4251;" "/bigobj;")
     set_property ( DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${EXE_NAME} )
+else()
+    target_compile_options(${LIB_NAME} PRIVATE "-fpermissive")
+    target_compile_options(${EXE_NAME} PRIVATE "-fpermissive")
 endif()

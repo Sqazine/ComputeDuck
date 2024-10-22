@@ -2,6 +2,7 @@
 #include <random>
 #include <sstream>
 #include <iostream>
+#include <cstring>
 #ifdef _WIN32
 #include <Windows.h>
 #elif __linux__
@@ -73,9 +74,9 @@ void RegisterDLLs(std::string rawDllPath)
     double (*cosine)(double);
     char *error;
 
-    handle = dlopen(dllpath.c_str(), RTLD_LAZY);
+    handle = dlopen(rawDllPath.c_str(), RTLD_LAZY);
     if (!handle)
-        ASSERT("Failed to load dll library:%s", dllpath.c_str());
+        ASSERT("Failed to load dll library:%s", rawDllPath.c_str());
 
     RegFn RegisterBuiltins = (RegFn)(dlsym(handle, "RegisterBuiltins"));
     RegisterBuiltins();

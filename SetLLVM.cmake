@@ -37,11 +37,6 @@ function(SetLLVM llvmDir llvmlibs)
         X86Desc
         X86Info
         X86TargetMCA
-        ARMCodeGen
-        ARMAsmParser
-        ARMDisassembler
-        ARMDesc
-        ARMInfo
         AArch64CodeGen
         AArch64AsmParser
         AArch64Disassembler
