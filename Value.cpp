@@ -5,18 +5,16 @@ std::string Value::Stringify() const
 {
     switch (type)
     {
-    case ValueType::NIL:
-        return "nil";
     case ValueType::NUM:
         return std::to_string(stored);
     case ValueType::BOOL:
         return stored == 1.0 ? "true" : "false";
     case ValueType::OBJECT:
         return ObjectStringify(object);
+    case ValueType::NIL:
     default:
         return "nil";
     }
-    return "nil";
 }
 
 void Value::Mark() const

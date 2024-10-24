@@ -59,10 +59,7 @@ struct StrObject : public Object
 
         hash= HashString(value);
     }
-    ~StrObject()
-    {
-        SAFE_DELETE_ARRAY(value);
-    }
+    ~StrObject() { SAFE_DELETE_ARRAY(value); }
 
     char *value;
     size_t len;
@@ -73,10 +70,7 @@ struct StrObject : public Object
 struct ArrayObject : public Object
 {
     ArrayObject(Value *eles, size_t len) :Object(ObjectType::ARRAY), elements(eles), len(len) {}
-    ~ArrayObject()
-    {
-        // SAFE_DELETE_ARRAY(elements);
-    }
+    ~ArrayObject() = default;
 
     Value *elements;
     size_t len;
