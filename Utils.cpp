@@ -1,5 +1,4 @@
 #include "Utils.h"
-#include <random>
 #include <sstream>
 #include <iostream>
 #include <cstring>
@@ -58,10 +57,10 @@ void RegisterDLLs(std::string rawDllPath)
     }
 
 #ifdef _WIN32
-    HINSTANCE hInstance = GetModuleHandle(rawDllPath.c_str());
+    HINSTANCE hInstance = GetModuleHandleA(rawDllPath.c_str());
     if (!hInstance)
     {
-        hInstance = LoadLibrary(rawDllPath.c_str());
+        hInstance = LoadLibraryA(rawDllPath.c_str());
         if (!hInstance)
             ASSERT("Failed to load dll library:%s", rawDllPath.c_str());
 
@@ -95,19 +94,3 @@ uint32_t HashString(char *str)
     }
     return hash;
 }
-
-#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-std::string GenerateUUID()
-{
-    std::random_device rd;
-    std::mt19937_64 generator(rd());
-    std::uniform_int_distribution<uint64_t> dis;
-
-    uint64_t part1 = dis(generator);
-    uint64_t part2 = dis(generator);
-
-    std::ostringstream oss;
-    oss << std::hex << part1 << part2;
-    return oss.str();
-}
-#endif

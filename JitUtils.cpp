@@ -4,6 +4,7 @@
 #include "Object.h"
 #include "Allocator.h"
 #include "Table.h"
+#include <random>
 
 extern "C" COMPUTE_DUCK_API StrObject *CreateStrObject(const char *v)
 {
@@ -101,6 +102,20 @@ size_t TypeSet::Hash()
     for (auto iter : m_ValueTypeSet)
         value ^= std::hash<uint8_t>()(iter);
     return value;
+}
+
+std::string GenerateUUID()
+{
+    std::random_device rd;
+    std::mt19937_64 generator(rd());
+    std::uniform_int_distribution<uint64_t> dis;
+
+    uint64_t part1 = dis(generator);
+    uint64_t part2 = dis(generator);
+
+    std::ostringstream oss;
+    oss << std::hex << part1 << part2;
+    return oss.str();
 }
 
 size_t HashValueList(Value *start, Value *end)

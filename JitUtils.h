@@ -17,7 +17,7 @@
         return jitFnDecl;                                                                           \
     } while (false);
 #else
-#define ERROR(...)                                                                                  \
+#define ERROR(newState, ...)                                                                                  \
     do                                                                                              \
     {                                                                                               \
         InitModuleAndPassManager();                                                                 \
