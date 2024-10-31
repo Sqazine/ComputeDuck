@@ -1,4 +1,4 @@
 [submodule "3rd/SDL2"]
-	path = 3rd/SDL2
+	path = library/cdsdl2/SDL2
 	url = https://github.com/libsdl-org/SDL.git
 	branch = release-2.28.x

@@ -17,9 +17,9 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Bin/Release)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/Bin/Debug)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Bin/Release)
 
-option(COMPUTEDUCK_BUILD_WITH_LLVM "build llvm for jit engine" ON)
-option(COMPUTEDUCK_BUILD_WITH_SDL2 "build SDL2 third party for cdsdl2" ON) 
-option(COMPUTEDUCK_BUILD_WITH_OPENGL "build glad third party for cdopengl" ON)  
+option(COMPUTEDUCK_BUILD_WITH_LLVM "build llvm for jit engine" OFF)
+option(COMPUTEDUCK_BUILD_WITH_SDL2 "build SDL2 third party for cdsdl2" OFF) 
+option(COMPUTEDUCK_BUILD_WITH_OPENGL "build glad third party for cdopengl" OFF)  
 
 file(GLOB EXAMPLES "${CMAKE_SOURCE_DIR}/examples/*.cd")
 source_group("examples" FILES ${EXAMPLES})
