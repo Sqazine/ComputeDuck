@@ -120,7 +120,7 @@ void GetEndOfRefValue(const Value &v, Value &result)
         FindActualValue(l, left);                                                                      \
         FindActualValue(r, right);                                                                     \
         if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                                 \
-            return ((uint64_t)TO_NUM_VALUE(left) op(uint64_t) TO_NUM_VALUE(right));                    \
+            return ((uint64_t)TO_NUM_VALUE(left) op (uint64_t)TO_NUM_VALUE(right));                    \
         else                                                                                           \
             ASSERT("Invalid op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
     } while (0);
@@ -188,7 +188,7 @@ COMPUTE_DUCK_API double ValueBitAnd(const Value &l, const Value &r)
 
 COMPUTE_DUCK_API double ValueBitOr(const Value &l, const Value &r)
 {
-    BIT_BINARY(l, &, r);
+    BIT_BINARY(l, |, r);
 }
 
 COMPUTE_DUCK_API double ValueBitXor(const Value &l, const Value &r)

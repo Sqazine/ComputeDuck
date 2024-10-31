@@ -4,13 +4,15 @@ else()
     set(CD_SDL2_LIB_NAME cdsdl2)
 endif()
 
+add_subdirectory(SDL2)
+
 set(BUILD_SHARED_LIBS OFF)
 add_library(${CD_SDL2_LIB_NAME} SHARED  cdsdl2.h  cdsdl2.cpp)
 target_include_directories(${CD_SDL2_LIB_NAME} PRIVATE "${THIRD_PARTY_DIR}/SDL2/include" ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(${CD_SDL2_LIB_NAME} PRIVATE SDL2::SDL2 ${LIB_NAME})
 target_compile_definitions(${CD_SDL2_LIB_NAME} PUBLIC COMPUTE_DUCK_BUILD_DLL)
 if(MSVC)
-    target_compile_options(${CD_SDL2_LIB_NAME} PRIVATE "/wd4251;")
+    target_compile_options(${CD_SDL2_LIB_NAME} PRIVATE "/wd4251;" "/MD;")
 
     set_property(TARGET SDL2 PROPERTY FOLDER 3rd/SDL2)
     set_property(TARGET SDL2_test PROPERTY FOLDER 3rd/SDL2)

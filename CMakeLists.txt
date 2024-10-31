@@ -36,7 +36,6 @@ else()
 endif()
 
 if(COMPUTEDUCK_BUILD_WITH_SDL2)
-    add_subdirectory(${THIRD_PARTY_DIR}/SDL2)
     add_subdirectory(library/cdsdl2)
 endif()
 
@@ -107,8 +106,8 @@ if(MSVC)
     target_compile_definitions(${LIB_NAME} PUBLIC _CRT_SECURE_NO_WARNINGS)
     target_compile_definitions(${EXE_NAME} PUBLIC _CRT_SECURE_NO_WARNINGS)
 
-    target_compile_options(${LIB_NAME} PRIVATE "/wd4251;" "/bigobj;" "/MD")
-    target_compile_options(${EXE_NAME} PRIVATE "/wd4251;" "/bigobj;" "/MD")
+    target_compile_options(${LIB_NAME} PRIVATE "/wd4251;" "/bigobj;" "/MD;")
+    target_compile_options(${EXE_NAME} PRIVATE "/wd4251;" "/bigobj;" "/MD;")
     set_property ( DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${EXE_NAME} )
 else()
     target_compile_options(${LIB_NAME} PRIVATE "-fpermissive")

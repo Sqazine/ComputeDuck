@@ -10,5 +10,5 @@ target_include_directories(${CD_OPENGL_LIB_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE
 target_link_libraries(${CD_OPENGL_LIB_NAME} PRIVATE ${LIB_NAME})
 target_compile_definitions(${CD_OPENGL_LIB_NAME} PUBLIC COMPUTE_DUCK_BUILD_DLL)
 if(MSVC)
-    target_compile_options(${CD_OPENGL_LIB_NAME} PRIVATE "/wd4251;")
+    target_compile_options(${CD_OPENGL_LIB_NAME} PRIVATE "/wd4251;" "/MD")
 endif()
