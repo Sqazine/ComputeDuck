@@ -17,7 +17,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Bin/Release)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/Bin/Debug)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Bin/Release)
 
-option(COMPUTEDUCK_BUILD_WITH_LLVM "build llvm for jit engine" OFF)
+option(COMPUTEDUCK_BUILD_WITH_LLVM "build llvm for jit engine" ON)
 option(COMPUTEDUCK_BUILD_WITH_SDL2 "build SDL2 third party for cdsdl2" ON) 
 option(COMPUTEDUCK_BUILD_WITH_OPENGL "build glad third party for cdopengl" ON)  
 
@@ -60,27 +60,38 @@ set(ROOT_SRC Ast.h
              VM.h VM.cpp
              PreProcessor.h
              Config.cpp Config.h
-             Table.cpp Table.h
-             SetLLVM.cmake)
+             Table.cpp Table.h)
 
 if(COMPUTEDUCK_BUILD_WITH_LLVM)
-    include(SetLLVM.cmake)
-
-    set(LLVM_DIR "${THIRD_PARTY_DIR}/llvm/llvm")
-    set(LLVM_GENERATE_DIR "${CMAKE_BINARY_DIR}/3rd/llvm/llvm")
-    
-    SetLLVM(${LLVM_DIR} LLVM_LIBS)
-    
-    message(STATUS "LLVM_LIBS=${LLVM_LIBS}")
-    message(STATUS "LLVM_GENERATE_DIR=${LLVM_GENERATE_DIR}")
-    
     list(APPEND ROOT_SRC Jit.h Jit.cpp JitUtils.h JitUtils.cpp)
     source_group("src" FILES ${ROOT_SRC})
+
+    set(LLVM_DIR "" CACHE STRING "set LLVMConfig.cmake directory")
+    message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+
+    find_package(LLVM REQUIRED CONFIG)
+
+    message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+
+    if(NOT ${LLVM_PACKAGE_VERSION} STREQUAL "14.0.6")
+        message(FATAL_ERROR "LLVM Version require 14.0.6")
+    endif()
+
+    include_directories(${LLVM_INCLUDE_DIRS})
+    separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
+    add_definitions(${LLVM_DEFINITIONS_LIST})
+
     add_library(${LIB_NAME} SHARED ${ROOT_SRC})
-    target_link_libraries(${LIB_NAME} PRIVATE ${LLVM_LIBS})
-    target_include_directories(${LIB_NAME} PRIVATE ${LLVM_DIR}/include ${LLVM_GENERATE_DIR}/include)
-    target_include_directories(${EXE_NAME} PRIVATE ${LLVM_DIR}/include ${LLVM_GENERATE_DIR}/include)
+
+    set(LLVM_LINK_COMPONENTS Core ExecutionEngine Object OrcJIT native)
+
+    llvm_map_components_to_libnames(llvm_libs ${LLVM_LINK_COMPONENTS})
+
+    target_link_libraries(${LIB_NAME} PRIVATE ${llvm_libs})
+    target_link_libraries(${EXE_NAME} PRIVATE ${llvm_libs})
+
     target_compile_definitions(${LIB_NAME} PUBLIC COMPUTEDUCK_BUILD_WITH_LLVM)
+    target_compile_definitions(${EXE_NAME} PUBLIC COMPUTEDUCK_BUILD_WITH_LLVM)
 else()
     source_group("src" FILES ${ROOT_SRC})
     add_library(${LIB_NAME} SHARED ${ROOT_SRC})
@@ -96,8 +107,8 @@ if(MSVC)
     target_compile_definitions(${LIB_NAME} PUBLIC _CRT_SECURE_NO_WARNINGS)
     target_compile_definitions(${EXE_NAME} PUBLIC _CRT_SECURE_NO_WARNINGS)
 
-    target_compile_options(${LIB_NAME} PRIVATE "/wd4251;" "/bigobj;")
-    target_compile_options(${EXE_NAME} PRIVATE "/wd4251;" "/bigobj;")
+    target_compile_options(${LIB_NAME} PRIVATE "/wd4251;" "/bigobj;" "/MD")
+    target_compile_options(${EXE_NAME} PRIVATE "/wd4251;" "/bigobj;" "/MD")
     set_property ( DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${EXE_NAME} )
 else()
     target_compile_options(${LIB_NAME} PRIVATE "-fpermissive")
