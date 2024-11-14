@@ -958,50 +958,67 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
 
             if (fnSlot->IsLlvmValue())
             {
-                auto fn = static_cast<llvm::Function *>(fnSlot->GetLlvmValue());
-
-                auto ptrType = fn->getType();
-                auto elemType = ptrType->getElementType();
-
-                // builtin function type
-                if (elemType == m_BuiltinFunctionType)
+                if (fnSlot->GetLlvmValue()->getType()->isFunctionTy())
                 {
-                    std::vector<llvm::Value *> argsV;
-                    for (auto slot = m_StackTop - argCount; slot != m_StackTop; ++slot)
+                    auto fn = static_cast<llvm::Function *>(fnSlot->GetLlvmValue());
+
+                    auto ptrType = fn->getType();
+                    auto elemType = ptrType->getElementType();
+
+                    // builtin function type
+                    if (elemType == m_BuiltinFunctionType)
                     {
-                        auto v = slot->GetLlvmValue();
-                        if (v->getType() != m_ValuePtrType)
-                            argsV.emplace_back(CreateLlvmValue(v));
-                        else
-                            argsV.emplace_back(v);
-                    }
-
-                    m_StackTop = m_StackTop - (argCount + 1);
-
-                    auto valueArrayType = llvm::ArrayType::get(m_ValueType, argsV.size());
-
-                    auto arg0 = m_Builder->CreateAlloca(valueArrayType);
-                    llvm::Value *arg0MemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, { m_Builder->getInt32(0), m_Builder->getInt32(0) });
-
-                    for (auto i = 0; i < argsV.size(); ++i)
-                    {
-                        if (i == 0)
-                            m_Builder->CreateMemCpy(arg0MemberAddr, llvm::MaybeAlign(8), argsV[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
-                        else
+                        std::vector<llvm::Value *> argsV;
+                        for (auto slot = m_StackTop - argCount; slot != m_StackTop; ++slot)
                         {
-                            llvm::Value *argIMemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, { m_Builder->getInt32(0), m_Builder->getInt32(i) });
-                            m_Builder->CreateMemCpy(argIMemberAddr, llvm::MaybeAlign(8), argsV[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+                            auto v = slot->GetLlvmValue();
+                            if (v->getType() != m_ValuePtrType)
+                                argsV.emplace_back(CreateLlvmValue(v));
+                            else
+                                argsV.emplace_back(v);
                         }
+
+                        m_StackTop = m_StackTop - (argCount + 1);
+
+                        auto valueArrayType = llvm::ArrayType::get(m_ValueType, argsV.size());
+
+                        auto arg0 = m_Builder->CreateAlloca(valueArrayType);
+                        llvm::Value *arg0MemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, {m_Builder->getInt32(0), m_Builder->getInt32(0)});
+
+                        for (auto i = 0; i < argsV.size(); ++i)
+                        {
+                            if (i == 0)
+                                m_Builder->CreateMemCpy(arg0MemberAddr, llvm::MaybeAlign(8), argsV[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+                            else
+                            {
+                                llvm::Value *argIMemberAddr = m_Builder->CreateInBoundsGEP(valueArrayType, arg0, {m_Builder->getInt32(0), m_Builder->getInt32(i)});
+                                m_Builder->CreateMemCpy(argIMemberAddr, llvm::MaybeAlign(8), argsV[i], llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+                            }
+                        }
+
+                        llvm::Value *arg1 = m_Builder->getInt8(argsV.size());
+
+                        auto result = m_Builder->CreateAlloca(m_ValueType, nullptr);
+
+                        auto callInst = m_Builder->CreateCall(fn, {arg0MemberAddr, arg1, result});
+
+                        Push(result);
                     }
+                    else
+                    {
+                        std::vector<llvm::Value *> argsV;
+                        for (auto slot = m_StackTop - argCount; slot != m_StackTop; ++slot)
+                        {
+                            auto v = slot->GetLlvmValue();
+                            argsV.emplace_back(v);
+                        }
 
-                    llvm::Value *arg1 = m_Builder->getInt8(argsV.size());
-
-                    auto result = m_Builder->CreateAlloca(m_ValueType, nullptr);
-
-                    auto callInst = m_Builder->CreateCall(fn, { arg0MemberAddr, arg1, result });
-
-                    Push(result);
+                        auto ret = m_Builder->CreateCall(fn, argsV);
+                        Push(ret);
+                    }
                 }
+                else
+                    ERROR(JitCompileState::FAIL, "Calling a invalid function callee,maybe calling a FunctionObject in JIT Execution Environment.");
             }
             else
             {
