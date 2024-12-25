@@ -73,10 +73,10 @@ class ConstantFolder:
             return self.__fold_array_expr(expr)
         elif expr.type == AstType.INDEX:
             return self.__fold_index_expr(expr)
-        elif expr.type == AstType.PREFIX:
-            return self.__fold_prefix_expr(expr)
-        elif expr.type == AstType.INFIX:
-            return self.__fold_infix_expr(expr)
+        elif expr.type == AstType.UNARY:
+            return self.__fold_unary_expr(expr)
+        elif expr.type == AstType.BINARY:
+            return self.__fold_binary_expr(expr)
         elif expr.type == AstType.FUNCTION_CALL:
             return self.__fold_function_call_expr(expr)
         elif expr.type == AstType.STRUCT_CALL:
@@ -90,7 +90,7 @@ class ConstantFolder:
         else:
             return expr
 
-    def __fold_infix_expr(self, expr: InfixExpr) -> Expr:
+    def __fold_binary_expr(self, expr: BinaryExpr) -> Expr:
         expr.left = self.__fold_expr(expr.left)
         expr.right = self.__fold_expr(expr.right)
         return self.__constant_fold(expr)
@@ -101,7 +101,7 @@ class ConstantFolder:
     def __fold_bool_expr(self, expr: BoolExpr) -> Expr:
         return expr
 
-    def __fold_prefix_expr(self, expr: PrefixExpr) -> Expr:
+    def __fold_unary_expr(self, expr: UnaryExpr) -> Expr:
         expr.right = self.__fold_expr(expr.right)
         return self.__constant_fold(expr)
 
@@ -155,7 +155,7 @@ class ConstantFolder:
         return expr
 
     def __constant_fold(self, expr: Expr) -> Expr:
-        if expr.type == AstType.INFIX:
+        if expr.type == AstType.BINARY:
             if expr.left.type == AstType.NUM and expr.right.type == AstType.NUM:
                 newExpr = None
                 if expr.op == "+":
@@ -181,7 +181,7 @@ class ConstantFolder:
                 return newExpr
             elif expr.left.type == AstType.STR and expr.right.type == AstType.STR:
                 return StrExpr(expr.left.value+expr.right.value)
-        elif expr.type == AstType.PREFIX:
+        elif expr.type == AstType.UNARY:
             if expr.right.type == AstType.NUM and expr.op == "-":
                 return NumExpr(-expr.right.value)
             elif expr.right.type == AstType.BOOL and expr.op == "!":

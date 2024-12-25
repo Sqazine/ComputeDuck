@@ -198,11 +198,11 @@ namespace ComputeDuck
                 case AstType.INDEX:
                     CompileIndexExpr((IndexExpr)expr,state);
                     break;
-                case AstType.PREFIX:
-                    CompilePrefixExpr((PrefixExpr)expr);
+                case AstType.UNARY:
+                    CompileUnaryExpr((UnaryExpr)expr);
                     break;
-                case AstType.INFIX:
-                    CompileInfixExpr((InfixExpr)expr);
+                case AstType.BINARY:
+                    CompileBinaryExpr((BinaryExpr)expr);
                     break;
                 case AstType.FUNCTION_CALL:
                     CompileFunctionCallExpr((FunctionCallExpr)expr);
@@ -226,7 +226,7 @@ namespace ComputeDuck
                     break;
             }
         }
-        void CompileInfixExpr(InfixExpr expr)
+        void CompileBinaryExpr(BinaryExpr expr)
         {
             if (expr.op == "=")
             {
@@ -293,7 +293,7 @@ namespace ComputeDuck
             else
                 EmitConstant(new BoolObject(false));
         }
-        void CompilePrefixExpr(PrefixExpr expr)
+        void CompileUnaryExpr(UnaryExpr expr)
         {
             CompileExpr(expr.right);
             if (expr.op == "-")

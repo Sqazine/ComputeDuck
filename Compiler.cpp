@@ -202,10 +202,10 @@ void Compiler::CompileExpr(Expr *expr, const RWState &state)
         return CompileArrayExpr((ArrayExpr *)expr);
     case AstType::INDEX:
         return CompileIndexExpr((IndexExpr *)expr, state);
-    case AstType::PREFIX:
-        return CompilePrefixExpr((PrefixExpr *)expr);
-    case AstType::INFIX:
-        return CompileInfixExpr((InfixExpr *)expr);
+    case AstType::UNARY:
+        return CompileUnaryExpr((UnaryExpr *)expr);
+    case AstType::BINARY:
+        return CompileBinaryExpr((BinaryExpr *)expr);
     case AstType::FUNCTION_CALL:
         return CompileFunctionCallExpr((FunctionCallExpr *)expr);
     case AstType::STRUCT_CALL:
@@ -223,7 +223,7 @@ void Compiler::CompileExpr(Expr *expr, const RWState &state)
     }
 }
 
-void Compiler::CompileInfixExpr(InfixExpr *expr)
+void Compiler::CompileBinaryExpr(BinaryExpr *expr)
 {
     if (expr->op == "=")
     {
@@ -292,7 +292,7 @@ void Compiler::CompileBoolExpr(BoolExpr *expr)
         EmitConstant(false);
 }
 
-void Compiler::CompilePrefixExpr(PrefixExpr *expr)
+void Compiler::CompileUnaryExpr(UnaryExpr *expr)
 {
     CompileExpr(expr->right);
 
@@ -306,7 +306,7 @@ void Compiler::CompilePrefixExpr(PrefixExpr *expr)
         Emit(OP_NOT);
 
     else
-        ASSERT("Unrecognized prefix type.");
+        ASSERT("Unrecognized unary type.");
 }
 
 void Compiler::CompileStrExpr(StrExpr *expr)

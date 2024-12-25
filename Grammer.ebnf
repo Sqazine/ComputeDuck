@@ -1,0 +1,52 @@
+stmt =  import_stmt|
+        return_stmt|
+        if_stmt|
+        while_stmt|
+        scope_stmt
+        expr_stmt|
+        struct_stmt;
+
+import_stmt = "import" "(" string ")" ;
+return_stmt = "return" [ expr ] ";" ;
+if_stmt = "if" "(" expr ")" stmt [ "else" stmt ] ;
+scope_stmt = "{" { stmt } "}" ;
+while_stmt = "while" "(" expr_stmt ")" stmt ;
+struct_stmt = "struct" identifier "{" { identifier ":" expr "," } "}" ;
+expr_stmt = expr ";" ;
+
+expr = assign_expr | dll_import_expr | or_expr;
+
+assign_expr = call_expr {"=" or_expr} ;
+
+or_expr = and_expr {"or" and_expr} ;
+and_expr = bit_or_expr {"and" bit_or_expr} ;
+bit_or_expr = bit_xor_expr {"|" bit_xor_expr} ;
+bit_xor_expr = bit_and_expr {"^" bit_and_expr} ;
+bit_and_expr = equal_expr {"&"  equal_expr} ;
+equal_expr = compare_expr {"=="|"!="  compare_expr} ;
+compare_expr = term_expr {"<" | "<=" | ">=" | ">" term_expr} ;
+term_expr = factor_expr {"+" | "-" factor_expr} ;
+factor_expr = product_expr {"*" | "/" product_expr} ;
+product_expr = unary_expr {"*" | "/" unary_expr} ;
+unary_expr = "-" | "not" | "~" unary_expr | call_expr ;
+
+call_expr = function_call_expr | struct_call_expr | primary_expr | index_expr;
+
+function_call_expr = identifier "(" [ expr { "," expr } ] ")" ;
+struct_call_expr = identifier "." identifier | function_call_expr;
+index_expr = identifier | function_call_expr | struct_call_expr "[" or_expr "]" ;
+
+primary_expr = identifier | number | string | "nil" | "true" | "false" | "(" or_expr ")" | array_expr | ref_expr | struct_expr | function_expr;
+
+array_expr = "[" [ or_expr { "," or_expr } ] "]" ;
+ref_expr = "ref" identifier ;
+struct_expr = "{" [ identifier ":" or_expr { "," identifier ":" or_expr } ] "}" ;
+dll_import_expr = "dllimport" "(" string ")";
+function_expr = "function" "(" [ identifier_expr { "," identifier_expr } ] ")" scope_stmt ;
+
+string = "\"" { character } "\"" ;
+character = "A" ... "Z" | "a" ... "z" | "0" ... "9" | " " | "!" | "#" | "$" | "%" | "&" | "(" | ")" | "*" | "+" | "," | "-" | "." | "/" | ":" | ";" | "<" | "=" | ">" | "?" | "@" | "[" | "]" | "^" | "_" | "`" | "{" | "}" | "|" | "~" ;
+number = [ "-" ] digit { digit } [ "." digit { digit } ] ;
+identifier = letter [ letter | digit ] ;
+letter = "A" ... "Z" | "a" ... "z" | "_" ;
+digit = "0" ... "9" ;

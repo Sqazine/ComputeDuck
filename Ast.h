@@ -15,8 +15,8 @@ enum class AstType
 	IDENTIFIER,
 	GROUP,
 	ARRAY,
-	PREFIX,
-	INFIX,
+	UNARY,
+	BINARY,
 	INDEX,
 	REF,
 	FUNCTION,
@@ -136,11 +136,11 @@ struct GroupExpr : public Expr
 	Expr *expr;
 };
 
-struct PrefixExpr : public Expr
+struct UnaryExpr : public Expr
 {
-	PrefixExpr() : Expr(AstType::PREFIX), right(nullptr) {}
-	PrefixExpr(std::string_view op, Expr *right) : Expr(AstType::PREFIX), op(op), right(right) {}
-	~PrefixExpr() override { SAFE_DELETE(right); }
+	UnaryExpr() : Expr(AstType::UNARY), right(nullptr) {}
+	UnaryExpr(std::string_view op, Expr *right) : Expr(AstType::UNARY), op(op), right(right) {}
+	~UnaryExpr() override { SAFE_DELETE(right); }
 
 	std::string Stringify() override { return op + right->Stringify(); }
 
@@ -148,11 +148,11 @@ struct PrefixExpr : public Expr
 	Expr *right;
 };
 
-struct InfixExpr : public Expr
+struct BinaryExpr : public Expr
 {
-	InfixExpr() : Expr(AstType::INFIX), left(nullptr), right(nullptr) {}
-	InfixExpr(std::string_view op, Expr *left, Expr *right) : Expr(AstType::INFIX), op(op), left(left), right(right) {}
-	~InfixExpr() override
+	BinaryExpr() : Expr(AstType::BINARY), left(nullptr), right(nullptr) {}
+	BinaryExpr(std::string_view op, Expr *left, Expr *right) : Expr(AstType::BINARY), op(op), left(left), right(right) {}
+	~BinaryExpr() override
 	{
 		SAFE_DELETE(left);
 		SAFE_DELETE(right);

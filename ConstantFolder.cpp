@@ -92,10 +92,10 @@ Expr *ConstantFolder::FoldExpr(Expr *expr)
         return FoldArrayExpr((ArrayExpr *)expr);
     case AstType::INDEX:
         return FoldIndexExpr((IndexExpr *)expr);
-    case AstType::PREFIX:
-        return FoldPrefixExpr((PrefixExpr *)expr);
-    case AstType::INFIX:
-        return FoldInfixExpr((InfixExpr *)expr);
+    case AstType::UNARY:
+        return FoldUnaryExpr((UnaryExpr *)expr);
+    case AstType::BINARY:
+        return FoldBinaryExpr((BinaryExpr *)expr);
     case AstType::FUNCTION_CALL:
         return FoldFunctionCallExpr((FunctionCallExpr *)expr);
     case AstType::STRUCT_CALL:
@@ -110,7 +110,7 @@ Expr *ConstantFolder::FoldExpr(Expr *expr)
         return expr;
     }
 }
-Expr *ConstantFolder::FoldInfixExpr(InfixExpr *expr)
+Expr *ConstantFolder::FoldBinaryExpr(BinaryExpr *expr)
 {
     expr->left = FoldExpr(expr->left);
     expr->right = FoldExpr(expr->right);
@@ -125,7 +125,7 @@ Expr *ConstantFolder::FoldBoolExpr(BoolExpr *expr)
 {
     return expr;
 }
-Expr *ConstantFolder::FoldPrefixExpr(PrefixExpr *expr)
+Expr *ConstantFolder::FoldUnaryExpr(UnaryExpr *expr)
 {
     expr->right = FoldExpr(expr->right);
     return ConstantFold(expr);
@@ -191,9 +191,9 @@ Expr *ConstantFolder::FoldStructExpr(StructExpr *expr)
 
 Expr *ConstantFolder::ConstantFold(Expr *expr)
 {
-    if (expr->type == AstType::INFIX)
+    if (expr->type == AstType::BINARY)
     {
-        auto infix = (InfixExpr *)expr;
+        auto infix = (BinaryExpr *)expr;
         if (infix->left->type == AstType::NUM && infix->right->type == AstType::NUM)
         {
             Expr *newExpr = nullptr;
@@ -234,26 +234,26 @@ Expr *ConstantFolder::ConstantFold(Expr *expr)
             return strExpr;
         }
     }
-    else if (expr->type == AstType::PREFIX)
+    else if (expr->type == AstType::UNARY)
     {
-        auto prefix = (PrefixExpr *)expr;
-        if (prefix->right->type == AstType::NUM && prefix->op == "-")
+        auto unary = (UnaryExpr *)expr;
+        if (unary->right->type == AstType::NUM && unary->op == "-")
         {
-            auto numExpr = new NumExpr(-((NumExpr *)prefix->right)->value);
-            SAFE_DELETE(prefix);
+            auto numExpr = new NumExpr(-((NumExpr *)unary->right)->value);
+            SAFE_DELETE(unary);
             return numExpr;
         }
-        else if (prefix->right->type == AstType::BOOL && prefix->op == "not")
+        else if (unary->right->type == AstType::BOOL && unary->op == "not")
         {
-            auto boolExpr = new BoolExpr(!((BoolExpr *)prefix->right)->value);
-            SAFE_DELETE(prefix);
+            auto boolExpr = new BoolExpr(!((BoolExpr *)unary->right)->value);
+            SAFE_DELETE(unary);
             return boolExpr;
         }
-        else if (prefix->right->type == AstType::NUM && prefix->op == "~")
+        else if (unary->right->type == AstType::NUM && unary->op == "~")
         {
-            auto v = ~(int64_t)((NumExpr *)prefix->right)->value;
+            auto v = ~(int64_t)((NumExpr *)unary->right)->value;
             auto numExpr = new NumExpr((double)v);
-            SAFE_DELETE(prefix);
+            SAFE_DELETE(unary);
             return numExpr;
         }
     }

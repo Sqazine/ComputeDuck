@@ -97,10 +97,10 @@ namespace ComputeDuck
                     return FoldArrayExpr((ArrayExpr)expr);
                 case AstType.INDEX:
                     return FoldIndexExpr((IndexExpr)expr);
-                case AstType.PREFIX:
-                    return FoldPrefixExpr((PrefixExpr)expr);
-                case AstType.INFIX:
-                    return FoldInfixExpr((InfixExpr)expr);
+                case AstType.UNARY:
+                    return FoldUnaryExpr((UnaryExpr)expr);
+                case AstType.BINARY:
+                    return FoldBinaryExpr((BinaryExpr)expr);
                 case AstType.FUNCTION_CALL:
                     return FoldFunctionCallExpr((FunctionCallExpr)expr);
                 case AstType.STRUCT_CALL:
@@ -115,7 +115,7 @@ namespace ComputeDuck
                     return expr;
             }
         }
-        Expr FoldInfixExpr(InfixExpr expr)
+        Expr FoldBinaryExpr(BinaryExpr expr)
         {
             expr.left = FoldExpr(expr.left);
             expr.right = FoldExpr(expr.right);
@@ -130,7 +130,7 @@ namespace ComputeDuck
         {
             return expr;
         }
-        Expr FoldPrefixExpr(PrefixExpr expr)
+        Expr FoldUnaryExpr(UnaryExpr expr)
         {
             expr.right = FoldExpr(expr.right);
             return ConstantFold(expr);
@@ -198,9 +198,9 @@ namespace ComputeDuck
 
         Expr ConstantFold(Expr expr)
         {
-            if (expr.type == AstType.INFIX)
+            if (expr.type == AstType.BINARY)
             {
-                var infix = (InfixExpr)expr;
+                var infix = (BinaryExpr)expr;
                 if (infix.left.type == AstType.NUM && infix.right.type == AstType.NUM)
                 {
                     Expr newExpr = null;
@@ -232,9 +232,9 @@ namespace ComputeDuck
                     return strExpr;
                 }
             }
-            else if (expr.type == AstType.PREFIX)
+            else if (expr.type == AstType.UNARY)
             {
-                var prefix = (PrefixExpr)expr;
+                var prefix = (UnaryExpr)expr;
                 if (prefix.right.type == AstType.NUM && prefix.op == "-")
                 {
                     var numExpr = new NumExpr(-((NumExpr)prefix.right).value);

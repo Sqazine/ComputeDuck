@@ -10,8 +10,8 @@ class AstType(IntEnum):
     IDENTIFIER = 4,
     GROUP = 5,
     ARRAY = 6,
-    PREFIX = 7,
-    INFIX = 8,
+    UNARY = 7,
+    BINARY = 8,
     INDEX = 9,
     REF = 10,
     FUNCTION = 11,
@@ -127,12 +127,12 @@ class GroupExpr(Expr):
         return "("+self.expr.__str__()+")"
 
 
-class PrefixExpr(Expr):
+class UnaryExpr(Expr):
     op: str = ""
     right: Expr = None
 
     def __init__(self, op, right) -> None:
-        super().__init__(AstType.PREFIX)
+        super().__init__(AstType.UNARY)
         self.op = op
         self.right = right
 
@@ -140,13 +140,13 @@ class PrefixExpr(Expr):
         return self.op+self.right.__str__()
 
 
-class InfixExpr(Expr):
+class BinaryExpr(Expr):
     left: Expr = None
     op: str = ""
     right: Expr = None
 
     def __init__(self, left, op, right) -> None:
-        super().__init__(AstType.INFIX)
+        super().__init__(AstType.BINARY)
         self.left = left
         self.op = op
         self.right = right

@@ -32,10 +32,10 @@ private:
     void CompileStructStmt(StructStmt *stmt);
 
     void CompileExpr(Expr *expr, const RWState &state = RWState::READ);
-    void CompileInfixExpr(InfixExpr *expr);
+    void CompileBinaryExpr(BinaryExpr *expr);
     void CompileNumExpr(NumExpr *expr);
     void CompileBoolExpr(BoolExpr *expr);
-    void CompilePrefixExpr(PrefixExpr *expr);
+    void CompileUnaryExpr(UnaryExpr *expr);
     void CompileStrExpr(StrExpr *expr);
     void CompileNilExpr(NilExpr *expr);
     void CompileGroupExpr(GroupExpr *expr);

@@ -16,8 +16,8 @@ namespace ComputeDuck
         COMPARE,    // < <= > >=
         ADD_PLUS,   // + -
         MUL_DIV,    //  /
-        PREFIX,     // !
-        INFIX,      // [] () .
+        UNARY,     // !
+        CALL,      // [] () .
     };
 
     public delegate Expr PrefixFn();
@@ -250,12 +250,12 @@ namespace ComputeDuck
 
             return arrayExpr;
         }
-        private static Expr ParsePrefixExpr()
+        private static Expr ParseUnaryExpr()
         {
-            var prefixExpr = new PrefixExpr();
-            prefixExpr.op = GetCurTokenAndStepOnce().literal;
-            prefixExpr.right = ParseExpr(Precedence.PREFIX);
-            return prefixExpr;
+            var unaryExpr = new UnaryExpr();
+            unaryExpr.op = GetCurTokenAndStepOnce().literal;
+            unaryExpr.right = ParseExpr(Precedence.UNARY);
+            return unaryExpr;
         }
         private static Expr ParseRefExpr()
         {
@@ -263,10 +263,10 @@ namespace ComputeDuck
             var refExpr = ParseExpr(Precedence.LOWEST);
             return new RefExpr(refExpr);
         }
-        private static Expr ParseInfixExpr(Expr prefixExpr)
+        private static Expr ParseBinaryExpr(Expr unaryExpr)
         {
-            var infixExpr = new InfixExpr();
-            infixExpr.left = prefixExpr;
+            var infixExpr = new BinaryExpr();
+            infixExpr.left = unaryExpr;
 
             Precedence opPrece = GetCurTokenPrecedence();
 
@@ -274,20 +274,20 @@ namespace ComputeDuck
             infixExpr.right = ParseExpr(opPrece);
             return infixExpr;
         }
-        private static Expr ParseIndexExpr(Expr prefixExpr)
+        private static Expr ParseIndexExpr(Expr unaryExpr)
         {
             Consume(TokenType.LBRACKET, "Expect '['.");
             var indexExpr = new IndexExpr();
-            indexExpr.ds = prefixExpr;
-            indexExpr.index = ParseExpr(Precedence.INFIX);
+            indexExpr.ds = unaryExpr;
+            indexExpr.index = ParseExpr(Precedence.CALL);
             Consume(TokenType.RBRACKET, "Expect ']'.");
             return indexExpr;
         }
-        private static Expr ParseFunctionCallExpr(Expr prefixExpr)
+        private static Expr ParseFunctionCallExpr(Expr unaryExpr)
         {
             var funcCallExpr = new FunctionCallExpr();
 
-            funcCallExpr.name = prefixExpr;
+            funcCallExpr.name = unaryExpr;
             Consume(TokenType.LPAREN, "Expect '('.");
             if (!IsMatchCurToken(TokenType.RPAREN)) //has arguments
             {
@@ -299,12 +299,12 @@ namespace ComputeDuck
 
             return funcCallExpr;
         }
-        private static Expr ParseStructCallExpr(Expr prefixExpr)
+        private static Expr ParseStructCallExpr(Expr unaryExpr)
         {
             Consume(TokenType.DOT, "Expect '.'.");
             var structCallExpr = new StructCallExpr();
-            structCallExpr.callee = prefixExpr;
-            structCallExpr.callMember = ParseExpr(Precedence.INFIX);
+            structCallExpr.callee = unaryExpr;
+            structCallExpr.callMember = ParseExpr(Precedence.CALL);
             return structCallExpr;
         }
 
@@ -441,37 +441,37 @@ namespace ComputeDuck
             {TokenType.NIL, Parser.ParseNilExpr},
             {TokenType.TRUE, Parser.ParseTrueExpr},
             {TokenType.FALSE, Parser.ParseFalseExpr},
-            {TokenType.MINUS, Parser.ParsePrefixExpr},
-            {TokenType.NOT, Parser.ParsePrefixExpr},
+            {TokenType.MINUS, Parser.ParseUnaryExpr},
+            {TokenType.NOT, Parser.ParseUnaryExpr},
             {TokenType.LPAREN, Parser.ParseGroupExpr},
             {TokenType.LBRACKET, Parser.ParseArrayExpr},
             {TokenType.REF, Parser.ParseRefExpr},
             {TokenType.FUNCTION,Parser.ParseFunctionExpr},
             {TokenType.LBRACE,Parser.ParseStructExpr},
             {TokenType.DLLIMPORT,Parser.ParseDllImportExpr},
-            {TokenType.TILDE,Parser.ParsePrefixExpr},
+            {TokenType.TILDE,Parser.ParseUnaryExpr},
         };
         private static Dictionary<TokenType, InfixFn> m_InfixFunctions = new Dictionary<TokenType, InfixFn>()
         {
-            {TokenType.EQUAL, Parser.ParseInfixExpr},
-            {TokenType.EQUAL_EQUAL, Parser.ParseInfixExpr},
-            {TokenType.BANG_EQUAL, Parser.ParseInfixExpr},
-            {TokenType.LESS, Parser.ParseInfixExpr},
-            {TokenType.LESS_EQUAL, Parser.ParseInfixExpr},
-            {TokenType.GREATER, Parser.ParseInfixExpr},
-            {TokenType.GREATER_EQUAL, Parser.ParseInfixExpr},
-            {TokenType.PLUS, Parser.ParseInfixExpr},
-            {TokenType.MINUS, Parser.ParseInfixExpr},
-            {TokenType.ASTERISK, Parser.ParseInfixExpr},
-            {TokenType.SLASH, Parser.ParseInfixExpr},
+            {TokenType.EQUAL, Parser.ParseBinaryExpr},
+            {TokenType.EQUAL_EQUAL, Parser.ParseBinaryExpr},
+            {TokenType.BANG_EQUAL, Parser.ParseBinaryExpr},
+            {TokenType.LESS, Parser.ParseBinaryExpr},
+            {TokenType.LESS_EQUAL, Parser.ParseBinaryExpr},
+            {TokenType.GREATER, Parser.ParseBinaryExpr},
+            {TokenType.GREATER_EQUAL, Parser.ParseBinaryExpr},
+            {TokenType.PLUS, Parser.ParseBinaryExpr},
+            {TokenType.MINUS, Parser.ParseBinaryExpr},
+            {TokenType.ASTERISK, Parser.ParseBinaryExpr},
+            {TokenType.SLASH, Parser.ParseBinaryExpr},
             {TokenType.LPAREN, Parser.ParseFunctionCallExpr},
             {TokenType.LBRACKET, Parser.ParseIndexExpr},
-            {TokenType.AND, Parser.ParseInfixExpr},
-            {TokenType.OR, Parser.ParseInfixExpr},
+            {TokenType.AND, Parser.ParseBinaryExpr},
+            {TokenType.OR, Parser.ParseBinaryExpr},
             {TokenType.DOT, Parser.ParseStructCallExpr},
-            {TokenType.AMPERSAND,Parser.ParseInfixExpr},
-            {TokenType.VBAR,Parser.ParseInfixExpr},
-            {TokenType.CARET,Parser.ParseInfixExpr},
+            {TokenType.AMPERSAND,Parser.ParseBinaryExpr},
+            {TokenType.VBAR,Parser.ParseBinaryExpr},
+            {TokenType.CARET,Parser.ParseBinaryExpr},
         };
         private static Dictionary<TokenType, Precedence> m_Precedence = new Dictionary<TokenType, Precedence>()
         {
@@ -486,11 +486,11 @@ namespace ComputeDuck
             {TokenType.MINUS, Precedence.ADD_PLUS},
             {TokenType.ASTERISK, Precedence.MUL_DIV},
             {TokenType.SLASH, Precedence.MUL_DIV},
-            {TokenType.LBRACKET, Precedence.INFIX},
-            {TokenType.LPAREN, Precedence.INFIX},
+            {TokenType.LBRACKET, Precedence.CALL},
+            {TokenType.LPAREN, Precedence.CALL},
             {TokenType.AND, Precedence.AND},
             {TokenType.OR, Precedence.OR},
-            {TokenType.DOT, Precedence.INFIX},
+            {TokenType.DOT, Precedence.CALL},
             {TokenType.AMPERSAND,Precedence.BIT_AND},
             {TokenType.VBAR,Precedence.BIT_OR},
             {TokenType.CARET,Precedence.BIT_XOR},

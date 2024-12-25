@@ -8,38 +8,38 @@ std::unordered_map<TokenType, PrefixFn> Parser::m_PrefixFunctions =
 		{TokenType::NIL, &Parser::ParseNilExpr},
 		{TokenType::TRUE, &Parser::ParseBoolExpr},
 		{TokenType::FALSE, &Parser::ParseBoolExpr},
-		{TokenType::MINUS, &Parser::ParsePrefixExpr},
-		{TokenType::NOT, &Parser::ParsePrefixExpr},
+		{TokenType::MINUS, &Parser::ParseUnaryExpr},
+		{TokenType::NOT, &Parser::ParseUnaryExpr},
 		{TokenType::LPAREN, &Parser::ParseGroupExpr},
 		{TokenType::LBRACKET, &Parser::ParseArrayExpr},
 		{TokenType::REF, &Parser::ParseRefExpr},
 		{TokenType::FUNCTION, &Parser::ParseFunctionExpr},
 		{TokenType::LBRACE, &Parser::ParseStructExpr},
 		{TokenType::DLLIMPORT, &Parser::ParseDllImportExpr},
-		{TokenType::TILDE, &Parser::ParsePrefixExpr},
+		{TokenType::TILDE, &Parser::ParseUnaryExpr},
 };
 
 std::unordered_map<TokenType, InfixFn> Parser::m_InfixFunctions =
 	{
-		{TokenType::EQUAL, &Parser::ParseInfixExpr},
-		{TokenType::EQUAL_EQUAL, &Parser::ParseInfixExpr},
-		{TokenType::BANG_EQUAL, &Parser::ParseInfixExpr},
-		{TokenType::LESS, &Parser::ParseInfixExpr},
-		{TokenType::LESS_EQUAL, &Parser::ParseInfixExpr},
-		{TokenType::GREATER, &Parser::ParseInfixExpr},
-		{TokenType::GREATER_EQUAL, &Parser::ParseInfixExpr},
-		{TokenType::PLUS, &Parser::ParseInfixExpr},
-		{TokenType::MINUS, &Parser::ParseInfixExpr},
-		{TokenType::ASTERISK, &Parser::ParseInfixExpr},
-		{TokenType::SLASH, &Parser::ParseInfixExpr},
+		{TokenType::EQUAL, &Parser::ParseBinaryExpr},
+		{TokenType::EQUAL_EQUAL, &Parser::ParseBinaryExpr},
+		{TokenType::BANG_EQUAL, &Parser::ParseBinaryExpr},
+		{TokenType::LESS, &Parser::ParseBinaryExpr},
+		{TokenType::LESS_EQUAL, &Parser::ParseBinaryExpr},
+		{TokenType::GREATER, &Parser::ParseBinaryExpr},
+		{TokenType::GREATER_EQUAL, &Parser::ParseBinaryExpr},
+		{TokenType::PLUS, &Parser::ParseBinaryExpr},
+		{TokenType::MINUS, &Parser::ParseBinaryExpr},
+		{TokenType::ASTERISK, &Parser::ParseBinaryExpr},
+		{TokenType::SLASH, &Parser::ParseBinaryExpr},
 		{TokenType::LPAREN, &Parser::ParseFunctionCallExpr},
 		{TokenType::LBRACKET, &Parser::ParseIndexExpr},
-		{TokenType::AND, &Parser::ParseInfixExpr},
-		{TokenType::OR, &Parser::ParseInfixExpr},
+		{TokenType::AND, &Parser::ParseBinaryExpr},
+		{TokenType::OR, &Parser::ParseBinaryExpr},
 		{TokenType::DOT, &Parser::ParseStructCallExpr},
-		{TokenType::AMPERSAND, &Parser::ParseInfixExpr},
-		{TokenType::VBAR, &Parser::ParseInfixExpr},
-		{TokenType::CARET, &Parser::ParseInfixExpr},
+		{TokenType::AMPERSAND, &Parser::ParseBinaryExpr},
+		{TokenType::VBAR, &Parser::ParseBinaryExpr},
+		{TokenType::CARET, &Parser::ParseBinaryExpr},
 };
 
 std::unordered_map<TokenType, Precedence> Parser::m_Precedence =
@@ -55,11 +55,11 @@ std::unordered_map<TokenType, Precedence> Parser::m_Precedence =
 		{TokenType::MINUS, Precedence::ADD_PLUS},
 		{TokenType::ASTERISK, Precedence::MUL_DIV},
 		{TokenType::SLASH, Precedence::MUL_DIV},
-		{TokenType::LBRACKET, Precedence::INFIX},
-		{TokenType::LPAREN, Precedence::INFIX},
+		{TokenType::LBRACKET, Precedence::CALL},
+		{TokenType::LPAREN, Precedence::CALL},
 		{TokenType::AND, Precedence::AND},
 		{TokenType::OR, Precedence::OR},
-		{TokenType::DOT, Precedence::INFIX},
+		{TokenType::DOT, Precedence::CALL},
 		{TokenType::AMPERSAND, Precedence::BIT_AND},
 		{TokenType::VBAR, Precedence::BIT_OR},
 		{TokenType::CARET, Precedence::BIT_XOR},
@@ -214,19 +214,19 @@ Expr *Parser::ParseExpr(Precedence precedence)
 	}
 	auto prefixFn = m_PrefixFunctions[GetCurToken().type];
 
-	auto leftExpr = (this->*prefixFn)();
+	auto expr = (this->*prefixFn)();
 
 	while (!IsMatchCurToken(TokenType::SEMICOLON) && precedence < GetCurTokenPrecedence())
 	{
 		if (m_InfixFunctions.find(GetCurToken().type) == m_InfixFunctions.end())
-			return leftExpr;
+			return expr;
 
 		auto infixFn = m_InfixFunctions[GetCurToken().type];
 
-		leftExpr = (this->*infixFn)(leftExpr);
+		expr = (this->*infixFn)(expr);
 	}
 
-	return leftExpr;
+	return expr;
 }
 
 Expr *Parser::ParseIdentifierExpr()
@@ -288,18 +288,18 @@ Expr *Parser::ParseArrayExpr()
 	return arrayExpr;
 }
 
-Expr *Parser::ParsePrefixExpr()
+Expr *Parser::ParseUnaryExpr()
 {
-	auto prefixExpr = new PrefixExpr();
-	prefixExpr->op = GetCurTokenAndStepOnce().literal;
-	prefixExpr->right = ParseExpr(Precedence::PREFIX);
-	return prefixExpr;
+	auto unaryExpr = new UnaryExpr();
+	unaryExpr->op = GetCurTokenAndStepOnce().literal;
+	unaryExpr->right = ParseExpr(Precedence::UNARY);
+	return unaryExpr;
 }
 
-Expr *Parser::ParseInfixExpr(Expr *prefixExpr)
+Expr *Parser::ParseBinaryExpr(Expr *unaryExpr)
 {
-	auto infixExpr = new InfixExpr();
-	infixExpr->left = prefixExpr;
+	auto infixExpr = new BinaryExpr();
+	infixExpr->left = unaryExpr;
 
 	Precedence opPrece = GetCurTokenPrecedence();
 
@@ -308,12 +308,12 @@ Expr *Parser::ParseInfixExpr(Expr *prefixExpr)
 	return infixExpr;
 }
 
-Expr *Parser::ParseIndexExpr(Expr *prefixExpr)
+Expr *Parser::ParseIndexExpr(Expr *unaryExpr)
 {
 	Consume(TokenType::LBRACKET, "Expect '['.");
 	auto indexExpr = new IndexExpr();
-	indexExpr->ds = prefixExpr;
-	indexExpr->index = ParseExpr(Precedence::INFIX);
+	indexExpr->ds = unaryExpr;
+	indexExpr->index = ParseExpr(Precedence::CALL);
 	Consume(TokenType::RBRACKET, "Expect ']'.");
 	return indexExpr;
 }
@@ -377,11 +377,11 @@ Expr *Parser::ParseStructExpr()
 	return new StructExpr(memPairs);
 }
 
-Expr *Parser::ParseFunctionCallExpr(Expr *prefixExpr)
+Expr *Parser::ParseFunctionCallExpr(Expr *unaryExpr)
 {
 	auto funcCallExpr = new FunctionCallExpr();
 
-	funcCallExpr->name = prefixExpr;
+	funcCallExpr->name = unaryExpr;
 	Consume(TokenType::LPAREN, "Expect '('.");
 	if (!IsMatchCurToken(TokenType::RPAREN)) // has arguments
 	{
@@ -394,12 +394,12 @@ Expr *Parser::ParseFunctionCallExpr(Expr *prefixExpr)
 	return funcCallExpr;
 }
 
-Expr *Parser::ParseStructCallExpr(Expr *prefixExpr)
+Expr *Parser::ParseStructCallExpr(Expr *unaryExpr)
 {
 	Consume(TokenType::DOT, "Expect '.'.");
 	auto structCallExpr = new StructCallExpr();
-	structCallExpr->callee = prefixExpr;
-	structCallExpr->callMember = ParseExpr(Precedence::INFIX);
+	structCallExpr->callee = unaryExpr;
+	structCallExpr->callMember = ParseExpr(Precedence::CALL);
 	return structCallExpr;
 }
 

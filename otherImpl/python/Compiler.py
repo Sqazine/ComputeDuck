@@ -149,10 +149,10 @@ class Compiler:
             self.__compile_array_expr(expr)
         elif expr.type == AstType.INDEX:
             self.__compile_index_expr(expr,state)
-        elif expr.type == AstType.PREFIX:
-            self.__compile_prefix_expr(expr)
-        elif expr.type == AstType.INFIX:
-            self.__compile_infix_expr(expr)
+        elif expr.type == AstType.UNARY:
+            self.__compile_unary_expr(expr)
+        elif expr.type == AstType.BINARY:
+            self.__compile_binary_expr(expr)
         elif expr.type == AstType.FUNCTION_CALL:
             self.__compile_function_call_expr(expr)
         elif expr.type == AstType.STRUCT_CALL:
@@ -166,7 +166,7 @@ class Compiler:
         elif expr.type == AstType.DLL_IMPORT:
             self.__compile_dll_import_expr(expr)
 
-    def __compile_infix_expr(self, expr: InfixExpr) -> None:
+    def __compile_binary_expr(self, expr: BinaryExpr) -> None:
         if expr.op == "=":
             if expr.left.type == AstType.IDENTIFIER and expr.right.type == AstType.FUNCTION:
                 self.__symbolTable.Define(expr.left.literal)
@@ -220,7 +220,7 @@ class Compiler:
         else:
             self.__emit_constant(BoolObject(False))
 
-    def __compile_prefix_expr(self, expr: PrefixExpr) -> None:
+    def __compile_unary_expr(self, expr: UnaryExpr) -> None:
         self.__compile_expr(expr.right)
         if expr.op == "-":
             self.__emit(OpCode.OP_MINUS)

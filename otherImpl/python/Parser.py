@@ -18,8 +18,8 @@ class Precedence(IntEnum):
     COMPARE = 7,  # < <= > >=
     ADD_PLUS = 8,  # + -
     MUL_DIV = 9,  # * /
-    PREFIX = 10,		# not -
-    INFIX = 11,		# [] () .
+    UNARY = 10,		# not -
+    CALL = 11,		# [] () .
 
 
 class Parser:
@@ -45,37 +45,37 @@ class Parser:
             TokenType.NIL: self.__parse_nil_expr,
             TokenType.TRUE: self.__parse_true_expr,
             TokenType.FALSE: self.__parse_false_expr,
-            TokenType.MINUS: self.__parse_prefix_expr,
-            TokenType.NOT: self.__parse_prefix_expr,
+            TokenType.MINUS: self.__parse_unary_expr,
+            TokenType.NOT: self.__parse_unary_expr,
             TokenType.LPAREN: self.__parse_group_expr,
             TokenType.LBRACKET: self.__parse_array_expr,
             TokenType.REF: self.__parse_ref_expr,
             TokenType.LBRACE: self.__parse_struct_expr,
             TokenType.FUNCTION: self.__parse_function_expr,
             TokenType.DLLIMPORT: self.__parse_dll_import_expr,
-            TokenType.TILDE: self.__parse_prefix_expr,
+            TokenType.TILDE: self.__parse_unary_expr,
         }
 
         self.__infixFunctions = {
-            TokenType.EQUAL: self.__parse_infix_expr,
-            TokenType.EQUAL_EQUAL: self.__parse_infix_expr,
-            TokenType.BANG_EQUAL: self.__parse_infix_expr,
-            TokenType.LESS: self.__parse_infix_expr,
-            TokenType.LESS_EQUAL: self.__parse_infix_expr,
-            TokenType.GREATER: self.__parse_infix_expr,
-            TokenType.GREATER_EQUAL: self.__parse_infix_expr,
-            TokenType.PLUS: self.__parse_infix_expr,
-            TokenType.MINUS: self.__parse_infix_expr,
-            TokenType.ASTERISK: self.__parse_infix_expr,
-            TokenType.SLASH: self.__parse_infix_expr,
+            TokenType.EQUAL: self.__parse_binary_expr,
+            TokenType.EQUAL_EQUAL: self.__parse_binary_expr,
+            TokenType.BANG_EQUAL: self.__parse_binary_expr,
+            TokenType.LESS: self.__parse_binary_expr,
+            TokenType.LESS_EQUAL: self.__parse_binary_expr,
+            TokenType.GREATER: self.__parse_binary_expr,
+            TokenType.GREATER_EQUAL: self.__parse_binary_expr,
+            TokenType.PLUS: self.__parse_binary_expr,
+            TokenType.MINUS: self.__parse_binary_expr,
+            TokenType.ASTERISK: self.__parse_binary_expr,
+            TokenType.SLASH: self.__parse_binary_expr,
             TokenType.LPAREN: self.__parse_function_call_expr,
             TokenType.LBRACKET: self.__parse_index_expr,
-            TokenType.AND: self.__parse_infix_expr,
-            TokenType.OR: self.__parse_infix_expr,
+            TokenType.AND: self.__parse_binary_expr,
+            TokenType.OR: self.__parse_binary_expr,
             TokenType.DOT: self.__parse_struct_call_expr,
-            TokenType.AMPERSAND: self.__parse_infix_expr,
-            TokenType.VBAR: self.__parse_infix_expr,
-            TokenType.CARET: self.__parse_infix_expr
+            TokenType.AMPERSAND: self.__parse_binary_expr,
+            TokenType.VBAR: self.__parse_binary_expr,
+            TokenType.CARET: self.__parse_binary_expr
         }
 
         self.__precedence = {
@@ -90,11 +90,11 @@ class Parser:
             TokenType.MINUS: Precedence.ADD_PLUS,
             TokenType.ASTERISK: Precedence.MUL_DIV,
             TokenType.SLASH: Precedence.MUL_DIV,
-            TokenType.LBRACKET: Precedence.INFIX,
-            TokenType.LPAREN: Precedence.INFIX,
+            TokenType.LBRACKET: Precedence.CALL,
+            TokenType.LPAREN: Precedence.CALL,
             TokenType.AND: Precedence.AND,
             TokenType.OR: Precedence.OR,
-            TokenType.DOT: Precedence.INFIX,
+            TokenType.DOT: Precedence.CALL,
             TokenType.AMPERSAND: Precedence.BIT_AND,
             TokenType.VBAR: Precedence.BIT_OR,
             TokenType.CARET: Precedence.BIT_XOR,
@@ -287,25 +287,25 @@ class Parser:
         self.__consume(TokenType.RBRACKET, "Expect ']'.")
         return arrayExpr
 
-    def __parse_prefix_expr(self) -> Expr:
-        prefixExpr = PrefixExpr("", None)
-        prefixExpr.op = self.__get_cur_token_and_step_once().literal
-        prefixExpr.right = self.__parse_expr(Precedence.PREFIX)
-        return prefixExpr
+    def __parse_unary_expr(self) -> Expr:
+        unaryExpr = UnaryExpr("", None)
+        unaryExpr.op = self.__get_cur_token_and_step_once().literal
+        unaryExpr.right = self.__parse_expr(Precedence.UNARY)
+        return unaryExpr
 
-    def __parse_infix_expr(self, prefixExpr: Expr) -> Expr:
-        infixExpr = InfixExpr(None, "", None)
-        infixExpr.left = prefixExpr
+    def __parse_binary_expr(self, unaryExpr: Expr) -> Expr:
+        infixExpr = BinaryExpr(None, "", None)
+        infixExpr.left = unaryExpr
         opPrece = self.__get_cur_token_precedence()
         infixExpr.op = self.__get_cur_token_and_step_once().literal
         infixExpr.right = self.__parse_expr(opPrece)
         return infixExpr
 
-    def __parse_index_expr(self, prefixExpr: Expr) -> Expr:
+    def __parse_index_expr(self, unaryExpr: Expr) -> Expr:
         self.__consume(TokenType.LBRACKET, "Expect '['.")
         indexExpr = IndexExpr(None, None)
-        indexExpr.ds = prefixExpr
-        indexExpr.index = self.__parse_expr(Precedence.INFIX)
+        indexExpr.ds = unaryExpr
+        indexExpr.index = self.__parse_expr(Precedence.CALL)
         self.__consume(TokenType.RBRACKET, "Expect ']'.")
         return indexExpr
 
@@ -348,9 +348,9 @@ class Parser:
         self.__consume(TokenType.RBRACE, "Expect '}'.")
         return StructExpr(memPairs)
 
-    def __parse_function_call_expr(self, prefixExpr: Expr) -> Expr:
+    def __parse_function_call_expr(self, unaryExpr: Expr) -> Expr:
         funcCallExpr = FunctionCallExpr("", [])
-        funcCallExpr.name = prefixExpr
+        funcCallExpr.name = unaryExpr
         self.__consume(TokenType.LPAREN, "Expect '('.")
         if not self.__is_match_cur_token(TokenType.RPAREN):
             funcCallExpr.arguments.append(self.__parse_expr())
@@ -359,11 +359,11 @@ class Parser:
         self.__consume(TokenType.RPAREN, "Expect ')'.")
         return funcCallExpr
 
-    def __parse_struct_call_expr(self, prefixExpr: Expr) -> Expr:
+    def __parse_struct_call_expr(self, unaryExpr: Expr) -> Expr:
         self.__consume(TokenType.DOT, "Expect '.'.")
         structCallExpr = StructCallExpr(None, None)
-        structCallExpr.callee = prefixExpr
-        structCallExpr.callMember = self.__parse_expr(Precedence.INFIX)
+        structCallExpr.callee = unaryExpr
+        structCallExpr.callMember = self.__parse_expr(Precedence.CALL)
         return structCallExpr
 
     def __parse_dll_import_expr(self) -> Expr:

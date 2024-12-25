@@ -11,8 +11,8 @@ namespace ComputeDuck
         IDENTIFIER,
         GROUP,
         ARRAY,
-        PREFIX,
-        INFIX,
+        UNARY,
+        BINARY,
         INDEX,
         REF,
         FUNCTION,
@@ -168,15 +168,15 @@ namespace ComputeDuck
         public Expr? expr;
     }
 
-    public class PrefixExpr : Expr
+    public class UnaryExpr : Expr
     {
-        public PrefixExpr()
-        : base(AstType.PREFIX)
+        public UnaryExpr()
+        : base(AstType.UNARY)
         {
             this.op = ""; this.right = null;
         }
-        public PrefixExpr(string op, Expr right)
-        : base(AstType.PREFIX)
+        public UnaryExpr(string op, Expr right)
+        : base(AstType.UNARY)
         {
             this.op = op; this.right = right;
         }
@@ -186,17 +186,17 @@ namespace ComputeDuck
         public Expr? right;
     }
 
-    public class InfixExpr : Expr
+    public class BinaryExpr : Expr
     {
-        public InfixExpr()
-        : base(AstType.INFIX)
+        public BinaryExpr()
+        : base(AstType.BINARY)
         {
             this.op = "";
             this.left = null;
             this.right = null;
         }
-        public InfixExpr(string op, Expr left, Expr right)
-        : base(AstType.INFIX)
+        public BinaryExpr(string op, Expr left, Expr right)
+        : base(AstType.BINARY)
         {
             this.op = op;
             this.left = left;

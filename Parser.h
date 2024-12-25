@@ -21,8 +21,8 @@ enum class Precedence
 	COMPARE,	// < <= > >=
 	ADD_PLUS,	// + -
 	MUL_DIV,	// * /
-	PREFIX,		// not - ~
-	INFIX,		// [] () .
+	UNARY,		// not - ~
+	CALL,		// [] () .
 };
 
 class Parser;
@@ -55,14 +55,14 @@ private:
 	Expr *ParseBoolExpr();
 	Expr *ParseGroupExpr();
 	Expr *ParseArrayExpr();
-	Expr *ParsePrefixExpr();
+	Expr *ParseUnaryExpr();
 	Expr *ParseRefExpr();
 	Expr *ParseFunctionExpr();
 	Expr *ParseStructExpr();
-	Expr *ParseInfixExpr(Expr *prefixExpr);
-	Expr *ParseIndexExpr(Expr *prefixExpr);
-	Expr *ParseFunctionCallExpr(Expr *prefixExpr);
-	Expr *ParseStructCallExpr(Expr *prefixExpr);
+	Expr *ParseBinaryExpr(Expr *unaryExpr);
+	Expr *ParseIndexExpr(Expr *unaryExpr);
+	Expr *ParseFunctionCallExpr(Expr *unaryExpr);
+	Expr *ParseStructCallExpr(Expr *unaryExpr);
 	Expr *ParseDllImportExpr();
 
 	Token GetCurToken();
