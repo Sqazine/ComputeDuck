@@ -46,6 +46,7 @@ private:
 	Stmt *ParseScopeStmt();
 	Stmt *ParseWhileStmt();
 	Stmt *ParseStructStmt();
+	Stmt *ParseDllImportStmt();
 
 	Expr *ParseExpr(Precedence precedence = Precedence::LOWEST);
 	Expr *ParseIdentifierExpr();
@@ -63,7 +64,6 @@ private:
 	Expr *ParseIndexExpr(Expr *unaryExpr);
 	Expr *ParseFunctionCallExpr(Expr *unaryExpr);
 	Expr *ParseStructCallExpr(Expr *unaryExpr);
-	Expr *ParseDllImportExpr();
 
 	Token GetCurToken();
 	Token GetCurTokenAndStepOnce();

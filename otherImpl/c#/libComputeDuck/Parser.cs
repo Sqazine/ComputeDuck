@@ -53,6 +53,8 @@ namespace ComputeDuck
                 return ParseWhileStmt();
             else if (IsMatchCurToken(TokenType.STRUCT))
                 return ParseStructStmt();
+            else if(IsMatchCurToken(TokenType.DLLIMPORT))
+                return ParseDllImportStmt();
             else
                 return ParseExprStmt();
         }
@@ -173,6 +175,24 @@ namespace ComputeDuck
             Consume(TokenType.RBRACE, "Expect '}' after struct's '{'");
 
             return structStmt;
+        }
+
+        private static Expr ParseDllImportStmt()
+        {
+            Consume(TokenType.DLLIMPORT, "Expect 'dllimport' keyword");
+
+            Consume(TokenType.LPAREN, "Expect '(' after 'dllimport' keyword");
+
+            var path = Consume(TokenType.STRING, "Expect dll path.").literal;
+
+            Consume(TokenType.RPAREN, "Expect ')' after dllimport expr");
+
+            if (!path.Contains(".")) //no file suffix
+                path += ".dll";
+
+            path = "library-" + path;
+
+            return new DllImportStmt(path);
         }
 
         private static Expr ParseExpr(Precedence precedence = Precedence.LOWEST)
@@ -306,24 +326,6 @@ namespace ComputeDuck
             structCallExpr.callee = unaryExpr;
             structCallExpr.callMember = ParseExpr(Precedence.CALL);
             return structCallExpr;
-        }
-
-        private static Expr ParseDllImportExpr()
-        {
-            Consume(TokenType.DLLIMPORT, "Expect 'dllimport' keyword");
-
-            Consume(TokenType.LPAREN, "Expect '(' after 'dllimport' keyword");
-
-            var path = Consume(TokenType.STRING, "Expect dll path.").literal;
-
-            Consume(TokenType.RPAREN, "Expect ')' after dllimport expr");
-
-            if (!path.Contains(".")) //no file suffix
-                path += ".dll";
-
-            path = "library-" + path;
-
-            return new DllImportExpr(path);
         }
 
         private static Expr ParseStructExpr()

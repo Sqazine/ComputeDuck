@@ -30,6 +30,7 @@ private:
     void CompileWhileStmt(WhileStmt *stmt);
     void CompileReturnStmt(ReturnStmt *stmt);
     void CompileStructStmt(StructStmt *stmt);
+    void CompileDllImportStmt(DllImportStmt *stmt);
 
     void CompileExpr(Expr *expr, const RWState &state = RWState::READ);
     void CompileBinaryExpr(BinaryExpr *expr);
@@ -47,7 +48,6 @@ private:
     void CompileStructCallExpr(StructCallExpr *expr, const RWState &state);
     void CompileRefExpr(RefExpr *expr);
     void CompileStructExpr(StructExpr *expr);
-    void CompileDllImportExpr(DllImportExpr *expr);
 
     void EnterScope();
     void ExitScope();

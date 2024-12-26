@@ -15,7 +15,6 @@ std::unordered_map<TokenType, PrefixFn> Parser::m_PrefixFunctions =
 		{TokenType::REF, &Parser::ParseRefExpr},
 		{TokenType::FUNCTION, &Parser::ParseFunctionExpr},
 		{TokenType::LBRACE, &Parser::ParseStructExpr},
-		{TokenType::DLLIMPORT, &Parser::ParseDllImportExpr},
 		{TokenType::TILDE, &Parser::ParseUnaryExpr},
 };
 
@@ -103,6 +102,8 @@ Stmt *Parser::ParseStmt()
 		return ParseWhileStmt();
 	else if (IsMatchCurToken(TokenType::STRUCT))
 		return ParseStructStmt();
+	else if(IsMatchCurToken(TokenType::DLLIMPORT))
+		return ParseDllImportStmt();
 	else
 		return ParseExprStmt();
 }
@@ -203,6 +204,18 @@ Stmt *Parser::ParseStructStmt()
 	Consume(TokenType::RBRACE, "Expect '}'.");
 
 	return structStmt;
+}
+
+Stmt *Parser::ParseDllImportStmt()
+{
+	Consume(TokenType::DLLIMPORT, "Expect 'dllimport' keyword");
+	Consume(TokenType::LPAREN, "Expect '(' after 'dllimport' keyword");
+
+	auto path = Consume(TokenType::STRING, "Expect dll path.").literal;
+
+	Consume(TokenType::RPAREN, "Expect ')' after dllimport expr");
+
+	return new DllImportStmt(path);
 }
 
 Expr *Parser::ParseExpr(Precedence precedence)
@@ -401,18 +414,6 @@ Expr *Parser::ParseStructCallExpr(Expr *unaryExpr)
 	structCallExpr->callee = unaryExpr;
 	structCallExpr->callMember = ParseExpr(Precedence::CALL);
 	return structCallExpr;
-}
-
-Expr *Parser::ParseDllImportExpr()
-{
-	Consume(TokenType::DLLIMPORT, "Expect 'dllimport' keyword");
-	Consume(TokenType::LPAREN, "Expect '(' after 'dllimport' keyword");
-
-	auto path = Consume(TokenType::STRING, "Expect dll path.").literal;
-
-	Consume(TokenType::RPAREN, "Expect ')' after dllimport expr");
-
-	return new DllImportExpr(path);
 }
 
 Token Parser::GetCurToken()

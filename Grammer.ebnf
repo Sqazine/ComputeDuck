@@ -1,4 +1,5 @@
 stmt =  import_stmt|
+        dll_import_stmt|
         return_stmt|
         if_stmt|
         while_stmt|
@@ -7,10 +8,11 @@ stmt =  import_stmt|
         struct_stmt;
 
 import_stmt = "import" "(" string ")" ;
+dll_import_stmt = "dllimport" "(" string ")" ;
 return_stmt = "return" [ expr ] ";" ;
 if_stmt = "if" "(" expr ")" stmt [ "else" stmt ] ;
 scope_stmt = "{" { stmt } "}" ;
-while_stmt = "while" "(" expr_stmt ")" stmt ;
+while_stmt = "while" "(" or_expr ")" stmt ;
 struct_stmt = "struct" identifier "{" { identifier ":" expr "," } "}" ;
 expr_stmt = expr ";" ;
 

@@ -48,6 +48,8 @@ class Compiler:
             self.__compile_while_stmt(stmt)
         elif stmt.type == AstType.STRUCT:
             self.__compile_struct_stmt(stmt)
+        elif stmt.type == AstType.DLL_IMPORT:
+            self.__compile_dll_import_stmt(stmt)
 
     def __compile_expr_stmt(self, stmt: ExprStmt) -> None:
         self.__compile_expr(stmt.expr)
@@ -131,6 +133,16 @@ class Compiler:
         self.__emit_constant(fn)
 
         self.__store_symbol(symbol)
+        
+    def __compile_dll_import_stmt(self, stmt: DllImportStmt) -> None:
+        dllPath = "library-" + stmt.dllPath
+
+        register_dlls(dllPath)
+
+        self.__emit_constant(StrObject(dllPath))
+        self.__emit(OpCode.OP_DLL_IMPORT)
+
+        self.__register_builtins()
 
     def __compile_expr(self, expr: Expr, state: RWState = RWState.READ) -> None:
         if expr.type == AstType.NUM:
@@ -163,8 +175,6 @@ class Compiler:
             self.__compile_function_expr(expr)
         elif expr.type == AstType.STRUCT:
             self.__compile_struct_expr(expr)
-        elif expr.type == AstType.DLL_IMPORT:
-            self.__compile_dll_import_expr(expr)
 
     def __compile_binary_expr(self, expr: BinaryExpr) -> None:
         if expr.op == "=":
@@ -368,16 +378,6 @@ class Compiler:
 
         self.__emit(OpCode.OP_STRUCT)
         self.__emit(len(expr.memberPairs))
-
-    def __compile_dll_import_expr(self, expr: DllImportExpr) -> None:
-        dllPath = "library-" + expr.dllPath
-
-        register_dlls(dllPath)
-
-        self.__emit_constant(StrObject(dllPath))
-        self.__emit(OpCode.OP_DLL_IMPORT)
-
-        self.__register_builtins()
 
     def __enter_scope(self) -> None:
         self.__symbolTable = SymbolTable(self.__symbolTable)

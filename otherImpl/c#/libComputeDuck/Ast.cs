@@ -299,26 +299,6 @@ namespace ComputeDuck
         public Expr? callMember;
     }
 
-    public class DllImportExpr : Expr
-    {
-        public DllImportExpr()
-        : base(AstType.DLL_IMPORT)
-        {
-            this.dllPath = "";
-        }
-
-        public DllImportExpr(string dllPath)
-       : base(AstType.DLL_IMPORT)
-        {
-            this.dllPath = dllPath;
-        }
-
-        public override string Stringify()
-        {
-            return "dllimport(\"" + dllPath + "\")";
-        }
-        public string dllPath;
-    }
 
     public abstract class Stmt : AstNode
     {
@@ -517,3 +497,24 @@ namespace ComputeDuck
         public List<KeyValuePair<IdentifierExpr, Expr?>> members;
     }
 }
+
+    public class DllImportStmt : Stmt
+    {
+        public DllImportExpr()
+        : base(AstType.DLL_IMPORT)
+        {
+            this.dllPath = "";
+        }
+
+        public DllImportExpr(string dllPath)
+       : base(AstType.DLL_IMPORT)
+        {
+            this.dllPath = dllPath;
+        }
+
+        public override string Stringify()
+        {
+            return "dllimport(\"" + dllPath + "\")";
+        }
+        public string dllPath;
+    }

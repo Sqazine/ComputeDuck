@@ -18,7 +18,7 @@ FunctionObject *Compiler::Compile(const std::vector<Stmt *> &stmts)
     for (const auto &stmt : stmts)
         CompileStmt(stmt);
 
-    auto mainFn= Allocator::GetInstance()->CreateObject<FunctionObject>(CurChunk());
+    auto mainFn = Allocator::GetInstance()->CreateObject<FunctionObject>(CurChunk());
     PUSH(mainFn);
 
     Allocator::GetInstance()->ResetStack();
@@ -60,6 +60,9 @@ void Compiler::CompileStmt(Stmt *stmt)
         break;
     case AstType::STRUCT:
         CompileStructStmt((StructStmt *)stmt);
+        break;
+    case AstType::DLL_IMPORT:
+        CompileDllImportStmt((DllImportStmt *)stmt);
         break;
     default:
         ASSERT("Unknown stmt")
@@ -182,6 +185,19 @@ void Compiler::CompileStructStmt(StructStmt *stmt)
     StoreSymbol(symbol);
 }
 
+void Compiler::CompileDllImportStmt(DllImportStmt *stmt)
+{
+    auto dllpath = stmt->dllPath;
+
+    RegisterDLLs(dllpath);
+
+    for (const auto &[k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
+        m_SymbolTable->DefineBuiltin(k);
+
+    EmitConstant(Allocator::GetInstance()->CreateObject<StrObject>(dllpath.c_str()));
+    Emit(OP_DLL_IMPORT);
+}
+
 void Compiler::CompileExpr(Expr *expr, const RWState &state)
 {
     switch (expr->type)
@@ -216,8 +232,6 @@ void Compiler::CompileExpr(Expr *expr, const RWState &state)
         return CompileFunctionExpr((FunctionExpr *)expr);
     case AstType::STRUCT:
         return CompileStructExpr((StructExpr *)expr);
-    case AstType::DLL_IMPORT:
-        return CompileDllImportExpr((DllImportExpr *)expr);
     default:
         ASSERT("Unknown expr.");
     }
@@ -300,7 +314,6 @@ void Compiler::CompileUnaryExpr(UnaryExpr *expr)
         Emit(OP_MINUS);
     else if (expr->op == "~")
         Emit(OP_BIT_NOT);
-
 
     else if (expr->op == "not")
         Emit(OP_NOT);
@@ -499,19 +512,6 @@ void Compiler::CompileStructExpr(StructExpr *expr)
     Emit(static_cast<int16_t>(expr->members.size()));
 }
 
-void Compiler::CompileDllImportExpr(DllImportExpr *expr)
-{
-    auto dllpath = expr->dllPath;
-
-    RegisterDLLs(dllpath);
-
-    for (const auto &[k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
-        m_SymbolTable->DefineBuiltin(k);
-
-    EmitConstant(Allocator::GetInstance()->CreateObject<StrObject>(dllpath.c_str()));
-    Emit(OP_DLL_IMPORT);
-}
-
 void Compiler::EnterScope()
 {
     m_SymbolTable = new SymbolTable(m_SymbolTable);
@@ -534,7 +534,7 @@ uint32_t Compiler::Emit(int16_t opcode)
 
 uint32_t Compiler::EmitConstant(const Value &value)
 {
-    PUSH(value);// push value to stack for avoiding GC while compiler running
+    PUSH(value); // push value to stack for avoiding GC while compiler running
 
     CurChunk().constants.emplace_back(value);
     auto pos = static_cast<int16_t>(CurChunk().constants.size() - 1);

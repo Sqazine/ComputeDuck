@@ -35,7 +35,7 @@ namespace ComputeDuck
 
         public void ResetStatus()
         {
-            m_ScopeChunk=new List<Chunk>();
+            m_ScopeChunk = new List<Chunk>();
             m_ScopeChunk.Add(new Chunk());
 
             m_SymbolTable = new SymbolTable();
@@ -65,6 +65,9 @@ namespace ComputeDuck
                     break;
                 case AstType.STRUCT:
                     CompileStructStmt((StructStmt)stmt);
+                    break;
+                case AsType.DLL_IMPORT:
+                    CompileDllImportStmt((DllImportStmt)stmt);
                     break;
                 default:
                     break;
@@ -170,6 +173,20 @@ namespace ComputeDuck
 
             StoreSymbol(symbol);
         }
+
+
+        void CompileDllImportStmt(DllImportStmt stmt)
+        {
+            var dllPath = stmt.dllPath;
+
+            Utils.RegisterDLLs(dllPath);
+
+            EmitConstant(new StrObject(dllPath));
+            Emit((int)OpCode.OP_DLL_IMPORT);
+
+            RegisterBuiltins();
+        }
+
         void CompileExpr(Expr expr, RWState state = RWState.READ)
         {
             switch (expr.type)
@@ -196,7 +213,7 @@ namespace ComputeDuck
                     CompileArrayExpr((ArrayExpr)expr);
                     break;
                 case AstType.INDEX:
-                    CompileIndexExpr((IndexExpr)expr,state);
+                    CompileIndexExpr((IndexExpr)expr, state);
                     break;
                 case AstType.UNARY:
                     CompileUnaryExpr((UnaryExpr)expr);
@@ -218,9 +235,6 @@ namespace ComputeDuck
                     break;
                 case AstType.STRUCT:
                     CompileStructExpr((StructExpr)expr);
-                    break;
-                case AstType.DLL_IMPORT:
-                    CompileDllImportExpr((DllImportExpr)expr);
                     break;
                 default:
                     break;
@@ -325,18 +339,18 @@ namespace ComputeDuck
             Emit((int)OpCode.OP_ARRAY);
             Emit(expr.elements.Count);
         }
-        void CompileIndexExpr(IndexExpr expr,RWState state)
+        void CompileIndexExpr(IndexExpr expr, RWState state)
         {
             CompileExpr(expr.ds);
             CompileExpr(expr.index);
-            if(state==RWState.WRITE)
+            if (state == RWState.WRITE)
                 Emit((int)OpCode.OP_SET_INDEX);
             else
                 Emit((int)OpCode.OP_GET_INDEX);
         }
         void CompileIdentifierExpr(IdentifierExpr expr, RWState state)
         {
-            var (isFound,symbol) = m_SymbolTable.Resolve(expr.literal);
+            var (isFound, symbol) = m_SymbolTable.Resolve(expr.literal);
             if (state == RWState.READ)
             {
                 if (!isFound)
@@ -423,7 +437,7 @@ namespace ComputeDuck
             if (expr.refExpr.type == AstType.INDEX)
             {
                 CompileExpr(((IndexExpr)expr.refExpr).index);
-                var (isFound,symbol) = m_SymbolTable.Resolve(((IndexExpr)expr.refExpr).ds.Stringify());
+                var (isFound, symbol) = m_SymbolTable.Resolve(((IndexExpr)expr.refExpr).ds.Stringify());
 
                 if (!isFound)
                     Utils.Assert("Undefined variable:" + expr.Stringify());
@@ -478,18 +492,6 @@ namespace ComputeDuck
             Emit((int)OpCode.OP_STRUCT);
             Emit(expr.memberPairs.Count);
         }
-        void CompileDllImportExpr(DllImportExpr expr)
-        {
-            var dllPath = expr.dllPath;
-
-            Utils.RegisterDLLs(dllPath);
-
-            EmitConstant(new StrObject(dllPath));
-            Emit((int)OpCode.OP_DLL_IMPORT);
-
-            RegisterBuiltins();
-        }
-
         void EnterScope()
         {
             m_SymbolTable = new SymbolTable(m_SymbolTable);
@@ -513,7 +515,7 @@ namespace ComputeDuck
         uint EmitConstant(Object obj)
         {
             CurChunk().constants.Add(obj);
-            var pos= (uint)CurChunk().constants.Count - 1;
+            var pos = (uint)CurChunk().constants.Count - 1;
             Emit((int)OpCode.OP_CONSTANT);
             Emit((int)pos);
             return (uint)CurChunk().opCodes.Count - 1;
@@ -529,7 +531,7 @@ namespace ComputeDuck
             foreach (var k in BuiltinManager.GetInstance().m_Builtins.Keys)
                 m_SymbolTable.DefineBuiltin(k);
         }
-        
+
         void DefineSymbol(Symbol symbol)
         {
             switch (symbol.scope)

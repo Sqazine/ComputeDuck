@@ -22,13 +22,13 @@ enum class AstType
 	FUNCTION,
 	FUNCTION_CALL,
 	STRUCT_CALL,
-	DLL_IMPORT,
 
 	EXPR,
 	RETURN,
 	IF,
 	SCOPE,
 	WHILE,
+	DLL_IMPORT,
 
 	STRUCT,
 };
@@ -234,17 +234,6 @@ struct StructCallExpr : public Expr
 	Expr *callMember;
 };
 
-struct DllImportExpr : public Expr
-{
-	DllImportExpr() : Expr(AstType::DLL_IMPORT) {}
-	DllImportExpr(std::string_view path) : Expr(AstType::DLL_IMPORT), dllPath(path) {}
-	~DllImportExpr() override = default;
-
-	std::string Stringify() override { return "dllimport(\"" + dllPath + "\")"; }
-
-	std::string dllPath;
-};
-
 struct Stmt : public AstNode
 {
 	Stmt(AstType type) : AstNode(type) {}
@@ -402,4 +391,15 @@ struct StructStmt : public Stmt
 
 	std::string name;
 	StructExpr *body;
+};
+
+struct DllImportStmt : public Stmt
+{
+	DllImportStmt() : Stmt(AstType::DLL_IMPORT) {}
+	DllImportStmt(std::string_view path) : Stmt(AstType::DLL_IMPORT), dllPath(path) {}
+	~DllImportStmt() override = default;
+
+	std::string Stringify() override { return "dllimport(\"" + dllPath + "\")"; }
+
+	std::string dllPath;
 };

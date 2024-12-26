@@ -210,17 +210,6 @@ class StructCallExpr(Expr):
         return self.callee.__str__()+"."+self.callMember.__str__()
 
 
-class DllImportExpr(Expr):
-    dllPath: str = None
-
-    def __init__(self, dllPath) -> None:
-        super().__init__(AstType.DLL_IMPORT)
-        self.dllPath = dllPath
-
-    def __str__(self) -> str:
-        return "dllimport(\""+self.dllPath+"\")"
-
-
 class Stmt(AstNode):
     @abc.abstractmethod
     def __str__(self) -> str:
@@ -345,3 +334,14 @@ class StructStmt(Stmt):
         for value in self.members:
             result += value.__str__()+"\n"
         return result+"}"
+
+class DllImportStmt(Stmt):
+    dllPath: str = None
+
+    def __init__(self, dllPath) -> None:
+        super().__init__(AstType.DLL_IMPORT)
+        self.dllPath = dllPath
+
+    def __str__(self) -> str:
+        return "dllimport(\""+self.dllPath+"\")"
+

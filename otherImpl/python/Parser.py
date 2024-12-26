@@ -52,7 +52,6 @@ class Parser:
             TokenType.REF: self.__parse_ref_expr,
             TokenType.LBRACE: self.__parse_struct_expr,
             TokenType.FUNCTION: self.__parse_function_expr,
-            TokenType.DLLIMPORT: self.__parse_dll_import_expr,
             TokenType.TILDE: self.__parse_unary_expr,
         }
 
@@ -158,6 +157,8 @@ class Parser:
             return self.__parse_while_stmt()
         elif self.__is_match_cur_token(TokenType.STRUCT):
             return self.__parse_struct_stmt()
+        elif self.__is_match_cur_token(TokenType.DLLIMPORT):
+            return self.__parse_dll_import_stmt()
         else:
             return self.__parse_exprStmt()
 
@@ -366,7 +367,7 @@ class Parser:
         structCallExpr.callMember = self.__parse_expr(Precedence.CALL)
         return structCallExpr
 
-    def __parse_dll_import_expr(self) -> Expr:
+    def __parse_dll_import_stmt(self) -> Stmt:
         self.__consume(TokenType.DLLIMPORT, "Expect 'dllimport' keyword")
         self.__consume(TokenType.LPAREN,"Expect '(' after 'dllimport' keyword")
 
@@ -374,4 +375,4 @@ class Parser:
 
         self.__consume(TokenType.RPAREN, "Expect ')' after dllimoport expr")
 
-        return DllImportExpr(path)
+        return DllImportStmt(path)
