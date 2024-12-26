@@ -10,13 +10,13 @@ stmt =  import_stmt|
 import_stmt = "import" "(" string ")" ;
 dll_import_stmt = "dllimport" "(" string ")" ;
 return_stmt = "return" [ expr ] ";" ;
-if_stmt = "if" "(" expr ")" stmt [ "else" stmt ] ;
+if_stmt = "if" "(" or_expr ")" stmt [ "else" stmt ] ;
 scope_stmt = "{" { stmt } "}" ;
 while_stmt = "while" "(" or_expr ")" stmt ;
-struct_stmt = "struct" identifier "{" { identifier ":" expr "," } "}" ;
+struct_stmt = "struct" identifier "{" { identifier ":" or_expr "," } "}" ;
 expr_stmt = expr ";" ;
 
-expr = assign_expr | dll_import_expr | or_expr;
+expr = assign_expr | or_expr;
 
 assign_expr = call_expr {"=" or_expr} ;
 
@@ -28,8 +28,7 @@ bit_and_expr = equal_expr {"&"  equal_expr} ;
 equal_expr = compare_expr {"=="|"!="  compare_expr} ;
 compare_expr = term_expr {"<" | "<=" | ">=" | ">" term_expr} ;
 term_expr = factor_expr {"+" | "-" factor_expr} ;
-factor_expr = product_expr {"*" | "/" product_expr} ;
-product_expr = unary_expr {"*" | "/" unary_expr} ;
+factor_expr = unary_expr {"*" | "/" unary_expr} ;
 unary_expr = "-" | "not" | "~" unary_expr | call_expr ;
 
 call_expr = function_call_expr | struct_call_expr | primary_expr | index_expr;
@@ -43,8 +42,7 @@ primary_expr = identifier | number | string | "nil" | "true" | "false" | "(" or_
 array_expr = "[" [ or_expr { "," or_expr } ] "]" ;
 ref_expr = "ref" identifier ;
 struct_expr = "{" [ identifier ":" or_expr { "," identifier ":" or_expr } ] "}" ;
-dll_import_expr = "dllimport" "(" string ")";
-function_expr = "function" "(" [ identifier_expr { "," identifier_expr } ] ")" scope_stmt ;
+function_expr = "function" "(" [ identifier { "," identifier } ] ")" scope_stmt ;
 
 string = "\"" { character } "\"" ;
 character = "A" ... "Z" | "a" ... "z" | "0" ... "9" | " " | "!" | "#" | "$" | "%" | "&" | "(" | ")" | "*" | "+" | "," | "-" | "." | "/" | ":" | ";" | "<" | "=" | ">" | "?" | "@" | "[" | "]" | "^" | "_" | "`" | "{" | "}" | "|" | "~" ;
