@@ -496,17 +496,16 @@ namespace ComputeDuck
         public string name;
         public List<KeyValuePair<IdentifierExpr, Expr?>> members;
     }
-}
 
     public class DllImportStmt : Stmt
     {
-        public DllImportExpr()
+        public DllImportStmt()
         : base(AstType.DLL_IMPORT)
         {
             this.dllPath = "";
         }
 
-        public DllImportExpr(string dllPath)
+        public DllImportStmt(string dllPath)
        : base(AstType.DLL_IMPORT)
         {
             this.dllPath = dllPath;
@@ -518,3 +517,4 @@ namespace ComputeDuck
         }
         public string dllPath;
     }
+}

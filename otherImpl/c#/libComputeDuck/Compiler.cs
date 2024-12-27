@@ -66,7 +66,7 @@ namespace ComputeDuck
                 case AstType.STRUCT:
                     CompileStructStmt((StructStmt)stmt);
                     break;
-                case AsType.DLL_IMPORT:
+                case AstType.DLL_IMPORT:
                     CompileDllImportStmt((DllImportStmt)stmt);
                     break;
                 default:

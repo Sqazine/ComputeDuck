@@ -213,7 +213,8 @@ Stmt *Parser::ParseDllImportStmt()
 
 	auto path = Consume(TokenType::STRING, "Expect dll path.").literal;
 
-	Consume(TokenType::RPAREN, "Expect ')' after dllimport expr");
+	Consume(TokenType::RPAREN, "Expect ')' after dllimport stmt");
+	Consume(TokenType::SEMICOLON, "Expect ';' after dllimport stmt ')'");
 
 	return new DllImportStmt(path);
 }

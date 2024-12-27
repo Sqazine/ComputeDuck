@@ -177,7 +177,7 @@ namespace ComputeDuck
             return structStmt;
         }
 
-        private static Expr ParseDllImportStmt()
+        private static Stmt ParseDllImportStmt()
         {
             Consume(TokenType.DLLIMPORT, "Expect 'dllimport' keyword");
 
@@ -185,7 +185,8 @@ namespace ComputeDuck
 
             var path = Consume(TokenType.STRING, "Expect dll path.").literal;
 
-            Consume(TokenType.RPAREN, "Expect ')' after dllimport expr");
+            Consume(TokenType.RPAREN, "Expect ')' after dllimport stmt");
+            Consume(TokenType.SEMICOLON, "Expect ';' after dllimport stmt ')'");
 
             if (!path.Contains(".")) //no file suffix
                 path += ".dll";
@@ -450,7 +451,6 @@ namespace ComputeDuck
             {TokenType.REF, Parser.ParseRefExpr},
             {TokenType.FUNCTION,Parser.ParseFunctionExpr},
             {TokenType.LBRACE,Parser.ParseStructExpr},
-            {TokenType.DLLIMPORT,Parser.ParseDllImportExpr},
             {TokenType.TILDE,Parser.ParseUnaryExpr},
         };
         private static Dictionary<TokenType, InfixFn> m_InfixFunctions = new Dictionary<TokenType, InfixFn>()

@@ -373,6 +373,7 @@ class Parser:
 
         path = self.__consume(TokenType.STRING, "Expect dll path").literal
 
-        self.__consume(TokenType.RPAREN, "Expect ')' after dllimoport expr")
+        self.__consume(TokenType.RPAREN, "Expect ')' after dllimoport stmt")
+        self.__consume(TokenType.SEMICOLON, "Expect ';' after dllimoport stmt")
 
         return DllImportStmt(path)
