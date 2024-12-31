@@ -4,6 +4,7 @@
 #include "BuiltinManager.h"
 #include "Value.h"
 #include <cassert>
+#include <format>
 
 extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(gladLoadGL)(Value *args, uint8_t argCount, Value &result)
 {
@@ -228,8 +229,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glCompileShader)(Value *args, uint8_
     {
         char infoLog[512];
         glGetShaderInfoLog(arg0, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::COMPILATION_FAILED\n"
-                  << infoLog << std::endl;
+        std::cout << std::format("ERROR::SHADER::COMPILATION_FAILED\n{}\n",infoLog);
     }
 
     assert(glGetError() == 0);
@@ -268,8 +268,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glLinkProgram)(Value *args, uint8_t 
     if (!success)
     {
         glGetProgramInfoLog(arg0, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
-                  << infoLog << std::endl;
+        std::cout << std::format("ERROR::SHADER::PROGRAM::LINKING_FAILED\n{}\n",infoLog);
     }
 
     assert(glGetError() == 0);

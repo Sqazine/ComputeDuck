@@ -180,7 +180,8 @@ void Allocator::Gc(bool isExitingVM)
 
     m_MaxObjCount = m_CurObjCount == 0 ? STACK_MAX : m_CurObjCount * 2;
 
-    std::cout << "Collected " << objNum - m_CurObjCount << " objects," << m_CurObjCount << " remaining." << std::endl;
+
+    std::cout << std::format("Collected {} objects,{} remainning\n",objNum - m_CurObjCount,m_CurObjCount);
 }
 
 void Allocator::DeleteObject(Object *object)
