@@ -59,7 +59,7 @@ namespace
             if (!IS_NUM_VALUE(args[1]))
                 ASSERT("[Native function 'insert']:Arg1 must be integer type while insert to a array");
 
-            size_t iIndex = (size_t)TO_NUM_VALUE(args[1]);
+            uint32_t iIndex = (uint32_t)TO_NUM_VALUE(args[1]);
 
             if (iIndex < 0 || iIndex >= array->len)
                 ASSERT("[Native function 'insert']:Index out of array's range");
@@ -71,7 +71,7 @@ namespace
             if (!IS_NUM_VALUE(args[1]))
                 ASSERT("[Native function 'insert']:Arg1 must be integer type while insert to a string");
 
-            size_t iIndex = (size_t)TO_NUM_VALUE(args[1]);
+            uint32_t iIndex = (uint32_t)TO_NUM_VALUE(args[1]);
 
             if (iIndex < 0 || iIndex > TO_STR_VALUE(args[0])->len)
                 ASSERT("[Native function 'insert']:Index out of array's range");

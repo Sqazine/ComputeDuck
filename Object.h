@@ -41,7 +41,7 @@ enum ObjectType :uint8_t
 struct Object
 {
     Object(ObjectType type) : type(type), marked(false), next(nullptr) {}
-    ~Object() {}
+    ~Object() = default;
 
     ObjectType type;
     bool marked;
@@ -142,6 +142,14 @@ struct NativeData
     }
 };
 
+template <typename T>
+concept IsBuiltinData = std::is_same_v<T, BuiltinFn> || 
+                        std::is_same_v<T, Value>;
+
+template <typename T>
+concept IsBuiltinOrNativeData = IsBuiltinData<T> || 
+                                std::is_same_v<T, NativeData>;
+
 struct BuiltinObject : public Object
 {
     BuiltinObject(void *nativeData, std::function<void(void *nativeData)> destroyFunc)
@@ -153,8 +161,7 @@ struct BuiltinObject : public Object
         data = nd;
     }
 
-    template <typename T>
-        requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value>)
+    template <IsBuiltinData T>
     BuiltinObject(std::string_view name, const T &v)
         :Object(ObjectType::BUILTIN)
     {
@@ -167,15 +174,13 @@ struct BuiltinObject : public Object
             Get<NativeData>().destroyFunc(Get<NativeData>().nativeData);
     }
 
-    template<typename T>
-        requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value> || std::is_same_v<T, NativeData>)
+    template<IsBuiltinOrNativeData T>
     T Get()
     {
         return std::get<T>(data);
     }
 
-    template<typename T>
-        requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value> || std::is_same_v<T, NativeData>)
+    template<IsBuiltinOrNativeData T>
     bool Is()
     {
         return std::holds_alternative<T>(data);

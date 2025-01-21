@@ -11,8 +11,7 @@ class COMPUTE_DUCK_API BuiltinManager
 public:
     static BuiltinManager *GetInstance();
 
-    template <typename T>
-        requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value>)
+    template <IsBuiltinData T>
     void Register(std::string_view name, const T &v)
     {
         auto iter = m_BuiltinObjects.find(name);

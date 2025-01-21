@@ -21,7 +21,7 @@ struct CallFrame
     bool IsEnd()
     {
         auto fnObj = GetFnObject();
-        if ((ip - fnObj->chunk.opCodes.data()) < fnObj->chunk.opCodes.size())
+        if ((ip - fnObj->chunk.opCodes.data()) < (int32_t)fnObj->chunk.opCodes.size())
             return false;
         return true;
     }
@@ -31,10 +31,15 @@ struct CallFrame
         return fn;
     }
 
-    FunctionObject *fn{ nullptr };
-    int16_t *ip{ nullptr };
-    Value *slot{ nullptr };
+    FunctionObject *fn{nullptr};
+    int16_t *ip{nullptr};
+    Value *slot{nullptr};
 };
+
+template <typename T>
+concept IsChildOfObject = !std::is_same_v<T, void> &&
+                          !std::is_abstract_v<T> &&
+                          std::is_base_of_v<Object, T>;
 
 class COMPUTE_DUCK_API Allocator
 {
@@ -47,14 +52,14 @@ public:
     void ResetStack();
     void ResetFrame();
 
-    template <class T, typename... Args>
+    template <IsChildOfObject T, typename... Args>
     T *CreateObject(Args &&...params)
     {
         if (m_CurObjCount >= m_MaxObjCount
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
             && m_IsInsideJitExecutor == false
 #endif
-            )
+        )
             Gc();
 
         T *object = new T(std::forward<Args>(params)...);
@@ -90,8 +95,9 @@ public:
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     void InsideJitExecutor();
     void OutsideJitExecutor();
+
 private:
-    bool m_IsInsideJitExecutor{ false };
+    bool m_IsInsideJitExecutor{false};
 #endif
 
 private:
@@ -103,19 +109,18 @@ private:
 
     Value m_GlobalVariables[STACK_MAX];
 
-    Value *m_StackTop{ nullptr };
+    Value *m_StackTop{nullptr};
     Value m_ValueStack[STACK_MAX]{};
 
-    CallFrame *m_CallFrameTop{ nullptr };
+    CallFrame *m_CallFrameTop{nullptr};
     CallFrame m_CallFrameStack[STACK_MAX]{};
 
-    Object *m_FirstObject{ nullptr };
-    size_t m_CurObjCount{ 0 };
-    size_t m_MaxObjCount{ 0 };
-
+    Object *m_FirstObject{nullptr};
+    size_t m_CurObjCount{0};
+    size_t m_MaxObjCount{0};
 };
 
-#define GET_GLOBAL_VARIABLE_REF(x) (Allocator::GetInstance()->GetGlobalVariableRef(x)) 
+#define GET_GLOBAL_VARIABLE_REF(x) (Allocator::GetInstance()->GetGlobalVariableRef(x))
 
 #define PUSH(x) (Allocator::GetInstance()->Push(x))
 #define POP() (Allocator::GetInstance()->Pop())
@@ -124,7 +129,7 @@ private:
 #define POP_CALL_FRAME() (Allocator::GetInstance()->PopCallFrame())
 #define PEEK_CALL_FRAME_FROM_BACK(x) (Allocator::GetInstance()->PeekCallFrameFromBack(x))
 
-#define GET_LOCAL_VARIABLE_SLOT(d,idx,isUpV) (Allocator::GetInstance()->GetLocalVariableSlot(d,idx,isUpV))
+#define GET_LOCAL_VARIABLE_SLOT(d, idx, isUpV) (Allocator::GetInstance()->GetLocalVariableSlot(d, idx, isUpV))
 
 #define STACK_TOP() (Allocator::GetInstance()->GetStackTop())
 #define STACK_TOP_JUMP(x) (Allocator::GetInstance()->StackTopJump(x))
