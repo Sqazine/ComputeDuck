@@ -43,8 +43,8 @@ void Run(std::string_view content)
 	auto fn = g_Compiler->Compile(stmts);
 
 #ifndef NDEBUG
-	auto str=ObjectStringify(fn, true);
-    std::cout << str << std::endl;
+	auto str = ObjectStringify(fn, true);
+	std::cout << str << std::endl;
 	//WriteFile(Config::GetInstance()->GetExecuteFilePath()+"TmpDump.txt",str);
 #endif
 
@@ -71,8 +71,6 @@ void Repl(std::string_view exePath)
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
 		else if (line == "-nj" || line == "--no-jit")
 			Config::GetInstance()->SetUseJit(false);
-		else if (line == "-j" || line == "--jit")
-			Config::GetInstance()->SetUseJit(true);
 #endif
 		else
 		{
