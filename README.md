@@ -422,7 +422,7 @@ println(d);
 
 14. Import 3th-party dll library
 ```sh
-dllimport("sdl2");
+dllimport("cdsdl2");
 
 ok=SDL_Init(SDL_INIT_VIDEO);
 if(ok<0)
