@@ -39,6 +39,10 @@
 #include "Object.h"
 #include "Allocator.h"
 
+template <typename T>
+concept IsStackValue = std::is_same_v<T, llvm::Value *> ||
+    std::is_same_v<T, Value>;
+
 class COMPUTE_DUCK_API Jit
 {
 public:
@@ -93,18 +97,69 @@ private:
     class OrcExecutor
     {
     public:
-        OrcExecutor(std::unique_ptr<llvm::orc::ExecutionSession> es, llvm::orc::JITTargetMachineBuilder jtmb, llvm::DataLayout dl);
-        ~OrcExecutor();
+        OrcExecutor(std::unique_ptr<llvm::orc::ExecutionSession> es, llvm::orc::JITTargetMachineBuilder jtmb, llvm::DataLayout dl)
+            : m_Es(std::move(es)), m_DataLayout(std::move(dl)), m_Mangle(*m_Es, m_DataLayout),
+              m_ObjectLayer(*m_Es,
+                            []()
+                            { return std::make_unique<llvm::SectionMemoryManager>(); }),
+              m_CompileLayer(*m_Es, m_ObjectLayer,
+                             std::make_unique<llvm::orc::ConcurrentIRCompiler>(std::move(jtmb))),
+              m_MainJD(m_Es->createBareJITDylib("<main>"))
+        {
+            m_MainJD.addGenerator(cantFail(llvm::orc::DynamicLibrarySearchGenerator::GetForCurrentProcess(m_DataLayout.getGlobalPrefix())));
 
-        static std::unique_ptr<OrcExecutor> Create();
+            if (jtmb.getTargetTriple().isOSBinFormatCOFF())
+            {
+                m_ObjectLayer.setOverrideObjectFlagsWithResponsibilityFlags(true);
+                m_ObjectLayer.setAutoClaimResponsibilityForObjectSymbols(true);
+            }
+        }
 
-        const llvm::DataLayout &GetDataLayout() const;
+        ~OrcExecutor()
+        {
+            if (auto Err = m_Es->endSession())
+                m_Es->reportError(std::move(Err));
+        }
 
-        llvm::orc::JITDylib &GetMainJITDylib();
+        static std::unique_ptr<OrcExecutor> Create()
+        {
+            auto epc = llvm::orc::SelfExecutorProcessControl::Create();
+            if (!epc)
+                return nullptr;
 
-        llvm::Error AddModule(llvm::orc::ThreadSafeModule tsm, llvm::orc::ResourceTrackerSP rt = nullptr);
+            auto es = std::make_unique<llvm::orc::ExecutionSession>(std::move(*epc));
 
-        llvm::Expected<llvm::JITEvaluatedSymbol> LookUp(llvm::StringRef name);
+            llvm::orc::JITTargetMachineBuilder JTMB(es->getExecutorProcessControl().getTargetTriple());
+
+            auto dataLayout = JTMB.getDefaultDataLayoutForTarget();
+            if (!dataLayout)
+                return nullptr;
+
+            return std::make_unique<OrcExecutor>(std::move(es), std::move(JTMB), std::move(*dataLayout));
+        }
+
+        const llvm::DataLayout &GetDataLayout() const
+        {
+            return m_DataLayout;
+        }
+
+        llvm::orc::JITDylib &GetMainJITDylib()
+        {
+            return m_MainJD;
+        }
+
+        llvm::Error AddModule(llvm::orc::ThreadSafeModule tsm, llvm::orc::ResourceTrackerSP rt = nullptr)
+        {
+            if (!rt)
+                rt = m_MainJD.getDefaultResourceTracker();
+            return m_CompileLayer.add(rt, std::move(tsm));
+        }
+
+        llvm::Expected<llvm::JITEvaluatedSymbol> LookUp(llvm::StringRef name)
+        {
+            return m_Es->lookup({&m_MainJD}, m_Mangle(name.str()));
+        }
+
     private:
         std::unique_ptr<llvm::orc::ExecutionSession> m_Es;
         llvm::DataLayout m_DataLayout;
@@ -123,25 +178,18 @@ private:
         StackValue(const Value &v) :stored(v) {}
         ~StackValue() = default;
 
-        bool IsLlvmValue() const
+        template <IsStackValue T>
+        bool Is()
         {
-            return stored.index() == 1;
+            return std::holds_alternative<T>(stored);
         }
 
-        bool IsVmValue()
+        template <IsStackValue T>
+        T Get()
         {
-            return stored.index() == 0;
+            return std::get<T>(stored);
         }
 
-        llvm::Value *GetLlvmValue() const
-        {
-            return std::get<llvm::Value *>(stored);
-        }
-
-        const Value &GetVmValue() const
-        {
-            return std::get<Value>(stored);
-        }
     private:
         std::variant<Value, llvm::Value *> stored;
     };

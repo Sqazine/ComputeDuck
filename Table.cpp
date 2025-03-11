@@ -20,7 +20,7 @@ bool Table::Set(StrObject *key, const Value &value)
 {
     if (m_Count + 1 > m_Capacity * TABLE_MAX_LOAD)
     {
-        size_t capacity = GROW_CAPACITY(m_Capacity);
+        uint32_t capacity = GROW_CAPACITY(m_Capacity);
         AdjustCapacity(capacity);
     }
 

@@ -28,7 +28,7 @@ std::string ObjectStringify(Object *object
     {
         auto structObj = TO_STRUCT_OBJ(object);
         std::string result = "struct instance(0x" + PointerAddressToString(object) + "):\n{\n";
-        for (size_t i = 0; i < structObj->members->GetCapacity(); ++i)
+        for (uint32_t i = 0; i < structObj->members->GetCapacity(); ++i)
         {
             if (structObj->members->IsValid(i))
             {

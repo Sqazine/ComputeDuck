@@ -2,70 +2,6 @@
 #include "Allocator.h"
 #include "BuiltinManager.h"
 
-
-Jit::OrcExecutor::OrcExecutor(std::unique_ptr<llvm::orc::ExecutionSession> es, llvm::orc::JITTargetMachineBuilder jtmb, llvm::DataLayout dl)
-    : m_Es(std::move(es)), m_DataLayout(std::move(dl)), m_Mangle(*m_Es, m_DataLayout),
-    m_ObjectLayer(*m_Es,
-        []()
-        { return std::make_unique<llvm::SectionMemoryManager>(); }),
-    m_CompileLayer(*m_Es, m_ObjectLayer,
-        std::make_unique<llvm::orc::ConcurrentIRCompiler>(std::move(jtmb))),
-    m_MainJD(m_Es->createBareJITDylib("<main>"))
-{
-    m_MainJD.addGenerator(cantFail(llvm::orc::DynamicLibrarySearchGenerator::GetForCurrentProcess(m_DataLayout.getGlobalPrefix())));
-
-    if (jtmb.getTargetTriple().isOSBinFormatCOFF())
-    {
-        m_ObjectLayer.setOverrideObjectFlagsWithResponsibilityFlags(true);
-        m_ObjectLayer.setAutoClaimResponsibilityForObjectSymbols(true);
-    }
-}
-
-Jit::OrcExecutor::~OrcExecutor()
-{
-    if (auto Err = m_Es->endSession())
-        m_Es->reportError(std::move(Err));
-}
-
-std::unique_ptr<Jit::OrcExecutor> Jit::OrcExecutor::Create()
-{
-    auto epc = llvm::orc::SelfExecutorProcessControl::Create();
-    if (!epc)
-        return nullptr;
-
-    auto es = std::make_unique<llvm::orc::ExecutionSession>(std::move(*epc));
-
-    llvm::orc::JITTargetMachineBuilder JTMB(es->getExecutorProcessControl().getTargetTriple());
-
-    auto dataLayout = JTMB.getDefaultDataLayoutForTarget();
-    if (!dataLayout)
-        return nullptr;
-
-    return std::make_unique<Jit::OrcExecutor>(std::move(es), std::move(JTMB), std::move(*dataLayout));
-}
-
-const llvm::DataLayout &Jit::OrcExecutor::GetDataLayout() const
-{
-    return m_DataLayout;
-}
-
-llvm::orc::JITDylib &Jit::OrcExecutor::GetMainJITDylib()
-{
-    return m_MainJD;
-}
-
-llvm::Error Jit::OrcExecutor::AddModule(llvm::orc::ThreadSafeModule tsm, llvm::orc::ResourceTrackerSP rt)
-{
-    if (!rt)
-        rt = m_MainJD.getDefaultResourceTracker();
-    return m_CompileLayer.add(rt, std::move(tsm));
-}
-
-llvm::Expected<llvm::JITEvaluatedSymbol> Jit::OrcExecutor::LookUp(llvm::StringRef name)
-{
-    return m_Es->lookup({ &m_MainJD }, m_Mangle(name.str()));
-}
-
 Jit::Jit()
 {
     llvm::InitializeNativeTarget();
@@ -231,13 +167,13 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         }
         case OP_ADD:
         {
-            auto left = Pop().GetLlvmValue();
-            auto right = Pop().GetLlvmValue();
+            auto left = Pop().Get<llvm::Value*>();
+            auto right = Pop().Get<llvm::Value*>();
 
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFAdd(left, right));
             else if (left->getType() == m_StrObjectPtrType && right->getType() == m_StrObjectPtrType)
-                Push(m_Builder->CreateCall(m_Module->getFunction(STR(StrAdd)), { left,right }));
+                Push(m_Builder->CreateCall(m_Module->getFunction(STR(StrAdd)), {left, right}));
             else
             {
                 if (left->getType() != m_ValuePtrType)
@@ -256,8 +192,8 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         }
         case OP_SUB:
         {
-            auto left = Pop().GetLlvmValue();
-            auto right = Pop().GetLlvmValue();
+            auto left = Pop().Get<llvm::Value*>();
+            auto right = Pop().Get<llvm::Value*>();
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFSub(left, right));
             else
@@ -267,15 +203,15 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 if (right->getType() != m_ValuePtrType)
                     right = CreateLlvmValue(right);
 
-                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueSub)), { left,right });
+                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueSub)), {left, right});
                 Push(call);
             }
             break;
         }
         case OP_MUL:
         {
-            auto left = Pop().GetLlvmValue();
-            auto right = Pop().GetLlvmValue();
+            auto left = Pop().Get<llvm::Value*>();
+            auto right = Pop().Get<llvm::Value*>();
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFMul(left, right));
             else
@@ -285,15 +221,15 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 if (right->getType() != m_ValuePtrType)
                     right = CreateLlvmValue(right);
 
-                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueMul)), { left,right });
+                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueMul)), {left, right});
                 Push(call);
             }
             break;
         }
         case OP_DIV:
         {
-            auto left = Pop().GetLlvmValue();
-            auto right = Pop().GetLlvmValue();
+            auto left = Pop().Get<llvm::Value*>();
+            auto right = Pop().Get<llvm::Value*>();
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFDiv(left, right));
             else
@@ -310,8 +246,8 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         }
         case OP_LESS:
         {
-            auto left = Pop().GetLlvmValue();
-            auto right = Pop().GetLlvmValue();
+            auto left = Pop().Get<llvm::Value*>();
+            auto right = Pop().Get<llvm::Value*>();
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFCmpULT(left, right));
             else
@@ -328,8 +264,8 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         }
         case OP_GREATER:
         {
-            auto left = Pop().GetLlvmValue();
-            auto right = Pop().GetLlvmValue();
+            auto left = Pop().Get<llvm::Value*>();
+            auto right = Pop().Get<llvm::Value*>();
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFCmpUGT(left, right));
             else
@@ -339,14 +275,14 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 if (right->getType() != m_ValuePtrType)
                     right = CreateLlvmValue(right);
 
-                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueGreater)), { left,right });
+                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueGreater)), {left, right});
                 Push(call);
             }
             break;
         }
         case OP_NOT:
         {
-            auto value = Pop().GetLlvmValue();
+            auto value = Pop().Get<llvm::Value*>();
             if (value->getType() == m_BoolType)
                 Push(m_Builder->CreateNot(value));
             else
@@ -361,7 +297,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         }
         case OP_MINUS:
         {
-            auto value = Pop().GetLlvmValue();
+            auto value = Pop().Get<llvm::Value*>();
             if (value->getType() == m_DoubleType)
                 Push(m_Builder->CreateNeg(value));
             else
@@ -369,15 +305,15 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 if (value->getType() != m_ValuePtrType)
                     value = CreateLlvmValue(value);
 
-                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueMinus)), { value });
+                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueMinus)), {value});
                 Push(call);
             }
             break;
         }
         case OP_EQUAL:
         {
-            auto left = Pop().GetLlvmValue();
-            auto right = Pop().GetLlvmValue();
+            auto left = Pop().Get<llvm::Value*>();
+            auto right = Pop().Get<llvm::Value*>();
 
             if (left->getType() == m_DoubleType && right->getType() == m_DoubleType)
                 Push(m_Builder->CreateFCmpUEQ(left, right));
@@ -405,7 +341,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             int32_t i = numElements - 1;
             for (auto p = m_StackTop - 1; p >= m_StackTop - numElements && i >= 0; --p, --i)
             {
-                auto v = p->GetLlvmValue();
+                auto v = p->Get<llvm::Value*>();
                 if (v->getType() != m_ValuePtrType)
                 {
                     llvm::Value *arg = CreateLlvmValue(v);
@@ -442,8 +378,8 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         }
         case OP_AND:
         {
-            auto left = Pop().GetLlvmValue();
-            auto right = Pop().GetLlvmValue();
+            auto left = Pop().Get<llvm::Value*>();
+            auto right = Pop().Get<llvm::Value*>();
             if (left->getType() == m_BoolType && right->getType() == m_BoolType)
                 Push(m_Builder->CreateLogicalAnd(left, right));
             else
@@ -460,8 +396,8 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         }
         case OP_OR:
         {
-            auto left = Pop().GetLlvmValue();
-            auto right = Pop().GetLlvmValue();
+            auto left = Pop().Get<llvm::Value*>();
+            auto right = Pop().Get<llvm::Value*>();
             if (left->getType() == m_BoolType && right->getType() == m_BoolType)
                 Push(m_Builder->CreateLogicalAnd(left, right));
             else
@@ -478,8 +414,8 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         }
         case OP_BIT_AND:
         {
-            auto left = Pop().GetLlvmValue();
-            auto right = Pop().GetLlvmValue();
+            auto left = Pop().Get<llvm::Value*>();
+            auto right = Pop().Get<llvm::Value*>();
             if (left->getType() == m_BoolType && right->getType() == m_BoolType)
             {
                 auto lCast = m_Builder->CreateFPToSI(left, m_Int64Type);
@@ -501,8 +437,8 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         }
         case OP_BIT_OR:
         {
-            auto left = Pop().GetLlvmValue();
-            auto right = Pop().GetLlvmValue();
+            auto left = Pop().Get<llvm::Value*>();
+            auto right = Pop().Get<llvm::Value*>();
             if (left->getType() == m_BoolType && right->getType() == m_BoolType)
             {
                 auto lCast = m_Builder->CreateFPToSI(left, m_Int64Type);
@@ -524,7 +460,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         }
         case OP_BIT_NOT:
         {
-            auto value = Pop().GetLlvmValue();
+            auto value = Pop().Get<llvm::Value*>();
             if (value->getType() == m_DoubleType)
             {
                 value = m_Builder->CreateFPToSI(value, m_Int64Type);
@@ -542,8 +478,8 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         }
         case OP_BIT_XOR:
         {
-            auto left = Pop().GetLlvmValue();
-            auto right = Pop().GetLlvmValue();
+            auto left = Pop().Get<llvm::Value*>();
+            auto right = Pop().Get<llvm::Value*>();
             if (left->getType() == m_DoubleType && right->getType() == m_BoolType)
             {
                 auto lCast = m_Builder->CreateFPToSI(left, m_Int64Type);
@@ -565,8 +501,8 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         }
         case OP_GET_INDEX:
         {
-            auto index = Pop().GetLlvmValue();
-            auto ds = Pop().GetLlvmValue();
+            auto index = Pop().Get<llvm::Value*>();
+            auto ds = Pop().Get<llvm::Value*>();
 
             bool isSatis = false;
 
@@ -603,9 +539,9 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         }
         case OP_SET_INDEX:
         {
-            auto index = Pop().GetLlvmValue();
-            auto ds = Pop().GetLlvmValue();
-            auto v = Pop().GetLlvmValue();
+            auto index = Pop().Get<llvm::Value*>();
+            auto ds = Pop().Get<llvm::Value*>();
+            auto v = Pop().Get<llvm::Value*>();
 
             bool isSatis = false;
 
@@ -696,7 +632,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto address = *ip++;
             auto mode = *ip++;
 
-            auto condition = Pop().GetLlvmValue();
+            auto condition = Pop().Get<llvm::Value*>();
             auto conditionValue = m_Builder->CreateICmpEQ(condition, llvm::ConstantInt::get(m_BoolType, true));
             auto &instrSet = m_JumpInstrSetTable.back();
             if (mode == JumpMode::IF)
@@ -776,7 +712,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto returnCount = *ip++;
             if (returnCount == 1)
             {
-                auto value = Pop().GetLlvmValue();
+                auto value = Pop().Get<llvm::Value*>();
                 if (value->getType() == m_ValuePtrType)
                 {
                     if (currentCompileFunction->getReturnType() == m_DoubleType)
@@ -810,7 +746,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         case OP_DEF_GLOBAL:
         {
             auto index = *ip++;
-            auto v = Pop().GetLlvmValue();
+            auto v = Pop().Get<llvm::Value*>();
 
             auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(GLOBAL_VARIABLE_STR));
             auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
@@ -827,7 +763,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         case OP_SET_GLOBAL:
         {
             auto index = *ip++;
-            auto v = Pop().GetLlvmValue();
+            auto v = Pop().Get<llvm::Value*>();
 
             auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(GLOBAL_VARIABLE_STR));
             auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
@@ -862,7 +798,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         {
             auto scopeDepth = *ip++;
             auto index = *ip++;
-            auto value = Pop().GetLlvmValue();
+            auto value = Pop().Get<llvm::Value*>();
 
             auto name = GenerateLocalVarName(scopeDepth, index, 0);
 
@@ -877,7 +813,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto scopeDepth = *ip++;
             auto index = *ip++;
             auto isUpValue = *ip++;
-            auto value = Pop().GetLlvmValue();
+            auto value = Pop().Get<llvm::Value*>();
 
             auto name = GenerateLocalVarName(scopeDepth, index, isUpValue);
 
@@ -956,11 +892,11 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
 
             auto fnSlot = (m_StackTop - argCount - 1);
 
-            if (fnSlot->IsLlvmValue())
+            if (fnSlot->Is<llvm::Value*>())
             {
-                if (fnSlot->GetLlvmValue()->getType()->isFunctionTy())
+                if (fnSlot->Get<llvm::Value*>()->getType()->isFunctionTy())
                 {
-                    auto fn = static_cast<llvm::Function *>(fnSlot->GetLlvmValue());
+                    auto fn = static_cast<llvm::Function *>(fnSlot->Get<llvm::Value*>());
 
                     auto ptrType = fn->getType();
                     auto elemType = ptrType->getElementType();
@@ -971,7 +907,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                         std::vector<llvm::Value *> argsV;
                         for (auto slot = m_StackTop - argCount; slot != m_StackTop; ++slot)
                         {
-                            auto v = slot->GetLlvmValue();
+                            auto v = slot->Get<llvm::Value*>();
                             if (v->getType() != m_ValuePtrType)
                                 argsV.emplace_back(CreateLlvmValue(v));
                             else
@@ -1009,7 +945,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                         std::vector<llvm::Value *> argsV;
                         for (auto slot = m_StackTop - argCount; slot != m_StackTop; ++slot)
                         {
-                            auto v = slot->GetLlvmValue();
+                            auto v = slot->Get<llvm::Value*>();
                             argsV.emplace_back(v);
                         }
 
@@ -1022,12 +958,12 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             }
             else
             {
-                auto vmFn = TO_FUNCTION_VALUE(fnSlot->GetVmValue());
+                auto vmFn = TO_FUNCTION_VALUE(fnSlot->Get<Value>());
 
                 size_t paramTypeHash = 0;
                 for (auto slot = m_StackTop - vmFn->parameterCount; slot < m_StackTop; ++slot)
                 {
-                    auto vType = GetValueTypeFromLlvmType(slot->GetLlvmValue()->getType());
+                    auto vType = GetValueTypeFromLlvmType(slot->Get<llvm::Value*>()->getType());
                     paramTypeHash ^= std::hash<uint8_t>()(vType);
                 }
 
@@ -1038,7 +974,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 {
                     std::vector<llvm::Value *> args;
                     for (auto slot = m_StackTop - argCount; slot < m_StackTop; ++slot)
-                        args.emplace_back(slot->GetLlvmValue());
+                        args.emplace_back(slot->Get<llvm::Value*>());
 
                     m_StackTop = m_StackTop - argCount - 1;
 
@@ -1096,11 +1032,11 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
 
             for (size_t i = 0; i < memberCount; ++i)
             {
-                auto name = Pop().GetLlvmValue();
+                auto name = Pop().Get<llvm::Value*>();
                 if (name->getType() == m_Int8PtrType)
                     name = m_Builder->CreateCall(m_Module->getFunction(STR(CreateStrObject)), { name });
 
-                auto value = Pop().GetLlvmValue();
+                auto value = Pop().Get<llvm::Value*>();
                 if (value->getType() != m_ValueType)
                     value = CreateLlvmValue(value);
 
@@ -1113,8 +1049,8 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         }
         case OP_GET_STRUCT:
         {
-            auto memberName = Pop().GetLlvmValue();
-            auto instance = Pop().GetLlvmValue();
+            auto memberName = Pop().Get<llvm::Value*>();
+            auto instance = Pop().Get<llvm::Value*>();
 
             if (memberName->getType() == m_Int8PtrType)
                 memberName = m_Builder->CreateCall(m_Module->getFunction(STR(CreateStrObject)), { memberName });
@@ -1142,10 +1078,10 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         }
         case OP_SET_STRUCT:
         {
-            auto memberName = Pop().GetLlvmValue();
-            auto instance = Pop().GetLlvmValue();
+            auto memberName = Pop().Get<llvm::Value*>();
+            auto instance = Pop().Get<llvm::Value*>();
 
-            auto value = Pop().GetLlvmValue();
+            auto value = Pop().Get<llvm::Value*>();
 
             if (memberName->getType() == m_Int8PtrType)
                 memberName = m_Builder->CreateCall(m_Module->getFunction(STR(CreateStrObject)), { memberName });
@@ -1216,7 +1152,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         case OP_REF_INDEX_GLOBAL:
         {
             auto index = *ip++;
-            auto idxValue = Pop().GetLlvmValue();
+            auto idxValue = Pop().Get<llvm::Value*>();
 
             if (idxValue->getType() != m_ValuePtrType)
                 idxValue = CreateLlvmValue(idxValue);
@@ -1235,7 +1171,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto index = *ip++;
             auto isUpValue = *ip++;
 
-            auto idxValue = Pop().GetLlvmValue();
+            auto idxValue = Pop().Get<llvm::Value*>();
             if (idxValue->getType() != m_ValuePtrType)
                 idxValue = CreateLlvmValue(idxValue);
 

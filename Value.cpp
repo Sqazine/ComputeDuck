@@ -120,7 +120,7 @@ void GetEndOfRefValue(const Value &v, Value &result)
         FindActualValue(l, left);                                                                      \
         FindActualValue(r, right);                                                                     \
         if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                                 \
-            return ((uint64_t)TO_NUM_VALUE(left) op (uint64_t)TO_NUM_VALUE(right));                    \
+            return (double)((uint64_t)TO_NUM_VALUE(left) op(uint64_t) TO_NUM_VALUE(right));            \
         else                                                                                           \
             ASSERT("Invalid op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
     } while (0);
@@ -211,7 +211,7 @@ COMPUTE_DUCK_API double ValueBitNot(const Value &l)
     FindActualValue(l, value);
     if (!IS_NUM_VALUE(value))
         ASSERT("Invalid op:~ %s", value.Stringify().c_str());
-    return (~(uint64_t)TO_NUM_VALUE(value));
+    return (double)(~(uint64_t)TO_NUM_VALUE(value));
 }
 
 COMPUTE_DUCK_API double ValueMinus(const Value &l)
