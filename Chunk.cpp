@@ -108,7 +108,7 @@ std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
             break;
 #endif
         case OP_RETURN:
-            cout << std::format("{:08}\tOP_RETURN\n", i);
+            cout << std::format("{:08}\tOP_RETURN\t{}\n", i , opcodes[++i]);
             break;
         case OP_DEF_GLOBAL:
             cout << std::format("{:08}\tOP_DEF_GLOBAL\t{}\n", i, opcodes[++i]);
