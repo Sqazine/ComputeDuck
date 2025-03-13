@@ -51,8 +51,8 @@ void VM::Execute()
         {
             auto returnCount = *frame->ip++;
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-            if (frame->GetFnObject()->probableReturnTypeSet == nullptr)
-                frame->GetFnObject()->probableReturnTypeSet = new TypeSet();
+            if (frame->GetFnObject()->probableReturnJitTypeSet == nullptr)
+                frame->GetFnObject()->probableReturnJitTypeSet = new JitTypeSet();
 #endif
             Value value;
             if (returnCount == 1)
@@ -62,12 +62,12 @@ void VM::Execute()
                 if (IS_OBJECT_VALUE(value))
                 {
                     if (IS_FUNCTION_VALUE(value))
-                        frame->GetFnObject()->probableReturnTypeSet->Insert(TO_FUNCTION_VALUE(value)->probableReturnTypeSet);
+                        frame->GetFnObject()->probableReturnJitTypeSet->Insert(TO_FUNCTION_VALUE(value)->probableReturnJitTypeSet);
                     else
-                        frame->GetFnObject()->probableReturnTypeSet->Insert(TO_OBJECT_VALUE(value)->type);
+                        frame->GetFnObject()->probableReturnJitTypeSet->Insert(TO_OBJECT_VALUE(value)->type);
                 }
                 else
-                    frame->GetFnObject()->probableReturnTypeSet->Insert(value.type);
+                    frame->GetFnObject()->probableReturnJitTypeSet->Insert(value.type);
 #endif
             }
 
@@ -474,18 +474,18 @@ void VM::RunJit(const CallFrame &frame)
 {
     if (!Config::GetInstance()->IsUseJit() ||
         frame.fn->callCount < JIT_TRIGGER_COUNT ||
-        !frame.fn->probableReturnTypeSet ||
+        !frame.fn->probableReturnJitTypeSet ||
         frame.fn->parameterCount > JIT_FUNCTION_MAX_PARAMETER_COUNT)
         return;
 
     // get function name by hashing arguments
-    size_t paramTypeHash = HashValueList(frame.slot, frame.slot + frame.fn->parameterCount);
-    auto fnName = GenerateFunctionName(frame.fn->uuid, frame.fn->probableReturnTypeSet->Hash(), paramTypeHash);
+    size_t paramTypeHash = JitUtils::HashValueList(frame.slot, frame.slot + frame.fn->parameterCount);
+    auto fnName = JitUtils::GenerateFunctionName(frame.fn->uuid, frame.fn->probableReturnJitTypeSet->Hash(), paramTypeHash);
 
     // compile jit function
     {
         auto iter = frame.fn->jitCache.find(paramTypeHash);
-        if ((iter == frame.fn->jitCache.end() && !frame.fn->probableReturnTypeSet->IsMultiplyType()) ||
+        if ((iter == frame.fn->jitCache.end() && !frame.fn->probableReturnJitTypeSet->IsMultiplyType()) ||
             iter->second.state == JitCompileState::DEPEND)
         {
             m_Jit->ResetStatus();
@@ -505,19 +505,19 @@ void VM::RunJit(const CallFrame &frame)
     {
         Allocator::GetInstance()->InsideJitExecutor();
 
-        if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::NUM))
+        if (frame.fn->probableReturnJitTypeSet->IsOnly(ValueType::NUM))
             ExecuteJitFunction<double>(frame, fnName);
-        else if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::BOOL))
+        else if (frame.fn->probableReturnJitTypeSet->IsOnly(ValueType::BOOL))
             ExecuteJitFunction<bool>(frame, fnName);
-        else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::STR))
+        else if (frame.fn->probableReturnJitTypeSet->IsOnly(ObjectType::STR))
             ExecuteJitFunction<StrObject *>(frame, fnName);
-        else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::ARRAY))
+        else if (frame.fn->probableReturnJitTypeSet->IsOnly(ObjectType::ARRAY))
             ExecuteJitFunction<ArrayObject *>(frame, fnName);
-        else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::REF))
+        else if (frame.fn->probableReturnJitTypeSet->IsOnly(ObjectType::REF))
             ExecuteJitFunction<RefObject *>(frame, fnName);
-        else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::STRUCT))
+        else if (frame.fn->probableReturnJitTypeSet->IsOnly(ObjectType::STRUCT))
             ExecuteJitFunction<StructObject *>(frame, fnName);
-        else if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::NIL))
+        else if (frame.fn->probableReturnJitTypeSet->IsOnly(ValueType::NIL))
         {
             ExecuteJitFunction<void>(frame, fnName);
             PUSH(Value());

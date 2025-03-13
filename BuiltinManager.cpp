@@ -95,7 +95,7 @@ namespace
             if (!IS_NUM_VALUE(args[1]))
                 ASSERT("[Native function 'erase']:Arg1 must be integer type while deleting array element");
 
-            size_t iIndex = (size_t)TO_NUM_VALUE(args[1]);
+            uint32_t iIndex = (uint32_t)TO_NUM_VALUE(args[1]);
 
             if (iIndex < 0 || iIndex >= array->len)
                 ASSERT("[Native function 'erase']:Index out of array's range");
@@ -107,7 +107,7 @@ namespace
             if (!IS_NUM_VALUE(args[1]))
                 ASSERT("[Native function 'erase']:Arg1 must be integer type while deleting string element");
 
-            size_t iIndex = (size_t)TO_NUM_VALUE(args[1]);
+            uint32_t iIndex = (uint32_t)TO_NUM_VALUE(args[1]);
 
             if (iIndex < 0 || iIndex >= TO_STR_VALUE(args[0])->len)
                 ASSERT("[Native function 'erase']:Index out of array's range");

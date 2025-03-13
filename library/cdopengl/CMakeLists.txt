@@ -1,4 +1,4 @@
-if(MSVC)
+if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Windows")
     set(CD_OPENGL_LIB_NAME libcdopengl)
 else()
     set(CD_OPENGL_LIB_NAME cdopengl)

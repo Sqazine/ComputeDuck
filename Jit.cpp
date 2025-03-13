@@ -1,3 +1,5 @@
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+
 #include "Jit.h"
 #include "Allocator.h"
 #include "BuiltinManager.h"
@@ -123,11 +125,11 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
     }
 
     llvm::FunctionType *fnType = nullptr;
-    if (frame.fn->probableReturnTypeSet->IsNone())
+    if (frame.fn->probableReturnJitTypeSet->IsNone())
         fnType = llvm::FunctionType::get(m_VoidType, paramTypes, false);
-    else if (!frame.fn->probableReturnTypeSet->IsMultiplyType())
+    else if (!frame.fn->probableReturnJitTypeSet->IsMultiplyType())
     {
-        auto type = frame.fn->probableReturnTypeSet->GetOnly();
+        auto type = frame.fn->probableReturnJitTypeSet->GetOnly();
         auto llvmType = GetLlvmTypeFromValueType(type);
         fnType = llvm::FunctionType::get(llvmType, paramTypes, false);
     }
@@ -598,7 +600,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto curAddress = ip - frame.fn->chunk.opCodes.data();
             JumpInstrSet instrSet;
 
-            if (mode == JumpMode::IF)
+            if (mode == JitJumpMode::IF)
             {
                 instrSet.conditionBranch = llvm::BasicBlock::Create(*m_Context, "jumpInstr.condition." + std::to_string(curAddress), fn);
                 instrSet.bodyBranch = llvm::BasicBlock::Create(*m_Context, "jumpInstr.body." + std::to_string(curAddress), fn);
@@ -635,7 +637,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto condition = Pop().Get<llvm::Value*>();
             auto conditionValue = m_Builder->CreateICmpEQ(condition, llvm::ConstantInt::get(m_BoolType, true));
             auto &instrSet = m_JumpInstrSetTable.back();
-            if (mode == JumpMode::IF)
+            if (mode == JitJumpMode::IF)
             {
                 m_Builder->CreateCondBr(conditionValue, instrSet.bodyBranch, instrSet.elseBranch);
 
@@ -664,7 +666,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 fn->getBasicBlockList().push_back(instrSet.endBranch);
             }
 
-            if (mode == JumpMode::IF)
+            if (mode == JitJumpMode::IF)
             {
                 if (branchState == BranchState::IF_BODY)
                     m_Builder->CreateBr(instrSet.endBranch);
@@ -800,7 +802,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto index = *ip++;
             auto value = Pop().Get<llvm::Value*>();
 
-            auto name = GenerateLocalVarName(scopeDepth, index, 0);
+            auto name = JitUtils::GenerateLocalVarName(scopeDepth, index, 0);
 
             auto alloc = m_Builder->CreateAlloca(value->getType());
             m_Builder->CreateStore(value, alloc);
@@ -815,7 +817,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto isUpValue = *ip++;
             auto value = Pop().Get<llvm::Value*>();
 
-            auto name = GenerateLocalVarName(scopeDepth, index, isUpValue);
+            auto name = JitUtils::GenerateLocalVarName(scopeDepth, index, isUpValue);
 
             auto iter = localVariables.find(name);
             if (iter == localVariables.end())
@@ -846,7 +848,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto index = *ip++;
             auto isUpValue = *ip++;
 
-            auto name = GenerateLocalVarName(scopeDepth, index, isUpValue);
+            auto name = JitUtils::GenerateLocalVarName(scopeDepth, index, isUpValue);
 
             auto iter = localVariables.find(name);
             if (iter == localVariables.end()) // create from function argumenet
@@ -967,10 +969,10 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                     paramTypeHash ^= std::hash<uint8_t>()(vType);
                 }
 
-                auto fnName = GenerateFunctionName(vmFn->uuid, vmFn->probableReturnTypeSet->Hash(), paramTypeHash);
+                auto fnName = JitUtils::GenerateFunctionName(vmFn->uuid, vmFn->probableReturnJitTypeSet->Hash(), paramTypeHash);
 
                 auto iter = vmFn->jitCache.find(paramTypeHash);
-                if (iter != vmFn->jitCache.end() && !vmFn->probableReturnTypeSet->IsMultiplyType())
+                if (iter != vmFn->jitCache.end() && !vmFn->probableReturnJitTypeSet->IsMultiplyType())
                 {
                     std::vector<llvm::Value *> args;
                     for (auto slot = m_StackTop - argCount; slot < m_StackTop; ++slot)
@@ -1122,7 +1124,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto index = *ip++;
             auto isUpValue = *ip++;
 
-            auto name = GenerateLocalVarName(scopeDepth, index, isUpValue);
+            auto name = JitUtils::GenerateLocalVarName(scopeDepth, index, isUpValue);
 
             llvm::Value *value = nullptr;
 
@@ -1175,7 +1177,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             if (idxValue->getType() != m_ValuePtrType)
                 idxValue = CreateLlvmValue(idxValue);
 
-            auto name = GenerateLocalVarName(scopeDepth, index, isUpValue);
+            auto name = JitUtils::GenerateLocalVarName(scopeDepth, index, isUpValue);
 
             llvm::Value *value = nullptr;
 
@@ -1556,3 +1558,5 @@ bool Jit::IsObjectType(llvm::Type *type)
         type == m_RefObjectPtrType ||
         type == m_StructObjectPtrType;
 }
+
+#endif

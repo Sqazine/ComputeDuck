@@ -90,14 +90,14 @@ struct FunctionObject : public Object
         :Object(ObjectType::FUNCTION), chunk(chunk), localVarCount(localVarCount), parameterCount(parameterCount)
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
         , callCount(0)
-        , uuid(GenerateUUID())
+        , uuid(JitUtils::GenerateUUID())
 #endif
     {}
 
     ~FunctionObject()
     {
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-        SAFE_DELETE(probableReturnTypeSet);
+        SAFE_DELETE(probableReturnJitTypeSet);
         jitCache.clear();
 #endif
     }
@@ -109,7 +109,7 @@ struct FunctionObject : public Object
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     uint32_t callCount;
     std::unordered_map<size_t, JitFnDecl> jitCache;
-    TypeSet *probableReturnTypeSet{ nullptr };//record function return types,some function with multiply return stmt may return mutiply types of value
+    JitTypeSet *probableReturnJitTypeSet{ nullptr };//record function return types,some function with multiply return stmt may return mutiply types of value
     std::string uuid;
 #endif
 };
