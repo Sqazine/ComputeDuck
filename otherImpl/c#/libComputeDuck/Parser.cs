@@ -20,8 +20,8 @@ namespace ComputeDuck
         CALL,      // [] () .
     };
 
-    public delegate Expr PrefixFn();
-    public delegate Expr InfixFn(Expr prefix);
+    public delegate Expr UnaryFn();
+    public delegate Expr BinaryFn(Expr unary);
 
     public class Parser
     {
@@ -198,23 +198,23 @@ namespace ComputeDuck
 
         private static Expr ParseExpr(Precedence precedence = Precedence.LOWEST)
         {
-            if (!m_PrefixFunctions.ContainsKey(GetCurToken().type))
+            if (!m_UnaryFunctions.ContainsKey(GetCurToken().type))
             {
-                Console.Write("no prefix definition for:" + GetCurTokenAndStepOnce().literal);
+                Console.Write("no unary definition for:" + GetCurTokenAndStepOnce().literal);
                 return new NilExpr();
             }
-            var prefixFn = m_PrefixFunctions[GetCurToken().type];
+            var unaryFn = m_UnaryFunctions[GetCurToken().type];
 
-            var leftExpr = prefixFn();
+            var leftExpr = unaryFn();
 
             while (!IsMatchCurToken(TokenType.SEMICOLON) && precedence < GetCurTokenPrecedence())
             {
-                if (!m_InfixFunctions.ContainsKey(GetCurToken().type))
+                if (!m_BinaryFunctions.ContainsKey(GetCurToken().type))
                     return leftExpr;
 
-                var infixFn = m_InfixFunctions[GetCurToken().type];
+                var binaryFn = m_BinaryFunctions[GetCurToken().type];
 
-                leftExpr = infixFn(leftExpr);
+                leftExpr = binaryFn(leftExpr);
             }
 
             return leftExpr;
@@ -286,14 +286,14 @@ namespace ComputeDuck
         }
         private static Expr ParseBinaryExpr(Expr unaryExpr)
         {
-            var infixExpr = new BinaryExpr();
-            infixExpr.left = unaryExpr;
+            var binaryExpr = new BinaryExpr();
+            binaryExpr.left = unaryExpr;
 
             Precedence opPrece = GetCurTokenPrecedence();
 
-            infixExpr.op = GetCurTokenAndStepOnce().literal;
-            infixExpr.right = ParseExpr(opPrece);
-            return infixExpr;
+            binaryExpr.op = GetCurTokenAndStepOnce().literal;
+            binaryExpr.right = ParseExpr(opPrece);
+            return binaryExpr;
         }
         private static Expr ParseIndexExpr(Expr unaryExpr)
         {
@@ -436,7 +436,7 @@ namespace ComputeDuck
 
         private static int m_FunctionOrFunctionScopeDepth = 0;
 
-        private static Dictionary<TokenType, PrefixFn> m_PrefixFunctions = new Dictionary<TokenType, PrefixFn>()
+        private static Dictionary<TokenType, UnaryFn> m_UnaryFunctions = new Dictionary<TokenType, UnaryFn>()
         {
             {TokenType.IDENTIFIER, Parser.ParseIdentifierExpr},
             {TokenType.NUMBER, Parser.ParseNumExpr},
@@ -453,7 +453,7 @@ namespace ComputeDuck
             {TokenType.LBRACE,Parser.ParseStructExpr},
             {TokenType.TILDE,Parser.ParseUnaryExpr},
         };
-        private static Dictionary<TokenType, InfixFn> m_InfixFunctions = new Dictionary<TokenType, InfixFn>()
+        private static Dictionary<TokenType, BinaryFn> m_BinaryFunctions = new Dictionary<TokenType, BinaryFn>()
         {
             {TokenType.EQUAL, Parser.ParseBinaryExpr},
             {TokenType.EQUAL_EQUAL, Parser.ParseBinaryExpr},

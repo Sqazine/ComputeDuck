@@ -317,7 +317,7 @@ namespace ComputeDuck
             else if (expr.op == "~")
                 Emit((int)OpCode.OP_BIT_NOT);
             else
-                Utils.Assert("Unrecognized prefix op");
+                Utils.Assert("Unrecognized unary op");
         }
         void CompileStrExpr(StrExpr expr)
         {

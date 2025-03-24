@@ -1,6 +1,6 @@
 #include "Parser.h"
 
-std::unordered_map<TokenType, PrefixFn> Parser::m_PrefixFunctions =
+std::unordered_map<TokenType, UnaryFn> Parser::m_UnaryFunctions =
 	{
 		{TokenType::IDENTIFIER, &Parser::ParseIdentifierExpr},
 		{TokenType::NUMBER, &Parser::ParseNumExpr},
@@ -18,7 +18,7 @@ std::unordered_map<TokenType, PrefixFn> Parser::m_PrefixFunctions =
 		{TokenType::TILDE, &Parser::ParseUnaryExpr},
 };
 
-std::unordered_map<TokenType, InfixFn> Parser::m_InfixFunctions =
+std::unordered_map<TokenType, BinaryFn> Parser::m_BinaryFunctions =
 	{
 		{TokenType::EQUAL, &Parser::ParseBinaryExpr},
 		{TokenType::EQUAL_EQUAL, &Parser::ParseBinaryExpr},
@@ -70,8 +70,8 @@ Parser::Parser()
 }
 Parser::~Parser()
 {
-	std::unordered_map<TokenType, PrefixFn>().swap(m_PrefixFunctions);
-	std::unordered_map<TokenType, InfixFn>().swap(m_InfixFunctions);
+	std::unordered_map<TokenType, UnaryFn>().swap(m_UnaryFunctions);
+	std::unordered_map<TokenType, BinaryFn>().swap(m_BinaryFunctions);
 	std::unordered_map<TokenType, Precedence>().swap(m_Precedence);
 }
 
@@ -221,23 +221,23 @@ Stmt *Parser::ParseDllImportStmt()
 
 Expr *Parser::ParseExpr(Precedence precedence)
 {
-	if (m_PrefixFunctions.find(GetCurToken().type) == m_PrefixFunctions.end())
+	if (m_UnaryFunctions.find(GetCurToken().type) == m_UnaryFunctions.end())
 	{
-		ASSERT("no prefix definition for:%s", GetCurTokenAndStepOnce().literal.c_str());
+		ASSERT("no unary definition for:%s", GetCurTokenAndStepOnce().literal.c_str());
 		return new NilExpr();
 	}
-	auto prefixFn = m_PrefixFunctions[GetCurToken().type];
+	auto unaryFn = m_UnaryFunctions[GetCurToken().type];
 
-	auto expr = (this->*prefixFn)();
+	auto expr = (this->*unaryFn)();
 
 	while (!IsMatchCurToken(TokenType::SEMICOLON) && precedence < GetCurTokenPrecedence())
 	{
-		if (m_InfixFunctions.find(GetCurToken().type) == m_InfixFunctions.end())
+		if (m_BinaryFunctions.find(GetCurToken().type) == m_BinaryFunctions.end())
 			return expr;
 
-		auto infixFn = m_InfixFunctions[GetCurToken().type];
+		auto binaryFn = m_BinaryFunctions[GetCurToken().type];
 
-		expr = (this->*infixFn)(expr);
+		expr = (this->*binaryFn)(expr);
 	}
 
 	return expr;
@@ -312,14 +312,14 @@ Expr *Parser::ParseUnaryExpr()
 
 Expr *Parser::ParseBinaryExpr(Expr *unaryExpr)
 {
-	auto infixExpr = new BinaryExpr();
-	infixExpr->left = unaryExpr;
+	auto binaryExpr = new BinaryExpr();
+	binaryExpr->left = unaryExpr;
 
 	Precedence opPrece = GetCurTokenPrecedence();
 
-	infixExpr->op = GetCurTokenAndStepOnce().literal;
-	infixExpr->right = ParseExpr(opPrece);
-	return infixExpr;
+	binaryExpr->op = GetCurTokenAndStepOnce().literal;
+	binaryExpr->right = ParseExpr(opPrece);
+	return binaryExpr;
 }
 
 Expr *Parser::ParseIndexExpr(Expr *unaryExpr)

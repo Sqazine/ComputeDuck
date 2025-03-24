@@ -200,49 +200,49 @@ namespace ComputeDuck
         {
             if (expr.type == AstType.BINARY)
             {
-                var infix = (BinaryExpr)expr;
-                if (infix.left.type == AstType.NUM && infix.right.type == AstType.NUM)
+                var binary = (BinaryExpr)expr;
+                if (binary.left.type == AstType.NUM && binary.right.type == AstType.NUM)
                 {
                     Expr newExpr = null;
-                    if (infix.op == "+")
-                        newExpr = new NumExpr(((NumExpr)infix.left).value + ((NumExpr)infix.right).value);
-                    else if (infix.op == "-")
-                        newExpr = new NumExpr(((NumExpr)infix.left).value - ((NumExpr)infix.right).value);
-                    else if (infix.op == "*")
-                        newExpr = new NumExpr(((NumExpr)infix.left).value * ((NumExpr)infix.right).value);
-                    else if (infix.op == "/")
-                        newExpr = new NumExpr(((NumExpr)infix.left).value / ((NumExpr)infix.right).value);
-                    else if (infix.op == "==")
-                        newExpr = new BoolExpr(((NumExpr)infix.left).value == ((NumExpr)infix.right).value);
-                    else if (infix.op == "!=")
-                        newExpr = new BoolExpr(((NumExpr)infix.left).value != ((NumExpr)infix.right).value);
-                    else if (infix.op == ">")
-                        newExpr = new BoolExpr(((NumExpr)infix.left).value > ((NumExpr)infix.right).value);
-                    else if (infix.op == ">=")
-                        newExpr = new BoolExpr(((NumExpr)infix.left).value >= ((NumExpr)infix.right).value);
-                    else if (infix.op == "<")
-                        newExpr = new BoolExpr(((NumExpr)infix.left).value < ((NumExpr)infix.right).value);
-                    else if (infix.op == "<=")
-                        newExpr = new BoolExpr(((NumExpr)infix.left).value <= ((NumExpr)infix.right).value);
+                    if (binary.op == "+")
+                        newExpr = new NumExpr(((NumExpr)binary.left).value + ((NumExpr)binary.right).value);
+                    else if (binary.op == "-")
+                        newExpr = new NumExpr(((NumExpr)binary.left).value - ((NumExpr)binary.right).value);
+                    else if (binary.op == "*")
+                        newExpr = new NumExpr(((NumExpr)binary.left).value * ((NumExpr)binary.right).value);
+                    else if (binary.op == "/")
+                        newExpr = new NumExpr(((NumExpr)binary.left).value / ((NumExpr)binary.right).value);
+                    else if (binary.op == "==")
+                        newExpr = new BoolExpr(((NumExpr)binary.left).value == ((NumExpr)binary.right).value);
+                    else if (binary.op == "!=")
+                        newExpr = new BoolExpr(((NumExpr)binary.left).value != ((NumExpr)binary.right).value);
+                    else if (binary.op == ">")
+                        newExpr = new BoolExpr(((NumExpr)binary.left).value > ((NumExpr)binary.right).value);
+                    else if (binary.op == ">=")
+                        newExpr = new BoolExpr(((NumExpr)binary.left).value >= ((NumExpr)binary.right).value);
+                    else if (binary.op == "<")
+                        newExpr = new BoolExpr(((NumExpr)binary.left).value < ((NumExpr)binary.right).value);
+                    else if (binary.op == "<=")
+                        newExpr = new BoolExpr(((NumExpr)binary.left).value <= ((NumExpr)binary.right).value);
                     return newExpr;
                 }
-                else if (infix.left.type == AstType.STR && infix.right.type == AstType.STR)
+                else if (binary.left.type == AstType.STR && binary.right.type == AstType.STR)
                 {
-                    var strExpr = new StrExpr(((StrExpr)infix.left).value + ((StrExpr)infix.right).value);
+                    var strExpr = new StrExpr(((StrExpr)binary.left).value + ((StrExpr)binary.right).value);
                     return strExpr;
                 }
             }
             else if (expr.type == AstType.UNARY)
             {
-                var prefix = (UnaryExpr)expr;
-                if (prefix.right.type == AstType.NUM && prefix.op == "-")
+                var unary = (UnaryExpr)expr;
+                if (unary.right.type == AstType.NUM && unary.op == "-")
                 {
-                    var numExpr = new NumExpr(-((NumExpr)prefix.right).value);
+                    var numExpr = new NumExpr(-((NumExpr)unary.right).value);
                     return numExpr;
                 }
-                else if (prefix.right.type == AstType.BOOL && prefix.op == "not")
+                else if (unary.right.type == AstType.BOOL && unary.op == "not")
                 {
-                    var boolExpr = new BoolExpr(!((BoolExpr)prefix.right).value);
+                    var boolExpr = new BoolExpr(!((BoolExpr)unary.right).value);
                     return boolExpr;
                 }
             }

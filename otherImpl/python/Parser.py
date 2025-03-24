@@ -25,8 +25,8 @@ class Precedence(IntEnum):
 class Parser:
     __curPos: int = 0
     __tokens: list[Token] = []
-    __prefixFunctions: dict[TokenType, Any] = {}
-    __infixFunctions: dict[TokenType, Any] = {}
+    __unaryFunctions: dict[TokenType, Any] = {}
+    __binaryFunctions: dict[TokenType, Any] = {}
     __precedence: dict[TokenType, Any] = {}
     __functionScopeDepth = 0
     __constantFolder = ConstantFolder()
@@ -34,11 +34,11 @@ class Parser:
     def __init__(self) -> None:
         self.__curPos: int = 0
         self.__tokens: list[Token] = []
-        self.__prefixFunctions: dict[TokenType, Any] = {}
-        self.__infixFunctions: dict[TokenType, Any] = {}
+        self.__unaryFunctions: dict[TokenType, Any] = {}
+        self.__binaryFunctions: dict[TokenType, Any] = {}
         self.__precedence: dict[TokenType, Any] = {}
 
-        self.__prefixFunctions = {
+        self.__unaryFunctions = {
             TokenType.IDENTIFIER: self.__parse_identifier_expr,
             TokenType.NUMBER: self.__parse_num_expr,
             TokenType.STRING: self.__parse_str_expr,
@@ -55,7 +55,7 @@ class Parser:
             TokenType.TILDE: self.__parse_unary_expr,
         }
 
-        self.__infixFunctions = {
+        self.__binaryFunctions = {
             TokenType.EQUAL: self.__parse_binary_expr,
             TokenType.EQUAL_EQUAL: self.__parse_binary_expr,
             TokenType.BANG_EQUAL: self.__parse_binary_expr,
@@ -234,17 +234,17 @@ class Parser:
         return structStmt
 
     def __parse_expr(self, precedence=Precedence.LOWEST) -> Expr:
-        if self.__prefixFunctions.get(self.__get_cur_token().type) == None:
-            print("no prefix definition for:" +
+        if self.__unaryFunctions.get(self.__get_cur_token().type) == None:
+            print("no unary definition for:" +
                   self.__get_cur_token_and_step_once().literal)
             return NilExpr()
-        prefixFn = self.__prefixFunctions.get(self.__get_cur_token().type)
-        leftExpr = prefixFn()
+        unaryFn = self.__unaryFunctions.get(self.__get_cur_token().type)
+        leftExpr = unaryFn()
         while (not self.__is_match_cur_token(TokenType.SEMICOLON) and precedence < self.__get_cur_token_precedence()):
-            if self.__infixFunctions.get(self.__get_cur_token().type) == None:
+            if self.__binaryFunctions.get(self.__get_cur_token().type) == None:
                 return leftExpr
-            infixFn = self.__infixFunctions[self.__get_cur_token().type]
-            leftExpr = infixFn(leftExpr)
+            binaryFn = self.__binaryFunctions[self.__get_cur_token().type]
+            leftExpr = binaryFn(leftExpr)
         return leftExpr
 
     def __parse_identifier_expr(self) -> Expr:
@@ -295,12 +295,12 @@ class Parser:
         return unaryExpr
 
     def __parse_binary_expr(self, unaryExpr: Expr) -> Expr:
-        infixExpr = BinaryExpr(None, "", None)
-        infixExpr.left = unaryExpr
+        binaryExpr = BinaryExpr(None, "", None)
+        binaryExpr.left = unaryExpr
         opPrece = self.__get_cur_token_precedence()
-        infixExpr.op = self.__get_cur_token_and_step_once().literal
-        infixExpr.right = self.__parse_expr(opPrece)
-        return infixExpr
+        binaryExpr.op = self.__get_cur_token_and_step_once().literal
+        binaryExpr.right = self.__parse_expr(opPrece)
+        return binaryExpr
 
     def __parse_index_expr(self, unaryExpr: Expr) -> Expr:
         self.__consume(TokenType.LBRACKET, "Expect '['.")

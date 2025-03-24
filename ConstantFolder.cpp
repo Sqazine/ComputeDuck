@@ -193,44 +193,44 @@ Expr *ConstantFolder::ConstantFold(Expr *expr)
 {
     if (expr->type == AstType::BINARY)
     {
-        auto infix = (BinaryExpr *)expr;
-        if (infix->left->type == AstType::NUM && infix->right->type == AstType::NUM)
+        auto binary = (BinaryExpr *)expr;
+        if (binary->left->type == AstType::NUM && binary->right->type == AstType::NUM)
         {
             Expr *newExpr = nullptr;
-            if (infix->op == "+")
-                newExpr = new NumExpr(((NumExpr *)infix->left)->value + ((NumExpr *)infix->right)->value);
-            else if (infix->op == "-")
-                newExpr = new NumExpr(((NumExpr *)infix->left)->value - ((NumExpr *)infix->right)->value);
-            else if (infix->op == "*")
-                newExpr = new NumExpr(((NumExpr *)infix->left)->value * ((NumExpr *)infix->right)->value);
-            else if (infix->op == "/")
-                newExpr = new NumExpr(((NumExpr *)infix->left)->value / ((NumExpr *)infix->right)->value);
-            else if (infix->op == "&")
-                newExpr = new NumExpr((double)((int64_t)((NumExpr *)infix->left)->value & (int64_t)((NumExpr *)infix->right)->value));
-            else if (infix->op == "|")
-                newExpr = new NumExpr((double)((int64_t)((NumExpr *)infix->left)->value | (int64_t)((NumExpr *)infix->right)->value));
-            else if (infix->op == "^")
-                newExpr = new NumExpr((double)((int64_t)((NumExpr *)infix->left)->value ^ (int64_t)((NumExpr *)infix->right)->value));
-            else if (infix->op == "==")
-                newExpr = new BoolExpr(((NumExpr *)infix->left)->value == ((NumExpr *)infix->right)->value);
-            else if (infix->op == "!=")
-                newExpr = new BoolExpr(((NumExpr *)infix->left)->value != ((NumExpr *)infix->right)->value);
-            else if (infix->op == ">")
-                newExpr = new BoolExpr(((NumExpr *)infix->left)->value > ((NumExpr *)infix->right)->value);
-            else if (infix->op == ">=")
-                newExpr = new BoolExpr(((NumExpr *)infix->left)->value >= ((NumExpr *)infix->right)->value);
-            else if (infix->op == "<")
-                newExpr = new BoolExpr(((NumExpr *)infix->left)->value < ((NumExpr *)infix->right)->value);
-            else if (infix->op == "<=")
-                newExpr = new BoolExpr(((NumExpr *)infix->left)->value <= ((NumExpr *)infix->right)->value);
+            if (binary->op == "+")
+                newExpr = new NumExpr(((NumExpr *)binary->left)->value + ((NumExpr *)binary->right)->value);
+            else if (binary->op == "-")
+                newExpr = new NumExpr(((NumExpr *)binary->left)->value - ((NumExpr *)binary->right)->value);
+            else if (binary->op == "*")
+                newExpr = new NumExpr(((NumExpr *)binary->left)->value * ((NumExpr *)binary->right)->value);
+            else if (binary->op == "/")
+                newExpr = new NumExpr(((NumExpr *)binary->left)->value / ((NumExpr *)binary->right)->value);
+            else if (binary->op == "&")
+                newExpr = new NumExpr((double)((int64_t)((NumExpr *)binary->left)->value & (int64_t)((NumExpr *)binary->right)->value));
+            else if (binary->op == "|")
+                newExpr = new NumExpr((double)((int64_t)((NumExpr *)binary->left)->value | (int64_t)((NumExpr *)binary->right)->value));
+            else if (binary->op == "^")
+                newExpr = new NumExpr((double)((int64_t)((NumExpr *)binary->left)->value ^ (int64_t)((NumExpr *)binary->right)->value));
+            else if (binary->op == "==")
+                newExpr = new BoolExpr(((NumExpr *)binary->left)->value == ((NumExpr *)binary->right)->value);
+            else if (binary->op == "!=")
+                newExpr = new BoolExpr(((NumExpr *)binary->left)->value != ((NumExpr *)binary->right)->value);
+            else if (binary->op == ">")
+                newExpr = new BoolExpr(((NumExpr *)binary->left)->value > ((NumExpr *)binary->right)->value);
+            else if (binary->op == ">=")
+                newExpr = new BoolExpr(((NumExpr *)binary->left)->value >= ((NumExpr *)binary->right)->value);
+            else if (binary->op == "<")
+                newExpr = new BoolExpr(((NumExpr *)binary->left)->value < ((NumExpr *)binary->right)->value);
+            else if (binary->op == "<=")
+                newExpr = new BoolExpr(((NumExpr *)binary->left)->value <= ((NumExpr *)binary->right)->value);
 
-            SAFE_DELETE(infix);
+            SAFE_DELETE(binary);
             return newExpr;
         }
-        else if (infix->left->type == AstType::STR && infix->right->type == AstType::STR)
+        else if (binary->left->type == AstType::STR && binary->right->type == AstType::STR)
         {
-            auto strExpr = new StrExpr(((StrExpr *)infix->left)->value + ((StrExpr *)infix->right)->value);
-            SAFE_DELETE(infix);
+            auto strExpr = new StrExpr(((StrExpr *)binary->left)->value + ((StrExpr *)binary->right)->value);
+            SAFE_DELETE(binary);
             return strExpr;
         }
     }

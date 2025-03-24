@@ -27,8 +27,8 @@ enum class Precedence
 
 class Parser;
 
-typedef Expr *(Parser::*PrefixFn)();
-typedef Expr *(Parser::*InfixFn)(Expr *);
+typedef Expr *(Parser::*UnaryFn)();
+typedef Expr *(Parser::*BinaryFn)(Expr *);
 
 class COMPUTE_DUCK_API Parser
 {
@@ -90,7 +90,7 @@ private:
 
 	ConstantFolder m_ConstantFolder;
 
-	static std::unordered_map<TokenType, PrefixFn> m_PrefixFunctions;
-	static std::unordered_map<TokenType, InfixFn> m_InfixFunctions;
+	static std::unordered_map<TokenType, UnaryFn> m_UnaryFunctions;
+	static std::unordered_map<TokenType, BinaryFn> m_BinaryFunctions;
 	static std::unordered_map<TokenType, Precedence> m_Precedence;
 };

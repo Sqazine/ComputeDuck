@@ -239,7 +239,7 @@ class Compiler:
         elif expr.op == "~":
             self.__emit(OpCode.OP_BIT_NOT)
         else:
-            error("Unrecognized prefix op")
+            error("Unrecognized unary op")
 
     def __compile_str_expr(self, expr: StrExpr) -> None:
         obj = StrObject(expr.value)

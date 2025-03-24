@@ -38,7 +38,7 @@ if(COMPUTEDUCK_BUILD_WITH_OPENGL)
     add_subdirectory(library/cdopengl)
 endif()
 
-file(GLOB ROOT_SRC "${CMAKE_SOURCE_DIR}/*.h" "${CMAKE_SOURCE_DIR}/*.cpp" "${CMAKE_SOURCE_DIR}/*.inl")
+file(GLOB ROOT_SRC "${CMAKE_SOURCE_DIR}/*.h" "${CMAKE_SOURCE_DIR}/*.cpp")
 source_group("src" FILES ${ROOT_SRC})
 add_library(${LIB_NAME} SHARED ${ROOT_SRC})
 
