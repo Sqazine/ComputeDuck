@@ -1,13 +1,13 @@
 #pragma once
 #include <cstdint>
 #ifdef _WIN32
-#ifdef COMPUTE_DUCK_BUILD_DLL
-#define COMPUTE_DUCK_API __declspec(dllexport)
+#ifdef COMPUTEDUCK_BUILD_DLL
+#define COMPUTEDUCK_API __declspec(dllexport)
 #else
-#define COMPUTE_DUCK_API __declspec(dllimport)
+#define COMPUTEDUCK_API __declspec(dllimport)
 #endif
 #else
-#define COMPUTE_DUCK_API
+#define COMPUTEDUCK_API
 #endif
 
 constexpr uint32_t STACK_MAX = 512;

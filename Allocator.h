@@ -41,7 +41,7 @@ concept IsChildOfObject = !std::is_same_v<T, void> &&
                           !std::is_abstract_v<T> &&
                           std::is_base_of_v<Object, T>;
 
-class COMPUTE_DUCK_API Allocator
+class COMPUTEDUCK_API Allocator
 {
 public:
     static Allocator *GetInstance();

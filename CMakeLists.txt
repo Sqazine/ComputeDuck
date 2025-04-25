@@ -65,16 +65,16 @@ if(COMPUTEDUCK_BUILD_WITH_LLVM)
     target_link_libraries(${LIB_NAME} PRIVATE ${llvm_libs})
     target_link_libraries(${EXE_NAME} PRIVATE ${llvm_libs})
 
-    target_compile_definitions(${LIB_NAME} PUBLIC COMPUTEDUCK_BUILD_WITH_LLVM)
-    target_compile_definitions(${EXE_NAME} PUBLIC COMPUTEDUCK_BUILD_WITH_LLVM)
+    target_compile_definitions(${LIB_NAME} PRIVATE COMPUTEDUCK_BUILD_WITH_LLVM)
+    target_compile_definitions(${EXE_NAME} PRIVATE COMPUTEDUCK_BUILD_WITH_LLVM)
 endif()
 
 target_link_libraries(${EXE_NAME} PRIVATE ${LIB_NAME})
-target_compile_definitions(${LIB_NAME} PUBLIC COMPUTE_DUCK_BUILD_DLL)
+target_compile_definitions(${LIB_NAME} PRIVATE COMPUTEDUCK_BUILD_DLL)
 
 if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Windows")
-    target_compile_definitions(${LIB_NAME} PUBLIC _CRT_SECURE_NO_WARNINGS)
-    target_compile_definitions(${EXE_NAME} PUBLIC _CRT_SECURE_NO_WARNINGS)
+    target_compile_definitions(${LIB_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
+    target_compile_definitions(${EXE_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
     
     if(MSVC)
         target_compile_options(${LIB_NAME} PRIVATE "/wd4251;" "/bigobj;" "/MD;")

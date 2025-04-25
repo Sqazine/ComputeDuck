@@ -31,11 +31,11 @@ source_group("src" FILES ${ROOT_SRC})
 add_library(${LIB_NAME} SHARED ${ROOT_SRC})
 
 target_link_libraries(${EXE_NAME} PRIVATE ${LIB_NAME})
-target_compile_definitions(${LIB_NAME} PUBLIC COMPUTE_DUCK_BUILD_DLL)
+target_compile_definitions(${LIB_NAME} PRIVATE COMPUTEDUCK_BUILD_DLL)
 
 if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Windows")
-    target_compile_definitions(${LIB_NAME} PUBLIC _CRT_SECURE_NO_WARNINGS)
-    target_compile_definitions(${EXE_NAME} PUBLIC _CRT_SECURE_NO_WARNINGS)
+    target_compile_definitions(${LIB_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
+    target_compile_definitions(${EXE_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
     
     set_property ( DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${EXE_NAME} )
 endif()

@@ -45,7 +45,7 @@ template <typename T>
 concept IsStackValue = std::is_same_v<T, llvm::Value *> ||
     std::is_same_v<T, Value>;
 
-class COMPUTE_DUCK_API Jit
+class COMPUTEDUCK_API Jit
 {
 public:
     Jit();

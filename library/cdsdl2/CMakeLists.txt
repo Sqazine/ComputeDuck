@@ -6,12 +6,18 @@ endif()
 
 add_subdirectory(SDL2)
 
-set(BUILD_SHARED_LIBS OFF)
-add_library(${CD_SDL2_LIB_NAME} SHARED  cdsdl2.h  cdsdl2.cpp)
+file(GLOB SRC "*.h" "*.cpp")
+source_group("src" FILES ${SRC})
+
+add_library(${CD_SDL2_LIB_NAME} SHARED  ${SRC})
 target_include_directories(${CD_SDL2_LIB_NAME} PRIVATE "SDL2/include" ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(${CD_SDL2_LIB_NAME} PRIVATE SDL2::SDL2 ${LIB_NAME})
-target_compile_definitions(${CD_SDL2_LIB_NAME} PUBLIC COMPUTE_DUCK_BUILD_DLL)
+target_compile_definitions(${CD_SDL2_LIB_NAME} PRIVATE COMPUTEDUCK_BUILD_DLL)
+if(COMPUTEDUCK_BUILD_WITH_LLVM)
+    target_compile_definitions(${CD_SDL2_LIB_NAME} PRIVATE COMPUTEDUCK_BUILD_WITH_LLVM)
+endif()
 if(MSVC)
+    target_compile_definitions(${CD_SDL2_LIB_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
     target_compile_options(${CD_SDL2_LIB_NAME} PRIVATE "/wd4251;" "/MD;")
 
     set_property(TARGET SDL2 PROPERTY FOLDER 3rd/SDL2)

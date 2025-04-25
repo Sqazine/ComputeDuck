@@ -30,7 +30,7 @@ class Parser;
 typedef Expr *(Parser::*UnaryFn)();
 typedef Expr *(Parser::*BinaryFn)(Expr *);
 
-class COMPUTE_DUCK_API Parser
+class COMPUTEDUCK_API Parser
 {
 public:
 	Parser();

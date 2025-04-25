@@ -1,7 +1,7 @@
 #pragma once
 #include "Utils.h"
 #include "Value.h"
-class COMPUTE_DUCK_API Allocator
+class COMPUTEDUCK_API Allocator
 {
 public:
     static Allocator *GetInstance();

@@ -41,7 +41,7 @@ enum ValueType : uint8_t
     OBJECT
 };
 
-struct COMPUTE_DUCK_API Value
+struct COMPUTEDUCK_API Value
 {
     template <typename T>
         requires(std::is_integral_v<T> || std::is_floating_point_v<T>)
@@ -67,29 +67,29 @@ struct COMPUTE_DUCK_API Value
 bool operator==(const Value &left, const Value &right);
 bool operator!=(const Value &left, const Value &right);
 
-extern "C" COMPUTE_DUCK_API void FindActualValue(const Value &v,Value& result);
-extern "C" COMPUTE_DUCK_API Value *GetEndOfRefValuePtr(Value *v);
-extern "C" COMPUTE_DUCK_API void GetEndOfRefValue(const Value &v, Value &result);
+extern "C" COMPUTEDUCK_API void FindActualValue(const Value &v,Value& result);
+extern "C" COMPUTEDUCK_API Value *GetEndOfRefValuePtr(Value *v);
+extern "C" COMPUTEDUCK_API void GetEndOfRefValue(const Value &v, Value &result);
 
 
-extern "C" COMPUTE_DUCK_API void ValueAdd(const Value &l,const Value& r,Value& result);
-extern "C" COMPUTE_DUCK_API double ValueSub(const Value &l, const Value &r);
-extern "C" COMPUTE_DUCK_API double ValueMul(const Value &l, const Value &r);
-extern "C" COMPUTE_DUCK_API double ValueDiv(const Value &l, const Value &r);
+extern "C" COMPUTEDUCK_API void ValueAdd(const Value &l,const Value& r,Value& result);
+extern "C" COMPUTEDUCK_API double ValueSub(const Value &l, const Value &r);
+extern "C" COMPUTEDUCK_API double ValueMul(const Value &l, const Value &r);
+extern "C" COMPUTEDUCK_API double ValueDiv(const Value &l, const Value &r);
 
-extern "C" COMPUTE_DUCK_API bool ValueGreater(const Value &l, const Value &r);
-extern "C" COMPUTE_DUCK_API bool ValueLess(const Value &l, const Value &r);
-extern "C" COMPUTE_DUCK_API bool ValueEqual(const Value &l, const Value &r);
+extern "C" COMPUTEDUCK_API bool ValueGreater(const Value &l, const Value &r);
+extern "C" COMPUTEDUCK_API bool ValueLess(const Value &l, const Value &r);
+extern "C" COMPUTEDUCK_API bool ValueEqual(const Value &l, const Value &r);
 
-extern "C" COMPUTE_DUCK_API bool ValueLogicAnd(const Value &l, const Value &r);
-extern "C" COMPUTE_DUCK_API bool ValueLogicOr(const Value &l, const Value &r);
+extern "C" COMPUTEDUCK_API bool ValueLogicAnd(const Value &l, const Value &r);
+extern "C" COMPUTEDUCK_API bool ValueLogicOr(const Value &l, const Value &r);
 
-extern "C" COMPUTE_DUCK_API double ValueBitAnd(const Value &l, const Value &r);
-extern "C" COMPUTE_DUCK_API double ValueBitOr(const Value &l, const Value &r);
-extern "C" COMPUTE_DUCK_API double ValueBitXor(const Value &l, const Value &r);
+extern "C" COMPUTEDUCK_API double ValueBitAnd(const Value &l, const Value &r);
+extern "C" COMPUTEDUCK_API double ValueBitOr(const Value &l, const Value &r);
+extern "C" COMPUTEDUCK_API double ValueBitXor(const Value &l, const Value &r);
 
-extern "C" COMPUTE_DUCK_API bool ValueLogicNot(const Value &l);
-extern "C" COMPUTE_DUCK_API double ValueBitNot(const Value &l);
-extern "C" COMPUTE_DUCK_API double ValueMinus(const Value &l);
+extern "C" COMPUTEDUCK_API bool ValueLogicNot(const Value &l);
+extern "C" COMPUTEDUCK_API double ValueBitNot(const Value &l);
+extern "C" COMPUTEDUCK_API double ValueMinus(const Value &l);
 
-extern "C" COMPUTE_DUCK_API void GetArrayObjectElement(const Value& ds, const Value & index,Value& result);
+extern "C" COMPUTEDUCK_API void GetArrayObjectElement(const Value& ds, const Value & index,Value& result);

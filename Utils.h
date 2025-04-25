@@ -8,13 +8,13 @@
 #include <cassert>
 
 #ifdef _WIN32
-#ifdef COMPUTE_DUCK_BUILD_DLL
-#define COMPUTE_DUCK_API __declspec(dllexport)
+#ifdef COMPUTEDUCK_BUILD_DLL
+#define COMPUTEDUCK_API __declspec(dllexport)
 #else
-#define COMPUTE_DUCK_API __declspec(dllimport)
+#define COMPUTEDUCK_API __declspec(dllimport)
 #endif
 #else
-#define COMPUTE_DUCK_API
+#define COMPUTEDUCK_API
 #endif
 
 #define STR(x) #x
@@ -59,11 +59,11 @@ constexpr uint32_t STACK_MAX = 512;
         abort();                                                                    \
     } while (false);
 
-COMPUTE_DUCK_API std::string ReadFile(std::string_view path);
-COMPUTE_DUCK_API void WriteFile(std::string_view path, std::string_view content);
+COMPUTEDUCK_API std::string ReadFile(std::string_view path);
+COMPUTEDUCK_API void WriteFile(std::string_view path, std::string_view content);
 
-COMPUTE_DUCK_API std::string PointerAddressToString(void *pointer);
+COMPUTEDUCK_API std::string PointerAddressToString(void *pointer);
 
-COMPUTE_DUCK_API void RegisterDLLs(std::string rawDllPath);
+COMPUTEDUCK_API void RegisterDLLs(std::string rawDllPath);
 
 uint32_t HashString(char *str);

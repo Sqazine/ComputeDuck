@@ -16,7 +16,7 @@
 #include "Jit.h"
 #endif
 
-class COMPUTE_DUCK_API VM
+class COMPUTEDUCK_API VM
 {
 public:
     VM() = default;

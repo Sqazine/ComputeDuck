@@ -53,7 +53,7 @@ enum OpCode
 
 using OpCodes = std::vector<int16_t>;
 
-class COMPUTE_DUCK_API Chunk
+class COMPUTEDUCK_API Chunk
 {
 public:
     Chunk() = default;
