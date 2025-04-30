@@ -8,7 +8,8 @@ public:
     static Config *GetInstance();
 
     void SetExecuteFilePath(std::string_view path);
-
+    const std::string& GetExecuteFilePath() const;
+    
     std::string ToFullPath(std::string_view filePath);
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
