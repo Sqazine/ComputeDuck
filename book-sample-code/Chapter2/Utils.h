@@ -1,5 +1,12 @@
 #pragma once
-#include <cstdint>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string_view>
+#include <string>
+#include <vector>
+#include <cassert>
+
 #ifdef _WIN32
 #ifdef COMPUTEDUCK_BUILD_DLL
 #define COMPUTEDUCK_API __declspec(dllexport)
@@ -12,6 +19,16 @@
 
 constexpr uint32_t STACK_MAX = 512;
 
+#define SAFE_DELETE(x)   \
+    do                   \
+    {                    \
+        if (x)           \
+        {                \
+            delete x;    \
+            x = nullptr; \
+        }                \
+    } while (false);
+
 #define ASSERT(...)                                                                 \
     do                                                                              \
     {                                                                               \
@@ -20,3 +37,6 @@ constexpr uint32_t STACK_MAX = 512;
         printf("\n");                                                               \
         abort();                                                                    \
     } while (false);
+
+COMPUTEDUCK_API std::string ReadFile(std::string_view path);
+COMPUTEDUCK_API void WriteFile(std::string_view path, std::string_view content);

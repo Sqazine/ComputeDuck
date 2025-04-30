@@ -12,6 +12,17 @@ enum OpCode
     OP_SUB,
     OP_MUL,
     OP_DIV,
+    OP_EQUAL,
+    OP_GREATER,
+    OP_LESS,
+    OP_NOT,
+    OP_MINUS,
+    OP_AND,
+    OP_OR,
+    OP_BIT_AND,
+    OP_BIT_OR,
+    OP_BIT_NOT,
+    OP_BIT_XOR,
 };
 
 // 使用OpCodes表示操作码列表使用int16_t是为了跳转操作码允许带有负数的操作数且允许更大的操作数索引,使用int16_t会比较浪费空间,这里使用主要为了简单方便

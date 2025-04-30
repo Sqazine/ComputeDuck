@@ -1,40 +1,134 @@
-#include "Chunk.h"
-#include "VM.h"
+#include <string>
+#include <string_view>
+#include <filesystem>
+#include <cstring>
 #include "Allocator.h"
-#include <format>
-#include <iostream>
+#include "Parser.h"
+#include "Compiler.h"
+#include "VM.h"
+#include "Lexer.h"
+#include "Config.h"
+
+Lexer *g_Lexer = nullptr;
+Parser *g_Parser = nullptr;
+Compiler *g_Compiler = nullptr;
+VM *g_Vm = nullptr;
+
+void SetBasePath(std::string_view path)
+{
+    std::string curPath = std::filesystem::absolute(std::filesystem::path(path)).string();
+#ifdef _WIN32
+    curPath = curPath.substr(0, curPath.find_last_of('\\') + 1);
+#else
+    curPath = curPath.substr(0, curPath.find_last_of('/') + 1);
+#endif
+    Config::GetInstance()->SetExecuteFilePath(curPath);
+}
+
+void Run(std::string_view content)
+{
+    auto tokens = g_Lexer->GenerateTokens(content);
+#ifndef NDEBUG
+    for (const auto &token : tokens)
+        std::cout << token << std::endl;
+#endif
+
+    auto stmts = g_Parser->Parse(tokens);
+#ifndef NDEBUG
+    for (const auto &stmt : stmts)
+        std::cout << stmt->Stringify() << std::endl;
+#endif
+
+    auto chunk = g_Compiler->Compile(stmts);
+
+#ifndef NDEBUG
+    auto str = chunk.Stringify();
+    std::cout << str << std::endl;
+    WriteFile(Config::GetInstance()->GetExecuteFilePath()+"TmpDump.txt",str);
+#endif
+
+    for (auto stmt : stmts)
+        SAFE_DELETE(stmt);
+
+    g_Vm->Run(chunk);
+
+    std::cout << std::format("Result:{0:f}", POP().stored) << std::endl;
+}
+
+void Repl(std::string_view exePath)
+{
+    SetBasePath(exePath);
+
+    std::string allLines;
+    std::string line;
+
+    std::cout << "> ";
+    while (getline(std::cin, line))
+    {
+        if (line == "exit")
+            return;
+        else if (line == "clear")
+            allLines.clear();
+        else
+        {
+            allLines += line;
+            Run(allLines);
+        }
+
+        std::cout << "> ";
+    }
+}
+
+void RunFile(std::string_view path)
+{
+    SetBasePath(path);
+    std::string content = ReadFile(path);
+    Run(content);
+}
+
+int32_t PrintUsage()
+{
+    std::cout << "Usage: ComputeDuck [option]:" << std::endl;
+    std::cout << "-h or --help:show usage info." << std::endl;
+    std::cout << "-f or --file:run source file with a valid file path,like : ComputeDuck -f examples/array.cd." << std::endl;
+    return EXIT_FAILURE;
+}
+
 int32_t main(int argc, const char **argv)
 {
-    Chunk chunk;
-    VM vm;
+    std::string_view sourceFilePath;
+    for (size_t i = 0; i < argc; ++i)
+    {
+        if (strcmp(argv[i], "-f") == 0 || strcmp(argv[i], "--file") == 0)
+        {
+            if (i + 1 < argc)
+                sourceFilePath = argv[++i];
+            else
+                return PrintUsage();
+        }
 
-    chunk.opCodes = {OP_CONSTANT, 0, OP_CONSTANT, 1, OP_ADD}; // 1.0 + 2.0 = 3.0
-    chunk.constants = {Value(2.0f), Value(1.0f)};
-    std::cout << chunk.Stringify() << std::endl;
-    vm.Run(chunk);
+        if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
+            return PrintUsage();
+    }
 
-    std::cout << std::format("Result:{0:f}", POP().stored) << std::endl;
+    Allocator::GetInstance()->Init();
 
-    chunk.opCodes = {OP_CONSTANT, 0, OP_CONSTANT, 1, OP_SUB}; // 1.0 - 2.0 = -1.0
-    chunk.constants = {Value(2.0f), Value(1.0f)};
-    std::cout << chunk.Stringify() << std::endl;
-    vm.Run(chunk);
+    g_Lexer = new Lexer();
+    g_Parser = new Parser();
+    g_Compiler = new Compiler();
+    g_Vm = new VM();
 
-    std::cout << std::format("Result:{0:f}", POP().stored) << std::endl;
+    if (!sourceFilePath.empty())
+        RunFile(sourceFilePath);
+    else
+        Repl(argv[0]);
 
-    chunk.opCodes = {OP_CONSTANT, 0, OP_CONSTANT, 1, OP_MUL}; // 1.0 * 2.0 = 2.0
-    chunk.constants = {Value(2.0f), Value(1.0f)};
-    std::cout << chunk.Stringify() << std::endl;
-    vm.Run(chunk);
+    SAFE_DELETE(g_Vm);
+    SAFE_DELETE(g_Compiler);
+    SAFE_DELETE(g_Parser);
+    SAFE_DELETE(g_Lexer);
 
-    std::cout << std::format("Result:{0:f}", POP().stored) << std::endl;
-
-    chunk.opCodes = {OP_CONSTANT, 0, OP_CONSTANT, 1, OP_DIV}; // 1.0 / 2.0 = 0.5
-    chunk.constants = {Value(2.0f), Value(1.0f)};
-    std::cout << chunk.Stringify() << std::endl;
-    vm.Run(chunk);
-
-    std::cout << std::format("Result:{0:f}", POP().stored) << std::endl;
+    Allocator::GetInstance()->Destroy();
 
     return 0;
 }
