@@ -69,14 +69,8 @@ private:
 	Token GetCurTokenAndStepOnce();
 	Precedence GetCurTokenPrecedence();
 
-	Token GetNextToken();
-	Token GetNextTokenAndStepOnce();
-	Precedence GetNextTokenPrecedence();
-
 	bool IsMatchCurToken(TokenType type);
 	bool IsMatchCurTokenAndStepOnce(TokenType type);
-	bool IsMatchNextToken(TokenType type);
-	bool IsMatchNextTokenAndStepOnce(TokenType type);
 
 	Token Consume(TokenType type, std::string_view errMsg);
 

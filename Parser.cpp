@@ -437,26 +437,6 @@ Precedence Parser::GetCurTokenPrecedence()
 	return Precedence::LOWEST;
 }
 
-Token Parser::GetNextToken()
-{
-	if (m_CurPos + 1 < (int32_t)m_Tokens.size())
-		return m_Tokens[m_CurPos + 1];
-	return m_Tokens.back();
-}
-Token Parser::GetNextTokenAndStepOnce()
-{
-	if (m_CurPos + 1 < (int32_t)m_Tokens.size())
-		return m_Tokens[++m_CurPos];
-	return m_Tokens.back();
-}
-
-Precedence Parser::GetNextTokenPrecedence()
-{
-	if (m_Precedence.find(GetNextToken().type) != m_Precedence.end())
-		return m_Precedence[GetNextToken().type];
-	return Precedence::LOWEST;
-}
-
 bool Parser::IsMatchCurToken(TokenType type)
 {
 	return GetCurToken().type == type;
@@ -465,21 +445,6 @@ bool Parser::IsMatchCurToken(TokenType type)
 bool Parser::IsMatchCurTokenAndStepOnce(TokenType type)
 {
 	if (IsMatchCurToken(type))
-	{
-		m_CurPos++;
-		return true;
-	}
-	return false;
-}
-
-bool Parser::IsMatchNextToken(TokenType type)
-{
-	return GetNextToken().type == type;
-}
-
-bool Parser::IsMatchNextTokenAndStepOnce(TokenType type)
-{
-	if (IsMatchNextToken(type))
 	{
 		m_CurPos++;
 		return true;
