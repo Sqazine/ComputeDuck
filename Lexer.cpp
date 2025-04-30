@@ -147,7 +147,7 @@ void Lexer::GenerateToken()
         if (IsNumber(c))
             Number();
         else if (IsLetter(c))
-            Identifier();
+            KeyWordOrIdentifier();
         else
             AddToken(TokenType::END);
         break;
@@ -239,7 +239,7 @@ void Lexer::Number()
     AddToken(TokenType::NUMBER);
 }
 
-void Lexer::Identifier()
+void Lexer::KeyWordOrIdentifier()
 {
     while (IsLetterOrNumber(GetCurChar()))
         GetCurCharAndStepOnce();
@@ -248,12 +248,14 @@ void Lexer::Identifier()
 
     bool isKeyWord = false;
     for (const auto &[key, value] : keywords)
+    {
         if (key.compare(literal) == 0)
         {
             AddToken(value, literal);
             isKeyWord = true;
             break;
         }
+    }
 
     if (!isKeyWord)
         AddToken(TokenType::IDENTIFIER, literal);
@@ -266,7 +268,7 @@ void Lexer::String()
         if (IsMatchCurChar('\n'))
         {
             m_Line++;
-            m_Column=1;
+            m_Column = 1;
         }
         GetCurCharAndStepOnce();
     }

@@ -37,7 +37,7 @@ private:
 	bool IsLetterOrNumber(char c);
 
 	void Number();
-	void Identifier();
+	void KeyWordOrIdentifier();
 	void String();
 
 	uint32_t m_StartPos;
