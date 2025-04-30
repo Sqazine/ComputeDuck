@@ -44,6 +44,9 @@ public:
 
     Symbol Define(std::string_view name, bool isStructSymbol = false)
     {
+        if (m_SymbolMaps.find(name) != m_SymbolMaps.end())
+            ASSERT("Redefined variable:(%s) in current context.", name.data());
+
         Symbol symbol;
         symbol.name = name;
         symbol.index = m_DefinitionCount;
@@ -54,9 +57,6 @@ public:
             symbol.scope = SymbolScope::GLOBAL;
         else
             symbol.scope = SymbolScope::LOCAL;
-
-        if (m_SymbolMaps.find(name) != m_SymbolMaps.end())
-            ASSERT("Redefined variable:(%s) in current context.", name.data());
 
         m_SymbolMaps[name] = symbol;
         m_DefinitionCount++;

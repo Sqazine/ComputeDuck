@@ -42,7 +42,7 @@ private:
     void CompileGroupExpr(GroupExpr *expr);
     void CompileArrayExpr(ArrayExpr *expr);
     void CompileIndexExpr(IndexExpr *expr, const RWState &state);
-    void CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state = RWState::READ);
+    void CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state);
     void CompileFunctionExpr(FunctionExpr *expr);
     void CompileFunctionCallExpr(FunctionCallExpr *expr);
     void CompileStructCallExpr(StructCallExpr *expr, const RWState &state);
@@ -63,7 +63,7 @@ private:
     void LoadSymbol(const Symbol &symbol);
     void StoreSymbol(const Symbol &symbol);
 
-    std::vector<Chunk> m_ScopeChunks;
+    std::vector<Chunk> m_ChunkList;
 
     SymbolTable *m_SymbolTable{nullptr};
 };

@@ -105,10 +105,10 @@ private:
     Value m_GlobalVariables[STACK_MAX];
 
     Value *m_StackTop{nullptr};
-    Value m_ValueStack[STACK_MAX]{};
+    Value m_ValueStack[STACK_MAX];
 
     CallFrame *m_CallFrameTop{nullptr};
-    CallFrame m_CallFrameStack[STACK_MAX]{};
+    CallFrame m_CallFrameStack[STACK_MAX];
 
     Object *m_FirstObject{nullptr};
     size_t m_CurObjCount{0};

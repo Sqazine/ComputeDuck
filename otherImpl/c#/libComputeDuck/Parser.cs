@@ -14,7 +14,7 @@ namespace ComputeDuck
         BIT_AND,	// &
         EQUAL,      // == !=
         COMPARE,    // < <= > >=
-        ADD_PLUS,   // + -
+        ADD_SUB,   // + -
         MUL_DIV,    //  /
         UNARY,     // !
         CALL,      // [] () .
@@ -484,8 +484,8 @@ namespace ComputeDuck
             {TokenType.LESS_EQUAL, Precedence.COMPARE},
             {TokenType.GREATER, Precedence.COMPARE},
             {TokenType.GREATER_EQUAL, Precedence.COMPARE},
-            {TokenType.PLUS, Precedence.ADD_PLUS},
-            {TokenType.MINUS, Precedence.ADD_PLUS},
+            {TokenType.PLUS, Precedence.ADD_SUB},
+            {TokenType.MINUS, Precedence.ADD_SUB},
             {TokenType.ASTERISK, Precedence.MUL_DIV},
             {TokenType.SLASH, Precedence.MUL_DIV},
             {TokenType.LBRACKET, Precedence.CALL},

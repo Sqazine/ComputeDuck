@@ -1,5 +1,5 @@
 #include "Object.h"
-
+#include "Allocator.h"
 std::string ObjectStringify(Object *object
 #ifndef NDEBUG
                             ,
@@ -208,7 +208,7 @@ StrObject *StrAdd(StrObject *left, StrObject *right)
     memcpy(newStr, left->value, left->len);
     memcpy(newStr + left->len, right->value, right->len);
     newStr[length] = '\0';
-    return new StrObject(newStr);
+    return Allocator::GetInstance()->CreateObject<StrObject>(newStr);
 }
 
 void StrInsert(StrObject *left, uint32_t idx, StrObject *right)

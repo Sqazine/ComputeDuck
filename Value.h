@@ -27,8 +27,6 @@
 #define TO_STRUCT_VALUE(v) (TO_STRUCT_OBJ((v).object))
 #define TO_BUILTIN_VALUE(v) (TO_BUILTIN_OBJ((v).object))
 
-#define TO_OBJECT_VALUE(v) ((v).object)
-
 enum ValueType : uint8_t
 {
     NIL=0,
