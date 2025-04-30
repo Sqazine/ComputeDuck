@@ -55,11 +55,7 @@ public:
     template <IsChildOfObject T, typename... Args>
     T *CreateObject(Args &&...params)
     {
-        if (m_CurObjCount >= m_MaxObjCount
-#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-            && m_IsInsideJitExecutor == false
-#endif
-        )
+        if (m_CurObjCount >= m_MaxObjCount && !m_IsStopGC)
             Gc();
 
         T *object = new T(std::forward<Args>(params)...);
@@ -92,13 +88,12 @@ public:
 
     Value *GetLocalVariableSlot(int16_t scopeDepth, int16_t index, bool isUpValue);
 
-#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-    void InsideJitExecutor();
-    void OutsideJitExecutor();
-
 private:
-    bool m_IsInsideJitExecutor{false};
-#endif
+    friend class VM;
+    friend class Compiler;
+    void StopGC();
+    void RecoverGC();
+    bool m_IsStopGC{false};
 
 private:
     Allocator() = default;

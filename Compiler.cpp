@@ -15,13 +15,15 @@ FunctionObject *Compiler::Compile(const std::vector<Stmt *> &stmts)
 {
     ResetStatus();
 
+    Allocator::GetInstance()->StopGC();
+
     for (const auto &stmt : stmts)
         CompileStmt(stmt);
 
     auto mainFn = Allocator::GetInstance()->CreateObject<FunctionObject>(CurChunk());
-    PUSH(mainFn);
 
     Allocator::GetInstance()->ResetStack();
+    Allocator::GetInstance()->RecoverGC();
 
     return mainFn;
 }
@@ -534,8 +536,6 @@ uint32_t Compiler::Emit(int16_t opcode)
 
 uint32_t Compiler::EmitConstant(const Value &value)
 {
-    PUSH(value); // push value to stack for avoiding GC while compiler running
-
     CurChunk().constants.emplace_back(value);
     auto pos = static_cast<int16_t>(CurChunk().constants.size() - 1);
 

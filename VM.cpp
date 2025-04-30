@@ -503,7 +503,7 @@ void VM::RunJit(const CallFrame &frame)
 
     //execute jit function
     {
-        Allocator::GetInstance()->InsideJitExecutor();
+        Allocator::GetInstance()->StopGC();
 
         if (frame.fn->probableReturnJitTypeSet->IsOnly(ValueType::NUM))
             ExecuteJitFunction<double>(frame, fnName);
@@ -525,7 +525,7 @@ void VM::RunJit(const CallFrame &frame)
         else
             ExecuteJitFunction<void>(frame, fnName);
 
-        Allocator::GetInstance()->OutsideJitExecutor();
+        Allocator::GetInstance()->RecoverGC();
     }
 }
 
