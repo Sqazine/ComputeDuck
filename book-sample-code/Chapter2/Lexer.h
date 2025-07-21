@@ -10,7 +10,6 @@
 class COMPUTEDUCK_API Lexer
 {
 public:
-public:
 	Lexer();
 	~Lexer();
 
