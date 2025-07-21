@@ -21,7 +21,10 @@ private:
     void CompileExpr(Expr *expr);
     void CompileBinaryExpr(BinaryExpr *expr);
     void CompileNumExpr(NumExpr *expr);
+    void CompileBoolExpr(BoolExpr *expr);
     void CompileUnaryExpr(UnaryExpr *expr);
+
+    void CompileNilExpr(NilExpr *expr);
     void CompileGroupExpr(GroupExpr *expr);
 
     Chunk &CurChunk();

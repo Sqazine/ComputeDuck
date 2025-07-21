@@ -54,7 +54,8 @@ void Run(std::string_view content)
 
     for (auto ptr = Allocator::GetInstance()->GetValueStack(); ptr < Allocator::GetInstance()->GetStackTop(); ++ptr)
     {
-        std::cout << std::format("Result:{}", ptr->Stringify()) << std::endl;
+        std::cout << std::format("Result:{0:f}", ptr->stored) << std::endl;
+        // std::cout << std::format("Result:{}", ptr->Stringify()) << std::endl;
     }
 }
 

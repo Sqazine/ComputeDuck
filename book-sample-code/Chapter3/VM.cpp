@@ -58,9 +58,49 @@ void VM::Execute()
             PUSH(ValueDiv(l, r));
             break;
         }
+        case OP_GREATER:
+        {
+            auto l = POP();
+            auto r = POP();
+            PUSH(ValueGreater(l, r));
+            break;
+        }
+        case OP_LESS:
+        {
+            auto l = POP();
+            auto r = POP();
+            PUSH(ValueLess(l, r));
+            break;
+        }
+        case OP_EQUAL:
+        {
+            auto l = POP();
+            auto r = POP();
+            PUSH(ValueEqual(l, r));
+            break;
+        }
+        case OP_NOT:
+        {
+            PUSH(ValueLogicNot(POP()));
+            break;
+        }
         case OP_MINUS:
         {
             PUSH(ValueMinus(POP()));
+            break;
+        }
+        case OP_AND:
+        {
+            auto l = POP();
+            auto r = POP();
+            PUSH(ValueLogicAnd(l, r));
+            break;
+        }
+        case OP_OR:
+        {
+            auto l = POP();
+            auto r = POP();
+            PUSH(ValueLogicOr(l, r));
             break;
         }
         case OP_BIT_AND:

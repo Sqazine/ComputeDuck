@@ -30,8 +30,8 @@ FunctionObject *Compiler::Compile(const std::vector<Stmt *> &stmts)
 
 void Compiler::ResetStatus()
 {
-    std::vector<Chunk>().swap(m_ScopeChunks);
-    m_ScopeChunks.emplace_back(Chunk()); // set a default opcodes
+    std::vector<Chunk>().swap(m_ChunkList);
+    m_ChunkList.emplace_back(Chunk()); // set a default opcodes
 
     SAFE_DELETE(m_SymbolTable);
 
@@ -170,12 +170,12 @@ void Compiler::CompileStructStmt(StructStmt *stmt)
 {
     auto symbol = m_SymbolTable->Define(stmt->name, true);
 
-    m_ScopeChunks.emplace_back(Chunk());
+    m_ChunkList.emplace_back(Chunk());
 
     CompileStructExpr(stmt->body);
 
-    auto chunk = m_ScopeChunks.back();
-    m_ScopeChunks.pop_back();
+    auto chunk = m_ChunkList.back();
+    m_ChunkList.pop_back();
 
     chunk.opCodes.emplace_back(OP_RETURN);
     chunk.opCodes.emplace_back(1);
@@ -384,7 +384,7 @@ void Compiler::CompileFunctionExpr(FunctionExpr *expr)
 {
     EnterScope();
 
-    m_ScopeChunks.emplace_back(Chunk());
+    m_ChunkList.emplace_back(Chunk());
 
     for (const auto &param : expr->parameters)
         m_SymbolTable->Define(param->literal);
@@ -394,8 +394,8 @@ void Compiler::CompileFunctionExpr(FunctionExpr *expr)
 
     auto localVarCount = m_SymbolTable->GetDefinitionCount();
 
-    auto chunk = m_ScopeChunks.back();
-    m_ScopeChunks.pop_back();
+    auto chunk = m_ChunkList.back();
+    m_ChunkList.pop_back();
 
     ExitScope();
 
@@ -525,7 +525,7 @@ void Compiler::ExitScope()
 
 Chunk &Compiler::CurChunk()
 {
-    return m_ScopeChunks.back();
+    return m_ChunkList.back();
 }
 
 uint32_t Compiler::Emit(int16_t opcode)

@@ -39,6 +39,10 @@ void Compiler::CompileExpr(Expr *expr)
     {
     case AstType::NUM:
         return CompileNumExpr((NumExpr *)expr);
+    case AstType::BOOL:
+        return CompileBoolExpr((BoolExpr *)expr);
+    case AstType::NIL:
+        return CompileNilExpr((NilExpr *)expr);
     case AstType::GROUP:
         return CompileGroupExpr((GroupExpr *)expr);
     case AstType::UNARY:
@@ -64,17 +68,50 @@ void Compiler::CompileBinaryExpr(BinaryExpr *expr)
         Emit(OP_MUL);
     else if (expr->op == "/")
         Emit(OP_DIV);
+    else if (expr->op == ">")
+        Emit(OP_GREATER);
+    else if (expr->op == "<")
+        Emit(OP_LESS);
     else if (expr->op == "&")
         Emit(OP_BIT_AND);
     else if (expr->op == "|")
         Emit(OP_BIT_OR);
     else if (expr->op == "^")
         Emit(OP_BIT_XOR);
+    else if (expr->op == ">=")
+    {
+        Emit(OP_LESS);
+        Emit(OP_NOT);
+    }
+    else if (expr->op == "<=")
+    {
+        Emit(OP_GREATER);
+        Emit(OP_NOT);
+    }
+    else if (expr->op == "==")
+        Emit(OP_EQUAL);
+    else if (expr->op == "!=")
+    {
+        Emit(OP_EQUAL);
+        Emit(OP_NOT);
+    }
+    else if (expr->op == "and")
+        Emit(OP_AND);
+    else if (expr->op == "or")
+        Emit(OP_OR);
 }
 
 void Compiler::CompileNumExpr(NumExpr *expr)
 {
     EmitConstant(expr->value);
+}
+
+void Compiler::CompileBoolExpr(BoolExpr *expr)
+{
+    if (expr->value)
+        EmitConstant(true);
+    else
+        EmitConstant(false);
 }
 
 void Compiler::CompileUnaryExpr(UnaryExpr *expr)
@@ -85,8 +122,15 @@ void Compiler::CompileUnaryExpr(UnaryExpr *expr)
         Emit(OP_MINUS);
     else if (expr->op == "~")
         Emit(OP_BIT_NOT);
+    else if (expr->op == "not")
+        Emit(OP_NOT);
     else
         ASSERT("Unrecognized unary type.");
+}
+
+void Compiler::CompileNilExpr(NilExpr *expr)
+{
+    EmitConstant(Value());
 }
 
 void Compiler::CompileGroupExpr(GroupExpr *expr)
