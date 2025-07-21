@@ -14,10 +14,22 @@ enum class TokenType
     MINUS,         // -
     ASTERISK,      // *
     SLASH,         // /
+    LESS,          // <
+    GREATER,       // >
     VBAR,          // |
     CARET,         // ^
     AMPERSAND,     // &
     TILDE,         // ~
+    EQUAL_EQUAL,   // ==
+    LESS_EQUAL,    // <=
+    GREATER_EQUAL, // >=
+    BANG_EQUAL,    // !=
+    TRUE,          // true
+    FALSE,         // false
+    NIL,           // nil
+    AND,           // and
+    OR,            // or
+    NOT,           // not
     END
 };
 

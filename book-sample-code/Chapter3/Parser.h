@@ -10,12 +10,16 @@
 enum class Precedence
 {
 	LOWEST = 0, // ,
+	OR,			// or
+	AND,		// and
 	BIT_OR,		// |
 	BIT_XOR,	// ^
 	BIT_AND,	// &
+	EQUAL,		// == !=
+	COMPARE,	// < <= > >=
 	ADD_SUB,	// + -
 	MUL_DIV,	// * /
-	UNARY,		// - ~
+	UNARY,		// not - ~
 };
 
 class Parser;
@@ -37,6 +41,8 @@ private:
 
 	Expr *ParseExpr(Precedence precedence = Precedence::LOWEST);
 	Expr *ParseNumExpr();
+	Expr *ParseNilExpr();
+	Expr *ParseBoolExpr();
 	Expr *ParseGroupExpr();
 	Expr *ParseUnaryExpr();
 	Expr *ParseBinaryExpr(Expr *unaryExpr);

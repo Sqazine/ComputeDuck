@@ -34,8 +34,26 @@ std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
         case OP_DIV:
             cout << std::format("{:08}\tOP_DIV\n", i);
             break;
+        case OP_LESS:
+            cout << std::format("{:08}\tOP_LESS\n", i);
+            break;
+        case OP_GREATER:
+            cout << std::format("{:08}\tOP_GREATER\n", i);
+            break;
+        case OP_NOT:
+            cout << std::format("{:08}\tOP_NOT\n", i);
+            break;
         case OP_MINUS:
             cout << std::format("{:08}\tOP_MINUS\n", i);
+            break;
+        case OP_EQUAL:
+            cout << std::format("{:08}\tOP_EQUAL\n", i);
+            break;
+        case OP_AND:
+            cout << std::format("{:08}\tOP_AND\n", i);
+            break;
+        case OP_OR:
+            cout << std::format("{:08}\tOP_OR\n", i);
             break;
         case OP_BIT_AND:
             cout << std::format("{:08}\tOP_BIT_AND\n", i);

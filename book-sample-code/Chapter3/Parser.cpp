@@ -3,17 +3,29 @@
 std::unordered_map<TokenType, UnaryFn> Parser::m_UnaryFunctions =
 	{
 		{TokenType::NUMBER, &Parser::ParseNumExpr},
+		{TokenType::NIL, &Parser::ParseNilExpr},
+		{TokenType::TRUE, &Parser::ParseBoolExpr},
+		{TokenType::FALSE, &Parser::ParseBoolExpr},
 		{TokenType::MINUS, &Parser::ParseUnaryExpr},
+		{TokenType::NOT, &Parser::ParseUnaryExpr},
 		{TokenType::LPAREN, &Parser::ParseGroupExpr},
 		{TokenType::TILDE, &Parser::ParseUnaryExpr},
 };
 
 std::unordered_map<TokenType, BinaryFn> Parser::m_BinaryFunctions =
 	{
+		{TokenType::EQUAL_EQUAL, &Parser::ParseBinaryExpr},
+		{TokenType::BANG_EQUAL, &Parser::ParseBinaryExpr},
+		{TokenType::LESS, &Parser::ParseBinaryExpr},
+		{TokenType::LESS_EQUAL, &Parser::ParseBinaryExpr},
+		{TokenType::GREATER, &Parser::ParseBinaryExpr},
+		{TokenType::GREATER_EQUAL, &Parser::ParseBinaryExpr},
 		{TokenType::PLUS, &Parser::ParseBinaryExpr},
 		{TokenType::MINUS, &Parser::ParseBinaryExpr},
 		{TokenType::ASTERISK, &Parser::ParseBinaryExpr},
 		{TokenType::SLASH, &Parser::ParseBinaryExpr},
+		{TokenType::AND, &Parser::ParseBinaryExpr},
+		{TokenType::OR, &Parser::ParseBinaryExpr},
 		{TokenType::AMPERSAND, &Parser::ParseBinaryExpr},
 		{TokenType::VBAR, &Parser::ParseBinaryExpr},
 		{TokenType::CARET, &Parser::ParseBinaryExpr},
@@ -21,10 +33,18 @@ std::unordered_map<TokenType, BinaryFn> Parser::m_BinaryFunctions =
 
 std::unordered_map<TokenType, Precedence> Parser::m_Precedence =
 	{
+		{TokenType::EQUAL_EQUAL, Precedence::EQUAL},
+		{TokenType::BANG_EQUAL, Precedence::EQUAL},
+		{TokenType::LESS, Precedence::COMPARE},
+		{TokenType::LESS_EQUAL, Precedence::COMPARE},
+		{TokenType::GREATER, Precedence::COMPARE},
+		{TokenType::GREATER_EQUAL, Precedence::COMPARE},
 		{TokenType::PLUS, Precedence::ADD_SUB},
 		{TokenType::MINUS, Precedence::ADD_SUB},
 		{TokenType::ASTERISK, Precedence::MUL_DIV},
 		{TokenType::SLASH, Precedence::MUL_DIV},
+		{TokenType::AND, Precedence::AND},
+		{TokenType::OR, Precedence::OR},
 		{TokenType::AMPERSAND, Precedence::BIT_AND},
 		{TokenType::VBAR, Precedence::BIT_OR},
 		{TokenType::CARET, Precedence::BIT_XOR},
@@ -71,7 +91,7 @@ Expr *Parser::ParseExpr(Precedence precedence)
 	if (m_UnaryFunctions.find(GetCurToken().type) == m_UnaryFunctions.end())
 	{
 		ASSERT("no unary definition for:%s", GetCurTokenAndStepOnce().literal.c_str());
-		return nullptr;
+		return new NilExpr();
 	}
 	auto unaryFn = m_UnaryFunctions[GetCurToken().type];
 
@@ -94,6 +114,25 @@ Expr *Parser::ParseExpr(Precedence precedence)
 Expr *Parser::ParseNumExpr()
 {
 	return new NumExpr(std::stod(Consume(TokenType::NUMBER, "Expect a number literal.").literal));
+}
+
+
+Expr *Parser::ParseNilExpr()
+{
+	Consume(TokenType::NIL, "Expect 'nil' keyword");
+	return new NilExpr();
+}
+Expr *Parser::ParseBoolExpr()
+{
+	bool flag = false;
+	if (IsMatchCurToken(TokenType::TRUE))
+		flag = true;
+	else if (IsMatchCurToken(TokenType::FALSE))
+		flag = false;
+
+	GetCurTokenAndStepOnce();
+
+	return new BoolExpr(flag);
 }
 
 Expr *Parser::ParseGroupExpr()

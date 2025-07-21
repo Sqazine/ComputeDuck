@@ -32,8 +32,10 @@ private:
 	bool IsAtEnd();
 
 	bool IsNumber(char c);
+	bool IsLetter(char c);
 
 	void Number();
+	void Keyword();
 
 	uint32_t m_StartPos;
 	uint32_t m_CurPos;

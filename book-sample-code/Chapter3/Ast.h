@@ -9,6 +9,8 @@
 enum class AstType
 {
 	NUM,
+    NIL,
+	BOOL,
 	GROUP,
 	UNARY,
 	BINARY,
@@ -43,6 +45,24 @@ struct NumExpr : public Expr
 	std::string Stringify() override { return std::to_string(value); }
 
 	double value;
+};
+
+struct NilExpr : public Expr
+{
+	NilExpr() : Expr(AstType::NIL) {}
+	~NilExpr() override = default;
+
+	std::string Stringify() override { return "nil"; }
+};
+
+struct BoolExpr : public Expr
+{
+	BoolExpr() : Expr(AstType::BOOL), value(false) {}
+	BoolExpr(bool value) : Expr(AstType::BOOL), value(value) {}
+	~BoolExpr() override = default;
+
+	std::string Stringify() override { return value ? "true" : "false"; }
+	bool value;
 };
 
 

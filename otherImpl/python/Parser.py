@@ -16,7 +16,7 @@ class Precedence(IntEnum):
     BIT_AND = 5,  # &
     EQUAL = 6,		# == !=
     COMPARE = 7,  # < <= > >=
-    ADD_PLUS = 8,  # + -
+    ADD_SUB = 8,  # + -
     MUL_DIV = 9,  # * /
     UNARY = 10,		# not -
     CALL = 11,		# [] () .
@@ -85,8 +85,8 @@ class Parser:
             TokenType.LESS_EQUAL: Precedence.COMPARE,
             TokenType.GREATER: Precedence.COMPARE,
             TokenType.GREATER_EQUAL: Precedence.COMPARE,
-            TokenType.PLUS: Precedence.ADD_PLUS,
-            TokenType.MINUS: Precedence.ADD_PLUS,
+            TokenType.PLUS: Precedence.ADD_SUB,
+            TokenType.MINUS: Precedence.ADD_SUB,
             TokenType.ASTERISK: Precedence.MUL_DIV,
             TokenType.SLASH: Precedence.MUL_DIV,
             TokenType.LBRACKET: Precedence.CALL,

@@ -1,5 +1,15 @@
 #include "Lexer.h"
 
+const std::unordered_map<std::string, TokenType> keywords =
+    {
+        {"true", TokenType::TRUE},
+        {"false", TokenType::FALSE},
+        {"nil", TokenType::NIL},
+        {"and", TokenType::AND},
+        {"or", TokenType::OR},
+        {"not", TokenType::NOT},
+};
+
 Lexer::Lexer()
 {
     ResetStatus();
@@ -76,9 +86,33 @@ void Lexer::GenerateToken()
             GetCurCharAndStepOnce();
         break;
     }
+    case '!':
+        if (IsMatchCurCharAndStepOnce('='))
+            AddToken(TokenType::BANG_EQUAL);
+        else
+            ASSERT("[line %u]: Unknown character '!'", m_Line);
+        break;
+    case '<':
+        if (IsMatchCurCharAndStepOnce('='))
+            AddToken(TokenType::LESS_EQUAL);
+        else
+            AddToken(TokenType::LESS);
+        break;
+    case '>':
+        if (IsMatchCurCharAndStepOnce('='))
+            AddToken(TokenType::GREATER_EQUAL);
+        else
+            AddToken(TokenType::GREATER);
+        break;
+    case '=':
+        if (IsMatchCurCharAndStepOnce('='))
+            AddToken(TokenType::EQUAL_EQUAL);
+        break;
     default:
         if (IsNumber(c))
             Number();
+        else if (IsLetter(c))
+            Keyword();
         else
             AddToken(TokenType::END);
         break;
@@ -144,6 +178,10 @@ bool Lexer::IsNumber(char c)
 {
     return c >= '0' && c <= '9';
 }
+bool Lexer::IsLetter(char c)
+{
+    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_';
+}
 
 void Lexer::Number()
 {
@@ -160,4 +198,21 @@ void Lexer::Number()
     }
 
     AddToken(TokenType::NUMBER);
+}
+
+void Lexer::Keyword()
+{
+    while (IsLetter(GetCurChar()))
+        GetCurCharAndStepOnce();
+
+    std::string literal = m_Source.substr(m_StartPos, m_CurPos - m_StartPos);
+
+    for (const auto &[key, value] : keywords)
+    {
+        if (key.compare(literal) == 0)
+        {
+            AddToken(value, literal);
+            break;
+        }
+    }
 }

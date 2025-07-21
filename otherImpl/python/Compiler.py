@@ -13,7 +13,7 @@ class RWState(IntEnum):
 
 
 class Compiler:
-    __scope_chunk:list[Chunk]=[]
+    __scope_chunk_list:list[Chunk]=[]
     __symbolTable: SymbolTable
 
     def __init__(self) -> None:
@@ -26,10 +26,10 @@ class Compiler:
 
         for stmt in stmts:
             self.__compile_stmt(stmt)
-        return FunctionObject(self.__scope_chunk.pop())
+        return FunctionObject(self.__scope_chunk_list.pop())
 
     def reset_status(self) -> None:
-        self.__scope_chunk = [Chunk()]
+        self.__scope_chunk_list = [Chunk()]
 
         self.__symbolTable = SymbolTable()
 
@@ -112,7 +112,7 @@ class Compiler:
     def __compile_struct_stmt(self, stmt: StructStmt) -> None:
         symbol = self.__symbolTable.Define(stmt.name, True)
 
-        self.__scope_chunk.append(Chunk())
+        self.__scope_chunk_list.append(Chunk())
 
         for k, v in stmt.members.items():
             self.__compile_expr(v)
@@ -123,7 +123,7 @@ class Compiler:
         self.__emit(OpCode.OP_STRUCT)
         self.__emit(len(stmt.members))
 
-        chunk = self.__scope_chunk.pop()
+        chunk = self.__scope_chunk_list.pop()
 
         chunk.opCodes.append(OpCode.OP_RETURN)
         chunk.opCodes.append(1)
@@ -283,7 +283,7 @@ class Compiler:
     def __compile_function_expr(self, stmt: FunctionExpr) -> None:
         self.__enter_scope()
 
-        self.__scope_chunk.append(Chunk())
+        self.__scope_chunk_list.append(Chunk())
 
         for param in stmt.parameters:
             self.__symbolTable.Define(param.literal)
@@ -295,7 +295,7 @@ class Compiler:
 
         self.__exit_scope()
 
-        chunk = self.__scope_chunk.pop()
+        chunk = self.__scope_chunk_list.pop()
 
         # for non return  or empty stmt in function scope:add a return to return nothing
         opCodesLen = len(chunk.opCodes)
@@ -386,7 +386,7 @@ class Compiler:
         self.__symbolTable = self.__symbolTable.enclosing
 
     def __cur_chunk(self) -> Chunk:
-        return self.__scope_chunk[-1]
+        return self.__scope_chunk_list[-1]
 
     def __emit(self, opcode: int) -> int:
         self.__cur_chunk().opCodes.append(opcode)
