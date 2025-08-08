@@ -17,7 +17,7 @@ enum class Precedence
 	BIT_AND,	// &
 	EQUAL,		// == !=
 	COMPARE,	// < <= > >=
-	ADD_PLUS,	// + -
+	ADD_SUB,	// + -
 	MUL_DIV,	// * /
 	UNARY,		// not - ~
 };
