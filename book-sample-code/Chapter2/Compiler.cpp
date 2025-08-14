@@ -1,9 +1,6 @@
 #include "Compiler.h"
 #include <limits>
 
-
-constexpr int16_t INVALID_OPCODE = std::numeric_limits<int16_t>::max();
-
 const Chunk &Compiler::Compile(const std::vector<Stmt *> &stmts)
 {
     ResetStatus();
@@ -16,7 +13,7 @@ const Chunk &Compiler::Compile(const std::vector<Stmt *> &stmts)
 
 void Compiler::ResetStatus()
 {
-    m_ScopeChunk = Chunk();
+    m_Chunk = Chunk();
 }
 
 void Compiler::CompileStmt(Stmt *stmt)
@@ -143,7 +140,7 @@ void Compiler::CompileGroupExpr(GroupExpr *expr)
 
 Chunk &Compiler::CurChunk()
 {
-    return m_ScopeChunk;
+    return m_Chunk;
 }
 
 uint32_t Compiler::Emit(int16_t opcode)

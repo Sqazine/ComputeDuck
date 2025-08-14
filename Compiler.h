@@ -63,7 +63,7 @@ private:
     void LoadSymbol(const Symbol &symbol);
     void StoreSymbol(const Symbol &symbol);
 
-    std::vector<Chunk> m_ScopeChunks;
+    std::vector<Chunk> m_ChunkList;
 
     SymbolTable *m_SymbolTable{nullptr};
 };

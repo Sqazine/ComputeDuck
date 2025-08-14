@@ -14,7 +14,7 @@ namespace ComputeDuck
 
     public class Compiler
     {
-        private List<Chunk> m_ScopeChunk;
+        private List<Chunk> m_ChunkList;
 
         private SymbolTable m_SymbolTable;
 
@@ -35,8 +35,8 @@ namespace ComputeDuck
 
         public void ResetStatus()
         {
-            m_ScopeChunk = new List<Chunk>();
-            m_ScopeChunk.Add(new Chunk());
+            m_ChunkList = new List<Chunk>();
+            m_ChunkList.Add(new Chunk());
 
             m_SymbolTable = new SymbolTable();
 
@@ -148,7 +148,7 @@ namespace ComputeDuck
         {
             var symbol = m_SymbolTable.Define(stmt.name, true);
 
-            m_ScopeChunk.Add(new Chunk());
+            m_ChunkList.Add(new Chunk());
 
             for (int i = stmt.members.Count - 1; i >= 0; --i)
             {
@@ -161,8 +161,8 @@ namespace ComputeDuck
             Emit((int)OpCode.OP_STRUCT);
             Emit((int)stmt.members.Count);
 
-            var chunk = m_ScopeChunk[m_ScopeChunk.Count - 1];
-            m_ScopeChunk.RemoveAt(m_ScopeChunk.Count - 1);
+            var chunk = m_ChunkList[m_ChunkList.Count - 1];
+            m_ChunkList.RemoveAt(m_ChunkList.Count - 1);
 
             chunk.opCodes.Add((int)OpCode.OP_RETURN);
             chunk.opCodes.Add(1);
@@ -371,7 +371,7 @@ namespace ComputeDuck
         void CompileFunctionExpr(FunctionExpr expr)
         {
             EnterScope();
-            m_ScopeChunk.Add(new Chunk());
+            m_ChunkList.Add(new Chunk());
 
             foreach (var param in expr.parameters)
                 m_SymbolTable.Define(param.literal);
@@ -383,8 +383,8 @@ namespace ComputeDuck
 
             ExitScope();
 
-            var chunk = m_ScopeChunk[m_ScopeChunk.Count - 1];
-            m_ScopeChunk.RemoveAt(m_ScopeChunk.Count - 1);
+            var chunk = m_ChunkList[m_ChunkList.Count - 1];
+            m_ChunkList.RemoveAt(m_ChunkList.Count - 1);
 
             if (chunk.opCodes.Count == 0 || chunk.opCodes[chunk.opCodes.Count - 2] != (int)OpCode.OP_RETURN)
             {
@@ -504,7 +504,7 @@ namespace ComputeDuck
 
         Chunk CurChunk()
         {
-            return m_ScopeChunk[m_ScopeChunk.Count - 1];
+            return m_ChunkList[m_ChunkList.Count - 1];
         }
 
         uint Emit(int opcode)

@@ -32,5 +32,5 @@ private:
     uint32_t Emit(int16_t opcode);
     uint32_t EmitConstant(const Value &value);
 
-    Chunk m_ScopeChunk;
+    Chunk m_Chunk;
 };
