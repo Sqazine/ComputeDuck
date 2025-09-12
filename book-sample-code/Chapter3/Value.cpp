@@ -88,7 +88,7 @@ bool ValueLess(const Value &l, const Value &r)
 
 bool ValueEqual(const Value &l, const Value &r)
 {
-    return l.stored == r.stored;
+    return l.type == r.type && l.stored == r.stored;
 }
 
 bool ValueLogicAnd(const Value &l, const Value &r)
