@@ -10,21 +10,14 @@
 enum ObjectType :uint8_t
 {
     STR = ValueType::OBJECT + 1,
-    ARRAY,
-    STRUCT,
-    REF,
-    FUNCTION,
-    BUILTIN,
 };
 
 struct Object
 {
-    Object(ObjectType type) : type(type), marked(false), next(nullptr) {}
+    Object(ObjectType type) : type(type) {}
     ~Object() = default;
 
     ObjectType type;
-    bool marked;
-    Object *next;
 };
 
 struct StrObject : public Object
