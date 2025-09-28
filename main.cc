@@ -95,7 +95,7 @@ int32_t PrintUsage()
 	std::cout << "-h or --help:show usage info." << std::endl;
 	std::cout << "-f or --file:run source file with a valid file path,like : ComputeDuck -f examples/array.cd." << std::endl;
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-	std::cout << "-nj or --no-jit:not use jit compiler" << std::endl;
+	std::cout << "-j or --jit:use jit compiler" << std::endl;
 #endif
 	return EXIT_FAILURE;
 }
@@ -115,8 +115,8 @@ int32_t main(int argc, const char **argv)
 		}
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-		if (strcmp(argv[i], "-nj") == 0 || strcmp(argv[i], "--no-jit") == 0)
-			Config::GetInstance()->SetUseJit(false);
+		if (strcmp(argv[i], "-j") == 0 || strcmp(argv[i], "--jit") == 0)
+			Config::GetInstance()->SetUseJit(true);
 #endif
 
 		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)

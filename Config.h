@@ -17,7 +17,7 @@ public:
     bool IsUseJit();
 
 private:
-    bool m_UseJit{true};
+    bool m_UseJit{false};
 #endif
 
 private:
