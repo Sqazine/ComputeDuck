@@ -237,7 +237,19 @@ void StrErase(StrObject *left, uint32_t idx)
 
 void ArrayInsert(ArrayObject *left, uint32_t idx, const Value &element)
 {
-    //TODO:not implement yet
+    Value* oldElements= left->elements;
+    left->len++;
+    left->elements = new Value[left->len];
+    int32_t i = 0, j = 0;
+    for (; i < left->len; ++i)
+    {
+        if (i != idx)
+            left->elements[i] = oldElements[j++];
+        else
+            left->elements[i] = element;
+    }
+
+    SAFE_DELETE_ARRAY(oldElements);
 }
 
 void ArrayErase(ArrayObject *left, uint32_t idx)
