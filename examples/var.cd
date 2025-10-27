@@ -1,7 +1,0 @@
-a=10;
-b=a;
-c=nil;
-b=20;
-println(a);#10
-println(b);#20
-println(c);#"nil"

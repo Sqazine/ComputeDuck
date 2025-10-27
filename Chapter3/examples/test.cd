@@ -1,0 +1,17 @@
+
+1<2;# true
+1>2;# false
+
+1==2;# false
+1!=2;# true
+1<=2;# true
+1>=2;# false
+
+true;# true
+false;# false
+nil;# nil
+
+true and false;# false
+true or false;# true
+not true;# false
+

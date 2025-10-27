@@ -1,7 +1,0 @@
-import("vec4.cd");
-
-struct Vec5
-{
-    vec4:Vec4,
-    j:0
-}
