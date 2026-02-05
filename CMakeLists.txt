@@ -15,8 +15,6 @@ if(WIN32)
     set(CMAKE_STATIC_LIBRARY_PREFIX "lib")
 endif()
 
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/Bin/Debug)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Bin/Release)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/Bin/Debug)
@@ -35,7 +33,7 @@ source_group("examples" FILES ${EXAMPLES})
 
 set(LIB_NAME dycomputeduck)
 set(EXE_NAME computeduck)
-add_executable(${EXE_NAME} main.cpp ${EXAMPLES})
+add_executable(${EXE_NAME} main.cc ${EXAMPLES})
 
 if(COMPUTEDUCK_BUILD_WITH_SDL2)
     add_subdirectory(library/cdsdl2)
@@ -89,16 +87,10 @@ target_link_libraries(${EXE_NAME} PRIVATE ${LIB_NAME})
 target_compile_definitions(${LIB_NAME} PUBLIC COMPUTE_DUCK_BUILD_DLL)
 
 if(MSVC)
-    target_compile_definitions(${LIB_NAME} PUBLIC NOMINMAX)
-    target_compile_definitions(${EXE_NAME} PUBLIC NOMINMAX)
-
     target_compile_definitions(${LIB_NAME} PUBLIC _CRT_SECURE_NO_WARNINGS)
     target_compile_definitions(${EXE_NAME} PUBLIC _CRT_SECURE_NO_WARNINGS)
 
     target_compile_options(${LIB_NAME} PRIVATE "/wd4251;" "/bigobj;")
     target_compile_options(${EXE_NAME} PRIVATE "/wd4251;" "/bigobj;")
     set_property ( DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${EXE_NAME} )
-else()
-    target_compile_options(${LIB_NAME} PRIVATE "-fpermissive")
-    target_compile_options(${EXE_NAME} PRIVATE "-fpermissive")
 endif()
