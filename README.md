@@ -96,8 +96,9 @@ python3 main.py -f examples/array.cd.
 python3 main.py
 ```
 
-C#(.NetCore 6.0) build:
+C#(.NetCore 9.0) build:
 ```sh
+#install .NetCore 9.0
 #just open otherImpl/c#/ComputeDuck.sln
 # all external dependencies will be downloaded automatically.
 ```
