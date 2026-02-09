@@ -35,7 +35,7 @@ namespace ComputeDuck
 
         public void ResetStatus()
         {
-            m_ScopeChunk=new List<Chunk>();
+            m_ScopeChunk = new List<Chunk>();
             m_ScopeChunk.Add(new Chunk());
 
             m_SymbolTable = new SymbolTable();
@@ -95,18 +95,12 @@ namespace ComputeDuck
         }
         void CompileScopeStmt(ScopeStmt stmt)
         {
-            Emit((int)OpCode.OP_SP_OFFSET);
-
-            var idx = Emit(0);
+            m_SymbolTable.EnterScope();
 
             foreach (var s in stmt.stmts)
                 CompileStmt(s);
 
-            var localVarCount = m_SymbolTable.definitionCount;
-            CurChunk().opCodes[(int)idx] = localVarCount;
-
-            Emit((int)OpCode.OP_SP_OFFSET);
-            Emit(-localVarCount);
+            m_SymbolTable.ExitScope();
         }
         void CompileWhileStmt(WhileStmt stmt)
         {
@@ -196,7 +190,7 @@ namespace ComputeDuck
                     CompileArrayExpr((ArrayExpr)expr);
                     break;
                 case AstType.INDEX:
-                    CompileIndexExpr((IndexExpr)expr,state);
+                    CompileIndexExpr((IndexExpr)expr, state);
                     break;
                 case AstType.PREFIX:
                     CompilePrefixExpr((PrefixExpr)expr);
@@ -325,18 +319,18 @@ namespace ComputeDuck
             Emit((int)OpCode.OP_ARRAY);
             Emit(expr.elements.Count);
         }
-        void CompileIndexExpr(IndexExpr expr,RWState state)
+        void CompileIndexExpr(IndexExpr expr, RWState state)
         {
             CompileExpr(expr.ds);
             CompileExpr(expr.index);
-            if(state==RWState.WRITE)
+            if (state == RWState.WRITE)
                 Emit((int)OpCode.OP_SET_INDEX);
             else
                 Emit((int)OpCode.OP_GET_INDEX);
         }
         void CompileIdentifierExpr(IdentifierExpr expr, RWState state)
         {
-            var (isFound,symbol) = m_SymbolTable.Resolve(expr.literal);
+            var (isFound, symbol) = m_SymbolTable.Resolve(expr.literal);
             if (state == RWState.READ)
             {
                 if (!isFound)
@@ -362,8 +356,7 @@ namespace ComputeDuck
             foreach (var param in expr.parameters)
                 m_SymbolTable.Define(param.literal);
 
-            foreach (var s in expr.body.stmts)
-                CompileStmt(s);
+            CompileScopeStmt(expr.body);
 
             var localVarCount = m_SymbolTable.definitionCount;
 
@@ -423,7 +416,7 @@ namespace ComputeDuck
             if (expr.refExpr.type == AstType.INDEX)
             {
                 CompileExpr(((IndexExpr)expr.refExpr).index);
-                var (isFound,symbol) = m_SymbolTable.Resolve(((IndexExpr)expr.refExpr).ds.Stringify());
+                var (isFound, symbol) = m_SymbolTable.Resolve(((IndexExpr)expr.refExpr).ds.Stringify());
 
                 if (!isFound)
                     Utils.Assert("Undefined variable:" + expr.Stringify());
@@ -513,7 +506,7 @@ namespace ComputeDuck
         uint EmitConstant(Object obj)
         {
             CurChunk().constants.Add(obj);
-            var pos= (uint)CurChunk().constants.Count - 1;
+            var pos = (uint)CurChunk().constants.Count - 1;
             Emit((int)OpCode.OP_CONSTANT);
             Emit((int)pos);
             return (uint)CurChunk().opCodes.Count - 1;
@@ -529,7 +522,7 @@ namespace ComputeDuck
             foreach (var k in BuiltinManager.GetInstance().m_Builtins.Keys)
                 m_SymbolTable.DefineBuiltin(k);
         }
-        
+
         void DefineSymbol(Symbol symbol)
         {
             switch (symbol.scope)

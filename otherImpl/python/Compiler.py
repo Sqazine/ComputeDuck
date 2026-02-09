@@ -68,18 +68,12 @@ class Compiler:
         self.__modify_opcode(jumpAddress, len(self.__cur_chunk().opCodes)-1)
 
     def __compile_scope_stmt(self, stmt: ScopeStmt) -> None:
-        self.__emit(OpCode.OP_SP_OFFSET)
-
-        idx = self.__emit(0)
-
+        self.__symbolTable.EnterScope()
+        
         for s in stmt.stmts:
             self.__compile_stmt(s)
 
-        localVarCount = self.__symbolTable.definitionCount
-        self.__cur_chunk().opCodes[idx] = localVarCount
-
-        self.__emit(OpCode.OP_SP_OFFSET)
-        self.__emit(-localVarCount)
+        self.__symbolTable.ExitScope()
 
     def __compile_while_stmt(self, stmt: WhileStmt) -> None:
         self.__enter_scope()
@@ -278,8 +272,7 @@ class Compiler:
         for param in stmt.parameters:
             self.__symbolTable.Define(param.literal)
 
-        for s in stmt.body.stmts:
-            self.__compile_stmt(s)
+        self.__compile_stmt(stmt.body)
 
         localVarCount = self.__symbolTable.definitionCount
 

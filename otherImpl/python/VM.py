@@ -368,11 +368,6 @@ class VM:
 
                 self.__push(self.__objectStack[slot])
 
-            elif instruction == OpCode.OP_SP_OFFSET:
-                offset = frame.fn.chunk.opCodes[frame.ip]
-                frame.ip += 1
-                self.__stackTop += offset
-
             elif instruction == OpCode.OP_GET_BUILTIN:
                 name = self.__pop().value
                 builtinObj = gBuiltinManager.builtinObjects[name]

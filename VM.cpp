@@ -359,12 +359,6 @@ void VM::Execute()
             PUSH(*slot);
             break;
         }
-        case OP_SP_OFFSET:
-        {
-            auto offset = *frame->ip++;
-            STACK_TOP_JUMP(offset);
-            break;
-        }
         case OP_GET_BUILTIN:
         {
             auto idx = *frame->ip++;

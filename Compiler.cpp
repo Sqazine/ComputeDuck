@@ -18,7 +18,7 @@ FunctionObject *Compiler::Compile(const std::vector<Stmt *> &stmts)
     for (const auto &stmt : stmts)
         CompileStmt(stmt);
 
-    auto mainFn= Allocator::GetInstance()->CreateObject<FunctionObject>(CurChunk());
+    auto mainFn = Allocator::GetInstance()->CreateObject<FunctionObject>(CurChunk());
     PUSH(mainFn);
 
     Allocator::GetInstance()->ResetStack();
@@ -106,17 +106,12 @@ void Compiler::CompileIfStmt(IfStmt *stmt)
 
 void Compiler::CompileScopeStmt(ScopeStmt *stmt)
 {
-    Emit(OP_SP_OFFSET);
-    auto idx = Emit(0);
+    m_SymbolTable->EnterScope();
 
     for (const auto &s : stmt->stmts)
         CompileStmt(s);
 
-    auto localVarCount = m_SymbolTable->GetDefinitionCount();
-
-    CurChunk().opCodes[idx] = localVarCount;
-    Emit(OP_SP_OFFSET);
-    Emit(-localVarCount);
+    m_SymbolTable->ExitScope();
 }
 
 void Compiler::CompileWhileStmt(WhileStmt *stmt)
@@ -301,7 +296,6 @@ void Compiler::CompilePrefixExpr(PrefixExpr *expr)
     else if (expr->op == "~")
         Emit(OP_BIT_NOT);
 
-
     else if (expr->op == "not")
         Emit(OP_NOT);
 
@@ -374,8 +368,7 @@ void Compiler::CompileFunctionExpr(FunctionExpr *expr)
     for (const auto &param : expr->parameters)
         m_SymbolTable->Define(param->literal);
 
-    for (const auto &s : expr->body->stmts)
-        CompileStmt(s);
+    CompileStmt(expr->body);
 
     auto localVarCount = m_SymbolTable->GetDefinitionCount();
 
@@ -534,7 +527,7 @@ uint32_t Compiler::Emit(int16_t opcode)
 
 uint32_t Compiler::EmitConstant(const Value &value)
 {
-    PUSH(value);// push value to stack for avoiding GC while compiler running
+    PUSH(value); // push value to stack for avoiding GC while compiler running
 
     CurChunk().constants.emplace_back(value);
     auto pos = static_cast<int16_t>(CurChunk().constants.size() - 1);

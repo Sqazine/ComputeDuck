@@ -38,8 +38,7 @@ class OpCode(IntEnum):
     OP_REF_LOCAL=34,
     OP_REF_INDEX_GLOBAL=35,
     OP_REF_INDEX_LOCAL=36,
-    OP_SP_OFFSET=37,
-    OP_DLL_IMPORT=38
+    OP_DLL_IMPORT=37
 
 class Chunk:
     opCodes:list[int]
@@ -137,7 +136,7 @@ class Chunk:
             elif opcodes[i]==OpCode.OP_DEF_LOCAL:
                 scopeDepth=opcodes[i+1]
                 index=opcodes[i+2]
-                result+=("%8d\OP_DEF_LOCAL\t%d\t%d\n" % (i,scopeDepth,index))
+                result+=("%8d\tOP_DEF_LOCAL\t%d\t%d\n" % (i,scopeDepth,index))
                 i=i+2
             elif opcodes[i]==OpCode.OP_SET_LOCAL:
                 scopeDepth=opcodes[i+1]
@@ -185,10 +184,6 @@ class Chunk:
                 isUpValue=opcodes[i+3]
                 result+=("%8d\tOP_REF_INDEX_LOCAL\t%d\t%d\t%d\n" % (i,scopeDepth,index,isUpValue))
                 i=i+3
-            elif opcodes[i]==OpCode.OP_SP_OFFSET:
-                offset=opcodes[i+1]
-                result+=("%8d\tOP_SP_OFFSET\t%d\n" % (i,offset))
-                i=i+1
             elif opcodes[i]==OpCode.OP_DLL_IMPORT:
                 result+=("%8d\tOP_DLL_IMPORT\n" % (i))
             i=i+1

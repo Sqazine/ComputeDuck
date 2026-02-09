@@ -83,6 +83,8 @@ public:
         auto iter = m_SymbolMaps.find(name);
         if (iter != m_SymbolMaps.end())
         {
+			if (m_ScopeDepth < iter->second.scopeDepth)
+               return false;
             symbol = iter->second;
             return true;
         }
@@ -111,6 +113,16 @@ public:
     SymbolTable *GetEnclosing() const
     {
         return m_Enclosing;
+    }
+
+    void EnterScope()
+    {
+        m_ScopeDepth++;
+    }
+
+    void ExitScope()
+    {
+        m_ScopeDepth--;
     }
 
 private:

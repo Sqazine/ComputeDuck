@@ -443,12 +443,6 @@ namespace ComputeDuck
                             Push(m_ObjectStack[slot]);
                             break;
                         }
-                    case (int)OpCode.OP_SP_OFFSET:
-                        {
-                            var offset = frame.fn.chunk.opCodes[frame.ip++];
-                            m_StackTop += offset;
-                            break;
-                        }
                     case (int)OpCode.OP_GET_BUILTIN:
                         {
                             var name = ((StrObject)Pop()).value;
