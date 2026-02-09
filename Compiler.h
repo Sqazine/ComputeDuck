@@ -49,9 +49,6 @@ private:
     void CompileStructExpr(StructExpr *expr);
     void CompileDllImportExpr(DllImportExpr *expr);
 
-    void EnterScope();
-    void ExitScope();
-
     Chunk &CurChunk();
 
     uint32_t Emit(int16_t opcode);

@@ -11,6 +11,7 @@ class RWState(IntEnum):
     READ = 0,
     WRITE = 1,
 
+INVALID_OPCODE = 65536
 
 class Compiler:
     __scope_chunk:list[Chunk]=[]
@@ -55,10 +56,10 @@ class Compiler:
     def __compile_if_stmt(self, stmt: IfStmt) -> None:
         self.__compile_expr(stmt.condition)
         self.__emit(OpCode.OP_JUMP_IF_FALSE)
-        jumpIfFalseAddress = self.__emit(65536)
+        jumpIfFalseAddress = self.__emit(INVALID_OPCODE)
         self.__compile_stmt(stmt.thenBranch)
         self.__emit(OpCode.OP_JUMP)
-        jumpAddress = self.__emit(65536)
+        jumpAddress = self.__emit(INVALID_OPCODE)
 
         self.__modify_opcode(jumpIfFalseAddress, len(self.__cur_chunk().opCodes)-1)
 
@@ -76,12 +77,11 @@ class Compiler:
         self.__symbolTable.ExitScope()
 
     def __compile_while_stmt(self, stmt: WhileStmt) -> None:
-        self.__enter_scope()
         jumpAddress = len(self.__cur_chunk().opCodes)-1
         self.__compile_expr(stmt.condition)
 
         self.__emit(OpCode.OP_JUMP_IF_FALSE)
-        jumpIfFalseAddress = self.__emit(65536)
+        jumpIfFalseAddress = self.__emit(INVALID_OPCODE)
 
         self.__compile_stmt(stmt.body)
 
@@ -89,8 +89,6 @@ class Compiler:
         self.__emit(jumpAddress)
 
         self.__modify_opcode(jumpIfFalseAddress, len(self.__cur_chunk().opCodes)-1)
-
-        self.__exit_scope()
 
     def __compile_return_stmt(self, stmt: ReturnStmt) -> None:
         if stmt.expr != None:
@@ -265,7 +263,7 @@ class Compiler:
                 self.__store_symbol(symbol)
 
     def __compile_function_expr(self, stmt: FunctionExpr) -> None:
-        self.__enter_scope()
+        self.__symbolTable = SymbolTable(self.__symbolTable)
 
         self.__scope_chunk.append(Chunk())
 
@@ -276,7 +274,7 @@ class Compiler:
 
         localVarCount = self.__symbolTable.definitionCount
 
-        self.__exit_scope()
+        self.__symbolTable = self.__symbolTable.enclosing
 
         chunk = self.__scope_chunk.pop()
 
@@ -371,12 +369,6 @@ class Compiler:
         self.__emit(OpCode.OP_DLL_IMPORT)
 
         self.__register_builtins()
-
-    def __enter_scope(self) -> None:
-        self.__symbolTable = SymbolTable(self.__symbolTable)
-
-    def __exit_scope(self) -> list[int]:
-        self.__symbolTable = self.__symbolTable.enclosing
 
     def __cur_chunk(self) -> Chunk:
         return self.__scope_chunk[-1]

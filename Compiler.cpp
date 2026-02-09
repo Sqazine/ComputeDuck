@@ -361,7 +361,7 @@ void Compiler::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state)
 
 void Compiler::CompileFunctionExpr(FunctionExpr *expr)
 {
-    EnterScope();
+    m_SymbolTable = new SymbolTable(m_SymbolTable);
 
     m_ScopeChunks.emplace_back(Chunk());
 
@@ -375,7 +375,7 @@ void Compiler::CompileFunctionExpr(FunctionExpr *expr)
     auto chunk = m_ScopeChunks.back();
     m_ScopeChunks.pop_back();
 
-    ExitScope();
+    m_SymbolTable = m_SymbolTable->GetEnclosing();
 
     // for non return  or empty stmt in function scope:add a return to return nothing
     if (chunk.opCodes.empty() || chunk.opCodes[chunk.opCodes.size() - 2] != OP_RETURN)
@@ -503,15 +503,6 @@ void Compiler::CompileDllImportExpr(DllImportExpr *expr)
 
     EmitConstant(Allocator::GetInstance()->CreateObject<StrObject>(dllpath.c_str()));
     Emit(OP_DLL_IMPORT);
-}
-
-void Compiler::EnterScope()
-{
-    m_SymbolTable = new SymbolTable(m_SymbolTable);
-}
-void Compiler::ExitScope()
-{
-    m_SymbolTable = m_SymbolTable->GetEnclosing();
 }
 
 Chunk &Compiler::CurChunk()

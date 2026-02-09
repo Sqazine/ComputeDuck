@@ -4,7 +4,6 @@ using System.IO;
 using System.Reflection;
 namespace ComputeDuck
 {
-    using OpCodes = List<int>;
     public enum RWState
     {
 
@@ -14,6 +13,8 @@ namespace ComputeDuck
 
     public class Compiler
     {
+        private const int INVALID_OPCODE = 65536;
+
         private List<Chunk> m_ScopeChunk;
 
         private SymbolTable m_SymbolTable;
@@ -79,12 +80,12 @@ namespace ComputeDuck
             CompileExpr(stmt.condition);
             Emit((int)OpCode.OP_JUMP_IF_FALSE);
 
-            var jumpIfFalseAddress = Emit(65536);
+            var jumpIfFalseAddress = Emit(INVALID_OPCODE);
 
             CompileStmt(stmt.thenBranch);
 
             Emit((int)OpCode.OP_JUMP);
-            var jumpAddress = Emit(65536);
+            var jumpAddress = Emit(INVALID_OPCODE);
 
             ModifyOpCode(jumpIfFalseAddress, CurChunk().opCodes.Count - 1);
 
@@ -104,13 +105,11 @@ namespace ComputeDuck
         }
         void CompileWhileStmt(WhileStmt stmt)
         {
-            EnterScope();
-
             var jumpAddress = CurChunk().opCodes.Count - 1;
             CompileExpr(stmt.condition);
 
             Emit((int)OpCode.OP_JUMP_IF_FALSE);
-            var jumpIfFalseAddress = Emit(65536);
+            var jumpIfFalseAddress = Emit(INVALID_OPCODE);
 
             CompileStmt(stmt.body);
 
@@ -118,8 +117,6 @@ namespace ComputeDuck
             Emit(jumpAddress);
 
             ModifyOpCode(jumpIfFalseAddress, CurChunk().opCodes.Count - 1);
-
-            ExitScope();
         }
         void CompileReturnStmt(ReturnStmt stmt)
         {
@@ -350,7 +347,8 @@ namespace ComputeDuck
         }
         void CompileFunctionExpr(FunctionExpr expr)
         {
-            EnterScope();
+            m_SymbolTable= new SymbolTable(m_SymbolTable);
+
             m_ScopeChunk.Add(new Chunk());
 
             foreach (var param in expr.parameters)
@@ -360,7 +358,7 @@ namespace ComputeDuck
 
             var localVarCount = m_SymbolTable.definitionCount;
 
-            ExitScope();
+            m_SymbolTable = m_SymbolTable.enclosing!;
 
             var chunk = m_ScopeChunk[m_ScopeChunk.Count - 1];
             m_ScopeChunk.RemoveAt(m_ScopeChunk.Count - 1);
@@ -481,16 +479,6 @@ namespace ComputeDuck
             Emit((int)OpCode.OP_DLL_IMPORT);
 
             RegisterBuiltins();
-        }
-
-        void EnterScope()
-        {
-            m_SymbolTable = new SymbolTable(m_SymbolTable);
-        }
-
-        void ExitScope()
-        {
-            m_SymbolTable = m_SymbolTable.enclosing;
         }
 
         Chunk CurChunk()
