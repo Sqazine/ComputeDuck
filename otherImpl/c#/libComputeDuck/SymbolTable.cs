@@ -83,30 +83,42 @@ namespace ComputeDuck
             return symbol;
         }
 
-        public (bool,Symbol?) Resolve(string name)
+        public (bool, Symbol?) Resolve(string name)
         {
             Symbol symbol;
             var isFound = symbolMaps.ContainsKey(name);
             if (isFound)
             {
+                if (scopeDepth < symbolMaps[name].scopeDepth)
+                    return (false,null);
                 symbol = symbolMaps[name];
-                return (true,symbol);
+                return (true, symbol);
             }
             else if (enclosing != null)
             {
-               (isFound,symbol) = enclosing.Resolve(name);
+                (isFound, symbol) = enclosing.Resolve(name);
                 if (!isFound)
-                    return (false,null);
+                    return (false, null);
                 if (symbol?.scope == SymbolScope.GLOBAL || symbol?.scope == SymbolScope.BUILTIN)
-                    return (true,symbol);
+                    return (true, symbol);
 
                 symbol.isUpValue = 1;
 
                 symbolMaps[symbol.name] = symbol;
-                return (true,symbol);
+                return (true, symbol);
             }
 
-            return (false,null);
+            return (false, null);
+        }
+
+        public void EnterScope()
+        {
+            scopeDepth++;
+        }
+
+        public void ExitScope()
+        {
+            scopeDepth--;
         }
 
         public SymbolTable? enclosing;

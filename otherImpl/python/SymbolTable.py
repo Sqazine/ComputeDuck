@@ -62,6 +62,8 @@ class SymbolTable:
     def Resolve(self, name: str):
         symbol = self.symbolMaps.get(name)
         if symbol != None:
+            if self.scopeDepth < symbol.scopeDepth:
+                return False, None
             return True, symbol
         elif self.enclosing != None:
             isFound, symbol = self.enclosing.Resolve(name)
@@ -75,3 +77,9 @@ class SymbolTable:
             return True, symbol
 
         return False, None
+
+    def EnterScope(self):
+        self.scopeDepth += 1
+        
+    def ExitScope(self):
+        self.scopeDepth -= 1

@@ -154,9 +154,6 @@ std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
         case OP_REF_INDEX_LOCAL:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_INDEX_LOCAL\t" << opcodes[++i] << "\t" << opcodes[++i] << "\t" << opcodes[++i] << std::endl;
             break;
-        case OP_SP_OFFSET:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_SP_OFFSET\t" << opcodes[++i] << std::endl;
-            break;
         case OP_DLL_IMPORT:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_DLL_IMPORT" << std::endl;
             break;

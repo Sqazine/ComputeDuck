@@ -43,7 +43,6 @@ namespace ComputeDuck
         OP_REF_LOCAL,
         OP_REF_INDEX_GLOBAL,
         OP_REF_INDEX_LOCAL,
-        OP_SP_OFFSET,
         OP_DLL_IMPORT,
     };
 
@@ -190,9 +189,6 @@ namespace ComputeDuck
                         break;
                     case (int)OpCode.OP_REF_INDEX_LOCAL:
                         result += string.Format("{0}\tOP_REF_INDEX_LOCAL\t{1}\t{2}\t{3}\n", i.ToString().PadLeft(8), opCodes[++i], opCodes[++i], opCodes[++i]);
-                        break;
-                    case (int)OpCode.OP_SP_OFFSET:
-                        result += string.Format("{0}\tOP_SP_OFFSET\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
                         break;
                     case (int)OpCode.OP_DLL_IMPORT:
                         result += string.Format("{0}\tOP_DLL_IMPORT\n", i.ToString().PadLeft(8));

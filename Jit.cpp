@@ -1251,12 +1251,6 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             Push(value);
             break;
         }
-        case OP_SP_OFFSET:
-        {
-            auto offset = *ip++;
-            m_StackTop += offset;
-            break;
-        }
         default:
             break;
         }

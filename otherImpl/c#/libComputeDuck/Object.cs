@@ -28,6 +28,11 @@ namespace ComputeDuck
                 destroyFunc(nativeData);
             }
         }
+
+        public T As<T>()
+        {
+            return (T)nativeData!;
+        }
     };
 
     public enum ObjectType
