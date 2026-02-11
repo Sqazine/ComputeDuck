@@ -15,7 +15,7 @@ public:
 
     // ++ 删除内容
     // Only for debugging
-    // size_t GetSymbolDefCount() { return m_SymbolTable->GetDefinitionCount(); }
+    // size_t GetSymbolDefCount() { return m_SymbolTable->GetVarCount(); }
     // -- 删除内容
 
 private:

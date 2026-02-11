@@ -9,7 +9,7 @@ upvalue=function(x)
     return add(x);
 };
 
-println(upvalue(100));
+println(upvalue(100)); # 110
 
 fn = function(a,b)
 {
@@ -25,4 +25,4 @@ fn = function(a,b)
     
 };
 
-println(fn(10,20)(30));
+println(fn(10,20)(30)); # 50

@@ -39,7 +39,7 @@ void VM::Execute()
 {
     while (1)
     {
-        auto frame = PEEK_CALL_FRAME_FROM_BACK(1);
+        auto frame = PEEK_CALL_FRAME(1);
 
         if (frame->IsEnd())
             return;
@@ -332,30 +332,25 @@ void VM::Execute()
         }
         case OP_DEF_LOCAL:
         {
-            auto scopeDepth = *frame->ip++;
             auto index = *frame->ip++;
             auto value = POP();
-            Value *slot = GET_LOCAL_VARIABLE_SLOT(scopeDepth, index, 0);
+            Value *slot = GET_LOCAL_VARIABLE_SLOT(index);
             *slot = value;
             break;
         }
         case OP_SET_LOCAL:
         {
-            auto scopeDepth = *frame->ip++;
             auto index = *frame->ip++;
-            auto isUpValue = *frame->ip++;
             auto value = POP();
-            Value *slot = GET_LOCAL_VARIABLE_SLOT(scopeDepth, index, isUpValue);
+            Value *slot = GET_LOCAL_VARIABLE_SLOT(index);
             slot = GetEndOfRefValuePtr(slot);
             *slot = value;
             break;
         }
         case OP_GET_LOCAL:
         {
-            auto scopeDepth = *frame->ip++;
             auto index = *frame->ip++;
-            auto isUpValue = *frame->ip++;
-            Value *slot = GET_LOCAL_VARIABLE_SLOT(scopeDepth, index, isUpValue);
+            Value *slot = GET_LOCAL_VARIABLE_SLOT(index);
             PUSH(*slot);
             break;
         }
@@ -425,10 +420,8 @@ void VM::Execute()
         }
         case OP_REF_LOCAL:
         {
-            auto scopeDepth = *frame->ip++;
             auto index = *frame->ip++;
-            auto isUpValue = *frame->ip++;
-            Value *slot = GET_LOCAL_VARIABLE_SLOT(scopeDepth, index, isUpValue);
+            Value *slot = GET_LOCAL_VARIABLE_SLOT(index);
             PUSH(Allocator::GetInstance()->CreateObject<RefObject>(slot));
             break;
         }
@@ -442,12 +435,10 @@ void VM::Execute()
         }
         case OP_REF_INDEX_LOCAL:
         {
-            auto scopeDepth = *frame->ip++;
             auto index = *frame->ip++;
-            auto isUpValue = *frame->ip++;
 
             auto idxValue = POP();
-            Value *slot = GetEndOfRefValuePtr(GET_LOCAL_VARIABLE_SLOT(scopeDepth, index, isUpValue));
+            Value *slot = GetEndOfRefValuePtr(GET_LOCAL_VARIABLE_SLOT(index));
             PUSH(Allocator::GetInstance()->CreateIndexRefObject(slot, idxValue));
             break;
         }

@@ -28,9 +28,9 @@ extern "C" COMPUTE_DUCK_API StructObject *CreateStructObject(Table *table)
     return Allocator::GetInstance()->CreateObject<StructObject>(table);
 }
 
-extern "C" COMPUTE_DUCK_API Value *GetLocalVariableSlot(int16_t scopeDepth, int16_t index, bool isUpValue)
+extern "C" COMPUTE_DUCK_API Value *GetLocalVariableSlot(int16_t index)
 {
-    return Allocator::GetInstance()->GetLocalVariableSlot(scopeDepth, index, isUpValue);
+    return Allocator::GetInstance()->GetLocalVariableSlot(index);
 }
 
 extern "C" COMPUTE_DUCK_API Table *CreateTable()
@@ -56,9 +56,9 @@ extern "C" COMPUTE_DUCK_API bool TableSetIfFound(Table *table, StrObject *key, c
     return table->Set(key, value);
 }
 
-extern "C" COMPUTE_DUCK_API RefObject *CreateIndexRefObject(Value* ptr,const Value& v)
+extern "C" COMPUTE_DUCK_API RefObject *CreateIndexRefObject(Value *ptr, const Value &v)
 {
-    return Allocator::GetInstance()->CreateIndexRefObject(ptr,v);
+    return Allocator::GetInstance()->CreateIndexRefObject(ptr, v);
 }
 
 void TypeSet::Insert(uint8_t type)
@@ -129,7 +129,6 @@ size_t HashValueList(Value *start, Value *end)
             value ^= std::hash<uint8_t>()(TO_OBJECT_VALUE(*slot)->type);
         else
             value ^= std::hash<uint8_t>()(slot->type);
-
     }
     return value;
 }
@@ -140,10 +139,9 @@ std::string GenerateFunctionName(const std::string &uuid, size_t returnHash, siz
     return fnName;
 }
 
-std::string GenerateLocalVarName(int16_t scopeDepth, int16_t index, int16_t isUpValue)
+std::string GenerateLocalVarName(int16_t index)
 {
-    auto name = "localVar_" + std::to_string(scopeDepth) + "_" + std::to_string(index) + "_" + std::to_string(isUpValue);
-    return name;
+    return "localVar_" + std::to_string(index);
 }
 
 #endif

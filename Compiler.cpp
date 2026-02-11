@@ -23,6 +23,8 @@ FunctionObject *Compiler::Compile(const std::vector<Stmt *> &stmts)
 
     Allocator::GetInstance()->ResetStack();
 
+    SAFE_DELETE(m_SymbolTable);
+
     return mainFn;
 }
 
@@ -30,8 +32,6 @@ void Compiler::ResetStatus()
 {
     std::vector<Chunk>().swap(m_ScopeChunks);
     m_ScopeChunks.emplace_back(Chunk()); // set a default opcodes
-
-    SAFE_DELETE(m_SymbolTable);
 
     m_SymbolTable = new SymbolTable();
 
@@ -370,12 +370,14 @@ void Compiler::CompileFunctionExpr(FunctionExpr *expr)
 
     CompileStmt(expr->body);
 
-    auto localVarCount = m_SymbolTable->GetDefinitionCount();
+    auto localVarCount = m_SymbolTable->GetVarCount();
 
     auto chunk = m_ScopeChunks.back();
     m_ScopeChunks.pop_back();
 
-    m_SymbolTable = m_SymbolTable->GetEnclosing();
+    auto tmpTable = m_SymbolTable;
+    m_SymbolTable = m_SymbolTable->GetUpper();
+    SAFE_DELETE(tmpTable);
 
     // for non return  or empty stmt in function scope:add a return to return nothing
     if (chunk.opCodes.empty() || chunk.opCodes[chunk.opCodes.size() - 2] != OP_RETURN)
@@ -448,9 +450,7 @@ void Compiler::CompileRefExpr(RefExpr *expr)
             break;
         case SymbolScope::LOCAL:
             Emit(OP_REF_INDEX_LOCAL);
-            Emit(symbol.scopeDepth);
             Emit(symbol.index);
-            Emit(symbol.isUpValue);
             break;
         default:
             break;
@@ -470,9 +470,7 @@ void Compiler::CompileRefExpr(RefExpr *expr)
             break;
         case SymbolScope::LOCAL:
             Emit(OP_REF_LOCAL);
-            Emit(symbol.scopeDepth);
             Emit(symbol.index);
-            Emit(symbol.isUpValue);
             break;
         default:
             break;
@@ -543,7 +541,6 @@ void Compiler::DefineSymbol(const Symbol &symbol)
         break;
     case SymbolScope::LOCAL:
         Emit(OP_DEF_LOCAL);
-        Emit(symbol.scopeDepth);
         Emit(symbol.index);
         break;
     default:
@@ -561,9 +558,7 @@ void Compiler::LoadSymbol(const Symbol &symbol)
         break;
     case SymbolScope::LOCAL:
         Emit(OP_GET_LOCAL);
-        Emit(symbol.scopeDepth);
         Emit(symbol.index);
-        Emit(symbol.isUpValue);
         break;
     case SymbolScope::BUILTIN:
     {
@@ -594,9 +589,7 @@ void Compiler::StoreSymbol(const Symbol &symbol)
         break;
     case SymbolScope::LOCAL:
         Emit(OP_SET_LOCAL);
-        Emit(symbol.scopeDepth);
         Emit(symbol.index);
-        Emit(symbol.isUpValue);
         break;
     default:
         break;
