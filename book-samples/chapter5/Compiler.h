@@ -14,7 +14,7 @@ public:
     const Chunk &Compile(const std::vector<Stmt *> &stmts);
 
     // Only for debugging
-    size_t GetSymbolDefCount() {return m_SymbolTable->GetDefinitionCount();}
+    size_t GetSymbolDefCount() {return m_SymbolTable->GetVarCount();}
 private:
     enum class RWState
     {

@@ -1,0 +1,29 @@
+fn = function()
+{
+    a = 10;
+    {
+        a = 20;
+    }
+
+    {
+        b = 10;
+    }
+
+    println(a);# 20
+   # println(b); # error
+};
+
+fn();
+
+c =10;
+
+{
+    c= 20;
+}
+
+{
+    d = 10;
+}
+
+println(c);# 20
+println(d); # error

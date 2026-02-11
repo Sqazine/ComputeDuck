@@ -119,13 +119,13 @@ std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_GET_GLOBAL\t" << opcodes[++i] << std::endl;
             break;
         case OP_DEF_LOCAL:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_DEF_LOCAL\t" << opcodes[++i] << "\t" << opcodes[++i] << "\t" << std::endl;
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_DEF_LOCAL\t" << opcodes[++i] << std::endl;
             break;
         case OP_SET_LOCAL:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_SET_LOCAL\t" << opcodes[++i] << "\t" << opcodes[++i] << "\t" << opcodes[++i] << std::endl;
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_SET_LOCAL\t" << opcodes[++i] << std::endl;
             break;
         case OP_GET_LOCAL:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_GET_LOCAL\t" << opcodes[++i] << "\t" << opcodes[++i] << "\t" << opcodes[++i] << std::endl;
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_GET_LOCAL\t" << opcodes[++i] << std::endl;
             break;
         case OP_FUNCTION_CALL:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_FUNCTION_CALL\t" << opcodes[++i] << std::endl;
@@ -146,13 +146,13 @@ std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_GLOBAL\t" << opcodes[++i] << std::endl;
             break;
         case OP_REF_LOCAL:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_LOCAL\t" << opcodes[++i] << "\t" << opcodes[++i] << "\t" << opcodes[++i] << std::endl;
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_LOCAL\t" << opcodes[++i]  << std::endl;
             break;
         case OP_REF_INDEX_GLOBAL:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_INDEX_GLOBAL\t" << opcodes[++i] << std::endl;
             break;
         case OP_REF_INDEX_LOCAL:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_INDEX_LOCAL\t" << opcodes[++i] << "\t" << opcodes[++i] << "\t" << opcodes[++i] << std::endl;
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_INDEX_LOCAL\t" << opcodes[++i] << std::endl;
             break;
         case OP_DLL_IMPORT:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_DLL_IMPORT" << std::endl;

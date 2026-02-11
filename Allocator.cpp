@@ -77,12 +77,7 @@ CallFrame *Allocator::PopCallFrame()
     return --m_CallFrameTop;
 }
 
-CallFrame *Allocator::PeekCallFrameFromFront(int32_t distance)
-{
-    return &m_CallFrameStack[distance];
-}
-
-CallFrame *Allocator::PeekCallFrameFromBack(int32_t distance)
+CallFrame *Allocator::PeekCallFrame(int32_t distance)
 {
     return m_CallFrameTop - distance;
 }
@@ -112,14 +107,9 @@ Value *Allocator::GetGlobalVariableRef(size_t index)
     return &m_GlobalVariables[index];
 }
 
-Value *Allocator::GetLocalVariableSlot(int16_t scopeDepth, int16_t index, bool isUpValue)
+Value *Allocator::GetLocalVariableSlot(int16_t index)
 {
-    Value *slot = nullptr;
-    if (isUpValue == 1)
-        slot = PeekCallFrameFromFront(scopeDepth)->slot + index;
-    else
-        slot = PeekCallFrameFromBack(scopeDepth)->slot + index;
-    return slot;
+    return PeekCallFrame(1)->slot + index;
 }
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM

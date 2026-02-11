@@ -73,8 +73,7 @@ public:
 
     void PushCallFrame(const CallFrame &callFrame);
     CallFrame *PopCallFrame();
-    CallFrame *PeekCallFrameFromFront(int32_t distance);
-    CallFrame *PeekCallFrameFromBack(int32_t distance);
+    CallFrame *PeekCallFrame(int32_t distance);
 
     bool IsCallFrameStackEmpty();
 
@@ -85,7 +84,7 @@ public:
 
     Value *GetGlobalVariableRef(size_t index);
 
-    Value *GetLocalVariableSlot(int16_t scopeDepth, int16_t index, bool isUpValue);
+    Value *GetLocalVariableSlot(int16_t index);
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     void InsideJitExecutor();
@@ -122,9 +121,9 @@ private:
 
 #define PUSH_CALL_FRAME(x) (Allocator::GetInstance()->PushCallFrame(x))
 #define POP_CALL_FRAME() (Allocator::GetInstance()->PopCallFrame())
-#define PEEK_CALL_FRAME_FROM_BACK(x) (Allocator::GetInstance()->PeekCallFrameFromBack(x))
+#define PEEK_CALL_FRAME(x) (Allocator::GetInstance()->PeekCallFrame(x))
 
-#define GET_LOCAL_VARIABLE_SLOT(d,idx,isUpV) (Allocator::GetInstance()->GetLocalVariableSlot(d,idx,isUpV))
+#define GET_LOCAL_VARIABLE_SLOT(idx) (Allocator::GetInstance()->GetLocalVariableSlot(idx))
 
 #define STACK_TOP() (Allocator::GetInstance()->GetStackTop())
 #define STACK_TOP_JUMP(x) (Allocator::GetInstance()->StackTopJump(x))

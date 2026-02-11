@@ -9,23 +9,23 @@
 #include <set>
 
 #ifndef NDEBUG
-#define ERROR(newState, ...)                                                                        \
-    do                                                                                              \
-    {                                                                                               \
-        printf("[file:%s,function:%s,line:%d]:", __FILE__, __FUNCTION__, __LINE__);                 \
-        printf(__VA_ARGS__);                                                                        \
-        printf("\n");                                                                               \
-        InitModuleAndPassManager();                                                                 \
-        jitFnDecl.state = newState;                                                                 \
-        return jitFnDecl;                                                                           \
+#define ERROR(newState, ...)                                                        \
+    do                                                                              \
+    {                                                                               \
+        printf("[file:%s,function:%s,line:%d]:", __FILE__, __FUNCTION__, __LINE__); \
+        printf(__VA_ARGS__);                                                        \
+        printf("\n");                                                               \
+        InitModuleAndPassManager();                                                 \
+        jitFnDecl.state = newState;                                                 \
+        return jitFnDecl;                                                           \
     } while (false);
 #else
-#define ERROR(newState, ...)                                                                                  \
-    do                                                                                              \
-    {                                                                                               \
-        InitModuleAndPassManager();                                                                 \
-        jitFnDecl.state = newState;                                                                 \
-        return jitFnDecl;                                                                           \
+#define ERROR(newState, ...)        \
+    do                              \
+    {                               \
+        InitModuleAndPassManager(); \
+        jitFnDecl.state = newState; \
+        return jitFnDecl;           \
     } while (false);
 #endif
 
@@ -83,6 +83,6 @@ struct Value;
 std::string GenerateUUID();
 size_t HashValueList(Value *start, Value *end);
 std::string GenerateFunctionName(const std::string &uuid, size_t returnHash, size_t paramHash);
-std::string GenerateLocalVarName(int16_t scopeDepth, int16_t index, int16_t isUpValue);
+std::string GenerateLocalVarName(int16_t index);
 
 #endif

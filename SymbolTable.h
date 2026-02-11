@@ -26,31 +26,24 @@ class SymbolTable
 public:
     SymbolTable() = default;
 
-    SymbolTable(SymbolTable *enclosing)
-        : m_Enclosing(enclosing), m_ScopeDepth(m_Enclosing->m_ScopeDepth + 1)
+    SymbolTable(SymbolTable *upper)
+        : m_Upper(upper), m_ScopeDepth(upper->m_ScopeDepth + 1)
     {
     }
 
     ~SymbolTable()
     {
-        auto p = m_Enclosing;
-        while (p)
-        {
-            auto q = p->m_Enclosing;
-            SAFE_DELETE(p);
-            p = q;
-        }
     }
 
     Symbol Define(std::string_view name, bool isStructSymbol = false)
     {
         Symbol symbol;
         symbol.name = name;
-        symbol.index = m_DefinitionCount;
+        symbol.index = m_VarCount;
         symbol.scopeDepth = m_ScopeDepth;
         symbol.isStructSymbol=isStructSymbol;
 
-        if (!m_Enclosing)
+        if (symbol.scopeDepth == 0)
             symbol.scope = SymbolScope::GLOBAL;
         else
             symbol.scope = SymbolScope::LOCAL;
@@ -59,7 +52,7 @@ public:
             ASSERT("Redefined variable:(%s) in current context.", name.data());
 
         m_SymbolMaps[name] = symbol;
-        m_DefinitionCount++;
+        m_VarCount++;
         return symbol;
     }
 
@@ -88,9 +81,9 @@ public:
             symbol = iter->second;
             return true;
         }
-        else if (m_Enclosing)
+        else if (GetUpper())
         {
-            bool isFound = m_Enclosing->Resolve(name, symbol);
+            bool isFound = GetUpper()->Resolve(name, symbol);
             if (!isFound)
                 return false;
             if (symbol.scope == SymbolScope::GLOBAL || symbol.scope == SymbolScope::BUILTIN)
@@ -105,14 +98,14 @@ public:
         return false;
     }
 
-    uint8_t GetDefinitionCount() const
+    uint8_t GetVarCount() const
     {
-        return m_DefinitionCount;
+        return m_VarCount;
     }
 
-    SymbolTable *GetEnclosing() const
+    SymbolTable *GetUpper() const
     {
-        return m_Enclosing;
+        return m_Upper;
     }
 
     void EnterScope()
@@ -126,8 +119,8 @@ public:
     }
 
 private:
-    SymbolTable *m_Enclosing{ nullptr };
+    SymbolTable *m_Upper{ nullptr };
     std::unordered_map<std::string_view, Symbol> m_SymbolMaps;
-    uint8_t m_DefinitionCount{ 0 };
+    uint8_t m_VarCount{ 0 };
     uint8_t m_ScopeDepth{ 0 };
 };
