@@ -17,11 +17,11 @@ A C-like syntax Scripting toy language
 1. C++ compiler(>=17)
 2. CMake(>=3.10)
 3. Python(>=3.10)
-4. C#(>=.NetCore 6.0)
+4. C#(>=.NetCore 9.0)
 
 ### How to Build
 
-C++ build:
+#### C++ build:
 ```sh
 #on my ubuntu wsl2 environment,i need to install this(opengl and x11) to run sdl2 and opengl example
 sudo apt-get install build-essential
@@ -57,27 +57,17 @@ cmake -DCOMPUTEDUCK_BUILD_WITH_SDL2=ON -DSDL2_ROOT_DIR=yourpath/to/SDL-release-2
 
 If you want to build JIT(LLVM implementation):
 
-If you already have llvm 14.x installed, you can use prebuilt binary:
-
-1. set cmake variable COMPUTEDUCK_BUILD_WITH_LLVM=PREBUILT,and set LLVM_DIR=yourpath/to/llvmPrebuiltBinary/lib/cmake/llvm (which LLVMConfig.cmake file located folder).like:
-
-```sh
-cmake -DCOMPUTEDUCK_BUILD_WITH_LLVM=PREBUILT -DLLVM_DIR=yourpath/to/llvmPrebuiltBinary/lib/cmake/llvm
-```
-
-If you want to build llvm 14.x from source:
-
 1. download llvm 14.x from [github](https://github.com/llvm/llvm-project/archive/refs/heads/release/14.x.zip) or [gitee(zh-cn)](https://gitee.com/mirrors/LLVM/repository/archive/release/14.x.zip)
 2. Extract llvm-release-14.x.zip
 3. cmake variable COMPUTEDUCK_BUILD_WITH_LLVM=ON,LLVM_ROOT_DIR=yourpath/to/llvm-release-14.x,like:
 
 ```sh
-cmake -DCOMPUTEDUCK_BUILD_WITH_LLVM=SOURCE -DLLVM_ROOT_DIR=yourpath/to/llvm-release-14.x
+cmake -DCOMPUTEDUCK_BUILD_WITH_LLVM=ON -DLLVM_ROOT_DIR=yourpath/to/llvm-release-14.x
 ```
 
 (MY OPINION:Why did I choose such a cumbersome third-party library reference method, because I think LLVM and SDL are both options for ComputeDuck projects and should not be forced to be submodules)
 
-Python build:
+#### Python build:
 ```sh
 #dependencies
 # for SDL2 and opengl external libraries
@@ -96,7 +86,7 @@ python3 main.py -f examples/array.cd.
 python3 main.py
 ```
 
-C#(.NetCore 9.0) build:
+#### C#(.NetCore 9.0) build:
 ```sh
 #install .NetCore 9.0
 #just open otherImpl/c#/ComputeDuck.sln

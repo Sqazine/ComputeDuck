@@ -53,22 +53,3 @@ function(SetSourceLLVM llvmDir llvmlibs)
     llvm_map_components_to_libnames(llvm_libs ${LLVM_LINK_COMPONENTS})
     set(${llvmlibs} ${llvm_libs} PARENT_SCOPE)
 endfunction(SetSourceLLVM)
-
-function(SetPrebuiltLLVM llvmlibs)
-    set(LLVM_DIR "" CACHE STRING "set LLVMConfig.cmake directory")
-    message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
-
-    find_package(LLVM REQUIRED CONFIG)
-
-    message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
-    if(NOT ${LLVM_PACKAGE_VERSION} STREQUAL "14.0.6")
-        message(FATAL_ERROR "LLVM Version require 14.0.6")
-    endif()
-
-    include_directories(${LLVM_INCLUDE_DIRS})
-    separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
-    add_definitions(${LLVM_DEFINITIONS_LIST})
-    set(LLVM_LINK_COMPONENTS Core ExecutionEngine Object OrcJIT native)
-    llvm_map_components_to_libnames(llvm_libs ${LLVM_LINK_COMPONENTS})
-    set(${llvmlibs} ${llvm_libs} PARENT_SCOPE)
-endfunction(SetPrebuiltLLVM)
