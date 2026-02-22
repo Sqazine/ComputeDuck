@@ -22,9 +22,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Bin/Release)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/Bin/Debug)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Bin/Release)
 
-set(COMPUTEDUCK_BUILD_WITH_LLVM "OFF" CACHE STRING "build with LLVM JIT engine(using LLVM 14.0.6 version)")
-set_property(CACHE COMPUTEDUCK_BUILD_WITH_LLVM PROPERTY STRINGS "OFF" "PREBUILT" "SOURCE")
-
+option(COMPUTEDUCK_BUILD_WITH_LLVM "build with LLVM JIT engine(using LLVM 14.0.6 version)" OFF) 
 option(COMPUTEDUCK_BUILD_WITH_SDL2 "build SDL2 third party for cdsdl2" OFF) 
 option(COMPUTEDUCK_BUILD_WITH_OPENGL "build glad third party for cdopengl" OFF)  
 
@@ -46,17 +44,7 @@ endif()
 file(GLOB ROOT_SRC "*.h" "*.cpp" "*.inl" "*.cmake")
 source_group("" FILES ${ROOT_SRC})
 
-if(${COMPUTEDUCK_BUILD_WITH_LLVM} STREQUAL "PREBUILT")
-    add_library(${LIB_NAME} SHARED ${ROOT_SRC})
-
-    include(SetLLVM.cmake)
-    SetPrebuiltLLVM(LLVM_LIBS)
-    
-    target_link_libraries(${LIB_NAME} PRIVATE ${LLVM_LIBS})
-    target_link_libraries(${EXE_NAME} PRIVATE ${LLVM_LIBS})
-    target_compile_definitions(${LIB_NAME} PUBLIC COMPUTEDUCK_BUILD_WITH_LLVM)
-    target_compile_definitions(${EXE_NAME} PUBLIC COMPUTEDUCK_BUILD_WITH_LLVM)
-elseif(${COMPUTEDUCK_BUILD_WITH_LLVM} STREQUAL "SOURCE")
+if(COMPUTEDUCK_BUILD_WITH_LLVM)
     set(LLVM_ROOT_DIR "" CACHE PATH "set LLVM project root directory")
     set(LLVM_GENERATE_DIR "${CMAKE_BINARY_DIR}/3rd/llvm")
     set(LLVM_DIR ${LLVM_ROOT_DIR}/llvm)
@@ -87,9 +75,6 @@ target_link_libraries(${EXE_NAME} PRIVATE ${LIB_NAME})
 target_compile_definitions(${LIB_NAME} PUBLIC COMPUTEDUCK_BUILD_DLL)
 
 if(MSVC)
-    target_compile_definitions(${LIB_NAME} PUBLIC _CRT_SECURE_NO_WARNINGS)
-    target_compile_definitions(${EXE_NAME} PUBLIC _CRT_SECURE_NO_WARNINGS)
-
     target_compile_options(${LIB_NAME} PRIVATE "/wd4251;" "/bigobj;")
     target_compile_options(${EXE_NAME} PRIVATE "/wd4251;" "/bigobj;")
     set_property ( DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${EXE_NAME} )
