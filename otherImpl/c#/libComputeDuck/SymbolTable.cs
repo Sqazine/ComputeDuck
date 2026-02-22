@@ -17,7 +17,7 @@ namespace ComputeDuck
             this.index = 0;
             this.scopeDepth = 0;
             this.name = "";
-            this.isUpValue = 0;
+            this.isUpValue = false;
         }
 
         public Symbol(string name,
@@ -31,7 +31,7 @@ namespace ComputeDuck
             this.scope = scope;
             this.index = index;
             this.scopeDepth = scopeDepth;
-            this.isUpValue = 0;
+            this.isUpValue = false;
         }
 
         public string name;
@@ -39,72 +39,78 @@ namespace ComputeDuck
         public SymbolScope scope;
         public int index;
         public int scopeDepth;
-        public int isUpValue;
+        public bool isUpValue;
     }
 
     public class SymbolTable
     {
         public SymbolTable()
         {
-            this.enclosing = null;
-            this.symbolMaps = new Dictionary<string, Symbol>();
-            this.definitionCount = 0;
+            this.upper = null;
+            this.symbolList = new Symbol[Utils.UINT8_COUNT];
+            this.varCount = 0;
             this.scopeDepth = 0;
         }
 
-        public SymbolTable(SymbolTable enclosing)
+        public SymbolTable(SymbolTable upper)
         {
-            this.enclosing = enclosing;
-            this.symbolMaps = new Dictionary<string, Symbol>();
-            this.definitionCount = 0;
-            this.scopeDepth = enclosing.scopeDepth + 1;
+            this.upper = upper;
+            this.symbolList = new Symbol[Utils.UINT8_COUNT];
+            this.varCount = 0;
+            this.scopeDepth = upper.scopeDepth + 1;
         }
 
         public Symbol Define(string name, bool isStructSymbol = false)
         {
-            Symbol symbol = new Symbol(name, SymbolScope.GLOBAL, definitionCount, scopeDepth, isStructSymbol);
-            if (enclosing == null)
+            if (varCount >= Utils.UINT8_COUNT)
+                Utils.Assert("Too many variable definitions, max is " + Utils.UINT8_COUNT.ToString());
+
+            if (FindSymbol(name) != null)
+                Utils.Assert("Variable already defined in this scope:" + name);
+
+            Symbol symbol = new Symbol(name, SymbolScope.GLOBAL, varCount, scopeDepth, isStructSymbol);
+            if (upper == null)
                 symbol.scope = SymbolScope.GLOBAL;
             else
                 symbol.scope = SymbolScope.LOCAL;
 
-            if (symbolMaps.ContainsKey(name))
-                Utils.Assert("Redefined variable:(" + name + ") in current context");
-
-            symbolMaps[name] = symbol;
-            definitionCount++;
+            symbolList[varCount++] = symbol;
             return symbol;
         }
 
         public Symbol DefineBuiltin(string name)
         {
+            Symbol result = FindSymbol(name);
+            if (result != null)
+                return result;
+
+            if (varCount == Utils.UINT8_COUNT)
+                Utils.Assert("Too many variable definitions, max is " + Utils.UINT8_COUNT.ToString());
+
             var symbol = new Symbol(name, SymbolScope.BUILTIN, -1, scopeDepth);
-            symbolMaps[name] = symbol;
+            symbolList[varCount++] = symbol;
             return symbol;
         }
 
         public (bool, Symbol?) Resolve(string name)
         {
-            Symbol symbol;
-            var isFound = symbolMaps.ContainsKey(name);
-            if (isFound)
+            Symbol result = FindSymbol(name);
+            if (result != null)
             {
-                if (scopeDepth < symbolMaps[name].scopeDepth)
-                    return (false,null);
-                symbol = symbolMaps[name];
-                return (true, symbol);
+                if (scopeDepth < result.scopeDepth)
+                    return (false, null);
+                return (true, result);
             }
-            else if (enclosing != null)
+            else if (GetUpper() != null)
             {
-                (isFound, symbol) = enclosing.Resolve(name);
+                var (isFound, symbol) = GetUpper().Resolve(name);
                 if (!isFound)
                     return (false, null);
-                if (symbol?.scope == SymbolScope.GLOBAL || symbol?.scope == SymbolScope.BUILTIN)
+                if (symbol.scope == SymbolScope.GLOBAL || symbol.scope == SymbolScope.BUILTIN)
                     return (true, symbol);
 
-                symbol.isUpValue = 1;
-
-                symbolMaps[symbol.name] = symbol;
+                symbol.isUpValue = true;
+                symbolList[varCount++] = symbol;
                 return (true, symbol);
             }
 
@@ -113,6 +119,7 @@ namespace ComputeDuck
 
         public void EnterScope()
         {
+
             scopeDepth++;
         }
 
@@ -121,10 +128,31 @@ namespace ComputeDuck
             scopeDepth--;
         }
 
-        public SymbolTable? enclosing;
-        public Dictionary<string, Symbol> symbolMaps;
-        public int definitionCount;
-        public int scopeDepth;
+        public int GetVarCount()
+        {
+            return varCount;
+        }
+
+        public SymbolTable GetUpper()
+        {
+            return upper;
+        }
+
+        private Symbol FindSymbol(string name)
+        {
+            for (int i = 0; i <= varCount; ++i)
+            {
+                if (symbolList[i] !=null && symbolList[i].name == name)
+                    return symbolList[i];
+            }
+
+            return null;
+        }
+
+        private SymbolTable? upper;
+        private Symbol[] symbolList;
+        private int varCount;
+        private int scopeDepth;
     }
 
 }

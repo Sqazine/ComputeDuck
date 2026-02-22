@@ -4,7 +4,7 @@
 
 namespace
 {
-    extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(print)(Value* args, uint8_t argCount, Value& result)
+    extern "C" COMPUTEDUCK_API bool BUILTIN_FN(print)(Value* args, uint8_t argCount, Value& result)
     {
         if (argCount > 0)
         {
@@ -18,7 +18,7 @@ namespace
         return false;
     }
 
-    extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(println)(Value* args, uint8_t argCount, Value& result)
+    extern "C" COMPUTEDUCK_API bool BUILTIN_FN(println)(Value* args, uint8_t argCount, Value& result)
     {
         if (argCount > 0)
         {
@@ -34,7 +34,7 @@ namespace
         return false;
     }
 
-    extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(sizeof)(Value* args, uint8_t argCount, Value& result)
+    extern "C" COMPUTEDUCK_API bool BUILTIN_FN(sizeof)(Value* args, uint8_t argCount, Value& result)
     {
         if (argCount == 0 || argCount > 1)
             ASSERT("[Native function 'sizeof']:Expect a argument.");
@@ -48,7 +48,7 @@ namespace
         return true;
     }
 
-    extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(insert)(Value* args, uint8_t argCount, Value& result)
+    extern "C" COMPUTEDUCK_API bool BUILTIN_FN(insert)(Value* args, uint8_t argCount, Value& result)
     {
         if (argCount == 0 || argCount != 3)
             ASSERT("[Native function 'insert']:Expect 3 arguments,the arg0 must be array or string object.The arg1 is the index object.The arg2 is the value object.");
@@ -84,7 +84,7 @@ namespace
         return false;
     }
 
-    extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(erase)(Value* args, uint8_t argCount, Value& result)
+    extern "C" COMPUTEDUCK_API bool BUILTIN_FN(erase)(Value* args, uint8_t argCount, Value& result)
     {
         if (argCount == 0 || argCount != 2)
             ASSERT("[Native function 'erase']:Expect 2 arguments,the arg0 must be array or string object.The arg1 is the corresponding index object.");
@@ -120,7 +120,7 @@ namespace
         return false;
     }
 
-    extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(clock)(Value* args, uint8_t argCount, Value& result)
+    extern "C" COMPUTEDUCK_API bool BUILTIN_FN(clock)(Value* args, uint8_t argCount, Value& result)
     {
         result = clock() / CLOCKS_PER_SEC;
         return true;

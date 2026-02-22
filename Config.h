@@ -2,7 +2,7 @@
 #include <memory>
 #include <string>
 #include "Utils.h"
-class COMPUTE_DUCK_API Config
+class COMPUTEDUCK_API Config
 {
 public:
     static Config *GetInstance();

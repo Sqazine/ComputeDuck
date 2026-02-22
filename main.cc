@@ -130,7 +130,7 @@ int32_t main(int argc, const char **argv)
 	}
 
 	Allocator::GetInstance()->Init();
-
+	
 	g_PreProcessor = new PreProcessor();
 	g_Parser = new Parser();
 	g_Compiler = new Compiler();

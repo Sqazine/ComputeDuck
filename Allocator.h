@@ -36,7 +36,7 @@ struct CallFrame
     Value *slot{ nullptr };
 };
 
-class COMPUTE_DUCK_API Allocator
+class COMPUTEDUCK_API Allocator
 {
 public:
     static Allocator *GetInstance();

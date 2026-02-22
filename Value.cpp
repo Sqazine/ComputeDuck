@@ -125,7 +125,7 @@ void GetEndOfRefValue(const Value &v, Value &result)
             ASSERT("Invalid op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
     } while (0);
 
-COMPUTE_DUCK_API void ValueAdd(const Value &l, const Value &r, Value &result)
+COMPUTEDUCK_API void ValueAdd(const Value &l, const Value &r, Value &result)
 {
     Value left, right;
     FindActualValue(l, left);
@@ -138,32 +138,32 @@ COMPUTE_DUCK_API void ValueAdd(const Value &l, const Value &r, Value &result)
         ASSERT("Invalid binary op:%s+%s", left.Stringify().c_str(), right.Stringify().c_str());
 }
 
-COMPUTE_DUCK_API double ValueSub(const Value &l, const Value &r)
+COMPUTEDUCK_API double ValueSub(const Value &l, const Value &r)
 {
     COMMON_BINARY(l, -, r);
 }
 
-COMPUTE_DUCK_API double ValueMul(const Value &l, const Value &r)
+COMPUTEDUCK_API double ValueMul(const Value &l, const Value &r)
 {
     COMMON_BINARY(l, *, r);
 }
 
-COMPUTE_DUCK_API double ValueDiv(const Value &l, const Value &r)
+COMPUTEDUCK_API double ValueDiv(const Value &l, const Value &r)
 {
     COMMON_BINARY(l, /, r);
 }
 
-COMPUTE_DUCK_API bool ValueGreater(const Value &l, const Value &r)
+COMPUTEDUCK_API bool ValueGreater(const Value &l, const Value &r)
 {
     COMPARE_BINARY(l, >, r);
 }
 
-COMPUTE_DUCK_API bool ValueLess(const Value &l, const Value &r)
+COMPUTEDUCK_API bool ValueLess(const Value &l, const Value &r)
 {
     COMPARE_BINARY(l, <, r);
 }
 
-COMPUTE_DUCK_API bool ValueEqual(const Value &l, const Value &r)
+COMPUTEDUCK_API bool ValueEqual(const Value &l, const Value &r)
 {
     Value left, right;
     FindActualValue(l, left);
@@ -171,32 +171,32 @@ COMPUTE_DUCK_API bool ValueEqual(const Value &l, const Value &r)
     return left == right;
 }
 
-COMPUTE_DUCK_API bool ValueLogicAnd(const Value &l, const Value &r)
+COMPUTEDUCK_API bool ValueLogicAnd(const Value &l, const Value &r)
 {
     LOGIC_BINARY(l, &&, r);
 }
 
-COMPUTE_DUCK_API bool ValueLogicOr(const Value &l, const Value &r)
+COMPUTEDUCK_API bool ValueLogicOr(const Value &l, const Value &r)
 {
     LOGIC_BINARY(l, ||, r);
 }
 
-COMPUTE_DUCK_API double ValueBitAnd(const Value &l, const Value &r)
+COMPUTEDUCK_API double ValueBitAnd(const Value &l, const Value &r)
 {
     BIT_BINARY(l, &, r);
 }
 
-COMPUTE_DUCK_API double ValueBitOr(const Value &l, const Value &r)
+COMPUTEDUCK_API double ValueBitOr(const Value &l, const Value &r)
 {
     BIT_BINARY(l, |, r);
 }
 
-COMPUTE_DUCK_API double ValueBitXor(const Value &l, const Value &r)
+COMPUTEDUCK_API double ValueBitXor(const Value &l, const Value &r)
 {
     BIT_BINARY(l, ^, r);
 }
 
-COMPUTE_DUCK_API bool ValueLogicNot(const Value &l)
+COMPUTEDUCK_API bool ValueLogicNot(const Value &l)
 {
     Value value;
     FindActualValue(l, value);
@@ -205,7 +205,7 @@ COMPUTE_DUCK_API bool ValueLogicNot(const Value &l)
     return (!TO_BOOL_VALUE(value));
 }
 
-COMPUTE_DUCK_API double ValueBitNot(const Value &l)
+COMPUTEDUCK_API double ValueBitNot(const Value &l)
 {
     Value value;
     FindActualValue(l, value);
@@ -214,7 +214,7 @@ COMPUTE_DUCK_API double ValueBitNot(const Value &l)
     return (~(uint64_t)TO_NUM_VALUE(value));
 }
 
-COMPUTE_DUCK_API double ValueMinus(const Value &l)
+COMPUTEDUCK_API double ValueMinus(const Value &l)
 {
     Value value;
     FindActualValue(l, value);
@@ -223,7 +223,7 @@ COMPUTE_DUCK_API double ValueMinus(const Value &l)
     return (-TO_NUM_VALUE(value));
 }
 
-COMPUTE_DUCK_API void GetArrayObjectElement(const Value &ds, const Value &index, Value &result)
+COMPUTEDUCK_API void GetArrayObjectElement(const Value &ds, const Value &index, Value &result)
 {
     if (IS_ARRAY_VALUE(ds) && IS_NUM_VALUE(index))
     {

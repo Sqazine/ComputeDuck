@@ -7,19 +7,19 @@
 #include "Config.h"
 #include "Allocator.h"
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_Init)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(SDL_Init)(Value *args, uint8_t argCount, Value &result)
 {
     result = SDL_Init(TO_NUM_VALUE(args[0]));
     return true;
 }
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_Quit)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(SDL_Quit)(Value *args, uint8_t argCount, Value &result)
 {
     SDL_Quit();
     return false;
 }
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_CreateWindow)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(SDL_CreateWindow)(Value *args, uint8_t argCount, Value &result)
 {
     auto name = TO_STR_VALUE(args[0])->value;
     auto posX = (int32_t)TO_NUM_VALUE(TO_BUILTIN_VALUE(args[1])->Get<Value>());
@@ -37,7 +37,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_CreateWindow)(Value *args, uint8
     return true;
 }
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_PollEvent)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(SDL_PollEvent)(Value *args, uint8_t argCount, Value &result)
 {
     SDL_Event *event = new SDL_Event();
     SDL_PollEvent(event);
@@ -50,7 +50,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_PollEvent)(Value *args, uint8_t 
     return true;
 }
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_GetEventType)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(SDL_GetEventType)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_BUILTIN_VALUE(args[0]))
         ASSERT("Invalid builtin data.");
@@ -62,7 +62,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_GetEventType)(Value *args, uint8
     return true;
 }
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_CreateRenderer)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(SDL_CreateRenderer)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_BUILTIN_VALUE(args[0]))
         ASSERT("Invalid builtin data.");
@@ -78,7 +78,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_CreateRenderer)(Value *args, uin
     return true;
 }
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_LoadBMP)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(SDL_LoadBMP)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_STR_VALUE(args[0]))
         ASSERT("Invalid str value.");
@@ -95,7 +95,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_LoadBMP)(Value *args, uint8_t ar
     return true;
 }
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_CreateTextureFromSurface)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(SDL_CreateTextureFromSurface)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_BUILTIN_VALUE(args[0]) || !IS_BUILTIN_VALUE(args[1]))
         ASSERT("Invalid builtin value of SDL_CreateTextureFromSurface(args[0] or args[1]).");
@@ -112,7 +112,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_CreateTextureFromSurface)(Value 
     return true;
 }
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_RenderClear)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(SDL_RenderClear)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_BUILTIN_VALUE(args[0]))
         ASSERT("Invalid builtin value of SDL_RenderClear(args[0]).");
@@ -122,7 +122,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_RenderClear)(Value *args, uint8_
     return false;
 }
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_RenderCopy)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(SDL_RenderCopy)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_BUILTIN_VALUE(args[0]) || !IS_BUILTIN_VALUE(args[1]))
         ASSERT("Invalid builtin value of SDL_RenderCopy(args[0] or args[1]).");
@@ -135,7 +135,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_RenderCopy)(Value *args, uint8_t
     return true;
 }
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_RenderPresent)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(SDL_RenderPresent)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_BUILTIN_VALUE(args[0]))
         ASSERT("Invalid builtin value of SDL_RenderPresent(args[0]).");
@@ -145,7 +145,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_RenderPresent)(Value *args, uint
     return false;
 }
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_GL_SetAttribute)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(SDL_GL_SetAttribute)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_BUILTIN_VALUE(args[0]))
         ASSERT("Invalid builtin value of SDL_GL_SetAttribute(args[0]).");
@@ -165,7 +165,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_GL_SetAttribute)(Value *args, ui
     return true;
 }
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_GL_SwapWindow)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(SDL_GL_SwapWindow)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_BUILTIN_VALUE(args[0]))
         ASSERT("Invalid builtin value of SDL_GL_SwapWindow(args[0]).");
@@ -175,7 +175,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_GL_SwapWindow)(Value *args, uint
     return false;
 }
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_GL_CreateContext)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(SDL_GL_CreateContext)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_BUILTIN_VALUE(args[0]))
         ASSERT("Invalid builtin value of SDL_GL_CreateContext(args[0]).");
@@ -190,7 +190,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_GL_CreateContext)(Value *args, u
     return true;
 }
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_GL_SetSwapInterval)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(SDL_GL_SetSwapInterval)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_NUM_VALUE(args[0]))
         ASSERT("Invalid builtin value of SDL_GL_SetSwapInterval(args[0]).");
@@ -201,7 +201,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(SDL_GL_SetSwapInterval)(Value *args,
 
 void RegisterBuiltins()
 {
-    REGISTER_BUILTIN_VALUE(SDL_INIT_AUDIO);
+    BuiltinManager::GetInstance()->Register("SDL_INIT_AUDIO", Value((uint64_t)0x00000010u));
     REGISTER_BUILTIN_VALUE(SDL_INIT_VIDEO);
     REGISTER_BUILTIN_VALUE(SDL_INIT_JOYSTICK);
     REGISTER_BUILTIN_VALUE(SDL_INIT_HAPTIC);

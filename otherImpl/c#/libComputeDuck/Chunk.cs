@@ -155,13 +155,13 @@ namespace ComputeDuck
                         result += string.Format("{0}\tOP_GET_GLOBAL\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
                         break;
                     case (int)OpCode.OP_DEF_LOCAL:
-                        result += string.Format("{0}\tOP_DEF_LOCAL\t{1}\t{2}\n", i.ToString().PadLeft(8), opCodes[++i], opCodes[++i]);
+                        result += string.Format("{0}\tOP_DEF_LOCAL\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
                         break;
                     case (int)OpCode.OP_SET_LOCAL:
-                        result += string.Format("{0}\tOP_SET_LOCAL\t{1}\t{2}\t{3}\n", i.ToString().PadLeft(8), opCodes[++i], opCodes[++i], opCodes[++i]);
+                        result += string.Format("{0}\tOP_SET_LOCAL\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
                         break;
                     case (int)OpCode.OP_GET_LOCAL:
-                        result += string.Format("{0}\tOP_GET_LOCAL\t{1}\t{2}\t{3}\n", i.ToString().PadLeft(8), opCodes[++i], opCodes[++i], opCodes[++i]);
+                        result += string.Format("{0}\tOP_GET_LOCAL\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
                         break;
                     case (int)OpCode.OP_FUNCTION_CALL:
                         result += string.Format("{0}\tOP_FUNCTION_CALL\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
@@ -182,13 +182,13 @@ namespace ComputeDuck
                         result += string.Format("{0}\tOP_REF_GLOBAL\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
                         break;
                     case (int)OpCode.OP_REF_LOCAL:
-                        result += string.Format("{0}\tOP_REF_LOCAL\t{1}\t{2}\t{3}\n", i.ToString().PadLeft(8), opCodes[++i], opCodes[++i], opCodes[++i]);
+                        result += string.Format("{0}\tOP_REF_LOCAL\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
                         break;
                     case (int)OpCode.OP_REF_INDEX_GLOBAL:
                         result += string.Format("{0}\tOP_REF_INDEX_GLOBAL\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
                         break;
                     case (int)OpCode.OP_REF_INDEX_LOCAL:
-                        result += string.Format("{0}\tOP_REF_INDEX_LOCAL\t{1}\t{2}\t{3}\n", i.ToString().PadLeft(8), opCodes[++i], opCodes[++i], opCodes[++i]);
+                        result += string.Format("{0}\tOP_REF_INDEX_LOCAL\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
                         break;
                     case (int)OpCode.OP_DLL_IMPORT:
                         result += string.Format("{0}\tOP_DLL_IMPORT\n", i.ToString().PadLeft(8));

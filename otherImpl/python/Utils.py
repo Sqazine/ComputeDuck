@@ -2,6 +2,7 @@ import importlib
 import sys
 import ctypes
 
+UINT8_COUNT:int = 256
 
 def error(msg):
     print(msg)

@@ -49,7 +49,7 @@ class VM:
 
     def __execute(self) -> None:
         while True:
-            frame = self.__peek_call_frame_from_back(1)
+            frame = self.__peek_call_frame(1)
 
             if frame.is_at_end():
                 return
@@ -315,28 +315,21 @@ class VM:
                     error("Calling not a function or a builtinFn")
 
             elif instruction == OpCode.OP_DEF_LOCAL:
-                scopeDepth = frame.fn.chunk.opCodes[frame.ip]
-                frame.ip += 1
                 index = frame.fn.chunk.opCodes[frame.ip]
                 frame.ip += 1
 
                 obj = self.__pop()
 
-                slot = self.__peek_call_frame_from_back(scopeDepth).slot+index
+                slot = self.__get_local_variable_slot(index)
                 self.__objectStack[slot] = obj
 
             elif instruction == OpCode.OP_SET_LOCAL:
-                scopeDepth = frame.fn.chunk.opCodes[frame.ip]
-                frame.ip += 1
                 index = frame.fn.chunk.opCodes[frame.ip]
-                frame.ip += 1
-                isUpValue = frame.fn.chunk.opCodes[frame.ip]
                 frame.ip += 1
 
                 obj = self.__pop()
 
-                slot = self.__get_local_variable_slot(
-                    scopeDepth, index, isUpValue)
+                slot = self.__get_local_variable_slot(index)
 
                 if self.__objectStack[slot].type == ObjectType.REF:
                     refObj = self.__objectStack[slot]
@@ -344,8 +337,7 @@ class VM:
 
                     self.__assign_object_by_address(refAddress, obj)
 
-                    refObjs = self.__search_ref_object_list_by_address(
-                        refAddress)
+                    refObjs = self.__search_ref_object_list_by_address(refAddress)
                     for i in range(0, len(refObjs)):
                         refObjs[i].pointer = id(obj)
 
@@ -356,15 +348,10 @@ class VM:
                     self.__objectStack[slot] = obj
 
             elif instruction == OpCode.OP_GET_LOCAL:
-                scopeDepth = frame.fn.chunk.opCodes[frame.ip]
-                frame.ip += 1
                 index = frame.fn.chunk.opCodes[frame.ip]
                 frame.ip += 1
-                isUpValue = frame.fn.chunk.opCodes[frame.ip]
-                frame.ip += 1
 
-                slot = self.__get_local_variable_slot(
-                    scopeDepth, index, isUpValue)
+                slot = self.__get_local_variable_slot(index)
 
                 self.__push(self.__objectStack[slot])
 
@@ -407,7 +394,7 @@ class VM:
             elif instruction == OpCode.OP_SET_STRUCT:
                 memberName = self.__pop()
                 instance = self.__pop()
-                instance = self.__get_end_of_ref_object(instance)
+                instance, _ = self.__get_end_of_ref_object(instance)
 
                 obj = self.__pop()
                 if memberName.type == ObjectType.STR:
@@ -423,15 +410,10 @@ class VM:
                 self.__push(RefObject(id(self.__globalVariables[index])))
 
             elif instruction == OpCode.OP_REF_LOCAL:
-                scopeDepth = frame.fn.chunk.opCodes[frame.ip]
-                frame.ip += 1
                 index = frame.fn.chunk.opCodes[frame.ip]
                 frame.ip += 1
-                isUpValue = frame.fn.chunk.opCodes[frame.ip]
-                frame.ip += 1
 
-                slot = self.__get_local_variable_slot(
-                    scopeDepth, index, isUpValue)
+                slot = self.__get_local_variable_slot(index)
 
                 self.__push(RefObject(id(self.__objectStack[slot])))
 
@@ -446,16 +428,12 @@ class VM:
                 self.__push(self.__create_index_ref_object(obj, idxValue))
 
             elif instruction == OpCode.OP_REF_INDEX_LOCAL:
-                scopeDepth = frame.fn.chunk.opCodes[frame.ip]
-                frame.ip += 1
                 index = frame.fn.chunk.opCodes[frame.ip]
-                frame.ip += 1
-                isUpValue = frame.fn.chunk.opCodes[frame.ip]
                 frame.ip += 1
 
                 idxValue = self.__pop()
-                slot = self.__get_local_variable_slot(
-                    scopeDepth, index, isUpValue)
+                slot = self.__get_local_variable_slot(index)
+
                 obj, _ = self.__get_end_of_ref_object(self.__objectStack[slot])
 
                 self.__push(self.__create_index_ref_object(obj, idxValue))
@@ -480,10 +458,7 @@ class VM:
         self.__callFrameTop -= 1
         return self.__callFrameStack[self.__callFrameTop]
 
-    def __peek_call_frame_from_front(self, distance: int) -> CallFrame:
-        return self.__callFrameStack[distance]
-
-    def __peek_call_frame_from_back(self, distance: int) -> CallFrame:
+    def __peek_call_frame(self, distance: int) -> CallFrame:
         return self.__callFrameStack[self.__callFrameTop - distance]
 
     def __create_index_ref_object(self, obj: Object, idxValue: Object) -> RefObject:
@@ -504,7 +479,7 @@ class VM:
             actual = actual.data
         return actual
 
-    def __get_end_of_ref_object(self, obj: Object):
+    def __get_end_of_ref_object(self, obj: Object) -> tuple[Object, int]:
         address = -1
         refObj = obj
         while refObj.type == ObjectType.REF:
@@ -581,8 +556,5 @@ class VM:
                 if self.__objectStack[p].pointer == originAddress:
                     self.__objectStack[p].pointer = newAddress
 
-    def __get_local_variable_slot(self, scopeDepth, index, isUpValue) -> Object:
-        if isUpValue:
-            return self.__peek_call_frame_from_front(scopeDepth).slot+index
-        else:
-            return self.__peek_call_frame_from_back(scopeDepth).slot+index
+    def __get_local_variable_slot(self, index) -> Object:
+        return self.__peek_call_frame(1).slot+index

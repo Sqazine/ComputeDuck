@@ -30,7 +30,7 @@ class Parser;
 typedef Expr *(Parser::*PrefixFn)();
 typedef Expr *(Parser::*InfixFn)(Expr *);
 
-class COMPUTE_DUCK_API Parser
+class COMPUTEDUCK_API Parser
 {
 public:
 	Parser();

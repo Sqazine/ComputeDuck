@@ -8,47 +8,47 @@
 #include "Table.h"
 #include <random>
 
-extern "C" COMPUTE_DUCK_API StrObject *CreateStrObject(const char *v)
+extern "C" COMPUTEDUCK_API StrObject *CreateStrObject(const char *v)
 {
     return Allocator::GetInstance()->CreateObject<StrObject>(v);
 }
 
-extern "C" COMPUTE_DUCK_API ArrayObject *CreateArrayObject(Value *elements, uint32_t size)
+extern "C" COMPUTEDUCK_API ArrayObject *CreateArrayObject(Value *elements, uint32_t size)
 {
     return Allocator::GetInstance()->CreateObject<ArrayObject>(elements, size);
 }
 
-extern "C" COMPUTE_DUCK_API RefObject *CreateRefObject(Value *pointer)
+extern "C" COMPUTEDUCK_API RefObject *CreateRefObject(Value *pointer)
 {
     return Allocator::GetInstance()->CreateObject<RefObject>(pointer);
 }
 
-extern "C" COMPUTE_DUCK_API StructObject *CreateStructObject(Table *table)
+extern "C" COMPUTEDUCK_API StructObject *CreateStructObject(Table *table)
 {
     return Allocator::GetInstance()->CreateObject<StructObject>(table);
 }
 
-extern "C" COMPUTE_DUCK_API Value *GetLocalVariableSlot(int16_t index)
+extern "C" COMPUTEDUCK_API Value *GetLocalVariableSlot(int16_t index)
 {
     return Allocator::GetInstance()->GetLocalVariableSlot(index);
 }
 
-extern "C" COMPUTE_DUCK_API Table *CreateTable()
+extern "C" COMPUTEDUCK_API Table *CreateTable()
 {
     return new Table();
 }
 
-extern "C" COMPUTE_DUCK_API bool TableSet(Table *table, StrObject *key, const Value &value)
+extern "C" COMPUTEDUCK_API bool TableSet(Table *table, StrObject *key, const Value &value)
 {
     return table->Set(key, value);
 }
 
-extern "C" COMPUTE_DUCK_API bool TableGet(Table *table, StrObject *key, Value &value)
+extern "C" COMPUTEDUCK_API bool TableGet(Table *table, StrObject *key, Value &value)
 {
     return table->Get(key, value);
 }
 
-extern "C" COMPUTE_DUCK_API bool TableSetIfFound(Table *table, StrObject *key, const Value &value)
+extern "C" COMPUTEDUCK_API bool TableSetIfFound(Table *table, StrObject *key, const Value &value)
 {
     bool isSuccess = table->Find(key);
     if (!isSuccess)
@@ -56,7 +56,7 @@ extern "C" COMPUTE_DUCK_API bool TableSetIfFound(Table *table, StrObject *key, c
     return table->Set(key, value);
 }
 
-extern "C" COMPUTE_DUCK_API RefObject *CreateIndexRefObject(Value *ptr, const Value &v)
+extern "C" COMPUTEDUCK_API RefObject *CreateIndexRefObject(Value *ptr, const Value &v)
 {
     return Allocator::GetInstance()->CreateIndexRefObject(ptr, v);
 }

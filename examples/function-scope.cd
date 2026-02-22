@@ -10,7 +10,7 @@ fn = function()
     }
 
     println(a);# 20
-   # println(b); # error
+    println(b); # error
 };
 
 fn();

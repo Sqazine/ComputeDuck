@@ -184,20 +184,20 @@ struct BuiltinObject : public Object
     std::variant<NativeData, BuiltinFn, Value> data;
 };
 
-COMPUTE_DUCK_API std::string ObjectStringify(Object *object
+COMPUTEDUCK_API std::string ObjectStringify(Object *object
 #ifndef NDEBUG
     , bool printChunkIfIsFunctionObject = false
 #endif
 );
 
-COMPUTE_DUCK_API void ObjectMark(Object *object);
-COMPUTE_DUCK_API void ObjectUnMark(Object *object);
+COMPUTEDUCK_API void ObjectMark(Object *object);
+COMPUTEDUCK_API void ObjectUnMark(Object *object);
 
-extern "C" COMPUTE_DUCK_API bool IsObjectEqual(Object *left, Object *right);
+extern "C" COMPUTEDUCK_API bool IsObjectEqual(Object *left, Object *right);
 
-extern "C" COMPUTE_DUCK_API StrObject *StrAdd(StrObject *left, StrObject *right);
-extern "C" COMPUTE_DUCK_API void StrInsert(StrObject *left, uint32_t idx, StrObject *right);
-extern "C" COMPUTE_DUCK_API void StrErase(StrObject *left, uint32_t idx);
+extern "C" COMPUTEDUCK_API StrObject *StrAdd(StrObject *left, StrObject *right);
+extern "C" COMPUTEDUCK_API void StrInsert(StrObject *left, uint32_t idx, StrObject *right);
+extern "C" COMPUTEDUCK_API void StrErase(StrObject *left, uint32_t idx);
 
-extern "C" COMPUTE_DUCK_API void ArrayInsert(ArrayObject *left, uint32_t idx, const Value &element);
-extern "C" COMPUTE_DUCK_API void ArrayErase(ArrayObject *left, uint32_t idx);
+extern "C" COMPUTEDUCK_API void ArrayInsert(ArrayObject *left, uint32_t idx, const Value &element);
+extern "C" COMPUTEDUCK_API void ArrayErase(ArrayObject *left, uint32_t idx);

@@ -6,7 +6,7 @@
 #include "Object.h"
 #include "SymbolTable.h"
 
-class COMPUTE_DUCK_API Compiler
+class COMPUTEDUCK_API Compiler
 {
 public:
     Compiler() = default;

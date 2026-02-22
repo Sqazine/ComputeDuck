@@ -5,13 +5,13 @@
 #include "Value.h"
 #include <cassert>
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(gladLoadGL)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(gladLoadGL)(Value *args, uint8_t argCount, Value &result)
 {
     result = gladLoadGL();
     return true;
 }
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glGenVertexArrays)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(glGenVertexArrays)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_NUM_VALUE(args[0]) || !IS_REF_VALUE(args[1]))
         ASSERT("Invalid value of glGenVertexArrays(args[0],args[1]).");
@@ -42,7 +42,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glGenVertexArrays)(Value *args, uint
     return false;
 }
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glBindVertexArray)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(glBindVertexArray)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_NUM_VALUE(args[0]))
         ASSERT("Invalid value of glBindVertexArray(args[0]).");
@@ -53,7 +53,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glBindVertexArray)(Value *args, uint
     return false;
 }
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glVertexAttribPointer)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(glVertexAttribPointer)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_NUM_VALUE(args[0]) || !IS_NUM_VALUE(args[1]) || !IS_BUILTIN_VALUE(args[2]) || !IS_BUILTIN_VALUE(args[3]) || !IS_NUM_VALUE(args[4]) || !(IS_REF_VALUE(args[5]) || IS_NIL_VALUE(args[5])))
         ASSERT("Invalid value of glVertexAttribPointer(args[0],args[1],args[2],args[3],args[4],args[5]).");
@@ -106,7 +106,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glVertexAttribPointer)(Value *args, 
     return false;
 }
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glEnableVertexAttribArray)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(glEnableVertexAttribArray)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_NUM_VALUE(args[0]))
         ASSERT("Invalid value of glEnableVertexAttribArray(args[0]).");
@@ -117,7 +117,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glEnableVertexAttribArray)(Value *ar
     return false;
 }
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glGenBuffers)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(glGenBuffers)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_NUM_VALUE(args[0]) || !IS_REF_VALUE(args[1]))
         ASSERT("Invalid value of glGenBuffers(args[0],args[1]).");
@@ -147,7 +147,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glGenBuffers)(Value *args, uint8_t a
 
     return false;
 }
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glBindBuffer)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(glBindBuffer)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_BUILTIN_VALUE(args[0]) || !IS_NUM_VALUE(args[1]))
         ASSERT("Invalid value of glBindBuffer(args[0],args[1]).");
@@ -158,7 +158,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glBindBuffer)(Value *args, uint8_t a
     assert(glGetError() == 0);
     return false;
 }
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glBufferData)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(glBufferData)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_BUILTIN_VALUE(args[0]) || !IS_NUM_VALUE(args[1]) || !IS_ARRAY_VALUE(args[2]) || !IS_BUILTIN_VALUE(args[3]))
         ASSERT("Invalid value of glBufferData(args[0],args[1],args[2],args[3]).");
@@ -188,7 +188,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glBufferData)(Value *args, uint8_t a
     return false;
 }
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glCreateShader)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(glCreateShader)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_BUILTIN_VALUE(args[0]))
         ASSERT("Invalid value of glCreateShader(args[0]).");
@@ -198,7 +198,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glCreateShader)(Value *args, uint8_t
     assert(glGetError() == 0);
     return true;
 }
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glShaderSource)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(glShaderSource)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_NUM_VALUE(args[0]) || !IS_NUM_VALUE(args[1]) || !IS_REF_VALUE(args[2]) || !(IS_REF_VALUE(args[3]) || IS_NIL_VALUE(args[3])))
         ASSERT("Invalid value of glShaderSource(args[0],args[1],args[2],args[3]).");
@@ -214,7 +214,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glShaderSource)(Value *args, uint8_t
     assert(glGetError() == 0);
     return false;
 }
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glCompileShader)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(glCompileShader)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_NUM_VALUE(args[0]))
         ASSERT("Invalid value of glCompileShader(args[0]).");
@@ -235,13 +235,13 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glCompileShader)(Value *args, uint8_
     assert(glGetError() == 0);
     return false;
 }
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glCreateProgram)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(glCreateProgram)(Value *args, uint8_t argCount, Value &result)
 {
     result = (double)glCreateProgram();
     assert(glGetError() == 0);
     return true;
 }
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glAttachShader)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(glAttachShader)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_NUM_VALUE(args[0]) || !IS_NUM_VALUE(args[1]))
         ASSERT("Invalid value of glAttachShader(args[0],args[1]).");
@@ -253,7 +253,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glAttachShader)(Value *args, uint8_t
     assert(glGetError() == 0);
     return false;
 }
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glLinkProgram)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(glLinkProgram)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_NUM_VALUE(args[0]))
         ASSERT("Invalid value of glLinkProgram(args[0]).");
@@ -275,7 +275,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glLinkProgram)(Value *args, uint8_t 
     assert(glGetError() == 0);
     return false;
 }
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glClearColor)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(glClearColor)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_NUM_VALUE(args[0]) || !IS_NUM_VALUE(args[1]) || !IS_NUM_VALUE(args[2]) || !IS_NUM_VALUE(args[3]))
         ASSERT("Invalid value of glClearColor(args[0],arg[1],arg[2],arg[3]).");
@@ -289,7 +289,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glClearColor)(Value *args, uint8_t a
     assert(glGetError() == 0);
     return false;
 }
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glClear)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(glClear)(Value *args, uint8_t argCount, Value &result)
 {
     if (IS_BUILTIN_VALUE(args[0]))
     {
@@ -307,7 +307,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glClear)(Value *args, uint8_t argCou
     return false;
 }
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glUseProgram)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(glUseProgram)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_NUM_VALUE(args[0]))
         ASSERT("Invalid value of glUseProgram(args[0]).");
@@ -318,7 +318,7 @@ extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glUseProgram)(Value *args, uint8_t a
     return false;
 }
 
-extern "C" COMPUTE_DUCK_API bool BUILTIN_FN(glDrawElements)(Value *args, uint8_t argCount, Value &result)
+extern "C" COMPUTEDUCK_API bool BUILTIN_FN(glDrawElements)(Value *args, uint8_t argCount, Value &result)
 {
     if (!IS_BUILTIN_VALUE(args[0]) || !IS_NUM_VALUE(args[1]) || !IS_BUILTIN_VALUE(args[2]) || !(IS_REF_VALUE(args[3]) || IS_NIL_VALUE(args[3])))
         ASSERT("Invalid value of glDrawElements(args[0],arg[1],arg[2],arg[3]).");
