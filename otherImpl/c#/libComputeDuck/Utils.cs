@@ -63,7 +63,7 @@ namespace ComputeDuck
                         return;
                 }
             
-            var loc = System.Environment.CurrentDirectory + "/";
+            var loc = AppContext.BaseDirectory;
             var fullPath = loc + name;
 
             Assembly asm = Assembly.LoadFrom(fullPath);
