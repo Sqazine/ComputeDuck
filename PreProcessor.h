@@ -15,7 +15,7 @@ struct TokenBlockTable
     std::vector<Token> tokens;
 };
 
-class COMPUTE_DUCK_API PreProcessor
+class COMPUTEDUCK_API PreProcessor
 {
 public:
     PreProcessor() {}

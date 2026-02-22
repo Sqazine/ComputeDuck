@@ -14,11 +14,11 @@ enum class SymbolScope
 struct Symbol
 {
     std::string_view name;
-    bool isStructSymbol{ false };
-    SymbolScope scope{ SymbolScope::GLOBAL };
-    int32_t index{ -1 };
-    int32_t scopeDepth{ 0 };
-    int32_t isUpValue{ 0 };
+    bool isStructSymbol{false};
+    SymbolScope scope{SymbolScope::GLOBAL};
+    int32_t index{-1};
+    int32_t scopeDepth{0};
+    bool isUpValue{false};
 };
 
 class SymbolTable
@@ -37,48 +37,51 @@ public:
 
     Symbol Define(std::string_view name, bool isStructSymbol = false)
     {
+        if (m_VarCount == UINT8_COUNT)
+            ASSERT("Too many variable definitions, max is %d", UINT8_COUNT);
+
+        if (FindSymbolReference(name))
+            ASSERT("Variable already defined in this scope:%s", name.data());
+
         Symbol symbol;
         symbol.name = name;
         symbol.index = m_VarCount;
         symbol.scopeDepth = m_ScopeDepth;
-        symbol.isStructSymbol=isStructSymbol;
+        symbol.isStructSymbol = isStructSymbol;
 
         if (symbol.scopeDepth == 0)
             symbol.scope = SymbolScope::GLOBAL;
         else
             symbol.scope = SymbolScope::LOCAL;
 
-        if (m_SymbolMaps.find(name) != m_SymbolMaps.end())
-            ASSERT("Redefined variable:(%s) in current context.", name.data());
-
-        m_SymbolMaps[name] = symbol;
-        m_VarCount++;
+        m_SymbolList[m_VarCount++] = symbol;
         return symbol;
     }
 
     Symbol DefineBuiltin(std::string_view name)
     {
-        auto iter = m_SymbolMaps.find(name);
-        if (iter != m_SymbolMaps.end())
-            return iter->second;
+        if (Symbol *result = FindSymbolReference(name))
+            return *result;
+
+        if (m_VarCount == UINT8_COUNT)
+            ASSERT("Too many variable definitions, max is %d", UINT8_COUNT);
 
         Symbol symbol;
         symbol.name = name;
         symbol.scopeDepth = m_ScopeDepth;
         symbol.scope = SymbolScope::BUILTIN;
 
-        m_SymbolMaps[name] = symbol;
+        m_SymbolList[m_VarCount++] = symbol;
         return symbol;
     }
 
     bool Resolve(std::string_view name, Symbol &symbol)
     {
-        auto iter = m_SymbolMaps.find(name);
-        if (iter != m_SymbolMaps.end())
+        if (Symbol *result = FindSymbolReference(name))
         {
-			if (m_ScopeDepth < iter->second.scopeDepth)
-               return false;
-            symbol = iter->second;
+            if (m_ScopeDepth < result->scopeDepth)
+                return false;
+            symbol = *result;
             return true;
         }
         else if (GetUpper())
@@ -89,9 +92,9 @@ public:
             if (symbol.scope == SymbolScope::GLOBAL || symbol.scope == SymbolScope::BUILTIN)
                 return true;
 
-            symbol.isUpValue = 1;
+            symbol.isUpValue = true;
 
-            m_SymbolMaps[symbol.name] = symbol;
+            m_SymbolList[m_VarCount++] = symbol;
             return true;
         }
 
@@ -110,17 +113,33 @@ public:
 
     void EnterScope()
     {
+        if(m_ScopeDepth == UINT8_COUNT)
+            ASSERT("Too many scope depth, max is %d", UINT8_COUNT);
+
         m_ScopeDepth++;
     }
 
     void ExitScope()
     {
+        if(m_ScopeDepth == 0)
+            ASSERT("Exit scope when scope depth is 0");
+
         m_ScopeDepth--;
     }
 
 private:
-    SymbolTable *m_Upper{ nullptr };
-    std::unordered_map<std::string_view, Symbol> m_SymbolMaps;
-    uint8_t m_VarCount{ 0 };
-    uint8_t m_ScopeDepth{ 0 };
+    Symbol *FindSymbolReference(std::string_view name)
+    {
+        for (uint8_t i = 0; i <= m_VarCount; ++i)
+        {
+            if (m_SymbolList[i].name == name)
+                return &m_SymbolList[i];
+        }
+        return nullptr;
+    }
+
+    SymbolTable *m_Upper{nullptr};
+    std::array<Symbol, UINT8_COUNT> m_SymbolList;
+    uint8_t m_VarCount{0};
+    uint8_t m_ScopeDepth{0};
 };

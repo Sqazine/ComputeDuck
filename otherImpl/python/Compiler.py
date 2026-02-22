@@ -69,12 +69,12 @@ class Compiler:
         self.__modify_opcode(jumpAddress, len(self.__cur_chunk().opCodes)-1)
 
     def __compile_scope_stmt(self, stmt: ScopeStmt) -> None:
-        self.__symbolTable.EnterScope()
+        self.__symbolTable.enter_scope()
         
         for s in stmt.stmts:
             self.__compile_stmt(s)
 
-        self.__symbolTable.ExitScope()
+        self.__symbolTable.exit_scope()
 
     def __compile_while_stmt(self, stmt: WhileStmt) -> None:
         jumpAddress = len(self.__cur_chunk().opCodes)-1
@@ -100,7 +100,7 @@ class Compiler:
             self.__emit(0)
 
     def __compile_struct_stmt(self, stmt: StructStmt) -> None:
-        symbol = self.__symbolTable.Define(stmt.name, True)
+        symbol = self.__symbolTable.define(stmt.name, True)
 
         self.__scope_chunk.append(Chunk())
 
@@ -108,7 +108,7 @@ class Compiler:
             self.__compile_expr(v)
             self.__emit_constant(StrObject(k.literal))
 
-        localVarCount = self.__symbolTable.definitionCount
+        localVarCount = self.__symbolTable.get_var_count()
 
         self.__emit(OpCode.OP_STRUCT)
         self.__emit(len(stmt.members))
@@ -161,7 +161,7 @@ class Compiler:
     def __compile_infix_expr(self, expr: InfixExpr) -> None:
         if expr.op == "=":
             if expr.left.type == AstType.IDENTIFIER and expr.right.type == AstType.FUNCTION:
-                self.__symbolTable.Define(expr.left.literal)
+                self.__symbolTable.define(expr.left.literal)
             self.__compile_expr(expr.right)
             self.__compile_expr(expr.left, RWState.WRITE)
         else:
@@ -249,7 +249,7 @@ class Compiler:
             self.__emit(OpCode.OP_GET_INDEX)
 
     def __compile_identifier_expr(self, expr: IdentifierExpr, state: RWState) -> None:
-        isFound, symbol = self.__symbolTable.Resolve(expr.literal)
+        isFound, symbol = self.__symbolTable.resolve(expr.literal)
 
         if state == RWState.READ:
             if isFound == False:
@@ -257,7 +257,7 @@ class Compiler:
             self.__load_symbol(symbol)
         else:
             if isFound == False:
-                symbol = self.__symbolTable.Define(expr.literal)
+                symbol = self.__symbolTable.define(expr.literal)
                 self.__define_symbol(symbol)
             else:
                 self.__store_symbol(symbol)
@@ -268,13 +268,13 @@ class Compiler:
         self.__scope_chunk.append(Chunk())
 
         for param in stmt.parameters:
-            self.__symbolTable.Define(param.literal)
+            self.__symbolTable.define(param.literal)
 
         self.__compile_stmt(stmt.body)
 
-        localVarCount = self.__symbolTable.definitionCount
+        localVarCount = self.__symbolTable.get_var_count()
 
-        self.__symbolTable = self.__symbolTable.enclosing
+        self.__symbolTable = self.__symbolTable.get_upper()
 
         chunk = self.__scope_chunk.pop()
 
@@ -324,7 +324,7 @@ class Compiler:
 
         if expr.refExpr.type == AstType.INDEX:
             self.__compile_expr(expr.refExpr.index)
-            isFound, symbol = self.__symbolTable.Resolve(
+            isFound, symbol = self.__symbolTable.resolve(
                 expr.refExpr.ds.__str__())
             if isFound == False:
                 error("Undefined variable:"+expr.__str__())
@@ -334,11 +334,9 @@ class Compiler:
                 self.__emit(symbol.index)
             elif symbol.scope == SymbolScope.LOCAL:
                 self.__emit(OpCode.OP_REF_INDEX_LOCAL)
-                self.__emit(symbol.scopeDepth)
                 self.__emit(symbol.index)
-                self.__emit(symbol.isUpValue)
         else:
-            isFound, symbol = self.__symbolTable.Resolve(
+            isFound, symbol = self.__symbolTable.resolve(
                 expr.refExpr.__str__())
             if isFound == False:
                 error("Undefined variable:"+expr.__str__())
@@ -348,9 +346,7 @@ class Compiler:
                 self.__emit(symbol.index)
             elif symbol.scope == SymbolScope.LOCAL:
                 self.__emit(OpCode.OP_REF_LOCAL)
-                self.__emit(symbol.scopeDepth)
                 self.__emit(symbol.index)
-                self.__emit(symbol.isUpValue)
 
     def __compile_struct_expr(self, expr: StructExpr) -> None:
         for k, v in expr.memberPairs.items():
@@ -394,7 +390,6 @@ class Compiler:
             self.__emit(symbol.index)
         elif symbol.scope == SymbolScope.LOCAL:
             self.__emit(OpCode.OP_DEF_LOCAL)
-            self.__emit(symbol.scopeDepth)
             self.__emit(symbol.index)
 
     def __load_symbol(self, symbol: Symbol) -> None:
@@ -403,9 +398,7 @@ class Compiler:
             self.__emit(symbol.index)
         elif symbol.scope == SymbolScope.LOCAL:
             self.__emit(OpCode.OP_GET_LOCAL)
-            self.__emit(symbol.scopeDepth)
             self.__emit(symbol.index)
-            self.__emit(symbol.isUpValue)
         elif symbol.scope == SymbolScope.BUILTIN:
             self.__emit_constant(StrObject(symbol.name))
             self.__emit(OpCode.OP_GET_BUILTIN)
@@ -420,10 +413,8 @@ class Compiler:
             self.__emit(symbol.index)
         elif symbol.scope == SymbolScope.LOCAL:
             self.__emit(OpCode.OP_SET_LOCAL)
-            self.__emit(symbol.scopeDepth)
             self.__emit(symbol.index)
-            self.__emit(symbol.isUpValue)
 
     def __register_builtins(self):
         for k in gBuiltinManager.builtinObjects.keys():
-            self.__symbolTable.DefineBuiltin(k)
+            self.__symbolTable.define_builtin(k)

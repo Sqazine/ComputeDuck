@@ -41,7 +41,7 @@
 #include "Object.h"
 #include "Allocator.h"
 
-class COMPUTE_DUCK_API Jit
+class COMPUTEDUCK_API Jit
 {
 public:
     Jit();

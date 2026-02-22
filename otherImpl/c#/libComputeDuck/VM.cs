@@ -71,7 +71,7 @@ namespace ComputeDuck
         {
             while (true)
             {
-                CallFrame frame = PeekCallFrameFromBack(1);
+                CallFrame frame = PeekCallFrame(1);
 
                 if (frame.IsAtEnd())
                     return;
@@ -343,9 +343,7 @@ namespace ComputeDuck
 
                             if (m_GlobalVariables[index].type == ObjectType.REF)
                             {
-                                var refObj = m_GlobalVariables[index];
-                                var address = new IntPtr(-1);
-                                GetEndOfRefObject(ref refObj,ref address);
+                                var (refObj, address) = GetEndOfRefObject(m_GlobalVariables[index]);
 
                                 AssignObjectByAddress(address, obj);
 
@@ -396,29 +394,24 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_DEF_LOCAL:
                         {
-                            var scopeDepth = frame.fn.chunk.opCodes[frame.ip++];
                             var index = frame.fn.chunk.opCodes[frame.ip++];
                          
                             var obj = Pop();
-                            var slot = GetLocalVariableSlot(scopeDepth, index, 0);
+                            var slot = GetLocalVariableSlot(index);
                             m_ObjectStack[slot] = obj;
                             break;
                         }
                     case (int)OpCode.OP_SET_LOCAL:
                         {
-                            var scopeDepth = frame.fn.chunk.opCodes[frame.ip++];
                             var index = frame.fn.chunk.opCodes[frame.ip++];
-                            var isUpValue = frame.fn.chunk.opCodes[frame.ip++];
 
                             var obj = Pop();
 
-                            int slot= GetLocalVariableSlot(scopeDepth,index,isUpValue);
+                            int slot= GetLocalVariableSlot(index);
 
                             if (m_ObjectStack[slot].type == ObjectType.REF)
                             {
-                                var refObj = m_ObjectStack[slot];
-                                var address = new IntPtr(-1);
-                                GetEndOfRefObject(ref refObj, ref address);
+                                var (refObj, address) = GetEndOfRefObject(m_ObjectStack[slot]);
                                 AssignObjectByAddress(address, obj);
 
                                 var refObjs = SearchRefObjectListByAddress(address);
@@ -435,11 +428,9 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_GET_LOCAL:
                         {
-                            var scopeDepth = frame.fn.chunk.opCodes[frame.ip++];
                             var index = frame.fn.chunk.opCodes[frame.ip++];
-                            var isUpValue = frame.fn.chunk.opCodes[frame.ip++];
 
-                            int slot= GetLocalVariableSlot(scopeDepth,index,isUpValue);
+                            int slot= GetLocalVariableSlot(index);
                             Push(m_ObjectStack[slot]);
                             break;
                         }
@@ -475,7 +466,7 @@ namespace ComputeDuck
                             var memberName = Pop();
                             var instance = Pop();
 
-                            instance=GetEndOfRefObject(instance); 
+                            (instance,_) =GetEndOfRefObject(instance); 
 
                             if (memberName.type == ObjectType.STR)
                             {
@@ -491,7 +482,7 @@ namespace ComputeDuck
                             var memberName = Pop();
                             var instance = Pop();
 
-                            instance = GetEndOfRefObject(instance);
+                            (instance, _) = GetEndOfRefObject(instance);
                             var obj = Pop();
                             if (memberName.type == ObjectType.STR)
                             {
@@ -511,11 +502,9 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_REF_LOCAL:
                         {
-                            var scopeDepth = frame.fn.chunk.opCodes[frame.ip++];
                             var index = frame.fn.chunk.opCodes[frame.ip++];
-                            var isUpValue = frame.fn.chunk.opCodes[frame.ip++];
 
-                            int slot = GetLocalVariableSlot(scopeDepth, index, isUpValue);
+                            int slot = GetLocalVariableSlot(index);
                            
                             Push(new RefObject(m_ObjectStack[slot].GetAddress()));
 
@@ -526,19 +515,17 @@ namespace ComputeDuck
                             var index = frame.fn.chunk.opCodes[frame.ip++];
                             var idxValue = Pop();
 
-                            var obj = GetEndOfRefObject(m_GlobalVariables[index]);
+                            var (obj,_) = GetEndOfRefObject(m_GlobalVariables[index]);
                             Push(CreateIndexRefObject(obj, idxValue));
                             break;
                         }
                     case (int)OpCode.OP_REF_INDEX_LOCAL:
                         {
-                            var scopeDepth = frame.fn.chunk.opCodes[frame.ip++];
                             var index = frame.fn.chunk.opCodes[frame.ip++];
-                            var isUpValue = frame.fn.chunk.opCodes[frame.ip++];
 
-                            int slot = GetLocalVariableSlot(scopeDepth, index, isUpValue);
+                            int slot = GetLocalVariableSlot(index);
                             var idxValue = Pop();
-                            var obj = GetEndOfRefObject(m_ObjectStack[slot]);
+                            var (obj, _) = GetEndOfRefObject(m_ObjectStack[slot]);
                             Push(CreateIndexRefObject(obj, idxValue));
                             break;
                         }
@@ -575,24 +562,15 @@ namespace ComputeDuck
             return m_CallFrames[--m_CallFrameTop];
         }
 
-        private CallFrame PeekCallFrameFromFront(int distance)
-        {
-            return m_CallFrames[distance];
-        }
 
-        private CallFrame PeekCallFrameFromBack(int distance)
+        private CallFrame PeekCallFrame(int distance)
         {
             return m_CallFrames[m_CallFrameTop - distance];
         }
 
-        private int GetLocalVariableSlot(int scopeDepth,int index,int isUpValue)
+        private int GetLocalVariableSlot(int index)
         {
-            int slot;
-            if (isUpValue == 1)
-                slot = PeekCallFrameFromFront(scopeDepth).slot + index;
-            else
-                slot = PeekCallFrameFromBack(scopeDepth).slot + index;
-            return slot;
+           return PeekCallFrame(1).slot + index;
         }
 
         private RefObject CreateIndexRefObject(Object obj,Object idxValue)
@@ -622,21 +600,16 @@ namespace ComputeDuck
             return actual;
         }
 
-        private void GetEndOfRefObject(ref Object obj,ref IntPtr address)
+        private (Object,IntPtr) GetEndOfRefObject(Object obj)
         {
-            while (obj.type == ObjectType.REF)
+            Object retObj = obj;
+            IntPtr address = 0;
+            while (retObj.type == ObjectType.REF)
             {
-                address = ((RefObject)obj).pointer;
-                obj = Utils.SearchObjectByAddress(((RefObject)obj).pointer);
+                address = ((RefObject)retObj).pointer;
+                retObj = Utils.SearchObjectByAddress(((RefObject)retObj).pointer);
             }
-        }
-
-        private Object GetEndOfRefObject(Object obj)
-        {
-            var refObj = obj;
-            while (refObj.type == ObjectType.REF)
-                refObj = Utils.SearchObjectByAddress(((RefObject)refObj).pointer);
-            return refObj;
+            return (retObj, address);
         }
 
         private void AssignObjectByAddress(IntPtr address, Object obj)

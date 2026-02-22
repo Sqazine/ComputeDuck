@@ -144,7 +144,7 @@ namespace ComputeDuck
                 EmitConstant(new StrObject(stmt.members[i].Key.literal));
             }
 
-            var localVarCount = m_SymbolTable.definitionCount;
+            var localVarCount = m_SymbolTable.GetVarCount();
 
             Emit((int)OpCode.OP_STRUCT);
             Emit((int)stmt.members.Count);
@@ -356,9 +356,9 @@ namespace ComputeDuck
 
             CompileScopeStmt(expr.body);
 
-            var localVarCount = m_SymbolTable.definitionCount;
+            var localVarCount = m_SymbolTable.GetVarCount();
 
-            m_SymbolTable = m_SymbolTable.enclosing!;
+            m_SymbolTable = m_SymbolTable.GetUpper();
 
             var chunk = m_ScopeChunk[m_ScopeChunk.Count - 1];
             m_ScopeChunk.RemoveAt(m_ScopeChunk.Count - 1);
@@ -427,9 +427,7 @@ namespace ComputeDuck
                         break;
                     case SymbolScope.LOCAL:
                         Emit((int)OpCode.OP_REF_INDEX_LOCAL);
-                        Emit(symbol.scopeDepth);
                         Emit(symbol.index);
-                        Emit(symbol.isUpValue);
                         break;
                     default:
                         break;
@@ -449,9 +447,7 @@ namespace ComputeDuck
                         break;
                     case SymbolScope.LOCAL:
                         Emit((int)OpCode.OP_REF_LOCAL);
-                        Emit(symbol.scopeDepth);
                         Emit(symbol.index);
-                        Emit(symbol.isUpValue);
                         break;
                     default:
                         break;
@@ -521,7 +517,6 @@ namespace ComputeDuck
                     break;
                 case SymbolScope.LOCAL:
                     Emit((int)OpCode.OP_DEF_LOCAL);
-                    Emit(symbol.scopeDepth);
                     Emit(symbol.index);
                     break;
                 default:
@@ -538,9 +533,7 @@ namespace ComputeDuck
                     break;
                 case SymbolScope.LOCAL:
                     Emit((int)OpCode.OP_GET_LOCAL);
-                    Emit(symbol.scopeDepth);
                     Emit(symbol.index);
-                    Emit(symbol.isUpValue);
                     break;
                 case SymbolScope.BUILTIN:
                     EmitConstant(new StrObject(symbol.name));
@@ -567,9 +560,7 @@ namespace ComputeDuck
                     break;
                 case SymbolScope.LOCAL:
                     Emit((int)OpCode.OP_SET_LOCAL);
-                    Emit(symbol.scopeDepth);
                     Emit(symbol.index);
-                    Emit(symbol.isUpValue);
                     break;
                 default:
                     break;

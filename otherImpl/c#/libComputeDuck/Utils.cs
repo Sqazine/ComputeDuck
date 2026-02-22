@@ -8,6 +8,7 @@ namespace ComputeDuck
 {
     public class Utils
     {
+        public const int UINT8_COUNT = 256;
         public static void Assert(string msg)
         {
             Console.WriteLine(msg);

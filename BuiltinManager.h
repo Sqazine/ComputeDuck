@@ -6,7 +6,7 @@
 #include "Utils.h"
 #include "Object.h"
 
-class COMPUTE_DUCK_API BuiltinManager
+class COMPUTEDUCK_API BuiltinManager
 {
 public:
     static BuiltinManager *GetInstance();

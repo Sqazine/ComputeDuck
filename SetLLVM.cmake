@@ -71,40 +71,4 @@ function(SetPrebuiltLLVM llvmlibs)
     set(LLVM_LINK_COMPONENTS Core ExecutionEngine Object OrcJIT native)
     llvm_map_components_to_libnames(llvm_libs ${LLVM_LINK_COMPONENTS})
     set(${llvmlibs} ${llvm_libs} PARENT_SCOPE)
-
-    if(MSVC)
-       if(LLVM_TOOLS_BINARY_DIR AND EXISTS "${LLVM_TOOLS_BINARY_DIR}/llvm-config${CMAKE_EXECUTABLE_SUFFIX}")
-           execute_process(
-               COMMAND ${LLVM_TOOLS_BINARY_DIR}/llvm-config --build-mode
-               OUTPUT_VARIABLE LLVM_BUILD_MODE
-               OUTPUT_STRIP_TRAILING_WHITESPACE
-               ERROR_QUIET
-               RESULT_VARIABLE LLVM_CONFIG_RESULT
-           )
-           if(LLVM_CONFIG_RESULT EQUAL 0)
-               message(STATUS "LLVM build mode (llvm-config): ${LLVM_BUILD_MODE}")
-           else()
-               set(LLVM_BUILD_MODE "Unknown")
-           endif()
-       else()
-           set(LLVM_BUILD_MODE "Unknown")
-       endif()
-
-       if(LLVM_BUILD_MODE STREQUAL "Debug")
-           target_compile_options(${LIB_NAME} PRIVATE "/MDd;")
-           target_compile_options(${EXE_NAME} PRIVATE "/MDd;")
-       else()
-           target_compile_options(${LIB_NAME} PRIVATE "/MD;")
-           target_compile_options(${EXE_NAME} PRIVATE "/MD;")
-       endif()
-       message(STATUS "Setting MSVC Runtime to /MDd(/MD) (matches LLVM ${LLVM_BUILD_MODE}(Debug/Release))")
-
-       if(LLVM_BUILD_MODE STREQUAL "Debug" AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-           message(WARNING "LLVM is Debug build but your project is ${CMAKE_BUILD_TYPE}. "
-                           "Consider using -DCMAKE_BUILD_TYPE=Debug to match")
-       elseif(NOT LLVM_BUILD_MODE STREQUAL "Debug" AND CMAKE_BUILD_TYPE STREQUAL "Debug")
-           message(WARNING "LLVM is ${LLVM_BUILD_MODE} but your project is Debug. "
-                           "This may cause runtime library conflicts")
-       endif()
-    endif()    
 endfunction(SetPrebuiltLLVM)

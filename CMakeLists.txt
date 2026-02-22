@@ -84,7 +84,7 @@ else()
 endif()
 
 target_link_libraries(${EXE_NAME} PRIVATE ${LIB_NAME})
-target_compile_definitions(${LIB_NAME} PUBLIC COMPUTE_DUCK_BUILD_DLL)
+target_compile_definitions(${LIB_NAME} PUBLIC COMPUTEDUCK_BUILD_DLL)
 
 if(MSVC)
     target_compile_definitions(${LIB_NAME} PUBLIC _CRT_SECURE_NO_WARNINGS)

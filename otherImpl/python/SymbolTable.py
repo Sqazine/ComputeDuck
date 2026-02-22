@@ -1,4 +1,4 @@
-from Utils import error
+from Utils import error, UINT8_COUNT
 from enum import IntEnum
 
 
@@ -14,7 +14,7 @@ class Symbol:
     scope: SymbolScope = SymbolScope.GLOBAL
     index: int
     scopeDepth: int
-    isUpValue:int
+    isUpValue: bool
 
     def __init__(self, name="", scope: SymbolScope = SymbolScope.GLOBAL, index: int = 0, scopeDepth: int = 0, isStructSymbol: bool = False) -> None:
         self.name = name
@@ -22,64 +22,92 @@ class Symbol:
         self.scope = scope
         self.index = index
         self.scopeDepth = scopeDepth
-        self.isUpValue=0
+        self.isUpValue = False
 
 
 class SymbolTable:
-    enclosing = None
-    symbolMaps: dict[str, Symbol] = {}
-    definitionCount: int
+    upper = None
+    symbolList: list[Symbol] = [None]*UINT8_COUNT
+    varCount: int
     scopeDepth: int
 
-    def __init__(self, enclosing=None) -> None:
-        self.enclosing = enclosing
-        self.symbolMaps = {}
-        self.definitionCount = 0
-        self.scopeDepth = 0
-        if self.enclosing != None:
-            self.scopeDepth = self.enclosing.scopeDepth+1
+    def __init__(self, upper=None) -> None:
+        self.upper = upper
+        self.symbolList = [None]*UINT8_COUNT
+        self.varCount = 0
+        if self.upper != None:
+            self.scopeDepth = self.upper.scopeDepth+1
+        else:
+            self.scopeDepth = 0
 
-    def Define(self, name: str, isStructSymbol: bool = False) -> Symbol:
-        symbol = Symbol(name, SymbolScope.GLOBAL,
-                        self.definitionCount, self.scopeDepth, isStructSymbol)
-        if self.enclosing == None:
+    def define(self, name: str, isStructSymbol: bool = False) -> Symbol:
+
+        if self.varCount == UINT8_COUNT:
+            error("Too many variables, max is {}".format(UINT8_COUNT))
+
+        if self.__find_symbol(name) != None:
+            error("Variable already defined in this scope:{}".format(name))
+
+        symbol = Symbol(name, SymbolScope.GLOBAL, self.varCount,
+                        self.scopeDepth, isStructSymbol)
+        if self.upper == None:
             symbol.scope = SymbolScope.GLOBAL
         else:
             symbol.scope = SymbolScope.LOCAL
 
-        if self.symbolMaps.get(name, None) != None:
-            error("Redefined variable:(" + name + ") in current context.")
-
-        self.symbolMaps[name] = symbol
-        self.definitionCount += 1
+        self.symbolList[self.varCount] = symbol
+        self.varCount += 1
         return symbol
 
-    def DefineBuiltin(self, name: str) -> Symbol:
+    def define_builtin(self, name: str) -> Symbol:
+        result = self.__find_symbol(name)
+        if result != None:
+            return result
+
         symbol = Symbol(name, SymbolScope.BUILTIN, -1, self.scopeDepth)
-        self.symbolMaps[name] = symbol
+        self.symbolList[self.varCount] = symbol
+        self.varCount += 1
         return symbol
 
-    def Resolve(self, name: str):
-        symbol = self.symbolMaps.get(name)
-        if symbol != None:
-            if self.scopeDepth < symbol.scopeDepth:
+    def resolve(self, name: str) -> tuple[bool, Symbol]:
+        result = self.__find_symbol(name)
+        if result != None:
+            if self.scopeDepth < result.scopeDepth:
                 return False, None
-            return True, symbol
-        elif self.enclosing != None:
-            isFound, symbol = self.enclosing.Resolve(name)
+            return True, result
+        elif self.get_upper() != None:
+            isFound, symbol = self.upper.resolve(name)
             if isFound == False:
                 return False, None
             if symbol.scope == SymbolScope.GLOBAL or symbol.scope == SymbolScope.BUILTIN:
                 return True, symbol
 
-            symbol.isUpValue=1
-            self.symbolMaps[symbol.name] = symbol
+            symbol.isUpValue = True
+            self.symbolList[self.varCount] = symbol
+            self.varCount += 1
             return True, symbol
 
         return False, None
 
-    def EnterScope(self):
+    def enter_scope(self):
+        if self.scopeDepth >= UINT8_COUNT:
+            error("Too many scope depth, max is {}".format(UINT8_COUNT))
         self.scopeDepth += 1
-        
-    def ExitScope(self):
+
+    def exit_scope(self):
+        if self.scopeDepth == 0:
+            error("Exit scope when scope depth is 0")
         self.scopeDepth -= 1
+
+    def get_var_count(self):
+        return self.varCount
+
+    def get_upper(self):
+        return self.upper
+
+    def __find_symbol(self, name: str) -> Symbol:
+        for i in range(0, self.varCount+1):
+            symbol = self.symbolList[i]
+            if symbol != None and symbol.name == name:
+               return symbol
+        return None

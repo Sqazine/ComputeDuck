@@ -7,7 +7,7 @@
 #include "Token.h"
 #include "Utils.h"
 
-class COMPUTE_DUCK_API Lexer
+class COMPUTEDUCK_API Lexer
 {
 public:
 public:
