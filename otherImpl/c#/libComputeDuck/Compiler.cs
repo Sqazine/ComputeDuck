@@ -354,7 +354,8 @@ namespace ComputeDuck
             foreach (var param in expr.parameters)
                 m_SymbolTable.Define(param.literal);
 
-            CompileScopeStmt(expr.body);
+             foreach (var s in expr.body.stmts)
+                CompileStmt(s);
 
             var localVarCount = m_SymbolTable.GetVarCount();
 
