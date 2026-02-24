@@ -41,12 +41,12 @@ cmake ..
 cmake -build .
 ```
 
-If you want to build opengl example,you need to open COMPUTEDUCK_BUILD_WITHOPENGL:
+##### If you want to build opengl example,you need to open COMPUTEDUCK_BUILD_WITHOPENGL:
 ```sh
 cmake -DCOMPUTEDUCK_BUILD_WITHOPENGL=ON ..
 ```
 
-If you want to build cdsdl2(SDL2 C++ binding library),you need to:
+##### If you want to build cdsdl2(SDL2 C++ binding library),you need to:
 1. Download SDL2.28.2 from [github](https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.28.2.zip)
 2. Extract SDL-release-2.28.2.zip
 3. cmake variable COMPUTEDUCK_BUILD_WITH_SDL2=ON,SDL2_ROOT_DIR=yourpath/to/SDL-release-2.28.2,like:
@@ -55,7 +55,7 @@ If you want to build cdsdl2(SDL2 C++ binding library),you need to:
 cmake -DCOMPUTEDUCK_BUILD_WITH_SDL2=ON -DSDL2_ROOT_DIR=yourpath/to/SDL-release-2.28.2
 ```
 
-If you want to build JIT(LLVM implementation):
+##### If you want to build JIT(LLVM implementation):
 
 1. download llvm 14.x from [github](https://github.com/llvm/llvm-project/archive/refs/heads/release/14.x.zip) or [gitee(zh-cn)](https://gitee.com/mirrors/LLVM/repository/archive/release/14.x.zip)
 2. Extract llvm-release-14.x.zip
