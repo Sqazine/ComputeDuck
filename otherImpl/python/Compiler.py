@@ -270,7 +270,8 @@ class Compiler:
         for param in stmt.parameters:
             self.__symbolTable.define(param.literal)
 
-        self.__compile_stmt(stmt.body)
+        for s in stmt.body.stmts:
+            self.__compile_stmt(s)
 
         localVarCount = self.__symbolTable.get_var_count()
 

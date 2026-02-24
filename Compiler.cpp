@@ -368,7 +368,8 @@ void Compiler::CompileFunctionExpr(FunctionExpr *expr)
     for (const auto &param : expr->parameters)
         m_SymbolTable->Define(param->literal);
 
-    CompileStmt(expr->body);
+    for (const auto &s : expr->body->stmts)
+        CompileStmt(s);
 
     auto localVarCount = m_SymbolTable->GetVarCount();
 
