@@ -8,15 +8,13 @@ public:
 
     void Init();
     void Destroy();
-
-    void ResetStack();
+    void ResetStatus();
 
     void Push(const Value &value);
+    
     Value Pop();
-
     Value *GetStackTop() { return m_StackTop; }
     const Value *GetValueStack() { return m_ValueStack; }
-
 private:
     Allocator() = default;
     ~Allocator() = default;

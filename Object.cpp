@@ -55,6 +55,15 @@ std::string ObjectStringify(Object *object
 #endif
         return result;
     }
+    case ObjectType::CLOSURE:
+    {
+       return ObjectStringify(TO_CLOSURE_OBJ(object)->function
+#ifndef NDEBUG
+                        ,
+                        printChunkIfIsFunctionObject
+#endif
+        );
+    }
     case ObjectType::BUILTIN:
     {
         std::string vStr;
@@ -72,7 +81,7 @@ std::string ObjectStringify(Object *object
     }
 }
 
-void ObjectMark(Object *object)
+void MarkObject(Object *object)
 {
     object->marked = true;
     switch (object->type)
@@ -99,6 +108,11 @@ void ObjectMark(Object *object)
             v.Mark();
         break;
     }
+    case ObjectType::CLOSURE:
+    {
+        MarkObject(TO_CLOSURE_OBJ(object)->function);
+        break;
+    }
     case ObjectType::BUILTIN:
     {
         if (TO_BUILTIN_OBJ(object)->Is<Value>())
@@ -111,7 +125,7 @@ void ObjectMark(Object *object)
     }
 }
 
-void ObjectUnMark(Object *object)
+void UnMarkObject(Object *object)
 {
     object->marked = false;
     switch (object->type)
@@ -138,6 +152,11 @@ void ObjectUnMark(Object *object)
             v.UnMark();
         break;
     }
+    case ObjectType::CLOSURE:
+    {
+        UnMarkObject(TO_CLOSURE_OBJ(object)->function);
+        break;
+    }
     case ObjectType::BUILTIN:
     {
         if (TO_BUILTIN_OBJ(object)->Is<Value>())
@@ -147,6 +166,57 @@ void ObjectUnMark(Object *object)
     case ObjectType::STR:
     default:
         break;
+    }
+}
+
+COMPUTEDUCK_API void DeleteObject(Object *object)
+{
+    switch (object->type)
+    {
+    case ObjectType::STR:
+    {
+        auto strObj = TO_STR_OBJ(object);
+        SAFE_DELETE(strObj);
+        return;
+    }
+    case ObjectType::ARRAY:
+    {
+        auto arrObj = TO_ARRAY_OBJ(object);
+        SAFE_DELETE(arrObj);
+        return;
+    }
+    case ObjectType::STRUCT:
+    {
+        auto structObj = TO_STRUCT_OBJ(object);
+        SAFE_DELETE(structObj);
+        return;
+    }
+    case ObjectType::REF:
+    {
+        auto refObj = TO_REF_OBJ(object);
+        SAFE_DELETE(refObj);
+        return;
+    }
+    case ObjectType::FUNCTION:
+    {
+        auto fnObj = TO_FUNCTION_OBJ(object);
+        SAFE_DELETE(fnObj);
+        return;
+    }
+    case ObjectType::CLOSURE:
+    {
+        auto closureObj = TO_CLOSURE_OBJ(object);
+        SAFE_DELETE(closureObj);
+        return;
+    }
+    case ObjectType::BUILTIN:
+    {
+        auto builtinObj = TO_BUILTIN_OBJ(object);
+        SAFE_DELETE(builtinObj);
+        return;
+    }
+    default:
+        return;
     }
 }
 

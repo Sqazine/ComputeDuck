@@ -4,7 +4,7 @@ void Allocator::Init()
 {
     memset(m_ValueStack, 0, sizeof(Value) * STACK_MAX);
   
-    ResetStack();
+    ResetStatus();
 }
 
 void Allocator::Destroy()
@@ -17,7 +17,7 @@ Allocator *Allocator::GetInstance()
     return &instance;
 }
 
-void Allocator::ResetStack()
+void Allocator::ResetStatus()
 {
     m_StackTop = m_ValueStack;
 }

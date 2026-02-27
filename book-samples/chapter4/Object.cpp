@@ -32,5 +32,5 @@ StrObject *StrAdd(StrObject *left, StrObject *right)
     memcpy(newStr, left->value, left->len);
     memcpy(newStr + left->len, right->value, right->len);
     newStr[length] = '\0';
-    return Allocator::GetInstance()->CreateObject<StrObject>(newStr);
+    return Allocator::GetInstance()->AllocateObject<StrObject>(newStr);
 }

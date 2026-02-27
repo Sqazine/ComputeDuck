@@ -120,7 +120,7 @@ class Compiler:
 
         fn = FunctionObject(chunk, localVarCount)
 
-        self.__emit_constant(fn)
+        self.__emit_closure(fn)
 
         self.__store_symbol(symbol)
 
@@ -286,7 +286,7 @@ class Compiler:
             chunk.opCodes.append(0)
 
         fn = FunctionObject(chunk, localVarCount, len(stmt.parameters))
-        self.__emit_constant(fn)
+        self.__emit_closure(fn)
 
     def __compile_function_call_expr(self, expr: FunctionCallExpr) -> None:
         self.__compile_expr(expr.name)
@@ -369,18 +369,25 @@ class Compiler:
 
     def __cur_chunk(self) -> Chunk:
         return self.__scope_chunk[-1]
+    def __add_constant(self, object: Object) -> int:
+        self.__cur_chunk().constants.append(object)
+        return len(self.__cur_chunk().constants)-1
 
     def __emit(self, opcode: int) -> int:
         self.__cur_chunk().opCodes.append(opcode)
         return len(self.__cur_chunk().opCodes)-1
 
     def __emit_constant(self, object: Object) -> int:
-        self.__cur_chunk().constants.append(object)
-        pos = len(self.__cur_chunk().constants)-1
+        pos = self.__add_constant(object)
 
         self.__emit(OpCode.OP_CONSTANT)
         self.__emit(pos)
         return len(self.__cur_chunk().opCodes)-1
+    
+    def __emit_closure(self,fn:FunctionObject) -> int:
+        pos = self.__add_constant(fn)
+        self.__emit(OpCode.OP_CLOSURE)
+        self.__emit(pos)
 
     def __modify_opcode(self, pos: int, opcode: int) -> None:
         self.__cur_chunk().opCodes[pos] = opcode

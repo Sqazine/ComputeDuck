@@ -12,6 +12,7 @@ class ObjectType(IntEnum):
     REF = 6,
     FUNCTION = 7,
     BUILTIN = 8,
+    CLOSURE = 9
 
 class Object:
     type: ObjectType
@@ -153,6 +154,19 @@ class FunctionObject(Object):
             if self.chunk.opCodes[i] != other.chunk.opCodes[i]:
                 return False
         return True
+    
+class ClosureObject(Object):
+    function: FunctionObject
+    
+    def __init__(self, function: FunctionObject) -> None:
+        super().__init__(ObjectType.CLOSURE)
+        self.function = function
+    
+    def __str__(self) -> str:
+        return self.function.__str__()
+    
+    def __eq__(self, other):
+        return super().__eq__(other) and self.function == other.function
     
 class StructObject(Object):
     members: dict[str, Object]

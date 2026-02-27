@@ -30,7 +30,7 @@ extern "C" COMPUTEDUCK_API bool BUILTIN_FN(SDL_CreateWindow)(Value *args, uint8_
 
     auto window = SDL_CreateWindow(name, posX, posY, width, height, flags);
 
-    BuiltinObject *builtinData = Allocator::GetInstance()->CreateObject<BuiltinObject>(window, [](void *nativeData)
+    BuiltinObject *builtinData = Allocator::GetInstance()->AllocateObject<BuiltinObject>(window, [](void *nativeData)
         { SDL_DestroyWindow((SDL_Window *)nativeData); });
 
     result = builtinData;
@@ -41,7 +41,7 @@ extern "C" COMPUTEDUCK_API bool BUILTIN_FN(SDL_PollEvent)(Value *args, uint8_t a
 {
     SDL_Event *event = new SDL_Event();
     SDL_PollEvent(event);
-    BuiltinObject *builtinData = Allocator::GetInstance()->CreateObject<BuiltinObject>(event, [](void *nativeData)
+    BuiltinObject *builtinData = Allocator::GetInstance()->AllocateObject<BuiltinObject>(event, [](void *nativeData)
         {
             delete (SDL_Event *)nativeData;
         });
@@ -71,7 +71,7 @@ extern "C" COMPUTEDUCK_API bool BUILTIN_FN(SDL_CreateRenderer)(Value *args, uint
         ASSERT("Invalid SDL_Window object.");
     SDL_Window *window = builtinData->Get<NativeData>().As<SDL_Window>();
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-    BuiltinObject *resultBuiltin = Allocator::GetInstance()->CreateObject<BuiltinObject>(renderer, [](void *nativeData)
+    BuiltinObject *resultBuiltin = Allocator::GetInstance()->AllocateObject<BuiltinObject>(renderer, [](void *nativeData)
         { SDL_DestroyRenderer((SDL_Renderer *)nativeData); });
     if (renderer)
         result = Value(resultBuiltin);
@@ -87,7 +87,7 @@ extern "C" COMPUTEDUCK_API bool BUILTIN_FN(SDL_LoadBMP)(Value *args, uint8_t arg
 
     SDL_Surface *surface = SDL_LoadBMP(fullPath.c_str());
 
-    BuiltinObject *resultBuiltinData = Allocator::GetInstance()->CreateObject<BuiltinObject>(surface, [](void *nativeData)
+    BuiltinObject *resultBuiltinData = Allocator::GetInstance()->AllocateObject<BuiltinObject>(surface, [](void *nativeData)
         { SDL_FreeSurface((SDL_Surface *)nativeData); });
 
     if (surface)
@@ -105,7 +105,7 @@ extern "C" COMPUTEDUCK_API bool BUILTIN_FN(SDL_CreateTextureFromSurface)(Value *
 
     SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
 
-    BuiltinObject *resultBuiltin = Allocator::GetInstance()->CreateObject<BuiltinObject>(texture, [](void *nativeData)
+    BuiltinObject *resultBuiltin = Allocator::GetInstance()->AllocateObject<BuiltinObject>(texture, [](void *nativeData)
         { SDL_DestroyTexture((SDL_Texture *)nativeData); });
 
     result = resultBuiltin;
@@ -184,7 +184,7 @@ extern "C" COMPUTEDUCK_API bool BUILTIN_FN(SDL_GL_CreateContext)(Value *args, ui
 
     SDL_GLContext ctx = SDL_GL_CreateContext(windowHandle);
 
-    BuiltinObject *builtinData = Allocator::GetInstance()->CreateObject<BuiltinObject>(ctx, [](void *nativeData)
+    BuiltinObject *builtinData = Allocator::GetInstance()->AllocateObject<BuiltinObject>(ctx, [](void *nativeData)
         { SDL_GL_DeleteContext((SDL_GLContext)nativeData); });
     result = builtinData;
     return true;
@@ -201,7 +201,7 @@ extern "C" COMPUTEDUCK_API bool BUILTIN_FN(SDL_GL_SetSwapInterval)(Value *args, 
 
 void RegisterBuiltins()
 {
-    BuiltinManager::GetInstance()->Register("SDL_INIT_AUDIO", Value((uint64_t)0x00000010u));
+    REGISTER_BUILTIN_VALUE(SDL_INIT_AUDIO);
     REGISTER_BUILTIN_VALUE(SDL_INIT_VIDEO);
     REGISTER_BUILTIN_VALUE(SDL_INIT_JOYSTICK);
     REGISTER_BUILTIN_VALUE(SDL_INIT_HAPTIC);

@@ -40,7 +40,8 @@ class OpCode(IntEnum):
     OP_REF_LOCAL = 34,
     OP_REF_INDEX_GLOBAL = 35,
     OP_REF_INDEX_LOCAL = 36,
-    OP_DLL_IMPORT = 37
+    OP_DLL_IMPORT = 37,
+    OP_CLOSURE = 38
 
 
 class Chunk:
@@ -152,6 +153,10 @@ class Chunk:
             elif opcodes[i] == OpCode.OP_FUNCTION_CALL:
                 argCount = opcodes[i+1]
                 result += ("%8d\tOP_FUNCTION_CALL\t%d\n" % (i, argCount))
+                i = i+1
+            elif opcodes[i] == OpCode.OP_CLOSURE:
+                index = opcodes[i+1]
+                result += ("%8d\tOP_CLOSURE\t%d\n" % (i, index))
                 i = i+1
             elif opcodes[i] == OpCode.OP_GET_BUILTIN:
                 result += ("%8d\tOP_GET_BUILTIN\n" % i)

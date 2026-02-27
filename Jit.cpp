@@ -180,7 +180,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
     JitFnDecl jitFnDecl;
 
     std::vector<llvm::Type *> paramTypes;
-    for (Value *slot = frame.slot; slot < frame.slot + frame.fn->parameterCount; ++slot)
+    for (Value *slot = frame.slot; slot < frame.slot + frame.closure->function->parameterCount; ++slot)
     {
         auto typePair = GetTypeFromValue(*slot);
         paramTypes.emplace_back(typePair.first);
@@ -188,11 +188,11 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
     }
 
     llvm::FunctionType *fnType = nullptr;
-    if (frame.fn->probableReturnTypeSet->IsNone())
+    if (frame.closure->function->probableReturnTypeSet->IsNone())
         fnType = llvm::FunctionType::get(m_VoidType, paramTypes, false);
-    else if (!frame.fn->probableReturnTypeSet->IsMultiplyType())
+    else if (!frame.closure->function->probableReturnTypeSet->IsMultiplyType())
     {
-        auto type = frame.fn->probableReturnTypeSet->GetOnly();
+        auto type = frame.closure->function->probableReturnTypeSet->GetOnly();
         auto llvmType = GetLlvmTypeFromValueType(type);
         fnType = llvm::FunctionType::get(llvmType, paramTypes, false);
     }
@@ -207,8 +207,8 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
     llvm::BasicBlock *codeBlock = llvm::BasicBlock::Create(*m_Context, "", currentCompileFunction);
     m_Builder->SetInsertPoint(codeBlock);
 
-    auto ip = frame.fn->chunk.opCodes.data();
-    while ((ip - frame.fn->chunk.opCodes.data()) < frame.fn->chunk.opCodes.size())
+    auto ip = frame.closure->function->chunk.opCodes.data();
+    while ((ip - frame.closure->function->chunk.opCodes.data()) < frame.closure->function->chunk.opCodes.size())
     {
         int32_t instruction = *ip++;
         switch (instruction)
@@ -216,7 +216,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         case OP_CONSTANT:
         {
             auto idx = *ip++;
-            auto value = frame.fn->chunk.constants[idx];
+            auto value = frame.closure->function->chunk.constants[idx];
 
             if (IS_FUNCTION_VALUE(value))
                 ERROR(JitCompileState::FAIL, "Not support jit compile for:%s", fnName.c_str())
@@ -435,7 +435,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 m_Builder->CreateMemCpy(addrBitCast, llvm::MaybeAlign(sizeof(Value)), eleBitCast, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
             }
 
-            auto arrayObject = m_Builder->CreateCall(m_Module->getFunction(STR(CreateArrayObject)), {load, llvm::ConstantInt::get(m_Int32Type, numElements)});
+            auto arrayObject = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateArrayObject)), {load, llvm::ConstantInt::get(m_Int32Type, numElements)});
             arrayObjectBitCast = m_Builder->CreateBitCast(arrayObject, m_ObjectPtrType);
 
             Push(arrayObjectBitCast);
@@ -660,7 +660,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto mode = *ip++;
 
             auto fn = m_Builder->GetInsertBlock()->getParent();
-            auto curAddress = ip - frame.fn->chunk.opCodes.data();
+            auto curAddress = ip - frame.closure->function->chunk.opCodes.data();
             JumpInstrSet instrSet;
 
             if (mode == JumpMode::IF)
@@ -849,7 +849,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto index = *ip++;
 
             auto vmGlobal = *GET_GLOBAL_VARIABLE_REF(index);
-            if (IS_FUNCTION_VALUE(vmGlobal))
+            if (IS_CLOSURE_VALUE(vmGlobal))
                 Push(vmGlobal);
             else
             {
@@ -1001,7 +1001,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             }
             else
             {
-                auto vmFn = TO_FUNCTION_VALUE(fnSlot->GetVmValue());
+                auto vmFn = TO_CLOSURE_VALUE(fnSlot->GetVmValue())->function;
 
                 size_t paramTypeHash = 0;
                 for (auto slot = m_StackTop - vmFn->parameterCount; slot < m_StackTop; ++slot)
@@ -1049,7 +1049,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         case OP_GET_BUILTIN:
         {
             auto idx = *ip++;
-            auto value = frame.fn->chunk.constants[idx];
+            auto value = frame.closure->function->chunk.constants[idx];
             auto name = TO_STR_VALUE(value)->value;
             std::string nameStr = name;
             auto iter = m_BuiltinFnCache.find(name);
@@ -1070,13 +1070,13 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         {
             auto memberCount = *ip++;
 
-            auto tableInstancePtr = m_Builder->CreateCall(m_Module->getFunction(STR(CreateTable)));
+            auto tableInstancePtr = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateTable)));
 
             for (size_t i = 0; i < memberCount; ++i)
             {
                 auto name = Pop().GetLlvmValue();
                 if (name->getType() == m_Int8PtrType)
-                    name = m_Builder->CreateCall(m_Module->getFunction(STR(CreateStrObject)), {name});
+                    name = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateStrObject)), {name});
 
                 auto value = Pop().GetLlvmValue();
                 if (value->getType() != m_ValueType)
@@ -1085,7 +1085,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 m_Builder->CreateCall(m_Module->getFunction(STR(TableSet)), {tableInstancePtr, name, value});
             }
 
-            auto structInstancePtr = m_Builder->CreateCall(m_Module->getFunction(STR(CreateStructObject)), {tableInstancePtr});
+            auto structInstancePtr = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateStructObject)), {tableInstancePtr});
             Push(structInstancePtr);
             break;
         }
@@ -1095,7 +1095,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto instance = Pop().GetLlvmValue();
 
             if (memberName->getType() == m_Int8PtrType)
-                memberName = m_Builder->CreateCall(m_Module->getFunction(STR(CreateStrObject)), {memberName});
+                memberName = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateStrObject)), {memberName});
 
             if (memberName->getType() != m_StrObjectPtrType)
                 ERROR(JitCompileState::FAIL, "Invalid member name of struct instance");
@@ -1126,7 +1126,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto value = Pop().GetLlvmValue();
 
             if (memberName->getType() == m_Int8PtrType)
-                memberName = m_Builder->CreateCall(m_Module->getFunction(STR(CreateStrObject)), {memberName});
+                memberName = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateStrObject)), {memberName});
 
             if (memberName->getType() != m_StrObjectPtrType)
                 ERROR(JitCompileState::FAIL, "Invalid member name of struct instance");
@@ -1154,7 +1154,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto index = *ip++;
             auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(GLOBAL_VARIABLE_STR));
             auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
-            auto ref = m_Builder->CreateCall(m_Module->getFunction(STR(CreateRefObject)), {globalVar});
+            auto ref = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateRefObject)), {globalVar});
             Push(ref);
             break;
         }
@@ -1184,7 +1184,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                     ERROR(JitCompileState::FAIL, "Cannot refer jit internal variable");
             }
             value = m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)), {value});
-            value = m_Builder->CreateCall(m_Module->getFunction(STR(CreateRefObject)), {value});
+            value = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateRefObject)), {value});
             Push(value);
             break;
         }
@@ -1200,7 +1200,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
 
             auto refObject = m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)), {globalVar});
-            refObject = m_Builder->CreateCall(m_Module->getFunction(STR(CreateIndexRefObject)), {globalVar, idxValue});
+            refObject = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateIndexRefObject)), {globalVar, idxValue});
             Push(refObject);
             break;
         }
@@ -1235,7 +1235,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             }
 
             value = m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)), {value});
-            value = m_Builder->CreateCall(m_Module->getFunction(STR(CreateIndexRefObject)), {value, idxValue});
+            value = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateIndexRefObject)), {value, idxValue});
             Push(value);
             break;
         }
@@ -1346,25 +1346,25 @@ void Jit::InitInternalFunctions()
     m_Module->getOrInsertFunction(STR(StrAdd), fnType);
 
     fnType = llvm::FunctionType::get(m_StrObjectPtrType, {m_Int8PtrType}, false);
-    m_Module->getOrInsertFunction(STR(CreateStrObject), fnType);
+    m_Module->getOrInsertFunction(STR(AllocateStrObject), fnType);
 
     fnType = llvm::FunctionType::get(m_ArrayObjectPtrType, {m_ValuePtrType, m_Int32Type}, false);
-    m_Module->getOrInsertFunction(STR(CreateArrayObject), fnType);
+    m_Module->getOrInsertFunction(STR(AllocateArrayObject), fnType);
 
     fnType = llvm::FunctionType::get(m_RefObjectPtrType, {m_ValuePtrType}, false);
-    m_Module->getOrInsertFunction(STR(CreateRefObject), fnType);
+    m_Module->getOrInsertFunction(STR(AllocateRefObject), fnType);
 
     fnType = llvm::FunctionType::get(m_StructObjectPtrType, {m_TablePtrType}, false);
-    m_Module->getOrInsertFunction(STR(CreateStructObject), fnType);
+    m_Module->getOrInsertFunction(STR(AllocateStructObject), fnType);
 
     fnType = llvm::FunctionType::get(m_ValuePtrType, {m_Int16Type}, false);
     m_Module->getOrInsertFunction(STR(GetLocalVariableSlot), fnType);
 
     fnType = llvm::FunctionType::get(m_TablePtrType, {}, false);
-    m_Module->getOrInsertFunction(STR(CreateTable), fnType);
+    m_Module->getOrInsertFunction(STR(AllocateTable), fnType);
 
     fnType = llvm::FunctionType::get(m_RefObjectPtrType, {m_ValuePtrType, m_ValuePtrType}, false);
-    m_Module->getOrInsertFunction(STR(CreateIndexRefObject), fnType);
+    m_Module->getOrInsertFunction(STR(AllocateIndexRefObject), fnType);
 
     fnType = llvm::FunctionType::get(m_BoolType, {m_TablePtrType, m_StrObjectPtrType, m_ValuePtrType}, false);
     m_Module->getOrInsertFunction(STR(TableSet), fnType);
@@ -1447,7 +1447,7 @@ llvm::Value *Jit::CreateLlvmValue(llvm::Value *v)
         vt = m_Builder->getInt8(ValueType::OBJECT);
         type = m_ObjectPtrPtrType;
         // create str object
-        auto strObject = m_Builder->CreateCall(m_Module->getFunction(STR(CreateStrObject)), {v});
+        auto strObject = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateStrObject)), {v});
         //to base ptr
         storedV = m_Builder->CreateBitCast(strObject, m_ObjectPtrType);
     }
@@ -1485,7 +1485,7 @@ llvm::Value *Jit::CreateLlvmValue(const Value &value)
         auto str = TO_STR_VALUE(value)->value;
         llvm::Value *strObject = m_Builder->CreateGlobalString(str);
         strObject = m_Builder->CreateBitCast(strObject, m_Int8PtrType);
-        strObject = m_Builder->CreateCall(m_Module->getFunction(STR(CreateStrObject)), {strObject});
+        strObject = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateStrObject)), {strObject});
         return strObject;
     }
     else

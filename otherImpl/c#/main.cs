@@ -11,7 +11,7 @@ class Execute
 
     static void SetBasePath(string path)
     {
-        Config.GetInstance().SetExecuteFilePath(Path.GetDirectoryName(path)+"/");
+        Config.GetInstance().SetExecuteFileDirectory(Path.GetDirectoryName(path)+"/");
     }
 
     static void Run(string content)

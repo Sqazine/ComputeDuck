@@ -15,15 +15,17 @@ FunctionObject *Compiler::Compile(const std::vector<Stmt *> &stmts)
 {
     ResetStatus();
 
+    Allocator::GetInstance()->DisableGC();
+
     for (const auto &stmt : stmts)
         CompileStmt(stmt);
 
-    auto mainFn = Allocator::GetInstance()->CreateObject<FunctionObject>(CurChunk());
-    PUSH(mainFn);
-
-    Allocator::GetInstance()->ResetStack();
+    auto mainFn = ALLOCATE_OBJECT(FunctionObject, CurChunk());
 
     SAFE_DELETE(m_SymbolTable);
+
+    Allocator::GetInstance()->EnableGC();
+    Allocator::GetInstance()->ResetStatus();
 
     return mainFn;
 }
@@ -170,9 +172,9 @@ void Compiler::CompileStructStmt(StructStmt *stmt)
     chunk.opCodes.emplace_back(OP_RETURN);
     chunk.opCodes.emplace_back(1);
 
-    auto fn = Allocator::GetInstance()->CreateObject<FunctionObject>(chunk);
+    auto fn = ALLOCATE_OBJECT(FunctionObject, chunk);
 
-    EmitConstant(fn);
+    EmitClosure(fn);
 
     StoreSymbol(symbol);
 }
@@ -305,7 +307,7 @@ void Compiler::CompilePrefixExpr(PrefixExpr *expr)
 
 void Compiler::CompileStrExpr(StrExpr *expr)
 {
-    EmitConstant(Allocator::GetInstance()->CreateObject<StrObject>(expr->value.c_str()));
+    EmitConstant(ALLOCATE_OBJECT(StrObject, expr->value.c_str()));
 }
 
 void Compiler::CompileNilExpr(NilExpr *expr)
@@ -387,9 +389,9 @@ void Compiler::CompileFunctionExpr(FunctionExpr *expr)
         chunk.opCodes.emplace_back(0);
     }
 
-    auto fn = Allocator::GetInstance()->CreateObject<FunctionObject>(chunk, localVarCount, static_cast<uint8_t>(expr->parameters.size()));
+    auto fn = ALLOCATE_OBJECT(FunctionObject, chunk, localVarCount, static_cast<uint8_t>(expr->parameters.size()));
 
-    EmitConstant(fn);
+    EmitClosure(fn);
 }
 
 void Compiler::CompileFunctionCallExpr(FunctionCallExpr *expr)
@@ -411,9 +413,9 @@ void Compiler::CompileStructCallExpr(StructCallExpr *expr, const RWState &state)
     CompileExpr(expr->callee);
 
     if (expr->callMember->type == AstType::IDENTIFIER)
-        EmitConstant(Allocator::GetInstance()->CreateObject<StrObject>(((IdentifierExpr *)expr->callMember)->literal.c_str()));
+        EmitConstant(ALLOCATE_OBJECT(StrObject, ((IdentifierExpr *)expr->callMember)->literal.c_str()));
     else if (expr->callMember->type == AstType::FUNCTION_CALL)
-        EmitConstant(Allocator::GetInstance()->CreateObject<StrObject>(((IdentifierExpr *)((FunctionCallExpr *)expr->callMember)->name)->literal.data()));
+        EmitConstant(ALLOCATE_OBJECT(StrObject, ((IdentifierExpr *)((FunctionCallExpr *)expr->callMember)->name)->literal.data()));
 
     if (state == RWState::READ)
     {
@@ -484,7 +486,7 @@ void Compiler::CompileStructExpr(StructExpr *expr)
     for (const auto &[k, v] : expr->members)
     {
         CompileExpr(v);
-        EmitConstant(Allocator::GetInstance()->CreateObject<StrObject>(k->literal.c_str()));
+        EmitConstant(ALLOCATE_OBJECT(StrObject, k->literal.c_str()));
     }
 
     Emit(OP_STRUCT);
@@ -500,13 +502,20 @@ void Compiler::CompileDllImportExpr(DllImportExpr *expr)
     for (const auto &[k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
         m_SymbolTable->DefineBuiltin(k);
 
-    EmitConstant(Allocator::GetInstance()->CreateObject<StrObject>(dllpath.c_str()));
+    EmitConstant(ALLOCATE_OBJECT(StrObject, dllpath.c_str()));
     Emit(OP_DLL_IMPORT);
 }
 
 Chunk &Compiler::CurChunk()
 {
     return m_ScopeChunks.back();
+}
+
+uint16_t Compiler::AddConstant(const Value &value)
+{
+    CurChunk().constants.emplace_back(value);
+    auto pos = static_cast<int16_t>(CurChunk().constants.size() - 1);
+    return pos;
 }
 
 uint32_t Compiler::Emit(int16_t opcode)
@@ -517,12 +526,17 @@ uint32_t Compiler::Emit(int16_t opcode)
 
 uint32_t Compiler::EmitConstant(const Value &value)
 {
-    PUSH(value); // push value to stack for avoiding GC while compiler running
-
-    CurChunk().constants.emplace_back(value);
-    auto pos = static_cast<int16_t>(CurChunk().constants.size() - 1);
+    auto pos = AddConstant(value);
 
     Emit(OP_CONSTANT);
+    Emit(pos);
+    return static_cast<uint32_t>(CurChunk().opCodes.size() - 1);
+}
+
+uint32_t Compiler::EmitClosure(FunctionObject *fn)
+{
+    uint32_t pos = AddConstant(fn);
+    Emit(OP_CLOSURE);
     Emit(pos);
     return static_cast<uint32_t>(CurChunk().opCodes.size() - 1);
 }
@@ -563,7 +577,7 @@ void Compiler::LoadSymbol(const Symbol &symbol)
         break;
     case SymbolScope::BUILTIN:
     {
-        CurChunk().constants.emplace_back(Allocator::GetInstance()->CreateObject<StrObject>(symbol.name.data()));
+        CurChunk().constants.emplace_back(ALLOCATE_OBJECT(StrObject, symbol.name.data()));
         auto pos = static_cast<int16_t>(CurChunk().constants.size() - 1);
         Emit(OP_GET_BUILTIN);
         Emit(pos);

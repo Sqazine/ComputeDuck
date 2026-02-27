@@ -7,12 +7,12 @@ Config *Config::GetInstance()
     return &instance;
 }
 
-void Config::SetExecuteFilePath(std::string_view path)
+void Config::SetExecuteFileDirectory(std::string_view path)
 {
-    m_CurExecuteFilePath = path;
+    m_CurExecuteFileDirectory = path;
 }
 
-const std::string &Config::GetExecuteFilePath() const
+const std::string &Config::GetExecuteFileDirectory() const
 {
-    return m_CurExecuteFilePath;
+    return m_CurExecuteFileDirectory;
 }

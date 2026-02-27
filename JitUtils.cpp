@@ -8,32 +8,32 @@
 #include "Table.h"
 #include <random>
 
-extern "C" COMPUTEDUCK_API StrObject *CreateStrObject(const char *v)
+extern "C" COMPUTEDUCK_API StrObject *AllocateStrObject(const char *v)
 {
-    return Allocator::GetInstance()->CreateObject<StrObject>(v);
+    return ALLOCATE_OBJECT(StrObject, v);
 }
 
-extern "C" COMPUTEDUCK_API ArrayObject *CreateArrayObject(Value *elements, uint32_t size)
+extern "C" COMPUTEDUCK_API ArrayObject *AllocateArrayObject(Value *elements, uint32_t size)
 {
-    return Allocator::GetInstance()->CreateObject<ArrayObject>(elements, size);
+    return ALLOCATE_OBJECT(ArrayObject, elements, size);
 }
 
-extern "C" COMPUTEDUCK_API RefObject *CreateRefObject(Value *pointer)
+extern "C" COMPUTEDUCK_API RefObject *AllocateRefObject(Value *pointer)
 {
-    return Allocator::GetInstance()->CreateObject<RefObject>(pointer);
+    return ALLOCATE_OBJECT(RefObject, pointer);
 }
 
-extern "C" COMPUTEDUCK_API StructObject *CreateStructObject(Table *table)
+extern "C" COMPUTEDUCK_API StructObject *AllocateStructObject(Table *table)
 {
-    return Allocator::GetInstance()->CreateObject<StructObject>(table);
+    return ALLOCATE_OBJECT(StructObject, table);
 }
 
 extern "C" COMPUTEDUCK_API Value *GetLocalVariableSlot(int16_t index)
 {
-    return Allocator::GetInstance()->GetLocalVariableSlot(index);
+    return GET_LOCAL_VARIABLE_SLOT(index);
 }
 
-extern "C" COMPUTEDUCK_API Table *CreateTable()
+extern "C" COMPUTEDUCK_API Table *AllocateTable()
 {
     return new Table();
 }
@@ -56,9 +56,9 @@ extern "C" COMPUTEDUCK_API bool TableSetIfFound(Table *table, StrObject *key, co
     return table->Set(key, value);
 }
 
-extern "C" COMPUTEDUCK_API RefObject *CreateIndexRefObject(Value *ptr, const Value &v)
+extern "C" COMPUTEDUCK_API RefObject *AllocateIndexRefObject(Value *ptr, const Value &v)
 {
-    return Allocator::GetInstance()->CreateIndexRefObject(ptr, v);
+    return ALLOCATE_INDEX_REF_OBJECT(ptr, v);
 }
 
 void TypeSet::Insert(uint8_t type)

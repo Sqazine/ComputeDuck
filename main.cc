@@ -23,7 +23,7 @@ void SetBasePath(std::string_view path)
 #else
 	curPath = curPath.substr(0, curPath.find_last_of('/') + 1);
 #endif
-	Config::GetInstance()->SetExecuteFilePath(curPath);
+	Config::GetInstance()->SetExecuteFileDirectory(curPath);
 }
 
 void Run(std::string_view content)
@@ -45,7 +45,7 @@ void Run(std::string_view content)
 #ifndef NDEBUG
 	auto str=ObjectStringify(fn, true);
     std::cout << str << std::endl;
-	//WriteFile(Config::GetInstance()->GetExecuteFilePath()+"TmpDump.txt",str);
+	WriteFile(Config::GetInstance()->GetExecuteFileDirectory()+"TmpDump.txt",str);
 #endif
 
 	for (auto stmt : stmts)
@@ -130,6 +130,7 @@ int32_t main(int argc, const char **argv)
 	}
 
 	Allocator::GetInstance()->Init();
+	BuiltinManager::GetInstance()->Init();
 	
 	g_PreProcessor = new PreProcessor();
 	g_Parser = new Parser();
@@ -146,6 +147,7 @@ int32_t main(int argc, const char **argv)
 	SAFE_DELETE(g_Parser);
 	SAFE_DELETE(g_PreProcessor);
 
+	BuiltinManager::GetInstance()->Destroy();
 	Allocator::GetInstance()->Destroy();
 
 	return 0;

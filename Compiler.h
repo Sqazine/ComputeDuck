@@ -51,8 +51,11 @@ private:
 
     Chunk &CurChunk();
 
+	uint16_t AddConstant(const Value &value);
+
     uint32_t Emit(int16_t opcode);
     uint32_t EmitConstant(const Value &value);
+    uint32_t EmitClosure(FunctionObject* fn);
 
     void ModifyOpCode(uint32_t pos, int16_t opcode);
 

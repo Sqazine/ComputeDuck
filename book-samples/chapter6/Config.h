@@ -7,11 +7,11 @@ class COMPUTEDUCK_API Config
 public:
     static Config *GetInstance();
 
-    void SetExecuteFilePath(std::string_view path);
-    const std::string& GetExecuteFilePath() const;
+    void SetExecuteFileDirectory(std::string_view path);
+    const std::string& GetExecuteFileDirectory() const;
 private:
     Config() = default;
     ~Config() = default;
 
-    std::string m_CurExecuteFilePath;
+    std::string m_CurExecuteFileDirectory;
 };

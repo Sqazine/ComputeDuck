@@ -169,7 +169,7 @@ void Compiler::CompileUnaryExpr(UnaryExpr *expr)
 
 void Compiler::CompileStrExpr(StrExpr *expr)
 {
-    EmitConstant(Allocator::GetInstance()->CreateObject<StrObject>(expr->value.c_str()));
+    EmitConstant(Allocator::GetInstance()->AllocateObject<StrObject>(expr->value.c_str()));
 }
 
 void Compiler::CompileNilExpr(NilExpr *expr)

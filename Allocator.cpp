@@ -1,5 +1,5 @@
 #include "Allocator.h"
-
+#include "BuiltinManager.h"
 void Allocator::Init()
 {
     m_FirstObject = nullptr;
@@ -9,8 +9,7 @@ void Allocator::Init()
     memset(m_ValueStack, 0, sizeof(Value) * STACK_MAX);
     memset(m_CallFrameStack, 0, sizeof(CallFrame) * STACK_MAX);
 
-    ResetStack();
-    ResetFrame();
+    ResetStatus();
 }
 
 void Allocator::Destroy()
@@ -24,17 +23,13 @@ Allocator *Allocator::GetInstance()
     return &instance;
 }
 
-void Allocator::ResetStack()
+void Allocator::ResetStatus()
 {
     m_StackTop = m_ValueStack;
-}
-
-void Allocator::ResetFrame()
-{
     m_CallFrameTop = m_CallFrameStack;
 }
 
-RefObject *Allocator::CreateIndexRefObject(Value *ptr, const Value &idxValue)
+RefObject *Allocator::AllocateIndexRefObject(Value *ptr, const Value &idxValue)
 {
     if (IS_ARRAY_VALUE(*ptr))
     {
@@ -43,7 +38,7 @@ RefObject *Allocator::CreateIndexRefObject(Value *ptr, const Value &idxValue)
         auto intIdx = TO_NUM_VALUE(idxValue);
         if (intIdx < 0 || intIdx >= TO_ARRAY_VALUE(*ptr)->len)
             ASSERT("Idx out of range.");
-        return Allocator::GetInstance()->CreateObject<RefObject>(&(TO_ARRAY_VALUE(*ptr)->elements[(uint64_t)intIdx]));
+        return ALLOCATE_OBJECT(RefObject, &(TO_ARRAY_VALUE(*ptr)->elements[(uint64_t)intIdx]));
     }
     else
         ASSERT("Invalid indexed reference type: %s not a array value.", ptr->Stringify().c_str());
@@ -112,22 +107,20 @@ Value *Allocator::GetLocalVariableSlot(int16_t index)
     return PeekCallFrame(1)->slot + index;
 }
 
-#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-void Allocator::InsideJitExecutor()
+void Allocator::DisableGC()
 {
-    m_IsInsideJitExecutor=true;
+    m_IsGCEnabled = false;
 }
 
-void Allocator::OutsideJitExecutor()
+void Allocator::EnableGC()
 {
-    m_IsInsideJitExecutor=false;
+    m_IsGCEnabled = true;
 }
-#endif
 
-void Allocator::Gc(bool isExitingVM)
+void Allocator::Gc(bool deleteAll)
 {
     auto objNum = m_CurObjCount;
-    if (!isExitingVM)
+    if (!deleteAll)
     {
         // mark all object which in stack and in context
         for (Value *slot = m_ValueStack; slot < m_StackTop; ++slot)
@@ -135,7 +128,10 @@ void Allocator::Gc(bool isExitingVM)
         for (auto &g : m_GlobalVariables)
             g.Mark();
         for (CallFrame *slot = m_CallFrameStack; slot < m_CallFrameTop; ++slot)
-            ObjectMark(slot->fn);
+            MarkObject(slot->closure);
+        for (const auto &[k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
+            MarkObject(v);
+            
     }
     else
     {
@@ -145,7 +141,9 @@ void Allocator::Gc(bool isExitingVM)
         for (auto &g : m_GlobalVariables)
             g.UnMark();
         for (CallFrame *slot = m_CallFrameStack; slot < m_CallFrameTop; ++slot)
-            ObjectUnMark(slot->fn);
+            UnMarkObject(slot->closure);
+		for (const auto &[k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
+			UnMarkObject(v);
     }
 
     // sweep objects which is not reachable
@@ -171,49 +169,4 @@ void Allocator::Gc(bool isExitingVM)
     m_MaxObjCount = m_CurObjCount == 0 ? STACK_MAX : m_CurObjCount * 2;
 
     std::cout << "Collected " << objNum - m_CurObjCount << " objects," << m_CurObjCount << " remaining." << std::endl;
-}
-
-void Allocator::DeleteObject(Object *object)
-{
-    switch (object->type)
-    {
-    case ObjectType::STR:
-    {
-        auto strObj = TO_STR_OBJ(object);
-        SAFE_DELETE(strObj);
-        return;
-    }
-    case ObjectType::ARRAY:
-    {
-        auto arrObj = TO_ARRAY_OBJ(object);
-        SAFE_DELETE(arrObj);
-        return;
-    }
-    case ObjectType::STRUCT:
-    {
-        auto structObj = TO_STRUCT_OBJ(object);
-        SAFE_DELETE(structObj);
-        return;
-    }
-    case ObjectType::REF:
-    {
-        auto refObj = TO_REF_OBJ(object);
-        SAFE_DELETE(refObj);
-        return;
-    }
-    case ObjectType::FUNCTION:
-    {
-        auto fnObj = TO_FUNCTION_OBJ(object);
-        SAFE_DELETE(fnObj);
-        return;
-    }
-    case ObjectType::BUILTIN:
-    {
-        auto builtinObj = TO_BUILTIN_OBJ(object);
-        SAFE_DELETE(builtinObj);
-        return;
-    }
-    default:
-        return;
-    }
 }

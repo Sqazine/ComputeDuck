@@ -127,6 +127,9 @@ std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
         case OP_GET_LOCAL:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_GET_LOCAL\t" << opcodes[++i] << std::endl;
             break;
+		case OP_CLOSURE:
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_CLOSURE\t" << opcodes[++i] << std::endl;
+		    break;
         case OP_FUNCTION_CALL:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_FUNCTION_CALL\t" << opcodes[++i] << std::endl;
             break;

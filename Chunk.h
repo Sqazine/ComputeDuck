@@ -33,6 +33,7 @@ enum OpCode
     OP_ARRAY,
     OP_GET_INDEX,
     OP_SET_INDEX,
+    OP_CLOSURE,
     OP_FUNCTION_CALL,
     OP_RETURN,
     OP_GET_BUILTIN,

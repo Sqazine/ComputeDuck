@@ -6,7 +6,7 @@ namespace ComputeDuck
     public class Config
     {
         private static Config? instance = null;
-        private string? m_CurExecuteFilePath = null;
+        private string? m_CurExecuteFileDirectory = null;
 
         public static Config GetInstance()
         {
@@ -15,14 +15,14 @@ namespace ComputeDuck
             return instance;
         }
 
-        public void SetExecuteFilePath(string path)
+        public void SetExecuteFileDirectory(string path)
         {
-            m_CurExecuteFilePath = path;
+            m_CurExecuteFileDirectory = path;
         }
 
         public string ToFullPath(string path)
         {
-            return m_CurExecuteFilePath + path;
+            return m_CurExecuteFileDirectory + path;
         }
     }
 }

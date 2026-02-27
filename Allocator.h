@@ -8,33 +8,31 @@ struct CallFrame
     CallFrame() = default;
     ~CallFrame() = default;
 
-    CallFrame(FunctionObject *f, Value *slot)
-        : fn(f), slot(slot)
+    CallFrame(ClosureObject *closure, Value *slot)
+        : closure(closure), slot(slot)
     {
-        auto fnObj = GetFnObject();
-        ip = fnObj->chunk.opCodes.data();
+        ip = closure->function->chunk.opCodes.data();
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-        fnObj->callCount++;
+        closure->function->callCount++;
 #endif
     }
 
     bool IsEnd()
     {
-        auto fnObj = GetFnObject();
-        if ((ip - fnObj->chunk.opCodes.data()) < fnObj->chunk.opCodes.size())
+        if ((ip - closure->function->chunk.opCodes.data()) < closure->function->chunk.opCodes.size())
             return false;
         return true;
     }
 
-    FunctionObject *GetFnObject() const
-    {
-        return fn;
-    }
-
-    FunctionObject *fn{ nullptr };
-    int16_t *ip{ nullptr };
-    Value *slot{ nullptr };
+    ClosureObject *closure{nullptr};
+    int16_t *ip{nullptr};
+    Value *slot{nullptr};
 };
+
+template <typename T>
+concept IsChildOfObject = !std::is_same_v<T, void> &&
+                          !std::is_abstract_v<T> &&
+                          std::is_base_of_v<Object, T>;
 
 class COMPUTEDUCK_API Allocator
 {
@@ -43,18 +41,12 @@ public:
 
     void Init();
     void Destroy();
+    void ResetStatus();
 
-    void ResetStack();
-    void ResetFrame();
-
-    template <class T, typename... Args>
-    T *CreateObject(Args &&...params)
+    template <IsChildOfObject T, typename... Args>
+    T *AllocateObject(Args &&...params)
     {
-        if (m_CurObjCount >= m_MaxObjCount
-#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-            && m_IsInsideJitExecutor == false
-#endif
-            )
+        if (m_CurObjCount >= m_MaxObjCount && m_IsGCEnabled)
             Gc();
 
         T *object = new T(std::forward<Args>(params)...);
@@ -66,7 +58,7 @@ public:
         return object;
     }
 
-    RefObject *CreateIndexRefObject(Value *ptr, const Value &idxValue);
+    RefObject *AllocateIndexRefObject(Value *ptr, const Value &idxValue);
 
     void Push(const Value &value);
     Value Pop();
@@ -86,35 +78,33 @@ public:
 
     Value *GetLocalVariableSlot(int16_t index);
 
-#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-    void InsideJitExecutor();
-    void OutsideJitExecutor();
-private:
-    bool m_IsInsideJitExecutor{ false };
-#endif
-
+    void DisableGC();
+    void EnableGC();
 private:
     Allocator() = default;
     ~Allocator() = default;
 
-    void DeleteObject(Object *object);
-    void Gc(bool isExitingVM = false);
+    void Gc(bool deleteAll = false);
+
+    bool m_IsGCEnabled{true};
 
     Value m_GlobalVariables[STACK_MAX];
 
-    Value *m_StackTop{ nullptr };
+    Value *m_StackTop{nullptr};
     Value m_ValueStack[STACK_MAX]{};
 
-    CallFrame *m_CallFrameTop{ nullptr };
+    CallFrame *m_CallFrameTop{nullptr};
     CallFrame m_CallFrameStack[STACK_MAX]{};
 
-    Object *m_FirstObject{ nullptr };
-    size_t m_CurObjCount{ 0 };
-    size_t m_MaxObjCount{ 0 };
-
+    Object *m_FirstObject{nullptr};
+    size_t m_CurObjCount{0};
+    size_t m_MaxObjCount{0};
 };
 
-#define GET_GLOBAL_VARIABLE_REF(x) (Allocator::GetInstance()->GetGlobalVariableRef(x)) 
+#define ALLOCATE_OBJECT(type, ...) (Allocator::GetInstance()->AllocateObject<type>(__VA_ARGS__))
+#define ALLOCATE_INDEX_REF_OBJECT(ptr, idxValue) (Allocator::GetInstance()->AllocateIndexRefObject(ptr, idxValue))
+
+#define GET_GLOBAL_VARIABLE_REF(x) (Allocator::GetInstance()->GetGlobalVariableRef(x))
 
 #define PUSH(x) (Allocator::GetInstance()->Push(x))
 #define POP() (Allocator::GetInstance()->Pop())
@@ -125,6 +115,6 @@ private:
 
 #define GET_LOCAL_VARIABLE_SLOT(idx) (Allocator::GetInstance()->GetLocalVariableSlot(idx))
 
-#define STACK_TOP() (Allocator::GetInstance()->GetStackTop())
+#define GET_STACK_TOP() (Allocator::GetInstance()->GetStackTop())
 #define STACK_TOP_JUMP(x) (Allocator::GetInstance()->StackTopJump(x))
 #define SET_STACK_TOP(x) (Allocator::GetInstance()->SetStackTop(x))
