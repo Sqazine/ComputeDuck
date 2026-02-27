@@ -19,6 +19,7 @@
 #define TO_STRUCT_OBJ(obj) (static_cast<StructObject *>(obj))
 #define TO_REF_OBJ(obj) (static_cast<RefObject *>(obj))
 #define TO_FUNCTION_OBJ(obj) (static_cast<FunctionObject *>(obj))
+#define TO_CLOSURE_OBJ(obj) (static_cast<ClosureObject *>(obj))
 #define TO_BUILTIN_OBJ(obj) (static_cast<BuiltinObject *>(obj))
 
 #define IS_STR_OBJ(obj) (obj->type == ObjectType::STR)
@@ -26,6 +27,7 @@
 #define IS_STRUCT_OBJ(obj) (obj->type == ObjectType::STRUCT)
 #define IS_REF_OBJ(obj) (obj->type == ObjectType::REF)
 #define IS_FUNCTION_OBJ(obj) (obj->type == ObjectType::FUNCTION)
+#define IS_CLOSURE_OBJ(obj) (obj->type == ObjectType::CLOSURE)
 #define IS_BUILTIN_OBJ(obj) (obj->type == ObjectType::BUILTIN)
 
 enum ObjectType :uint8_t
@@ -35,13 +37,14 @@ enum ObjectType :uint8_t
     STRUCT,
     REF,
     FUNCTION,
+    CLOSURE,
     BUILTIN,
 };
 
 struct Object
 {
     Object(ObjectType type) : type(type), marked(false), next(nullptr) {}
-    ~Object() {}
+    ~Object() = default;
 
     ObjectType type;
     bool marked;
@@ -112,6 +115,14 @@ struct FunctionObject : public Object
     TypeSet *probableReturnTypeSet{ nullptr };//record function return types,some function with multiply return stmt may return mutiply types of value
     std::string uuid;
 #endif
+};
+
+struct ClosureObject:public Object
+{
+    ClosureObject(FunctionObject *fn) :Object(ObjectType::CLOSURE), function(fn) {}
+    ~ClosureObject() = default;
+
+    FunctionObject *function;
 };
 
 struct StructObject : public Object
@@ -190,8 +201,9 @@ COMPUTEDUCK_API std::string ObjectStringify(Object *object
 #endif
 );
 
-COMPUTEDUCK_API void ObjectMark(Object *object);
-COMPUTEDUCK_API void ObjectUnMark(Object *object);
+COMPUTEDUCK_API void MarkObject(Object *object);
+COMPUTEDUCK_API void UnMarkObject(Object *object);
+COMPUTEDUCK_API void DeleteObject(Object *object);
 
 extern "C" COMPUTEDUCK_API bool IsObjectEqual(Object *left, Object *right);
 

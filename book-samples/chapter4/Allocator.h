@@ -14,8 +14,7 @@ public:
 
     void Init();
     void Destroy();
-
-    void ResetStack();
+    void ResetStatus();
 
     void Push(const Value &value);
     Value Pop();
@@ -24,7 +23,7 @@ public:
     const Value *GetValueStack() { return m_ValueStack; }
 
     template <IsChildOfObject T, typename... Args>
-    T *CreateObject(Args &&...params)
+    T *AllocateObject(Args &&...params)
     {
         T *object = new T(std::forward<Args>(params)...);
         return object;

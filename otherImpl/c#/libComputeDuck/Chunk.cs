@@ -33,6 +33,7 @@ namespace ComputeDuck
         OP_ARRAY,
         OP_GET_INDEX,
         OP_SET_INDEX,
+        OP_CLOSURE,
         OP_FUNCTION_CALL,
         OP_RETURN,
         OP_GET_BUILTIN,
@@ -162,6 +163,9 @@ namespace ComputeDuck
                         break;
                     case (int)OpCode.OP_GET_LOCAL:
                         result += string.Format("{0}\tOP_GET_LOCAL\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
+                        break;
+                    case (int)OpCode.OP_CLOSURE:
+                        result += string.Format("{0}\tOP_CLOSURE\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
                         break;
                     case (int)OpCode.OP_FUNCTION_CALL:
                         result += string.Format("{0}\tOP_FUNCTION_CALL\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);

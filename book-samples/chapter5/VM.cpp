@@ -2,7 +2,7 @@
 #include "Allocator.h"
 void VM::Run(const Chunk &chunk)
 {
-    Allocator::GetInstance()->ResetStack();
+    Allocator::GetInstance()->ResetStatus();
 
     m_Chunk = chunk;
 

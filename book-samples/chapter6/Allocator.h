@@ -14,8 +14,7 @@ public:
 
     void Init();
     void Destroy();
-
-    void ResetStack();
+    void ResetStatus();
 
     void Push(const Value &value);
     Value Pop();
@@ -28,7 +27,7 @@ public:
      void StackTopJump(size_t slotCount);
 
     template <IsChildOfObject T, typename... Args>
-    T *CreateObject(Args &&...params)
+    T *AllocateObject(Args &&...params)
     {
         T *object = new T(std::forward<Args>(params)...);
         return object;
@@ -49,5 +48,5 @@ private:
 #define PUSH(x) (Allocator::GetInstance()->Push(x))
 #define POP() (Allocator::GetInstance()->Pop())
 
-#define STACK_TOP() (Allocator::GetInstance()->GetStackTop())
+#define GET_STACK_TOP() (Allocator::GetInstance()->GetStackTop())
 #define STACK_TOP_JUMP(x) (Allocator::GetInstance()->StackTopJump(x))

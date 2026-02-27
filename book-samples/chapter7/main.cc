@@ -22,7 +22,7 @@ void SetBasePath(std::string_view path)
 #else
     curPath = curPath.substr(0, curPath.find_last_of('/') + 1);
 #endif
-    Config::GetInstance()->SetExecuteFilePath(curPath);
+    Config::GetInstance()->SetExecuteFileDirectory(curPath);
 }
 
 void Run(std::string_view content)
@@ -44,7 +44,7 @@ void Run(std::string_view content)
 #ifndef NDEBUG
     auto str = chunk.Stringify();
     std::cout << str << std::endl;
-    WriteFile(Config::GetInstance()->GetExecuteFilePath() + "TmpDump.txt", str);
+    WriteFile(Config::GetInstance()->GetExecuteFileDirectory() + "TmpDump.txt", str);
 #endif
 
     for (auto stmt : stmts)

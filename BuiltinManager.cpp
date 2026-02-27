@@ -4,7 +4,7 @@
 
 namespace
 {
-    extern "C" COMPUTEDUCK_API bool BUILTIN_FN(print)(Value* args, uint8_t argCount, Value& result)
+    extern "C" COMPUTEDUCK_API bool BUILTIN_FN(print)(Value *args, uint8_t argCount, Value &result)
     {
         if (argCount > 0)
         {
@@ -18,7 +18,7 @@ namespace
         return false;
     }
 
-    extern "C" COMPUTEDUCK_API bool BUILTIN_FN(println)(Value* args, uint8_t argCount, Value& result)
+    extern "C" COMPUTEDUCK_API bool BUILTIN_FN(println)(Value *args, uint8_t argCount, Value &result)
     {
         if (argCount > 0)
         {
@@ -34,7 +34,7 @@ namespace
         return false;
     }
 
-    extern "C" COMPUTEDUCK_API bool BUILTIN_FN(sizeof)(Value* args, uint8_t argCount, Value& result)
+    extern "C" COMPUTEDUCK_API bool BUILTIN_FN(sizeof)(Value *args, uint8_t argCount, Value &result)
     {
         if (argCount == 0 || argCount > 1)
             ASSERT("[Native function 'sizeof']:Expect a argument.");
@@ -48,14 +48,14 @@ namespace
         return true;
     }
 
-    extern "C" COMPUTEDUCK_API bool BUILTIN_FN(insert)(Value* args, uint8_t argCount, Value& result)
+    extern "C" COMPUTEDUCK_API bool BUILTIN_FN(insert)(Value *args, uint8_t argCount, Value &result)
     {
         if (argCount == 0 || argCount != 3)
             ASSERT("[Native function 'insert']:Expect 3 arguments,the arg0 must be array or string object.The arg1 is the index object.The arg2 is the value object.");
 
         if (IS_ARRAY_VALUE(args[0]))
         {
-            ArrayObject* array = TO_ARRAY_VALUE(args[0]);
+            ArrayObject *array = TO_ARRAY_VALUE(args[0]);
             if (!IS_NUM_VALUE(args[1]))
                 ASSERT("[Native function 'insert']:Arg1 must be integer type while insert to a array");
 
@@ -84,14 +84,14 @@ namespace
         return false;
     }
 
-    extern "C" COMPUTEDUCK_API bool BUILTIN_FN(erase)(Value* args, uint8_t argCount, Value& result)
+    extern "C" COMPUTEDUCK_API bool BUILTIN_FN(erase)(Value *args, uint8_t argCount, Value &result)
     {
         if (argCount == 0 || argCount != 2)
             ASSERT("[Native function 'erase']:Expect 2 arguments,the arg0 must be array or string object.The arg1 is the corresponding index object.");
 
         if (IS_ARRAY_VALUE(args[0]))
         {
-            ArrayObject* array = TO_ARRAY_VALUE(args[0]);
+            ArrayObject *array = TO_ARRAY_VALUE(args[0]);
             if (!IS_NUM_VALUE(args[1]))
                 ASSERT("[Native function 'erase']:Arg1 must be integer type while deleting array element");
 
@@ -120,34 +120,38 @@ namespace
         return false;
     }
 
-    extern "C" COMPUTEDUCK_API bool BUILTIN_FN(clock)(Value* args, uint8_t argCount, Value& result)
+    extern "C" COMPUTEDUCK_API bool BUILTIN_FN(clock)(Value *args, uint8_t argCount, Value &result)
     {
         result = clock() / CLOCKS_PER_SEC;
         return true;
     }
 }
 
-BuiltinManager* BuiltinManager::GetInstance()
+BuiltinManager *BuiltinManager::GetInstance()
 {
     static BuiltinManager instance;
     return &instance;
 }
 
-BuiltinManager::BuiltinManager()
+void BuiltinManager::Init()
 {
-    Register<BuiltinFn>("print", BUILTIN_FN(print));
-    Register<BuiltinFn>("println", BUILTIN_FN(println));
-    Register<BuiltinFn>("sizeof", BUILTIN_FN(sizeof));
-    Register<BuiltinFn>("insert", BUILTIN_FN(insert));
-    Register<BuiltinFn>("erase", BUILTIN_FN(erase));
-    Register<BuiltinFn>("clock", BUILTIN_FN(clock));
+    Allocator::GetInstance()->DisableGC();
+
+    REGISTER_BUILTIN_FN(print);
+    REGISTER_BUILTIN_FN(println);
+    REGISTER_BUILTIN_FN(sizeof);
+    REGISTER_BUILTIN_FN(insert);
+    REGISTER_BUILTIN_FN(erase);
+    REGISTER_BUILTIN_FN(clock);
+
+    Allocator::GetInstance()->EnableGC();
 }
-BuiltinManager::~BuiltinManager()
+void BuiltinManager::Destroy()
 {
-    std::unordered_map<std::string_view, BuiltinObject*>().swap(m_BuiltinObjects);
+    std::unordered_map<std::string_view, BuiltinObject *>().swap(m_BuiltinObjects);
 }
 
-BuiltinObject* BuiltinManager::FindBuiltinObject(std::string_view name)
+BuiltinObject *BuiltinManager::FindBuiltinObject(std::string_view name)
 {
     auto iter = m_BuiltinObjects.find(name);
     if (iter == m_BuiltinObjects.end())
@@ -155,7 +159,7 @@ BuiltinObject* BuiltinManager::FindBuiltinObject(std::string_view name)
     return iter->second;
 }
 
-const std::unordered_map<std::string_view, BuiltinObject*> BuiltinManager::GetBuiltinObjectList() const
+const std::unordered_map<std::string_view, BuiltinObject *> BuiltinManager::GetBuiltinObjectList() const
 {
     return m_BuiltinObjects;
 }

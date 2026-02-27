@@ -157,7 +157,7 @@ namespace ComputeDuck
 
             var fn = new FunctionObject(chunk, localVarCount);
 
-            EmitConstant(fn);
+            EmitClosure(fn);
 
             StoreSymbol(symbol);
         }
@@ -371,7 +371,12 @@ namespace ComputeDuck
             }
 
             var fn = new FunctionObject(chunk, localVarCount, expr.parameters.Count);
-            EmitConstant(fn);
+
+            EmitClosure(fn);
+
+            uint pos = AddConstant(fn);
+            Emit((int)OpCode.OP_CLOSURE);
+            Emit((int)pos);
         }
         void CompileFunctionCallExpr(FunctionCallExpr expr)
         {
@@ -482,16 +487,29 @@ namespace ComputeDuck
         {
             return m_ScopeChunk[m_ScopeChunk.Count - 1];
         }
+        uint AddConstant(Object obj)
+        {
+            CurChunk().constants.Add(obj);
+            return (uint)CurChunk().constants.Count - 1;
+        }
 
         uint Emit(int opcode)
         {
             CurChunk().opCodes.Add(opcode);
             return (uint)CurChunk().opCodes.Count - 1;
         }
+
+        uint EmitClosure(FunctionObject fn)
+        {
+            var pos = AddConstant(fn);
+            Emit((int)OpCode.OP_CLOSURE);
+            Emit((int)pos);
+            return (uint)CurChunk().opCodes.Count - 1;
+        }
+
         uint EmitConstant(Object obj)
         {
-            CurChunk().constants.Add(obj);
-            var pos = (uint)CurChunk().constants.Count - 1;
+            var pos =AddConstant(obj);
             Emit((int)OpCode.OP_CONSTANT);
             Emit((int)pos);
             return (uint)CurChunk().opCodes.Count - 1;

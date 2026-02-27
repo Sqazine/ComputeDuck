@@ -60,7 +60,7 @@ public:
             auto symbol = m_ExitOnErr(m_Executor->LookUp(SET_GLOBAL_VARIABLE_FN_STR));
             using SetGlobalVarFnType = void(*)(Value *);
             SetGlobalVarFnType setGlobalVarFn = reinterpret_cast<SetGlobalVarFnType>(symbol.getAddress());
-            setGlobalVarFn(Allocator::GetInstance()->GetGlobalVariableRef(0));
+            setGlobalVarFn(GET_GLOBAL_VARIABLE_REF(0));
         }
 
         // set stack
@@ -68,7 +68,7 @@ public:
             auto symbol = m_ExitOnErr(m_Executor->LookUp(SET_STACK_FN_STR));
             using SetStackFnType = void(*)(Value *);
             SetStackFnType setStackFn = reinterpret_cast<SetStackFnType>(symbol.getAddress());
-            setStackFn(STACK_TOP());
+            setStackFn(GET_STACK_TOP());
         }
 
         m_Executor->AddModule(llvm::orc::ThreadSafeModule(std::move(m_Module), std::move(m_Context)));

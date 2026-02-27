@@ -8,8 +8,7 @@ public:
 
     void Init();
     void Destroy();
-
-    void ResetStack();
+    void ResetStatus();
 
     void Push(const Value &value);
     Value Pop();

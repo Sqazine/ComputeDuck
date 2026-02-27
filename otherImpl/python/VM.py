@@ -7,17 +7,17 @@ STACK_MAX = 512
 
 
 class CallFrame:
-    fn: FunctionObject
+    closure: ClosureObject
     ip: int
     slot: int
 
-    def __init__(self, fn=None, slot=None) -> None:
-        self.fn = fn
+    def __init__(self, closure=None, slot=None) -> None:
+        self.closure = closure
         self.slot = slot
         self.ip = 0
 
     def is_at_end(self):
-        if self.ip < len(self.fn.chunk.opCodes):
+        if self.ip < len(self.closure.function.chunk.opCodes):
             return False
         return True
 
@@ -42,7 +42,8 @@ class VM:
     def run(self, mainFn: FunctionObject) -> None:
         self.__reset_status()
 
-        mainCallFrame = CallFrame(mainFn, self.__stackTop)
+        mainClosure = ClosureObject(mainFn)
+        mainCallFrame = CallFrame(mainClosure, self.__stackTop)
 
         self.__push_call_frame(mainCallFrame)
         self.__execute()
@@ -54,11 +55,11 @@ class VM:
             if frame.is_at_end():
                 return
 
-            instruction = frame.fn.chunk.opCodes[frame.ip]
+            instruction = frame.closure.function.chunk.opCodes[frame.ip]
             frame.ip += 1
 
             if instruction == OpCode.OP_RETURN:
-                returnCount = frame.fn.chunk.opCodes[frame.ip]
+                returnCount = frame.closure.function.chunk.opCodes[frame.ip]
                 frame.ip += 1
 
                 object = NilObject()
@@ -76,10 +77,10 @@ class VM:
                     self.__push(object)
 
             elif instruction == OpCode.OP_CONSTANT:
-                idx = frame.fn.chunk.opCodes[frame.ip]
+                idx = frame.closure.function.chunk.opCodes[frame.ip]
                 frame.ip += 1
 
-                object = frame.fn.chunk.constants[idx]
+                object = frame.closure.function.chunk.constants[idx]
                 self.__push(object)
 
             elif instruction == OpCode.OP_ADD:
@@ -210,7 +211,7 @@ class VM:
                 self.__push(NumObject(~int(obj.value)))
 
             elif instruction == OpCode.OP_ARRAY:
-                numElements = frame.fn.chunk.opCodes[frame.ip]
+                numElements = frame.closure.function.chunk.opCodes[frame.ip]
                 frame.ip += 1
 
                 self.__stackTop -= numElements
@@ -248,7 +249,7 @@ class VM:
                     error("Invalid index op:" + ds.__str__() + "[" + index.__str__() + "]")
 
             elif instruction == OpCode.OP_JUMP_IF_FALSE:
-                address = frame.fn.chunk.opCodes[frame.ip]
+                address = frame.closure.function.chunk.opCodes[frame.ip]
                 frame.ip += 1
                 obj = self.__pop()
                 if obj.type != ObjectType.BOOL:
@@ -257,17 +258,17 @@ class VM:
                     frame.ip = address+1
 
             elif instruction == OpCode.OP_JUMP:
-                address = frame.fn.chunk.opCodes[frame.ip]
+                address = frame.closure.function.chunk.opCodes[frame.ip]
                 frame.ip = address+1
 
             elif instruction == OpCode.OP_DEF_GLOBAL:
-                index = frame.fn.chunk.opCodes[frame.ip]
+                index = frame.closure.function.chunk.opCodes[frame.ip]
                 frame.ip += 1
                 obj = self.__pop()
                 self.__globalVariables[index] = obj
 
             elif instruction == OpCode.OP_SET_GLOBAL:
-                index = frame.fn.chunk.opCodes[frame.ip]
+                index = frame.closure.function.chunk.opCodes[frame.ip]
                 frame.ip += 1
                 obj = self.__pop()
 
@@ -287,25 +288,24 @@ class VM:
                     self.__globalVariables[index] = obj
 
             elif instruction == OpCode.OP_GET_GLOBAL:
-                index = frame.fn.chunk.opCodes[frame.ip]
+                index = frame.closure.function.chunk.opCodes[frame.ip]
                 frame.ip += 1
                 self.__push(self.__globalVariables[index])
 
             elif instruction == OpCode.OP_FUNCTION_CALL:
-                argCount = frame.fn.chunk.opCodes[frame.ip]
+                argCount = frame.closure.function.chunk.opCodes[frame.ip]
                 frame.ip += 1
 
                 obj = self.__objectStack[self.__stackTop-1-argCount]
-                if obj.type == ObjectType.FUNCTION:
-                    if argCount != obj.parameterCount:
-                        error("Non matching function parameters for calling arguments,parameter count:" + obj.parameterCount + ",argument count:" + argCount)
+                if obj.type == ObjectType.CLOSURE:
+                    if argCount != obj.function.parameterCount:
+                        error("Non matching function parameters for calling arguments,parameter count:" + obj.function.parameterCount + ",argument count:" + argCount)
                     callFrame = CallFrame(obj, self.__stackTop-argCount)
                     self.__push_call_frame(callFrame)
-                    self.__stackTop = callFrame.slot+obj.localVarCount
+                    self.__stackTop = callFrame.slot+obj.function.localVarCount
 
                 elif obj.type == ObjectType.BUILTIN:
-                    args = self.__objectStack[self.__stackTop -
-                                              argCount:self.__stackTop]
+                    args = self.__objectStack[self.__stackTop - argCount:self.__stackTop]
                     self.__stackTop -= (argCount+1)
 
                     hasReturnValue, returnValue = obj.data(args)
@@ -315,7 +315,7 @@ class VM:
                     error("Calling not a function or a builtinFn")
 
             elif instruction == OpCode.OP_DEF_LOCAL:
-                index = frame.fn.chunk.opCodes[frame.ip]
+                index = frame.closure.function.chunk.opCodes[frame.ip]
                 frame.ip += 1
 
                 obj = self.__pop()
@@ -324,7 +324,7 @@ class VM:
                 self.__objectStack[slot] = obj
 
             elif instruction == OpCode.OP_SET_LOCAL:
-                index = frame.fn.chunk.opCodes[frame.ip]
+                index = frame.closure.function.chunk.opCodes[frame.ip]
                 frame.ip += 1
 
                 obj = self.__pop()
@@ -348,7 +348,7 @@ class VM:
                     self.__objectStack[slot] = obj
 
             elif instruction == OpCode.OP_GET_LOCAL:
-                index = frame.fn.chunk.opCodes[frame.ip]
+                index = frame.closure.function.chunk.opCodes[frame.ip]
                 frame.ip += 1
 
                 slot = self.__get_local_variable_slot(index)
@@ -363,7 +363,7 @@ class VM:
             elif instruction == OpCode.OP_STRUCT:
                 members: dict[str, Object] = {}
 
-                memberCount = frame.fn.chunk.opCodes[frame.ip]
+                memberCount = frame.closure.function.chunk.opCodes[frame.ip]
                 frame.ip += 1
 
                 tmpPtr = self.__stackTop
@@ -405,12 +405,12 @@ class VM:
                     instance.members[memberName.value] = obj
 
             elif instruction == OpCode.OP_REF_GLOBAL:
-                index = frame.fn.chunk.opCodes[frame.ip]
+                index = frame.closure.function.chunk.opCodes[frame.ip]
                 frame.ip += 1
                 self.__push(RefObject(id(self.__globalVariables[index])))
 
             elif instruction == OpCode.OP_REF_LOCAL:
-                index = frame.fn.chunk.opCodes[frame.ip]
+                index = frame.closure.function.chunk.opCodes[frame.ip]
                 frame.ip += 1
 
                 slot = self.__get_local_variable_slot(index)
@@ -418,17 +418,17 @@ class VM:
                 self.__push(RefObject(id(self.__objectStack[slot])))
 
             elif instruction == OpCode.OP_REF_INDEX_GLOBAL:
-                index = frame.fn.chunk.opCodes[frame.ip]
+                index = frame.closure.function.chunk.opCodes[frame.ip]
                 frame.ip += 1
                 idxValue = self.__pop()
 
                 obj, _ = self.__get_end_of_ref_object(
                     self.__globalVariables[index])
 
-                self.__push(self.__create_index_ref_object(obj, idxValue))
+                self.__push(self.__allocate_index_ref_object(obj, idxValue))
 
             elif instruction == OpCode.OP_REF_INDEX_LOCAL:
-                index = frame.fn.chunk.opCodes[frame.ip]
+                index = frame.closure.function.chunk.opCodes[frame.ip]
                 frame.ip += 1
 
                 idxValue = self.__pop()
@@ -436,11 +436,17 @@ class VM:
 
                 obj, _ = self.__get_end_of_ref_object(self.__objectStack[slot])
 
-                self.__push(self.__create_index_ref_object(obj, idxValue))
+                self.__push(self.__allocate_index_ref_object(obj, idxValue))
 
             elif instruction == OpCode.OP_DLL_IMPORT:
                 name = self.__pop().value
                 register_dlls(name)
+                
+            elif instruction == OpCode.OP_CLOSURE:
+                pos = frame.closure.function.chunk.opCodes[frame.ip]
+                frame.ip += 1
+                closureObj = ClosureObject(frame.closure.function.chunk.constants[pos])
+                self.__push(closureObj)
 
     def __push(self, obj: Object) -> None:
         self.__objectStack[self.__stackTop] = obj
@@ -461,7 +467,7 @@ class VM:
     def __peek_call_frame(self, distance: int) -> CallFrame:
         return self.__callFrameStack[self.__callFrameTop - distance]
 
-    def __create_index_ref_object(self, obj: Object, idxValue: Object) -> RefObject:
+    def __allocate_index_ref_object(self, obj: Object, idxValue: Object) -> RefObject:
         if obj.type == ObjectType.ARRAY:
             if idxValue.type != ObjectType.NUM:
                 error("Invalid idx for array,only integer is available.")

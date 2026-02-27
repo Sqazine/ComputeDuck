@@ -45,6 +45,7 @@ namespace ComputeDuck
         STRUCT,
         REF,
         FUNCTION,
+        CLOSURE,
         BUILTIN
     };
 
@@ -255,9 +256,9 @@ namespace ComputeDuck
 
         public string ToStringWithChunk()
         {
-            string result=this.ToString();
+            string result = this.ToString();
             result += ":\n" + chunk.ToString();
-            return result; 
+            return result;
         }
 
         public override bool IsEqualTo(Object other)
@@ -280,6 +281,33 @@ namespace ComputeDuck
         public int parameterCount;
     }
 
+    public class ClosureObject : Object
+    {
+        public ClosureObject()
+         : base(ObjectType.CLOSURE)
+        {
+            this.function = null!;
+        }
+        public ClosureObject(FunctionObject function)
+            : base(ObjectType.CLOSURE)
+        {
+            this.function = function;
+        }
+        public override string ToString()
+        {
+            return function.ToString();
+        }
+        public override bool IsEqualTo(Object other)
+        {
+            if (base.IsEqualTo(other) == false)
+                return false;
+            var closureOther = (ClosureObject)other;
+            if (!this.function.IsEqualTo(closureOther.function))
+                return false;
+            return true;
+        }
+        public FunctionObject function;
+    }
     public class StructObject : Object
     {
         public StructObject()

@@ -20,12 +20,12 @@ std::string Value::Stringify() const
 void Value::Mark() const
 {
     if (type == ValueType::OBJECT)
-        ObjectMark(object);
+        MarkObject(object);
 }
 void Value::UnMark() const
 {
     if (type == ValueType::OBJECT)
-        ObjectUnMark(object);
+        UnMarkObject(object);
 }
 
 bool operator==(const Value &left, const Value &right)

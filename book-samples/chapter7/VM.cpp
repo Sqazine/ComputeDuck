@@ -3,7 +3,7 @@
 #include "Object.h"
 void VM::Run(const Chunk &chunk)
 {
-    Allocator::GetInstance()->ResetStack();
+    Allocator::GetInstance()->ResetStatus();
 
     m_Chunk = chunk;
 
@@ -136,10 +136,10 @@ void VM::Execute()
             Value *elements = new Value[numElements];
 
             int32_t i = numElements - 1;
-            for (Value *p = STACK_TOP() - 1; p >= STACK_TOP() - numElements && i >= 0; --p, --i)
+            for (Value *p = GET_STACK_TOP() - 1; p >= GET_STACK_TOP() - numElements && i >= 0; --p, --i)
                 elements[i] = *p;
 
-            auto array = Allocator::GetInstance()->CreateObject<ArrayObject>(elements, numElements);
+            auto array = Allocator::GetInstance()->AllocateObject<ArrayObject>(elements, numElements);
 
             STACK_TOP_JUMP(-numElements);
 

@@ -106,7 +106,12 @@ struct ArrayExpr : public Expr
 {
 	ArrayExpr() : Expr(AstType::ARRAY) {}
 	ArrayExpr(std::vector<Expr *> elements) : Expr(AstType::ARRAY), elements(elements) {}
-	~ArrayExpr() override { std::vector<Expr *>().swap(elements); }
+	~ArrayExpr() override
+	{
+		for (auto e : elements)
+			SAFE_DELETE(e);
+		std::vector<Expr *>().swap(elements);
+	}
 
 	std::string Stringify() override
 	{
@@ -197,6 +202,8 @@ struct FunctionCallExpr : public Expr
 	~FunctionCallExpr() override
 	{
 		SAFE_DELETE(name);
+		for (auto arg : arguments)
+			SAFE_DELETE(arg);
 		std::vector<Expr *>().swap(arguments);
 	}
 
@@ -310,7 +317,12 @@ struct ScopeStmt : public Stmt
 {
 	ScopeStmt() : Stmt(AstType::SCOPE) {}
 	ScopeStmt(std::vector<Stmt *> stmts) : Stmt(AstType::SCOPE), stmts(stmts) {}
-	~ScopeStmt() override { std::vector<Stmt *>().swap(stmts); }
+	~ScopeStmt() override
+	{
+		for (auto stmt : stmts)
+			SAFE_DELETE(stmt);
+		std::vector<Stmt *>().swap(stmts);
+	}
 
 	std::string Stringify() override
 	{
@@ -330,6 +342,8 @@ struct FunctionExpr : public Expr
 	FunctionExpr(std::vector<IdentifierExpr *> parameters, ScopeStmt *body) : Expr(AstType::FUNCTION), parameters(parameters), body(body) {}
 	~FunctionExpr() override
 	{
+		for (auto param : parameters)
+			SAFE_DELETE(param);
 		std::vector<IdentifierExpr *>().swap(parameters);
 		SAFE_DELETE(body);
 	}
@@ -356,7 +370,12 @@ struct StructExpr : public Expr
 {
 	StructExpr() : Expr(AstType::STRUCT) {}
 	StructExpr(const std::unordered_map<IdentifierExpr *, Expr *> &members) : Expr(AstType::STRUCT), members(members) {}
-	~StructExpr() override { std::unordered_map<IdentifierExpr *, Expr *>().swap(members); }
+	~StructExpr() override
+	{
+		for (auto [k, v] : members)
+			SAFE_DELETE(v);
+		std::unordered_map<IdentifierExpr *, Expr *>().swap(members);
+	}
 
 	std::string Stringify() override
 	{

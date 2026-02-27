@@ -75,7 +75,7 @@ void Table::Mark()
         Entry *entry = &m_Entries[i];
         if (entry->key)
         {
-            ObjectMark(entry->key);
+            MarkObject(entry->key);
             entry->value.Mark();
         }
     }
@@ -87,7 +87,7 @@ void Table::UnMark()
     {
         Entry *entry = &m_Entries[i];
         if (entry->key)
-            ObjectUnMark(entry->key);
+            UnMarkObject(entry->key);
         entry->value.UnMark();
     }
 }

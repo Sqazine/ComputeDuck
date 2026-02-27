@@ -2,13 +2,12 @@ cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 
-project(ComputeDuck LANGUAGES CXX C)
+project(ComputeDuck)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_EXTENSIONS OFF)
+
 
 if(WIN32)
     set(CMAKE_SHARED_LIBRARY_PREFIX "lib")

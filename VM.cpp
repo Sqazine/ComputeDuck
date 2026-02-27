@@ -26,10 +26,10 @@ void VM::Run(FunctionObject *fn)
     }
 #endif
 
-    Allocator::GetInstance()->ResetStack();
-    Allocator::GetInstance()->ResetFrame();
+    Allocator::GetInstance()->ResetStatus();
 
-    auto mainCallFrame = CallFrame(fn, STACK_TOP());
+    auto closure = ALLOCATE_OBJECT(ClosureObject, fn);
+    auto mainCallFrame = CallFrame(closure, GET_STACK_TOP());
     PUSH_CALL_FRAME(mainCallFrame);
 
     Execute();
@@ -51,8 +51,8 @@ void VM::Execute()
         {
             auto returnCount = *frame->ip++;
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-            if (frame->GetFnObject()->probableReturnTypeSet == nullptr)
-                frame->GetFnObject()->probableReturnTypeSet = new TypeSet();
+            if (frame->closure->function->probableReturnTypeSet == nullptr)
+                frame->closure->function->probableReturnTypeSet = new TypeSet();
 #endif
             Value value;
             if (returnCount == 1)
@@ -62,12 +62,12 @@ void VM::Execute()
                 if (IS_OBJECT_VALUE(value))
                 {
                     if (IS_FUNCTION_VALUE(value))
-                        frame->GetFnObject()->probableReturnTypeSet->Insert(TO_FUNCTION_VALUE(value)->probableReturnTypeSet);
+                        frame->closure->function->probableReturnTypeSet->Insert(TO_FUNCTION_VALUE(value)->probableReturnTypeSet);
                     else
-                        frame->GetFnObject()->probableReturnTypeSet->Insert(TO_OBJECT_VALUE(value)->type);
+                        frame->closure->function->probableReturnTypeSet->Insert(TO_OBJECT_VALUE(value)->type);
                 }
                 else
-                    frame->GetFnObject()->probableReturnTypeSet->Insert(value.type);
+                    frame->closure->function->probableReturnTypeSet->Insert(value.type);
 #endif
             }
 
@@ -85,7 +85,7 @@ void VM::Execute()
         case OP_CONSTANT:
         {
             auto idx = *frame->ip++;
-            auto value = frame->GetFnObject()->chunk.constants[idx];
+            auto value = frame->closure->function->chunk.constants[idx];
             PUSH(value);
             break;
         }
@@ -196,10 +196,10 @@ void VM::Execute()
             Value *elements = new Value[numElements];
 
             int32_t i = numElements - 1;
-            for (Value *p = STACK_TOP() - 1; p >= STACK_TOP() - numElements && i >= 0; --p, --i)
+            for (Value *p = GET_STACK_TOP() - 1; p >= GET_STACK_TOP() - numElements && i >= 0; --p, --i)
                 elements[i] = *p;
 
-            auto array = Allocator::GetInstance()->CreateObject<ArrayObject>(elements, numElements);
+            auto array = ALLOCATE_OBJECT(ArrayObject, elements, numElements);
 
             STACK_TOP_JUMP(-numElements);
 
@@ -243,7 +243,7 @@ void VM::Execute()
             if (!IS_BOOL_VALUE(value))
                 ASSERT("The if condition not a boolean value");
             if (!TO_BOOL_VALUE(value))
-                frame->ip = frame->GetFnObject()->chunk.opCodes.data() + address;
+                frame->ip = frame->closure->function->chunk.opCodes.data() + address;
             break;
         }
         case OP_JUMP:
@@ -252,7 +252,7 @@ void VM::Execute()
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
             auto mode = *frame->ip++;
 #endif
-            frame->ip = frame->GetFnObject()->chunk.opCodes.data() + address;
+            frame->ip = frame->closure->function->chunk.opCodes.data() + address;
             break;
         }
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
@@ -293,17 +293,17 @@ void VM::Execute()
         {
             auto argCount = (uint8_t)*frame->ip++;
 
-            auto value = *(STACK_TOP() - argCount - 1);
-            if (IS_FUNCTION_VALUE(value))
+            auto value = *(GET_STACK_TOP() - argCount - 1);
+            if (IS_CLOSURE_VALUE(value))
             {
-                auto fn = TO_FUNCTION_VALUE(value);
+                auto closure = TO_CLOSURE_VALUE(value);
 
-                if (argCount != fn->parameterCount)
-                    ASSERT("Non matching function parameters for calling arguments,parameter count:%d,argument count:%d", fn->parameterCount, argCount);
+                if (argCount != closure->function->parameterCount)
+                    ASSERT("Non matching function parameters for calling arguments,parameter count:%d,argument count:%d", closure->function->parameterCount, argCount);
 
-                auto callFrame = CallFrame(fn, STACK_TOP() - argCount);
+                auto callFrame = CallFrame(closure, GET_STACK_TOP() - argCount);
                 PUSH_CALL_FRAME(callFrame);
-                SET_STACK_TOP(callFrame.slot + fn->localVarCount);
+                SET_STACK_TOP(callFrame.slot + closure->function->localVarCount);
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
                 RunJit(callFrame);
@@ -316,7 +316,7 @@ void VM::Execute()
                 if (!builtin->Is<BuiltinFn>())
                     ASSERT("Invalid builtin function");
 
-                Value *slot = STACK_TOP() - argCount;
+                Value *slot = GET_STACK_TOP() - argCount;
 
                 Value returnValue;
                 auto hasRet = builtin->Get<BuiltinFn>()(slot, argCount, returnValue);
@@ -328,6 +328,14 @@ void VM::Execute()
             }
             else
                 ASSERT("Calling not a function or a builtinFn");
+            break;
+        }
+        case OP_CLOSURE:
+        {
+            auto idx = *frame->ip++;
+            auto function = TO_FUNCTION_VALUE(frame->closure->function->chunk.constants[idx]);
+            auto closure = ALLOCATE_OBJECT(ClosureObject, function);
+            PUSH(closure);
             break;
         }
         case OP_DEF_LOCAL:
@@ -357,7 +365,7 @@ void VM::Execute()
         case OP_GET_BUILTIN:
         {
             auto idx = *frame->ip++;
-            auto name = TO_STR_VALUE(frame->GetFnObject()->chunk.constants[idx])->value;
+            auto name = TO_STR_VALUE(frame->closure->function->chunk.constants[idx])->value;
             auto builtinObj = BuiltinManager::GetInstance()->FindBuiltinObject(name);
             PUSH(builtinObj);
             break;
@@ -366,13 +374,13 @@ void VM::Execute()
         {
             Table *members = new Table();
             auto memberCount = 2 * (*frame->ip++);
-            for (auto slot = STACK_TOP(); slot > STACK_TOP() - memberCount;)
+            for (auto slot = GET_STACK_TOP(); slot > GET_STACK_TOP() - memberCount;)
             {
                 auto name = TO_STR_VALUE(*--slot);
                 auto value = *--slot;
                 members->Set(name, value);
             }
-            auto structInstance = Allocator::GetInstance()->CreateObject<StructObject>(members);
+            auto structInstance = ALLOCATE_OBJECT(StructObject, members);
 
             STACK_TOP_JUMP(-memberCount);
 
@@ -415,14 +423,14 @@ void VM::Execute()
         case OP_REF_GLOBAL:
         {
             auto index = *frame->ip++;
-            PUSH(Allocator::GetInstance()->CreateObject<RefObject>(GET_GLOBAL_VARIABLE_REF(index)));
+            PUSH(ALLOCATE_OBJECT(RefObject, GET_GLOBAL_VARIABLE_REF(index)));
             break;
         }
         case OP_REF_LOCAL:
         {
             auto index = *frame->ip++;
             Value *slot = GET_LOCAL_VARIABLE_SLOT(index);
-            PUSH(Allocator::GetInstance()->CreateObject<RefObject>(slot));
+            PUSH(ALLOCATE_OBJECT(RefObject, slot));
             break;
         }
         case OP_REF_INDEX_GLOBAL:
@@ -430,7 +438,7 @@ void VM::Execute()
             auto index = *frame->ip++;
             auto idxValue = POP();
             auto ptr = GetEndOfRefValuePtr(GET_GLOBAL_VARIABLE_REF(index));
-            PUSH(Allocator::GetInstance()->CreateIndexRefObject(ptr, idxValue));
+            PUSH(ALLOCATE_INDEX_REF_OBJECT(ptr, idxValue));
             break;
         }
         case OP_REF_INDEX_LOCAL:
@@ -439,13 +447,15 @@ void VM::Execute()
 
             auto idxValue = POP();
             Value *slot = GetEndOfRefValuePtr(GET_LOCAL_VARIABLE_SLOT(index));
-            PUSH(Allocator::GetInstance()->CreateIndexRefObject(slot, idxValue));
+            PUSH(ALLOCATE_INDEX_REF_OBJECT(slot, idxValue));
             break;
         }
         case OP_DLL_IMPORT:
         {
             auto name = TO_STR_VALUE(POP())->value;
+            Allocator::GetInstance()->DisableGC();
             RegisterDLLs(name);
+            Allocator::GetInstance()->EnableGC();
             break;
         }
         default:
@@ -458,51 +468,53 @@ void VM::Execute()
 void VM::RunJit(const CallFrame &frame)
 {
     if (!Config::GetInstance()->IsUseJit() ||
-        frame.fn->callCount < JIT_TRIGGER_COUNT ||
-        !frame.fn->probableReturnTypeSet ||
-        frame.fn->parameterCount > JIT_FUNCTION_MAX_PARAMETER_COUNT)
+        frame.closure->function->callCount < JIT_TRIGGER_COUNT ||
+        !frame.closure->function->probableReturnTypeSet ||
+        frame.closure->function->parameterCount > JIT_FUNCTION_MAX_PARAMETER_COUNT)
         return;
 
     // get function name by hashing arguments
-    size_t paramTypeHash = HashValueList(frame.slot, frame.slot + frame.fn->parameterCount);
-    auto fnName = GenerateFunctionName(frame.fn->uuid, frame.fn->probableReturnTypeSet->Hash(), paramTypeHash);
+    size_t paramTypeHash = HashValueList(frame.slot, frame.slot + frame.closure->function->parameterCount);
+    auto fnName = GenerateFunctionName(frame.closure->function->uuid, frame.closure->function->probableReturnTypeSet->Hash(), paramTypeHash);
 
     // compile jit function
     {
-        auto iter = frame.fn->jitCache.find(paramTypeHash);
-        if ((iter == frame.fn->jitCache.end() && !frame.fn->probableReturnTypeSet->IsMultiplyType()) ||
+        auto iter = frame.closure->function->jitCache.find(paramTypeHash);
+        if ((iter == frame.closure->function->jitCache.end() && !frame.closure->function->probableReturnTypeSet->IsMultiplyType()) ||
             iter->second.state == JitCompileState::DEPEND)
         {
             m_Jit->ResetStatus();
 
-            frame.fn->jitCache[paramTypeHash] = JitFnDecl();
+            frame.closure->function->jitCache[paramTypeHash] = JitFnDecl();
 
-            frame.fn->jitCache[paramTypeHash] = m_Jit->Compile(frame, fnName);
-            iter = frame.fn->jitCache.find(paramTypeHash);
+            frame.closure->function->jitCache[paramTypeHash] = m_Jit->Compile(frame, fnName);
+            iter = frame.closure->function->jitCache.find(paramTypeHash);
         }
 
         if (iter->second.state != JitCompileState::SUCCESS) //means current paramTypeHash compile error,not try compiling anymore
             return;
     }
 
-
     //execute jit function
     {
-        Allocator::GetInstance()->InsideJitExecutor();
+        //TODO:maybe in jit compiler need to stop GC,but NOT test yet!
+        // here we enable GC as default
 
-        if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::NUM))
+        // Allocator::GetInstance()->DisableGC();
+
+        if (frame.closure->function->probableReturnTypeSet->IsOnly(ValueType::NUM))
             ExecuteJitFunction<double>(frame, fnName);
-        else if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::BOOL))
+        else if (frame.closure->function->probableReturnTypeSet->IsOnly(ValueType::BOOL))
             ExecuteJitFunction<bool>(frame, fnName);
-        else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::STR))
+        else if (frame.closure->function->probableReturnTypeSet->IsOnly(ObjectType::STR))
             ExecuteJitFunction<StrObject *>(frame, fnName);
-        else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::ARRAY))
+        else if (frame.closure->function->probableReturnTypeSet->IsOnly(ObjectType::ARRAY))
             ExecuteJitFunction<ArrayObject *>(frame, fnName);
-        else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::REF))
+        else if (frame.closure->function->probableReturnTypeSet->IsOnly(ObjectType::REF))
             ExecuteJitFunction<RefObject *>(frame, fnName);
-        else if (frame.fn->probableReturnTypeSet->IsOnly(ObjectType::STRUCT))
+        else if (frame.closure->function->probableReturnTypeSet->IsOnly(ObjectType::STRUCT))
             ExecuteJitFunction<StructObject *>(frame, fnName);
-        else if (frame.fn->probableReturnTypeSet->IsOnly(ValueType::NIL))
+        else if (frame.closure->function->probableReturnTypeSet->IsOnly(ValueType::NIL))
         {
             ExecuteJitFunction<void>(frame, fnName);
             PUSH(Value());
@@ -510,7 +522,7 @@ void VM::RunJit(const CallFrame &frame)
         else
             ExecuteJitFunction<void>(frame, fnName);
 
-        Allocator::GetInstance()->OutsideJitExecutor();
+        // Allocator::GetInstance()->EnableGC();
     }
 }
 
