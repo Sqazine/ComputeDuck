@@ -18,7 +18,7 @@
 #endif
 
 #define UINT8_COUNT (UINT8_MAX + 1)
-constexpr uint32_t STACK_MAX = 512;
+constexpr uint32_t STACK_COUNT = 512;
 
 #define SAFE_DELETE(x)   \
     do                   \

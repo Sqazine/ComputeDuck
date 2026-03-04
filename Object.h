@@ -19,6 +19,7 @@
 #define TO_STRUCT_OBJ(obj) (static_cast<StructObject *>(obj))
 #define TO_REF_OBJ(obj) (static_cast<RefObject *>(obj))
 #define TO_FUNCTION_OBJ(obj) (static_cast<FunctionObject *>(obj))
+#define TO_UPVALUE_OBJ(obj) (static_cast<UpvalueObject *>(obj))
 #define TO_CLOSURE_OBJ(obj) (static_cast<ClosureObject *>(obj))
 #define TO_BUILTIN_OBJ(obj) (static_cast<BuiltinObject *>(obj))
 
@@ -27,6 +28,7 @@
 #define IS_STRUCT_OBJ(obj) (obj->type == ObjectType::STRUCT)
 #define IS_REF_OBJ(obj) (obj->type == ObjectType::REF)
 #define IS_FUNCTION_OBJ(obj) (obj->type == ObjectType::FUNCTION)
+#define IS_UPVALUE_OBJ(obj) (obj->type == ObjectType::UPVALUE)
 #define IS_CLOSURE_OBJ(obj) (obj->type == ObjectType::CLOSURE)
 #define IS_BUILTIN_OBJ(obj) (obj->type == ObjectType::BUILTIN)
 
@@ -37,6 +39,7 @@ enum ObjectType :uint8_t
     STRUCT,
     REF,
     FUNCTION,
+    UPVALUE,
     CLOSURE,
     BUILTIN,
 };
@@ -117,12 +120,26 @@ struct FunctionObject : public Object
 #endif
 };
 
+struct UpvalueObject : public Object
+{
+    UpvalueObject(Value *slot) :Object(ObjectType::UPVALUE), location(slot) {}
+    ~UpvalueObject() = default;
+
+    Value *location;
+	Value closed;
+	UpvalueObject *nextUpvalue{ nullptr };
+};
+
 struct ClosureObject:public Object
 {
-    ClosureObject(FunctionObject *fn) :Object(ObjectType::CLOSURE), function(fn) {}
+    ClosureObject(FunctionObject *fn) :Object(ObjectType::CLOSURE), function(fn)
+    {
+        memset(upvalues, 0, sizeof(UpvalueObject*) * UPVALUE_COUNT);
+    }
     ~ClosureObject() = default;
 
     FunctionObject *function;
+    UpvalueObject* upvalues[UPVALUE_COUNT]{};
 };
 
 struct StructObject : public Object

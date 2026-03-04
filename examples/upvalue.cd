@@ -26,3 +26,20 @@ fn = function(a,b)
 };
 
 println(fn(10,20)(30)); # 50
+
+counter = function()
+{
+    a = 0;
+    add = function()
+    {
+        a = a + 1;
+        println(a);
+    };
+    return add;
+};
+
+add = counter();
+
+add(); # 1
+add(); # 2
+add(); # 3

@@ -51,17 +51,18 @@ private:
 
     Chunk &CurChunk();
 
-	uint16_t AddConstant(const Value &value);
+    uint16_t AddConstant(const Value &value);
 
     uint32_t Emit(int16_t opcode);
     uint32_t EmitConstant(const Value &value);
-    uint32_t EmitClosure(FunctionObject* fn);
+    uint32_t EmitClosure(FunctionObject *fn);
 
     void ModifyOpCode(uint32_t pos, int16_t opcode);
 
     void DefineSymbol(const Symbol &symbol);
     void LoadSymbol(const Symbol &symbol);
     void StoreSymbol(const Symbol &symbol);
+    void RefSymbol(const Symbol &symbol, bool isIndexSymbol);
 
     std::vector<Chunk> m_ScopeChunks;
 

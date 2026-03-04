@@ -55,12 +55,14 @@ std::string ObjectStringify(Object *object
 #endif
         return result;
     }
+    case ObjectType::UPVALUE:
+        return TO_UPVALUE_OBJ(object)->location->Stringify();
     case ObjectType::CLOSURE:
     {
-       return ObjectStringify(TO_CLOSURE_OBJ(object)->function
+        return ObjectStringify(TO_CLOSURE_OBJ(object)->function
 #ifndef NDEBUG
-                        ,
-                        printChunkIfIsFunctionObject
+                               ,
+                               printChunkIfIsFunctionObject
 #endif
         );
     }
@@ -83,6 +85,9 @@ std::string ObjectStringify(Object *object
 
 void MarkObject(Object *object)
 {
+    if (object == nullptr)
+        return;
+
     object->marked = true;
     switch (object->type)
     {
@@ -108,9 +113,19 @@ void MarkObject(Object *object)
             v.Mark();
         break;
     }
+    case ObjectType::UPVALUE:
+    {
+        TO_UPVALUE_OBJ(object)->closed.Mark();
+        break;
+    }
     case ObjectType::CLOSURE:
     {
         MarkObject(TO_CLOSURE_OBJ(object)->function);
+        for (size_t i = 0; i < UINT8_COUNT; ++i)
+        {
+            auto upvalue = TO_CLOSURE_OBJ(object)->upvalues[i];
+            MarkObject(upvalue);
+        }
         break;
     }
     case ObjectType::BUILTIN:
@@ -127,6 +142,9 @@ void MarkObject(Object *object)
 
 void UnMarkObject(Object *object)
 {
+    if (object == nullptr)
+        return;
+
     object->marked = false;
     switch (object->type)
     {
@@ -152,9 +170,19 @@ void UnMarkObject(Object *object)
             v.UnMark();
         break;
     }
+    case ObjectType::UPVALUE:
+    {
+        TO_UPVALUE_OBJ(object)->closed.UnMark();
+        break;
+    }
     case ObjectType::CLOSURE:
     {
         UnMarkObject(TO_CLOSURE_OBJ(object)->function);
+        for (size_t i = 0; i < UPVALUE_COUNT; ++i)
+        {
+            auto upvalue = TO_CLOSURE_OBJ(object)->upvalues[i];
+            UnMarkObject(upvalue);
+        }
         break;
     }
     case ObjectType::BUILTIN:
@@ -203,6 +231,12 @@ COMPUTEDUCK_API void DeleteObject(Object *object)
         SAFE_DELETE(fnObj);
         return;
     }
+    case ObjectType::UPVALUE:
+    {
+        auto upvalueObj = TO_UPVALUE_OBJ(object);
+        SAFE_DELETE(upvalueObj);
+        return;
+    }
     case ObjectType::CLOSURE:
     {
         auto closureObj = TO_CLOSURE_OBJ(object);
@@ -222,7 +256,7 @@ COMPUTEDUCK_API void DeleteObject(Object *object)
 
 bool IsObjectEqual(Object *left, Object *right)
 {
-    if (left->type != right->type)
+    if ((left == nullptr || right == nullptr) || (left->type != right->type))
         return false;
     switch (left->type)
     {
@@ -243,14 +277,14 @@ bool IsObjectEqual(Object *left, Object *right)
         return *TO_REF_OBJ(left)->pointer == *TO_REF_OBJ(right)->pointer;
     case ObjectType::FUNCTION:
     {
-        if (TO_FUNCTION_OBJ(left)->chunk.opCodes.size() != TO_FUNCTION_OBJ(right)->chunk.opCodes.size())
+        if (TO_FUNCTION_OBJ(left)->chunk.opCodeList.size() != TO_FUNCTION_OBJ(right)->chunk.opCodeList.size())
             return false;
         if (TO_FUNCTION_OBJ(left)->parameterCount != TO_FUNCTION_OBJ(right)->parameterCount)
             return false;
         if (TO_FUNCTION_OBJ(left)->localVarCount != TO_FUNCTION_OBJ(right)->localVarCount)
             return false;
-        for (int32_t i = 0; i < TO_FUNCTION_OBJ(left)->chunk.opCodes.size(); ++i)
-            if (TO_FUNCTION_OBJ(left)->chunk.opCodes[i] != TO_FUNCTION_OBJ(right)->chunk.opCodes[i])
+        for (int32_t i = 0; i < TO_FUNCTION_OBJ(left)->chunk.opCodeList.size(); ++i)
+            if (TO_FUNCTION_OBJ(left)->chunk.opCodeList[i] != TO_FUNCTION_OBJ(right)->chunk.opCodeList[i])
                 return false;
         return true;
     }
@@ -264,6 +298,25 @@ bool IsObjectEqual(Object *left, Object *right)
         }
         else
             return TO_BUILTIN_OBJ(left)->data.index() == TO_BUILTIN_OBJ(right)->data.index();
+    }
+    case ObjectType::UPVALUE:
+    {
+        return TO_UPVALUE_OBJ(left)->location == TO_UPVALUE_OBJ(right)->location;
+    }
+    case ObjectType::CLOSURE:
+    {
+        auto leftClosure = TO_CLOSURE_OBJ(left);
+        auto rightClosure = TO_CLOSURE_OBJ(right);
+        if (!IsObjectEqual(leftClosure->function, rightClosure->function))
+            return false;
+        for (size_t i = 0; i < UINT8_COUNT; ++i)
+        {
+            auto upvalue1 = leftClosure->upvalues[i];
+            auto upvalue2 = rightClosure->upvalues[i];
+            if (upvalue1 != upvalue2)
+                return false;
+        }
+        return true;
     }
     default:
         ASSERT("Unknown object type");

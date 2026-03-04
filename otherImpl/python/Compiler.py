@@ -61,12 +61,12 @@ class Compiler:
         self.__emit(OpCode.OP_JUMP)
         jumpAddress = self.__emit(INVALID_OPCODE)
 
-        self.__modify_opcode(jumpIfFalseAddress, len(self.__cur_chunk().opCodes)-1)
+        self.__modify_opcode(jumpIfFalseAddress, len(self.__cur_chunk().opCodeList)-1)
 
         if stmt.elseBranch:
             self.__compile_stmt(stmt.elseBranch)
 
-        self.__modify_opcode(jumpAddress, len(self.__cur_chunk().opCodes)-1)
+        self.__modify_opcode(jumpAddress, len(self.__cur_chunk().opCodeList)-1)
 
     def __compile_scope_stmt(self, stmt: ScopeStmt) -> None:
         self.__symbolTable.enter_scope()
@@ -77,7 +77,7 @@ class Compiler:
         self.__symbolTable.exit_scope()
 
     def __compile_while_stmt(self, stmt: WhileStmt) -> None:
-        jumpAddress = len(self.__cur_chunk().opCodes)-1
+        jumpAddress = len(self.__cur_chunk().opCodeList)-1
         self.__compile_expr(stmt.condition)
 
         self.__emit(OpCode.OP_JUMP_IF_FALSE)
@@ -88,7 +88,7 @@ class Compiler:
         self.__emit(OpCode.OP_JUMP)
         self.__emit(jumpAddress)
 
-        self.__modify_opcode(jumpIfFalseAddress, len(self.__cur_chunk().opCodes)-1)
+        self.__modify_opcode(jumpIfFalseAddress, len(self.__cur_chunk().opCodeList)-1)
 
     def __compile_return_stmt(self, stmt: ReturnStmt) -> None:
         if stmt.expr != None:
@@ -115,8 +115,8 @@ class Compiler:
 
         chunk = self.__scope_chunk.pop()
 
-        chunk.opCodes.append(OpCode.OP_RETURN)
-        chunk.opCodes.append(1)
+        chunk.opCodeList.append(OpCode.OP_RETURN)
+        chunk.opCodeList.append(1)
 
         fn = FunctionObject(chunk, localVarCount)
 
@@ -274,19 +274,19 @@ class Compiler:
             self.__compile_stmt(s)
 
         localVarCount = self.__symbolTable.get_var_count()
-
-        self.__symbolTable = self.__symbolTable.get_upper()
-
+        
         chunk = self.__scope_chunk.pop()
 
         # for non return  or empty stmt in function scope:add a return to return nothing
-        opCodesLen = len(chunk.opCodes)
-        if opCodesLen == 0 or chunk.opCodes[opCodesLen-2] != OpCode.OP_RETURN:
-            chunk.opCodes.append(OpCode.OP_RETURN)
-            chunk.opCodes.append(0)
+        opCodeListLen = len(chunk.opCodeList)
+        if opCodeListLen == 0 or chunk.opCodeList[opCodeListLen-2] != OpCode.OP_RETURN:
+            chunk.opCodeList.append(OpCode.OP_RETURN)
+            chunk.opCodeList.append(0)
 
         fn = FunctionObject(chunk, localVarCount, len(stmt.parameters))
         self.__emit_closure(fn)
+        
+        self.__symbolTable = self.__symbolTable.get_upper()
 
     def __compile_function_call_expr(self, expr: FunctionCallExpr) -> None:
         self.__compile_expr(expr.name)
@@ -330,24 +330,14 @@ class Compiler:
             if isFound == False:
                 error("Undefined variable:"+expr.__str__())
 
-            if symbol.scope == SymbolScope.GLOBAL:
-                self.__emit(OpCode.OP_REF_INDEX_GLOBAL)
-                self.__emit(symbol.index)
-            elif symbol.scope == SymbolScope.LOCAL:
-                self.__emit(OpCode.OP_REF_INDEX_LOCAL)
-                self.__emit(symbol.index)
+            self.__ref_symbol(symbol,True)
         else:
             isFound, symbol = self.__symbolTable.resolve(
                 expr.refExpr.__str__())
             if isFound == False:
                 error("Undefined variable:"+expr.__str__())
 
-            if symbol.scope == SymbolScope.GLOBAL:
-                self.__emit(OpCode.OP_REF_GLOBAL)
-                self.__emit(symbol.index)
-            elif symbol.scope == SymbolScope.LOCAL:
-                self.__emit(OpCode.OP_REF_LOCAL)
-                self.__emit(symbol.index)
+            self.__ref_symbol(symbol,False)
 
     def __compile_struct_expr(self, expr: StructExpr) -> None:
         for k, v in expr.memberPairs.items():
@@ -374,23 +364,34 @@ class Compiler:
         return len(self.__cur_chunk().constants)-1
 
     def __emit(self, opcode: int) -> int:
-        self.__cur_chunk().opCodes.append(opcode)
-        return len(self.__cur_chunk().opCodes)-1
+        self.__cur_chunk().opCodeList.append(opcode)
+        return len(self.__cur_chunk().opCodeList)-1
 
     def __emit_constant(self, object: Object) -> int:
         pos = self.__add_constant(object)
 
         self.__emit(OpCode.OP_CONSTANT)
         self.__emit(pos)
-        return len(self.__cur_chunk().opCodes)-1
+        return len(self.__cur_chunk().opCodeList)-1
     
     def __emit_closure(self,fn:FunctionObject) -> int:
+        
+        upvalueCount = self.__symbolTable.get_upvalue_count()
+        
         pos = self.__add_constant(fn)
         self.__emit(OpCode.OP_CLOSURE)
         self.__emit(pos)
+        self.__emit(upvalueCount)
+        
+        for i in range(0, upvalueCount):
+            upvalue = self.__symbolTable.get_upvalue_list()[i]
+            self.__emit(upvalue.index)
+            self.__emit(upvalue.scopeDepth)
+            
+        return len(self.__cur_chunk().opCodeList)-1
 
     def __modify_opcode(self, pos: int, opcode: int) -> None:
-        self.__cur_chunk().opCodes[pos] = opcode
+        self.__cur_chunk().opCodeList[pos] = opcode
 
     def __define_symbol(self, symbol: Symbol) -> None:
         if symbol.scope == SymbolScope.GLOBAL:
@@ -407,6 +408,9 @@ class Compiler:
         elif symbol.scope == SymbolScope.LOCAL:
             self.__emit(OpCode.OP_GET_LOCAL)
             self.__emit(symbol.index)
+        elif symbol.scope == SymbolScope.UPVALUE:
+            self.__emit(OpCode.OP_GET_UPVALUE)
+            self.__emit(symbol.upvalueIndex)
         elif symbol.scope == SymbolScope.BUILTIN:
             self.__emit_constant(StrObject(symbol.name))
             self.__emit(OpCode.OP_GET_BUILTIN)
@@ -421,6 +425,23 @@ class Compiler:
             self.__emit(symbol.index)
         elif symbol.scope == SymbolScope.LOCAL:
             self.__emit(OpCode.OP_SET_LOCAL)
+            self.__emit(symbol.index)
+        elif symbol.scope == SymbolScope.UPVALUE:
+            self.__emit(OpCode.OP_SET_UPVALUE)
+            self.__emit(symbol.upvalueIndex)
+
+    def __ref_symbol(self, symbol: Symbol,isIndexSymbol:bool) -> None:
+        if symbol.scope == SymbolScope.GLOBAL:
+            if isIndexSymbol:
+                self.__emit(OpCode.OP_REF_INDEX_GLOBAL)
+            else:
+                self.__emit(OpCode.OP_REF_GLOBAL)
+            self.__emit(symbol.index)
+        elif symbol.scope == SymbolScope.LOCAL:
+            if isIndexSymbol:
+                self.__emit(OpCode.OP_REF_INDEX_LOCAL)
+            else:
+                self.__emit(OpCode.OP_REF_LOCAL)
             self.__emit(symbol.index)
 
     def __register_builtins(self):

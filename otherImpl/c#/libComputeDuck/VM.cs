@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace ComputeDuck
 {
@@ -27,32 +28,32 @@ namespace ComputeDuck
 
             public bool IsAtEnd()
             {
-                if (ip < closure.function.chunk.opCodes.Count)
+                if (ip < closure.function.chunk.opCodeList.Count)
                     return false;
                 return true;
             }
         }
 
-        const int STACK_MAX = 512;
-
-        private Object[] m_GlobalVariables = new Object[STACK_MAX];
+        private Object[] m_GlobalVariables = new Object[Utils.STACK_COUNT];
 
         private int m_StackTop;
-        private Object[] m_ObjectStack = new Object[STACK_MAX];
+        private Object[] m_ObjectStack = new Object[Utils.STACK_COUNT];
 
         private int m_CallFrameTop;
-        private CallFrame[] m_CallFrames = new CallFrame[STACK_MAX];
+        private CallFrame[] m_CallFrames = new CallFrame[Utils.STACK_COUNT];
+
+        private UpvalueObject m_OpenUpvalues = null;
 
         private void ResetStatus()
         {
             m_StackTop = 0;
-            for (int i = 0; i < STACK_MAX; ++i)
+            for (int i = 0; i < Utils.STACK_COUNT; ++i)
                 m_ObjectStack[i] = new NilObject();
 
-            for (int i = 0; i < STACK_MAX; ++i)
+            for (int i = 0; i < Utils.STACK_COUNT; ++i)
                 m_GlobalVariables[i] = new NilObject();
 
-            for (int i = 0; i < STACK_MAX; ++i)
+            for (int i = 0; i < Utils.STACK_COUNT; ++i)
                 m_CallFrames[i] = new CallFrame();
         }
 
@@ -76,15 +77,17 @@ namespace ComputeDuck
                 if (frame.IsAtEnd())
                     return;
 
-                int instruction = frame.closure.function.chunk.opCodes[frame.ip++];
+                int instruction = frame.closure.function.chunk.opCodeList[frame.ip++];
                 switch (instruction)
                 {
                     case (int)OpCode.OP_RETURN:
                         {
-                            var returnCounnt = frame.closure.function.chunk.opCodes[frame.ip++];
+                            var returnCounnt = frame.closure.function.chunk.opCodeList[frame.ip++];
                             Object obj = null;
                             if (returnCounnt == 1)
                                 obj = Pop();
+
+                            ClosedUpvalues(m_ObjectStack[frame.slot].GetAddress());
 
                             var callFrame = PopCallFrame();
 
@@ -99,7 +102,7 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_CONSTANT:
                         {
-                            var idx = frame.closure.function.chunk.opCodes[frame.ip++];
+                            var idx = frame.closure.function.chunk.opCodeList[frame.ip++];
                             var value = frame.closure.function.chunk.constants[idx];
 
                             Push(value);
@@ -269,7 +272,7 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_ARRAY:
                         {
-                            var numElements = frame.closure.function.chunk.opCodes[frame.ip++];
+                            var numElements = frame.closure.function.chunk.opCodeList[frame.ip++];
                             List<Object> elements = new List<Object>(m_ObjectStack[(m_StackTop - numElements)..m_StackTop]);
 
                             m_StackTop -= numElements;
@@ -315,7 +318,7 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_JUMP_IF_FALSE:
                         {
-                            var address = frame.closure.function.chunk.opCodes[frame.ip++];
+                            var address = frame.closure.function.chunk.opCodeList[frame.ip++];
                             var obj = Pop();
                             if (obj.type != ObjectType.BOOL)
                                 Utils.Assert("The if condition not a boolean value:" + obj.ToString());
@@ -325,20 +328,20 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_JUMP:
                         {
-                            var address = frame.closure.function.chunk.opCodes[frame.ip++];
+                            var address = frame.closure.function.chunk.opCodeList[frame.ip++];
                             frame.ip = address + 1;
                             break;
                         }
                     case (int)OpCode.OP_DEF_GLOBAL:
                         {
-                            var index = frame.closure.function.chunk.opCodes[frame.ip++];
+                            var index = frame.closure.function.chunk.opCodeList[frame.ip++];
                             var obj = Pop();
                             m_GlobalVariables[index] = obj;
                             break;
                         }
                     case (int)OpCode.OP_SET_GLOBAL:
                         {
-                            var index = frame.closure.function.chunk.opCodes[frame.ip++];
+                            var index = frame.closure.function.chunk.opCodeList[frame.ip++];
                             var obj = Pop();
 
                             if (m_GlobalVariables[index].type == ObjectType.REF)
@@ -360,21 +363,32 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_GET_GLOBAL:
                         {
-                            var index = frame.closure.function.chunk.opCodes[frame.ip++];
+                            var index = frame.closure.function.chunk.opCodeList[frame.ip++];
                             Push(m_GlobalVariables[index]);
                             break;
                         }
                     case (int)OpCode.OP_CLOSURE:
                         {
-                            var idx = frame.closure.function.chunk.opCodes[frame.ip++];
+                            var idx = frame.closure.function.chunk.opCodeList[frame.ip++];
+                            var upvalueCount = frame.closure.function.chunk.opCodeList[frame.ip++];
                             var fn = (FunctionObject)frame.closure.function.chunk.constants[idx];
                             var closure = new ClosureObject(fn);
+
+                            for(int i=0;i<upvalueCount;++i)
+                            {
+                                var index = frame.closure.function.chunk.opCodeList[frame.ip++];
+                                var scopeDepth = frame.closure.function.chunk.opCodeList[frame.ip++];
+
+                                var upvalue = CaptureUpvalue(m_ObjectStack[GetUpvalueVariableSlot(index,scopeDepth)].GetAddress());
+                                closure.upvalues[i] = upvalue;
+                            }
+
                             Push(closure);
                             break;
                         }
                     case (int)OpCode.OP_FUNCTION_CALL:
                         {
-                            var argCount = frame.closure.function.chunk.opCodes[frame.ip++];
+                            var argCount = frame.closure.function.chunk.opCodeList[frame.ip++];
                             var obj = m_ObjectStack[m_StackTop - 1 - argCount];
                             if (obj.type == ObjectType.CLOSURE)
                             {
@@ -403,8 +417,8 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_DEF_LOCAL:
                         {
-                            var index = frame.closure.function.chunk.opCodes[frame.ip++];
-                         
+                            var index = frame.closure.function.chunk.opCodeList[frame.ip++];
+
                             var obj = Pop();
                             var slot = GetLocalVariableSlot(index);
                             m_ObjectStack[slot] = obj;
@@ -412,11 +426,11 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_SET_LOCAL:
                         {
-                            var index = frame.closure.function.chunk.opCodes[frame.ip++];
+                            var index = frame.closure.function.chunk.opCodeList[frame.ip++];
 
                             var obj = Pop();
 
-                            int slot= GetLocalVariableSlot(index);
+                            int slot = GetLocalVariableSlot(index);
 
                             if (m_ObjectStack[slot].type == ObjectType.REF)
                             {
@@ -437,9 +451,9 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_GET_LOCAL:
                         {
-                            var index = frame.closure.function.chunk.opCodes[frame.ip++];
+                            var index = frame.closure.function.chunk.opCodeList[frame.ip++];
 
-                            int slot= GetLocalVariableSlot(index);
+                            int slot = GetLocalVariableSlot(index);
                             Push(m_ObjectStack[slot]);
                             break;
                         }
@@ -453,7 +467,7 @@ namespace ComputeDuck
                     case (int)OpCode.OP_STRUCT:
                         {
                             var members = new Dictionary<string, Object>();
-                            var memberCount = frame.closure.function.chunk.opCodes[frame.ip++];
+                            var memberCount = frame.closure.function.chunk.opCodeList[frame.ip++];
 
                             var tmpPtr = m_StackTop;
 
@@ -475,7 +489,7 @@ namespace ComputeDuck
                             var memberName = Pop();
                             var instance = Pop();
 
-                            (instance,_) =GetEndOfRefObject(instance); 
+                            (instance, _) = GetEndOfRefObject(instance);
 
                             if (memberName.type == ObjectType.STR)
                             {
@@ -505,32 +519,32 @@ namespace ComputeDuck
                         }
                     case (int)OpCode.OP_REF_GLOBAL:
                         {
-                            var index = frame.closure.function.chunk.opCodes[frame.ip++];
+                            var index = frame.closure.function.chunk.opCodeList[frame.ip++];
                             Push(new RefObject(m_GlobalVariables[index].GetAddress()));
                             break;
                         }
                     case (int)OpCode.OP_REF_LOCAL:
                         {
-                            var index = frame.closure.function.chunk.opCodes[frame.ip++];
+                            var index = frame.closure.function.chunk.opCodeList[frame.ip++];
 
                             int slot = GetLocalVariableSlot(index);
-                           
+
                             Push(new RefObject(m_ObjectStack[slot].GetAddress()));
 
                             break;
                         }
                     case (int)OpCode.OP_REF_INDEX_GLOBAL:
                         {
-                            var index = frame.closure.function.chunk.opCodes[frame.ip++];
+                            var index = frame.closure.function.chunk.opCodeList[frame.ip++];
                             var idxValue = Pop();
 
-                            var (obj,_) = GetEndOfRefObject(m_GlobalVariables[index]);
+                            var (obj, _) = GetEndOfRefObject(m_GlobalVariables[index]);
                             Push(AllocateIndexRefObject(obj, idxValue));
                             break;
                         }
                     case (int)OpCode.OP_REF_INDEX_LOCAL:
                         {
-                            var index = frame.closure.function.chunk.opCodes[frame.ip++];
+                            var index = frame.closure.function.chunk.opCodeList[frame.ip++];
 
                             int slot = GetLocalVariableSlot(index);
                             var idxValue = Pop();
@@ -542,6 +556,22 @@ namespace ComputeDuck
                         {
                             var name = ((StrObject)Pop()).value;
                             Utils.RegisterDLLs(name);
+                            break;
+                        }
+                    case (int)OpCode.OP_SET_UPVALUE:
+                        {
+                            var index = frame.closure.function.chunk.opCodeList[frame.ip++];
+
+                            var obj = Pop();
+
+                            frame.closure.upvalues[index].location = obj.GetAddress();
+                            break;
+                        }
+                    case (int)OpCode.OP_GET_UPVALUE:
+                        {
+                            var index = frame.closure.function.chunk.opCodeList[frame.ip++];
+                            var upvalue = frame.closure.upvalues[index];
+                            Push(Utils.SearchObjectByAddress(upvalue.location));
                             break;
                         }
                     default:
@@ -579,10 +609,15 @@ namespace ComputeDuck
 
         private int GetLocalVariableSlot(int index)
         {
-           return PeekCallFrame(1).slot + index;
+            return PeekCallFrame(1).slot + index;
         }
 
-        private RefObject AllocateIndexRefObject(Object obj,Object idxValue)
+        private int GetUpvalueVariableSlot(int index,int scopeDepth)
+        {
+            return m_CallFrames[scopeDepth].slot + index;
+        }
+
+        private RefObject AllocateIndexRefObject(Object obj, Object idxValue)
         {
             if (obj.type == ObjectType.ARRAY)
             {
@@ -593,7 +628,7 @@ namespace ComputeDuck
                 return new RefObject(((ArrayObject)obj).elements[(int)((NumObject)idxValue).value].GetAddress());
             }
             else
-                Utils.Assert("Invalid indexed reference type:" +obj.ToString() + " not a array value.");
+                Utils.Assert("Invalid indexed reference type:" + obj.ToString() + " not a array value.");
             return null;
         }
 
@@ -609,7 +644,7 @@ namespace ComputeDuck
             return actual;
         }
 
-        private (Object,IntPtr) GetEndOfRefObject(Object obj)
+        private (Object, IntPtr) GetEndOfRefObject(Object obj)
         {
             Object retObj = obj;
             IntPtr address = 0;
@@ -664,6 +699,20 @@ namespace ComputeDuck
                 }
 
             }
+
+            for(int i=0;i<m_CallFrameTop;++i)
+            {
+                var callFrame = m_CallFrames[i];
+                for(int j=0;j<callFrame.closure.upvalues.Count();++j)
+                {
+                    if (callFrame.closure.upvalues[j] != null && callFrame.closure.upvalues[j].location == address)
+                    {
+                        callFrame.closure.upvalues[j].location = obj.GetAddress();
+                        return;
+                    }
+                }
+            }
+             Utils.Assert("Invalid reference address:" + address.ToString() + " for assigning object:" + obj.ToString());
         }
 
         private List<Object> SearchRefObjectListByAddress(IntPtr address)
@@ -740,6 +789,42 @@ namespace ComputeDuck
                         ((RefObject)m_ObjectStack[i]).pointer = newAddress;
             }
 
+        }
+
+
+        UpvalueObject CaptureUpvalue(IntPtr slot)
+        {
+            UpvalueObject prevUpvalue = null;
+            UpvalueObject upvalue = m_OpenUpvalues;
+            while (upvalue != null && upvalue.location > slot)
+            {
+                prevUpvalue = upvalue;
+                upvalue = upvalue.nextUpvalue;
+            }
+
+            if (upvalue != null && upvalue.location == slot)
+                return upvalue;
+
+            var createdUpvalue = new UpvalueObject(slot);
+            createdUpvalue.nextUpvalue = upvalue;
+
+            if (prevUpvalue == null)
+                m_OpenUpvalues = createdUpvalue;
+            else
+                prevUpvalue.nextUpvalue = createdUpvalue;
+
+            return createdUpvalue;
+        }
+
+        void ClosedUpvalues(IntPtr last)
+        {
+            while (m_OpenUpvalues != null && m_OpenUpvalues.location >= last)
+            {
+                UpvalueObject upvalue = m_OpenUpvalues;
+                upvalue.closed = Utils.SearchObjectByAddress(upvalue.location);
+                upvalue.location = upvalue.closed.GetAddress();
+                m_OpenUpvalues = upvalue.nextUpvalue;
+            }
         }
     }
 }

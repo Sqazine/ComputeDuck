@@ -87,12 +87,12 @@ namespace ComputeDuck
             Emit((int)OpCode.OP_JUMP);
             var jumpAddress = Emit(INVALID_OPCODE);
 
-            ModifyOpCode(jumpIfFalseAddress, CurChunk().opCodes.Count - 1);
+            ModifyOpCode(jumpIfFalseAddress, CurChunk().opCodeList.Count - 1);
 
             if (stmt.elseBranch != null)
                 CompileStmt(stmt.elseBranch);
 
-            ModifyOpCode(jumpAddress, CurChunk().opCodes.Count - 1);
+            ModifyOpCode(jumpAddress, CurChunk().opCodeList.Count - 1);
         }
         void CompileScopeStmt(ScopeStmt stmt)
         {
@@ -105,7 +105,7 @@ namespace ComputeDuck
         }
         void CompileWhileStmt(WhileStmt stmt)
         {
-            var jumpAddress = CurChunk().opCodes.Count - 1;
+            var jumpAddress = CurChunk().opCodeList.Count - 1;
             CompileExpr(stmt.condition);
 
             Emit((int)OpCode.OP_JUMP_IF_FALSE);
@@ -116,7 +116,7 @@ namespace ComputeDuck
             Emit((int)OpCode.OP_JUMP);
             Emit(jumpAddress);
 
-            ModifyOpCode(jumpIfFalseAddress, CurChunk().opCodes.Count - 1);
+            ModifyOpCode(jumpIfFalseAddress, CurChunk().opCodeList.Count - 1);
         }
         void CompileReturnStmt(ReturnStmt stmt)
         {
@@ -152,8 +152,8 @@ namespace ComputeDuck
             var chunk = m_ScopeChunk[m_ScopeChunk.Count - 1];
             m_ScopeChunk.RemoveAt(m_ScopeChunk.Count - 1);
 
-            chunk.opCodes.Add((int)OpCode.OP_RETURN);
-            chunk.opCodes.Add(1);
+            chunk.opCodeList.Add((int)OpCode.OP_RETURN);
+            chunk.opCodeList.Add(1);
 
             var fn = new FunctionObject(chunk, localVarCount);
 
@@ -347,36 +347,32 @@ namespace ComputeDuck
         }
         void CompileFunctionExpr(FunctionExpr expr)
         {
-            m_SymbolTable= new SymbolTable(m_SymbolTable);
+            m_SymbolTable = new SymbolTable(m_SymbolTable);
 
             m_ScopeChunk.Add(new Chunk());
 
             foreach (var param in expr.parameters)
                 m_SymbolTable.Define(param.literal);
 
-             foreach (var s in expr.body.stmts)
+            foreach (var s in expr.body.stmts)
                 CompileStmt(s);
 
             var localVarCount = m_SymbolTable.GetVarCount();
 
-            m_SymbolTable = m_SymbolTable.GetUpper();
 
             var chunk = m_ScopeChunk[m_ScopeChunk.Count - 1];
             m_ScopeChunk.RemoveAt(m_ScopeChunk.Count - 1);
 
-            if (chunk.opCodes.Count == 0 || chunk.opCodes[chunk.opCodes.Count - 2] != (int)OpCode.OP_RETURN)
+            if (chunk.opCodeList.Count == 0 || chunk.opCodeList[chunk.opCodeList.Count - 2] != (int)OpCode.OP_RETURN)
             {
-                chunk.opCodes.Add((int)OpCode.OP_RETURN);
-                chunk.opCodes.Add(0);
+                chunk.opCodeList.Add((int)OpCode.OP_RETURN);
+                chunk.opCodeList.Add(0);
             }
 
             var fn = new FunctionObject(chunk, localVarCount, expr.parameters.Count);
 
             EmitClosure(fn);
-
-            uint pos = AddConstant(fn);
-            Emit((int)OpCode.OP_CLOSURE);
-            Emit((int)pos);
+            m_SymbolTable = m_SymbolTable.GetUpper();
         }
         void CompileFunctionCallExpr(FunctionCallExpr expr)
         {
@@ -425,19 +421,7 @@ namespace ComputeDuck
                 if (!isFound)
                     Utils.Assert("Undefined variable:" + expr.Stringify());
 
-                switch (symbol?.scope)
-                {
-                    case SymbolScope.GLOBAL:
-                        Emit((int)OpCode.OP_REF_INDEX_GLOBAL);
-                        Emit(symbol.index);
-                        break;
-                    case SymbolScope.LOCAL:
-                        Emit((int)OpCode.OP_REF_INDEX_LOCAL);
-                        Emit(symbol.index);
-                        break;
-                    default:
-                        break;
-                }
+                RefSymbol(symbol, true);
             }
             else
             {
@@ -445,19 +429,7 @@ namespace ComputeDuck
                 if (!isFound)
                     Utils.Assert("Undefined variable:" + expr.Stringify());
 
-                switch (symbol?.scope)
-                {
-                    case SymbolScope.GLOBAL:
-                        Emit((int)OpCode.OP_REF_GLOBAL);
-                        Emit(symbol.index);
-                        break;
-                    case SymbolScope.LOCAL:
-                        Emit((int)OpCode.OP_REF_LOCAL);
-                        Emit(symbol.index);
-                        break;
-                    default:
-                        break;
-                }
+                RefSymbol(symbol, false);
             }
         }
         void CompileStructExpr(StructExpr expr)
@@ -495,29 +467,40 @@ namespace ComputeDuck
 
         uint Emit(int opcode)
         {
-            CurChunk().opCodes.Add(opcode);
-            return (uint)CurChunk().opCodes.Count - 1;
+            CurChunk().opCodeList.Add(opcode);
+            return (uint)CurChunk().opCodeList.Count - 1;
         }
 
         uint EmitClosure(FunctionObject fn)
         {
+            var upvalueCount = m_SymbolTable.GetUpvalueCount();
+
             var pos = AddConstant(fn);
             Emit((int)OpCode.OP_CLOSURE);
             Emit((int)pos);
-            return (uint)CurChunk().opCodes.Count - 1;
+            Emit((int)upvalueCount);
+
+            for (int i = 0; i < upvalueCount; ++i)
+            {
+                var upvalue = m_SymbolTable.GetUpvalueList()[i];
+                Emit(upvalue.index);
+                Emit(upvalue.scopeDepth);
+            }
+
+            return (uint)CurChunk().opCodeList.Count - 1;
         }
 
         uint EmitConstant(Object obj)
         {
-            var pos =AddConstant(obj);
+            var pos = AddConstant(obj);
             Emit((int)OpCode.OP_CONSTANT);
             Emit((int)pos);
-            return (uint)CurChunk().opCodes.Count - 1;
+            return (uint)CurChunk().opCodeList.Count - 1;
         }
 
         void ModifyOpCode(uint pos, int opcode)
         {
-            CurChunk().opCodes[(int)pos] = opcode;
+            CurChunk().opCodeList[(int)pos] = opcode;
         }
 
         void RegisterBuiltins()
@@ -554,6 +537,10 @@ namespace ComputeDuck
                     Emit((int)OpCode.OP_GET_LOCAL);
                     Emit(symbol.index);
                     break;
+                case SymbolScope.UPVALUE:
+                    Emit((int)OpCode.OP_GET_UPVALUE);
+                    Emit(symbol.upvalueIndex);
+                    break;
                 case SymbolScope.BUILTIN:
                     EmitConstant(new StrObject(symbol.name));
                     Emit((int)OpCode.OP_GET_BUILTIN);
@@ -579,6 +566,27 @@ namespace ComputeDuck
                     break;
                 case SymbolScope.LOCAL:
                     Emit((int)OpCode.OP_SET_LOCAL);
+                    Emit(symbol.index);
+                    break;
+                case SymbolScope.UPVALUE:
+                    Emit((int)OpCode.OP_SET_UPVALUE);
+                    Emit(symbol.upvalueIndex);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        void RefSymbol(Symbol symbol, bool isIndexSymbol)
+        {
+            switch (symbol.scope)
+            {
+                case SymbolScope.GLOBAL:
+                    Emit((int)(isIndexSymbol ? OpCode.OP_REF_INDEX_GLOBAL : OpCode.OP_REF_GLOBAL));
+                    Emit(symbol.index);
+                    break;
+                case SymbolScope.LOCAL:
+                    Emit((int)(isIndexSymbol ? OpCode.OP_REF_INDEX_LOCAL : OpCode.OP_REF_LOCAL));
                     Emit(symbol.index);
                     break;
                 default:

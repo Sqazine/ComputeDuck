@@ -11,7 +11,7 @@ struct CallFrame
     CallFrame(ClosureObject *closure, Value *slot)
         : closure(closure), slot(slot)
     {
-        ip = closure->function->chunk.opCodes.data();
+        ip = closure->function->chunk.opCodeList.data();
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
         closure->function->callCount++;
 #endif
@@ -19,7 +19,7 @@ struct CallFrame
 
     bool IsEnd()
     {
-        if ((ip - closure->function->chunk.opCodes.data()) < closure->function->chunk.opCodes.size())
+        if ((ip - closure->function->chunk.opCodeList.data()) < closure->function->chunk.opCodeList.size())
             return false;
         return true;
     }
@@ -74,12 +74,18 @@ public:
 
     void StackTopJump(size_t slotCount);
 
-    Value *GetGlobalVariableRef(size_t index);
+    UpvalueObject *CaptureUpvalue(Value *local);
+	void ClosedUpvalues(Value *last);
+
+    Value *GetGlobalVariableSlot(size_t index);
 
     Value *GetLocalVariableSlot(int16_t index);
 
+    Value *GetUpvalueVariableSlot(int16_t index, int16_t scopeDepth);
+
     void DisableGC();
     void EnableGC();
+
 private:
     Allocator() = default;
     ~Allocator() = default;
@@ -88,13 +94,15 @@ private:
 
     bool m_IsGCEnabled{true};
 
-    Value m_GlobalVariables[STACK_MAX];
+    Value m_GlobalVariables[STACK_COUNT];
 
     Value *m_StackTop{nullptr};
-    Value m_ValueStack[STACK_MAX]{};
+    Value m_ValueStack[STACK_COUNT]{};
+
+    UpvalueObject *m_OpenUpvalues{nullptr};
 
     CallFrame *m_CallFrameTop{nullptr};
-    CallFrame m_CallFrameStack[STACK_MAX]{};
+    CallFrame m_CallFrameStack[STACK_COUNT]{};
 
     Object *m_FirstObject{nullptr};
     size_t m_CurObjCount{0};
@@ -104,7 +112,7 @@ private:
 #define ALLOCATE_OBJECT(type, ...) (Allocator::GetInstance()->AllocateObject<type>(__VA_ARGS__))
 #define ALLOCATE_INDEX_REF_OBJECT(ptr, idxValue) (Allocator::GetInstance()->AllocateIndexRefObject(ptr, idxValue))
 
-#define GET_GLOBAL_VARIABLE_REF(x) (Allocator::GetInstance()->GetGlobalVariableRef(x))
+#define GET_GLOBAL_VARIABLE_SLOT(x) (Allocator::GetInstance()->GetGlobalVariableSlot(x))
 
 #define PUSH(x) (Allocator::GetInstance()->Push(x))
 #define POP() (Allocator::GetInstance()->Pop())
@@ -114,6 +122,7 @@ private:
 #define PEEK_CALL_FRAME(x) (Allocator::GetInstance()->PeekCallFrame(x))
 
 #define GET_LOCAL_VARIABLE_SLOT(idx) (Allocator::GetInstance()->GetLocalVariableSlot(idx))
+#define GET_UPVALUE_VARIABLE_SLOT(idx, scopeDepth) (Allocator::GetInstance()->GetUpvalueVariableSlot(idx, scopeDepth))
 
 #define GET_STACK_TOP() (Allocator::GetInstance()->GetStackTop())
 #define STACK_TOP_JUMP(x) (Allocator::GetInstance()->StackTopJump(x))

@@ -11,10 +11,10 @@ void VM::Run(const Chunk &chunk)
 
 void VM::Execute()
 {
-    auto ip = m_Chunk.opCodes.data();
+    auto ip = m_Chunk.opCodeList.data();
     while (1)
     {
-        if(ip - m_Chunk.opCodes.data() >= m_Chunk.opCodes.size())
+        if(ip - m_Chunk.opCodeList.data() >= m_Chunk.opCodeList.size())
             return;
 
         int16_t instruction = *ip++;

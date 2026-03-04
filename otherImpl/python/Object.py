@@ -1,5 +1,6 @@
 import ctypes
 from enum import IntEnum
+from Utils import UPVALUE_COUNT
 
 
 class ObjectType(IntEnum):
@@ -12,7 +13,8 @@ class ObjectType(IntEnum):
     REF = 6,
     FUNCTION = 7,
     BUILTIN = 8,
-    CLOSURE = 9
+    CLOSURE = 9,
+    UPVALUE = 10
 
 class Object:
     type: ObjectType
@@ -148,19 +150,37 @@ class FunctionObject(Object):
         if super().__eq__(other) == False:
             return False
 
-        if len(self.chunk.opCodes) != len(other.chunk.opCodes):
+        if len(self.chunk.opCodeList) != len(other.chunk.opCodeList):
             return False
-        for i in range(0, len(self.chunk.opCodes)):
-            if self.chunk.opCodes[i] != other.chunk.opCodes[i]:
+        for i in range(0, len(self.chunk.opCodeList)):
+            if self.chunk.opCodeList[i] != other.chunk.opCodeList[i]:
                 return False
         return True
     
+class UpvalueObject(Object):
+    location : int
+    closed: Object
+    
+    def __init__(self, pointer : int = -1 ):
+        super().__init__(ObjectType.UPVALUE)
+        self.location = pointer
+        self.nextUpvalue = None
+        self.closed = None
+        
+    def __str__(self) -> str:
+        return str(ctypes.cast(self.location, ctypes.py_object).value)
+
+    def __eq__(self, other) -> bool:
+        return super().__eq__(other) and self.location == other.location
+    
 class ClosureObject(Object):
     function: FunctionObject
+    upvalues: list[UpvalueObject]
     
     def __init__(self, function: FunctionObject) -> None:
         super().__init__(ObjectType.CLOSURE)
         self.function = function
+        self.upvalues = [None] * UPVALUE_COUNT
     
     def __str__(self) -> str:
         return self.function.__str__()
