@@ -41,18 +41,21 @@ class OpCode(IntEnum):
     OP_REF_INDEX_GLOBAL = 35,
     OP_REF_INDEX_LOCAL = 36,
     OP_DLL_IMPORT = 37,
-    OP_CLOSURE = 38
+    OP_CLOSURE = 38,
+    OP_DEF_UPVALUE = 39
+    OP_GET_UPVALUE = 40
+    OP_SET_UPVALUE = 41
 
 
 class Chunk:
-    opCodes: list[int]
+    opCodeList: list[int]
     constants: list[Object]
 
-    def __init__(self, opCodes: list[int] = [], constants: list[Object] = []) -> None:
-        if opCodes != []:
-            self.opCodes = opCodes
+    def __init__(self, opCodeList: list[int] = [], constants: list[Object] = []) -> None:
+        if opCodeList != []:
+            self.opCodeList = opCodeList
         else:
-            self.opCodes = []
+            self.opCodeList = []
 
         if constants != []:
             self.constants = constants
@@ -60,131 +63,145 @@ class Chunk:
             self.constants = []
 
     def __str__(self) -> str:
-        result = self.__opcode_stringify(self.opCodes)
+        result = self.__opcode_stringify(self.opCodeList)
         for i in range(0, len(self.constants)):
             if self.constants[i].type == ObjectType.FUNCTION:
                 result += self.constants[i].str_with_chunk()
 
         return result
 
-    def __opcode_stringify(self, opcodes: list[int]) -> str:
+    def __opcode_stringify(self, opCodeList: list[int]) -> str:
         result = ""
         i = 0
-        while i < (len(opcodes)):
-            if opcodes[i] == OpCode.OP_CONSTANT:
-                pos = opcodes[i+1]
+        while i < (len(opCodeList)):
+            if opCodeList[i] == OpCode.OP_CONSTANT:
+                pos = opCodeList[i+1]
                 result += ("%8d\tOP_CONSTANT\t%d\t'%s'\n" %
                            (i, pos, self.constants[pos]))
                 i = i+1
-            elif opcodes[i] == OpCode.OP_ADD:
+            elif opCodeList[i] == OpCode.OP_ADD:
                 result += ("%8d\tOP_ADD\n" % (i))
-            elif opcodes[i] == OpCode.OP_SUB:
+            elif opCodeList[i] == OpCode.OP_SUB:
                 result += ("%8d\tOP_SUB\n" % (i))
-            elif opcodes[i] == OpCode.OP_MUL:
+            elif opCodeList[i] == OpCode.OP_MUL:
                 result += ("%8d\tOP_MUL\n" % (i))
-            elif opcodes[i] == OpCode.OP_DIV:
+            elif opCodeList[i] == OpCode.OP_DIV:
                 result += ("%8d\tOP_DIV\n" % (i))
-            elif opcodes[i] == OpCode.OP_LESS:
+            elif opCodeList[i] == OpCode.OP_LESS:
                 result += ("%8d\tOP_LESS\n" % (i))
-            elif opcodes[i] == OpCode.OP_GREATER:
+            elif opCodeList[i] == OpCode.OP_GREATER:
                 result += ("%8d\tOP_GREATER\n" % (i))
-            elif opcodes[i] == OpCode.OP_MINUS:
+            elif opCodeList[i] == OpCode.OP_MINUS:
                 result += ("%8d\tOP_MINUS\n" % (i))
-            elif opcodes[i] == OpCode.OP_EQUAL:
+            elif opCodeList[i] == OpCode.OP_EQUAL:
                 result += ("%8d\tOP_EQUAL\n" % (i))
-            elif opcodes[i] == OpCode.OP_AND:
+            elif opCodeList[i] == OpCode.OP_AND:
                 result += ("%8d\tOP_AND\n" % (i))
-            elif opcodes[i] == OpCode.OP_OR:
+            elif opCodeList[i] == OpCode.OP_OR:
                 result += ("%8d\tOP_OR\n" % (i))
-            elif opcodes[i] == OpCode.OP_NOT:
+            elif opCodeList[i] == OpCode.OP_NOT:
                 result += ("%8d\tOP_NOT\n" % (i))
-            elif opcodes[i] == OpCode.OP_BIT_AND:
+            elif opCodeList[i] == OpCode.OP_BIT_AND:
                 result += ("%8d\tOP_BIT_AND\n" % (i))
-            elif opcodes[i] == OpCode.OP_BIT_OR:
+            elif opCodeList[i] == OpCode.OP_BIT_OR:
                 result += ("%8d\tOP_BIT_OR\n" % (i))
-            elif opcodes[i] == OpCode.OP_BIT_XOR:
+            elif opCodeList[i] == OpCode.OP_BIT_XOR:
                 result += ("%8d\tOP_BIT_XOR\n" % (i))
-            elif opcodes[i] == OpCode.OP_BIT_NOT:
+            elif opCodeList[i] == OpCode.OP_BIT_NOT:
                 result += ("%8d\tOP_BIT_NOT\n" % (i))
-            elif opcodes[i] == OpCode.OP_ARRAY:
-                count = opcodes[i+1]
+            elif opCodeList[i] == OpCode.OP_ARRAY:
+                count = opCodeList[i+1]
                 result += ("%8d\tOP_ARRAY\t%d\n" % (i, count))
                 i = i+1
-            elif opcodes[i] == OpCode.OP_GET_INDEX:
+            elif opCodeList[i] == OpCode.OP_GET_INDEX:
                 result += ("%8d\tOP_GET_INDEX\n" % (i))
-            elif opcodes[i] == OpCode.OP_SET_INDEX:
+            elif opCodeList[i] == OpCode.OP_SET_INDEX:
                 result += ("%8d\tOP_SET_INDEX\n" % (i))
-            elif opcodes[i] == OpCode.OP_JUMP:
-                address = opcodes[i+1]
+            elif opCodeList[i] == OpCode.OP_JUMP:
+                address = opCodeList[i+1]
                 result += ("%8d\tOP_JUMP\t%d\n" % (i, address))
                 i = i+1
-            elif opcodes[i] == OpCode.OP_JUMP_IF_FALSE:
-                address = opcodes[i+1]
+            elif opCodeList[i] == OpCode.OP_JUMP_IF_FALSE:
+                address = opCodeList[i+1]
                 result += ("%8d\tOP_JUMP_IF_FALSE\t%d\n" % (i, address))
                 i = i+1
-            elif opcodes[i] == OpCode.OP_RETURN:
-                count = opcodes[i+1]
+            elif opCodeList[i] == OpCode.OP_RETURN:
+                count = opCodeList[i+1]
                 result += ("%8d\tOP_RETURN\t%d\n" % (i, count))
                 i = i+1
-            elif opcodes[i] == OpCode.OP_DEF_GLOBAL:
-                pos = opcodes[i+1]
+            elif opCodeList[i] == OpCode.OP_DEF_GLOBAL:
+                pos = opCodeList[i+1]
                 result += ("%8d\tOP_DEF_GLOBAL\t%d\n" % (i, pos))
                 i = i+1
-            elif opcodes[i] == OpCode.OP_SET_GLOBAL:
-                pos = opcodes[i+1]
+            elif opCodeList[i] == OpCode.OP_SET_GLOBAL:
+                pos = opCodeList[i+1]
                 result += ("%8d\tOP_SET_GLOBAL\t%d\n" % (i, pos))
                 i = i+1
-            elif opcodes[i] == OpCode.OP_GET_GLOBAL:
-                pos = opcodes[i+1]
+            elif opCodeList[i] == OpCode.OP_GET_GLOBAL:
+                pos = opCodeList[i+1]
                 result += ("%8d\tOP_GET_GLOBAL\t%d\n" % (i, pos))
                 i = i+1
-            elif opcodes[i] == OpCode.OP_DEF_LOCAL:
-                index = opcodes[i+1]
+            elif opCodeList[i] == OpCode.OP_DEF_LOCAL:
+                index = opCodeList[i+1]
                 result += ("%8d\tOP_DEF_LOCAL\t%d\n" % (i, index))
                 i = i+1
-            elif opcodes[i] == OpCode.OP_SET_LOCAL:
-                index = opcodes[i+1]
+            elif opCodeList[i] == OpCode.OP_SET_LOCAL:
+                index = opCodeList[i+1]
                 result += ("%8d\tOP_SET_LOCAL\t%d\n" % (i, index))
                 i = i+1
-            elif opcodes[i] == OpCode.OP_GET_LOCAL:
-                index = opcodes[i+1]
+            elif opCodeList[i] == OpCode.OP_GET_LOCAL:
+                index = opCodeList[i+1]
                 result += ("%8d\tOP_GET_LOCAL\t%d\n" % (i, index))
                 i = i+1
-            elif opcodes[i] == OpCode.OP_FUNCTION_CALL:
-                argCount = opcodes[i+1]
+            elif opCodeList[i] == OpCode.OP_FUNCTION_CALL:
+                argCount = opCodeList[i+1]
                 result += ("%8d\tOP_FUNCTION_CALL\t%d\n" % (i, argCount))
                 i = i+1
-            elif opcodes[i] == OpCode.OP_CLOSURE:
-                index = opcodes[i+1]
+            elif opCodeList[i] == OpCode.OP_CLOSURE:
+                index = opCodeList[i+1]
                 result += ("%8d\tOP_CLOSURE\t%d\n" % (i, index))
                 i = i+1
-            elif opcodes[i] == OpCode.OP_GET_BUILTIN:
+            elif opCodeList[i] == OpCode.OP_GET_BUILTIN:
                 result += ("%8d\tOP_GET_BUILTIN\n" % i)
-            elif opcodes[i] == OpCode.OP_STRUCT:
-                memberCount = opcodes[i+1]
+            elif opCodeList[i] == OpCode.OP_STRUCT:
+                memberCount = opCodeList[i+1]
                 result += ("%8d\tOP_STRUCT\t%d\n" % (i, memberCount))
                 i += 1
-            elif opcodes[i] == OpCode.OP_GET_STRUCT:
+            elif opCodeList[i] == OpCode.OP_GET_STRUCT:
                 result += ("%8d\tOP_GET_STRUCT\n" % (i))
-            elif opcodes[i] == OpCode.OP_SET_STRUCT:
+            elif opCodeList[i] == OpCode.OP_SET_STRUCT:
                 result += ("%8d\tOP_SET_STRUCT\n" % (i))
-            elif opcodes[i] == OpCode.OP_REF_GLOBAL:
-                idx = opcodes[i+1]
+            elif opCodeList[i] == OpCode.OP_REF_GLOBAL:
+                idx = opCodeList[i+1]
                 result += ("%8d\tOP_REF_GLOBAL\t%d\n" % (i, idx))
                 i = i+1
-            elif opcodes[i] == OpCode.OP_REF_LOCAL:
-                index = opcodes[i+1]
+            elif opCodeList[i] == OpCode.OP_REF_LOCAL:
+                index = opCodeList[i+1]
                 result += ("%8d\tOP_REF_LOCAL\t%d\n" % (i, index))
                 i = i+1
-            elif opcodes[i] == OpCode.OP_REF_INDEX_GLOBAL:
-                pos = opcodes[i+1]
+            elif opCodeList[i] == OpCode.OP_REF_INDEX_GLOBAL:
+                pos = opCodeList[i+1]
                 result += ("%8d\tOP_REF_INDEX_GLOBAL\t%d\n" % (i, pos))
                 i = i+1
-            elif opcodes[i] == OpCode.OP_REF_INDEX_LOCAL:
-                index = opcodes[i+2]
+            elif opCodeList[i] == OpCode.OP_REF_INDEX_LOCAL:
+                index = opCodeList[i+1]
                 result += ("%8d\tOP_REF_INDEX_LOCAL\t%d\n" % (i, index))
                 i = i+1
-            elif opcodes[i] == OpCode.OP_DLL_IMPORT:
+            elif opCodeList[i] == OpCode.OP_DLL_IMPORT:
                 result += ("%8d\tOP_DLL_IMPORT\n" % (i))
+            elif opCodeList[i] == OpCode.OP_DEF_UPVALUE:
+                index = opCodeList[i+1]
+                scopeDepth = opCodeList[i+2]
+                upvalueIndex = opCodeList[i+3]
+                result += ("%8d\tOP_DEF_UPVALUE\t%d\t%d\t%d\n" % (i, index, scopeDepth, upvalueIndex))
+                i = i+3
+            elif opCodeList[i] == OpCode.OP_GET_UPVALUE:
+                index = opCodeList[i+1]
+                result += ("%8d\tOP_GET_UPVALUE\t%d\n" % (i,index))
+                i+=1
+            elif opCodeList[i] == OpCode.OP_SET_UPVALUE:
+                index = opCodeList[i+1]
+                result += ("%8d\tOP_SET_UPVALUE\t%d\n" % (i,index))
+                i+=1
             i = i+1
         return result

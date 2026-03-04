@@ -1,5 +1,6 @@
 import ctypes
 from enum import IntEnum
+from Utils import UINT8_COUNT
 
 
 class ObjectType(IntEnum):
@@ -148,19 +149,21 @@ class FunctionObject(Object):
         if super().__eq__(other) == False:
             return False
 
-        if len(self.chunk.opCodes) != len(other.chunk.opCodes):
+        if len(self.chunk.opCodeList) != len(other.chunk.opCodeList):
             return False
-        for i in range(0, len(self.chunk.opCodes)):
-            if self.chunk.opCodes[i] != other.chunk.opCodes[i]:
+        for i in range(0, len(self.chunk.opCodeList)):
+            if self.chunk.opCodeList[i] != other.chunk.opCodeList[i]:
                 return False
         return True
     
 class ClosureObject(Object):
     function: FunctionObject
+    upvalues: list[RefObject]
     
     def __init__(self, function: FunctionObject) -> None:
         super().__init__(ObjectType.CLOSURE)
         self.function = function
+        self.upvalues = [NilObject()] * UINT8_COUNT
     
     def __str__(self) -> str:
         return self.function.__str__()

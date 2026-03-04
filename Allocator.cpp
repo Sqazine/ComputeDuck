@@ -4,10 +4,10 @@ void Allocator::Init()
 {
     m_FirstObject = nullptr;
     m_CurObjCount = 0;
-    m_MaxObjCount = STACK_MAX;
+    m_MaxObjCount = STACK_COUNT;
 
-    memset(m_ValueStack, 0, sizeof(Value) * STACK_MAX);
-    memset(m_CallFrameStack, 0, sizeof(CallFrame) * STACK_MAX);
+    memset(m_ValueStack, 0, sizeof(Value) * STACK_COUNT);
+    memset(m_CallFrameStack, 0, sizeof(CallFrame) * STACK_COUNT);
 
     ResetStatus();
 }
@@ -47,7 +47,7 @@ RefObject *Allocator::AllocateIndexRefObject(Value *ptr, const Value &idxValue)
 void Allocator::Push(const Value &value)
 {
 #ifndef NDEBUG
-    if (m_StackTop - m_ValueStack >= STACK_MAX)
+    if (m_StackTop - m_ValueStack >= STACK_COUNT)
         ASSERT("Stack Overflow");
 #endif
     *m_StackTop++ = value;
@@ -97,7 +97,7 @@ void Allocator::StackTopJump(size_t slotCount)
     m_StackTop += slotCount;
 }
 
-Value *Allocator::GetGlobalVariableRef(size_t index)
+Value *Allocator::GetGlobalVariableSlot(size_t index)
 {
     return &m_GlobalVariables[index];
 }
@@ -105,6 +105,11 @@ Value *Allocator::GetGlobalVariableRef(size_t index)
 Value *Allocator::GetLocalVariableSlot(int16_t index)
 {
     return PeekCallFrame(1)->slot + index;
+}
+
+Value *Allocator::GetUpvalueVariableSlot(int16_t index, int16_t scopeDepth)
+{
+    return (m_CallFrameStack + scopeDepth)->slot + index;
 }
 
 void Allocator::DisableGC()
@@ -125,25 +130,24 @@ void Allocator::Gc(bool deleteAll)
         // mark all object which in stack and in context
         for (Value *slot = m_ValueStack; slot < m_StackTop; ++slot)
             slot->Mark();
-        for (auto &g : m_GlobalVariables)
+        for (Value &g : m_GlobalVariables)
             g.Mark();
         for (CallFrame *slot = m_CallFrameStack; slot < m_CallFrameTop; ++slot)
             MarkObject(slot->closure);
         for (const auto &[k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
             MarkObject(v);
-            
     }
     else
     {
         // unMark all objects while exiting vm
-        for (Value *slot = m_ValueStack; slot < m_StackTop; ++slot)
-            slot->UnMark();
-        for (auto &g : m_GlobalVariables)
+        for (Value &slot : m_ValueStack)
+            slot.UnMark();
+        for (Value &g : m_GlobalVariables)
             g.UnMark();
-        for (CallFrame *slot = m_CallFrameStack; slot < m_CallFrameTop; ++slot)
-            UnMarkObject(slot->closure);
-		for (const auto &[k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
-			UnMarkObject(v);
+        for (CallFrame &slot : m_CallFrameStack)
+            UnMarkObject(slot.closure);
+        for (const auto &[k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
+            UnMarkObject(v);
     }
 
     // sweep objects which is not reachable
@@ -166,7 +170,7 @@ void Allocator::Gc(bool deleteAll)
         }
     }
 
-    m_MaxObjCount = m_CurObjCount == 0 ? STACK_MAX : m_CurObjCount * 2;
+    m_MaxObjCount = m_CurObjCount == 0 ? STACK_COUNT : m_CurObjCount * 2;
 
     std::cout << "Collected " << objNum - m_CurObjCount << " objects," << m_CurObjCount << " remaining." << std::endl;
 }

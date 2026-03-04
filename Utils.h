@@ -25,8 +25,8 @@
 #define REGISTER_BUILTIN_VALUE(x) BuiltinManager::GetInstance()->Register(#x, Value((uint64_t)x))
 #define REGISTER_BUILTIN_FN(x) BuiltinManager::GetInstance()->Register<BuiltinFn>(#x, cd_builtin_fn_##x)
 
-#define UINT8_COUNT (UINT8_MAX + 1)
-constexpr uint32_t STACK_MAX = 512;
+constexpr uint32_t UINT8_COUNT = UINT8_MAX + 1;
+constexpr uint32_t STACK_COUNT = UINT8_COUNT * 2;
 
 #define SAFE_DELETE(x)   \
     do                   \

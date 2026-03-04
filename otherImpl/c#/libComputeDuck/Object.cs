@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
@@ -266,12 +267,12 @@ namespace ComputeDuck
             if (base.IsEqualTo(other) == false)
                 return false;
 
-            var otherOpCodes = ((FunctionObject)other).chunk.opCodes;
-            if (chunk.opCodes.Count != otherOpCodes.Count)
+            var otherOpCodeList = ((FunctionObject)other).chunk.opCodeList;
+            if (chunk.opCodeList.Count != otherOpCodeList.Count)
                 return false;
 
-            for (int i = 0; i < chunk.opCodes.Count; ++i)
-                if (chunk.opCodes[i] != otherOpCodes[i])
+            for (int i = 0; i < chunk.opCodeList.Count; ++i)
+                if (chunk.opCodeList[i] != otherOpCodeList[i])
                     return false;
             return true;
         }
@@ -287,11 +288,13 @@ namespace ComputeDuck
          : base(ObjectType.CLOSURE)
         {
             this.function = null!;
+            this.upvalues = new RefObject[Utils.UINT8_COUNT];
         }
         public ClosureObject(FunctionObject function)
             : base(ObjectType.CLOSURE)
         {
             this.function = function;
+            this.upvalues = new RefObject[Utils.UINT8_COUNT];
         }
         public override string ToString()
         {
@@ -307,6 +310,7 @@ namespace ComputeDuck
             return true;
         }
         public FunctionObject function;
+        public RefObject[] upvalues;
     }
     public class StructObject : Object
     {

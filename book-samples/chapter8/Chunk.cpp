@@ -1,26 +1,26 @@
 #include "Chunk.h"
 #include <format>
 #include <sstream>
-Chunk::Chunk(OpCodes opCodes, const std::vector<Value> &constants)
-    : opCodes(opCodes), constants(constants)
+Chunk::Chunk(OpCodeList opCodeList, const std::vector<Value> &constants)
+    : opCodeList(opCodeList), constants(constants)
 {
 }
 
 std::string Chunk::Stringify()
 {
-    std::string result = OpCodeStringify(opCodes);
+    std::string result = OpCodeStringify(opCodeList);
     return result;
 }
 
-std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
+std::string Chunk::OpCodeStringify(const OpCodeList &opCodeList)
 {
     std::stringstream cout;
-    for (int32_t i = 0; i < opcodes.size(); ++i)
+    for (int32_t i = 0; i < opCodeList.size(); ++i)
     {
-        switch (opcodes[i])
+        switch (opCodeList[i])
         {
         case OP_CONSTANT:
-            cout << std::format("{:08}\tOP_CONSTANT\t'{}'\n", i, constants[opcodes[++i]].Stringify());
+            cout << std::format("{:08}\tOP_CONSTANT\t'{}'\n", i, constants[opCodeList[++i]].Stringify());
             break;
         case OP_ADD:
             cout << std::format("{:08}\tOP_ADD\n", i);
@@ -50,7 +50,7 @@ std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
             cout << std::format("{:08}\tOP_EQUAL\n", i);
             break;
         case OP_ARRAY:
-            cout << std::format("{:08}\tOP_ARRAY\t{}\n", i, opcodes[++i]);
+            cout << std::format("{:08}\tOP_ARRAY\t{}\n", i, opCodeList[++i]);
             break;
         case OP_GET_INDEX:
             cout << std::format("{:08}\tOP_GET_INDEX\n", i);
@@ -77,23 +77,23 @@ std::string Chunk::OpCodeStringify(const OpCodes &opcodes)
             cout << std::format("{:08}\tOP_BIT_XOR\n", i);
             break;
         case OP_DEF_GLOBAL:
-            cout << std::format("{:08}\tOP_DEF_GLOBAL\t{}\n", i, opcodes[++i]);
+            cout << std::format("{:08}\tOP_DEF_GLOBAL\t{}\n", i, opCodeList[++i]);
             break;
         case OP_SET_GLOBAL:
-            cout << std::format("{:08}\tOP_SET_GLOBAL\t{}\n", i, opcodes[++i]);
+            cout << std::format("{:08}\tOP_SET_GLOBAL\t{}\n", i, opCodeList[++i]);
             break;
         case OP_GET_GLOBAL:
-            cout << std::format("{:08}\tOP_GET_GLOBAL\t{}\n", i, opcodes[++i]);
+            cout << std::format("{:08}\tOP_GET_GLOBAL\t{}\n", i, opCodeList[++i]);
             break;
         // ++ 新增内容
         case OP_DEF_LOCAL:
-            cout << std::format("{:08}\tOP_DEF_LOCAL\t{}\n", i, opcodes[++i]);
+            cout << std::format("{:08}\tOP_DEF_LOCAL\t{}\n", i, opCodeList[++i]);
             break;
         case OP_SET_LOCAL:
-            cout << std::format("{:08}\tOP_SET_LOCAL\t{}\n", i, opcodes[++i]);
+            cout << std::format("{:08}\tOP_SET_LOCAL\t{}\n", i, opCodeList[++i]);
             break;
         case OP_GET_LOCAL:
-            cout << std::format("{:08}\tOP_GET_LOCAL\t{}\n", i, opcodes[++i]);
+            cout << std::format("{:08}\tOP_GET_LOCAL\t{}\n", i, opCodeList[++i]);
             break;
         // -- 新增内容
         case OP_PRINT:

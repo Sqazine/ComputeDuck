@@ -243,7 +243,7 @@ void VM::Execute()
             if (!IS_BOOL_VALUE(value))
                 ASSERT("The if condition not a boolean value");
             if (!TO_BOOL_VALUE(value))
-                frame->ip = frame->closure->function->chunk.opCodes.data() + address;
+                frame->ip = frame->closure->function->chunk.opCodeList.data() + address;
             break;
         }
         case OP_JUMP:
@@ -252,7 +252,7 @@ void VM::Execute()
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
             auto mode = *frame->ip++;
 #endif
-            frame->ip = frame->closure->function->chunk.opCodes.data() + address;
+            frame->ip = frame->closure->function->chunk.opCodeList.data() + address;
             break;
         }
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
@@ -270,7 +270,7 @@ void VM::Execute()
         {
             auto index = *frame->ip++;
             auto value = POP();
-            auto ptr = GET_GLOBAL_VARIABLE_REF(index);
+            auto ptr = GET_GLOBAL_VARIABLE_SLOT(index);
             *ptr = value;
             break;
         }
@@ -278,7 +278,7 @@ void VM::Execute()
         {
             auto index = *frame->ip++;
             auto value = POP();
-            auto ptr = GET_GLOBAL_VARIABLE_REF(index);
+            auto ptr = GET_GLOBAL_VARIABLE_SLOT(index);
             ptr = GetEndOfRefValuePtr(ptr);
             *ptr = value;
             break;
@@ -286,7 +286,7 @@ void VM::Execute()
         case OP_GET_GLOBAL:
         {
             auto index = *frame->ip++;
-            PUSH(*GET_GLOBAL_VARIABLE_REF(index));
+            PUSH(*GET_GLOBAL_VARIABLE_SLOT(index));
             break;
         }
         case OP_FUNCTION_CALL:
@@ -362,6 +362,33 @@ void VM::Execute()
             PUSH(*slot);
             break;
         }
+        case OP_DEF_UPVALUE:
+        {
+            auto index = *frame->ip++;
+            auto scopeDepth = *frame->ip++;
+            auto upvalueIndex = *frame->ip++;
+
+            auto upvalue = ALLOCATE_OBJECT(RefObject, GET_UPVALUE_VARIABLE_SLOT(index, scopeDepth));
+
+            frame->closure->upvalues[upvalueIndex] = upvalue;
+            break;
+        }
+        case OP_GET_UPVALUE:
+        {
+            auto index = *frame->ip++;
+            auto upvalue = frame->closure->upvalues[index];
+            PUSH(*upvalue->pointer);
+            break;
+        }
+        case OP_SET_UPVALUE:
+        {
+            auto value = POP();
+            auto index = *frame->ip++;
+            auto slot =  frame->closure->upvalues[index]->pointer;
+            slot = GetEndOfRefValuePtr(slot);
+            *slot = value;
+            break;
+        }
         case OP_GET_BUILTIN:
         {
             auto idx = *frame->ip++;
@@ -423,7 +450,7 @@ void VM::Execute()
         case OP_REF_GLOBAL:
         {
             auto index = *frame->ip++;
-            PUSH(ALLOCATE_OBJECT(RefObject, GET_GLOBAL_VARIABLE_REF(index)));
+            PUSH(ALLOCATE_OBJECT(RefObject, GET_GLOBAL_VARIABLE_SLOT(index)));
             break;
         }
         case OP_REF_LOCAL:
@@ -437,7 +464,7 @@ void VM::Execute()
         {
             auto index = *frame->ip++;
             auto idxValue = POP();
-            auto ptr = GetEndOfRefValuePtr(GET_GLOBAL_VARIABLE_REF(index));
+            auto ptr = GetEndOfRefValuePtr(GET_GLOBAL_VARIABLE_SLOT(index));
             PUSH(ALLOCATE_INDEX_REF_OBJECT(ptr, idxValue));
             break;
         }

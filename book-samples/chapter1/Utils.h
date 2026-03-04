@@ -10,7 +10,7 @@
 #define COMPUTEDUCK_API
 #endif
 
-constexpr uint32_t STACK_MAX = 512;
+constexpr uint32_t STACK_COUNT = 512;
 
 #define ASSERT(...)                                                                 \
     do                                                                              \

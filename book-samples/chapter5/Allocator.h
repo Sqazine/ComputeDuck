@@ -19,7 +19,7 @@ public:
     void Push(const Value &value);
     Value Pop();
 
-    Value *GetGlobalVariableRef(size_t index);
+    Value *GetGlobalVariableSlot(size_t index);
 
     Value *GetStackTop() { return m_StackTop; }
     const Value *GetValueStack() { return m_ValueStack; }
@@ -36,12 +36,12 @@ private:
     ~Allocator() = default;
 
     Value *m_StackTop{nullptr};
-    Value m_ValueStack[STACK_MAX];
+    Value m_ValueStack[STACK_COUNT];
 
-    Value m_GlobalVariables[STACK_MAX];
+    Value m_GlobalVariables[STACK_COUNT];
 };
 
-#define GET_GLOBAL_VARIABLE_REF(x) (Allocator::GetInstance()->GetGlobalVariableRef(x))
+#define GET_GLOBAL_VARIABLE_SLOT(x) (Allocator::GetInstance()->GetGlobalVariableSlot(x))
 
 #define PUSH(x) (Allocator::GetInstance()->Push(x))
 #define POP() (Allocator::GetInstance()->Pop())

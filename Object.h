@@ -119,10 +119,14 @@ struct FunctionObject : public Object
 
 struct ClosureObject:public Object
 {
-    ClosureObject(FunctionObject *fn) :Object(ObjectType::CLOSURE), function(fn) {}
+    ClosureObject(FunctionObject *fn) :Object(ObjectType::CLOSURE), function(fn)
+    {
+        memset(upvalues, 0, sizeof(RefObject*) * UINT8_COUNT);
+    }
     ~ClosureObject() = default;
 
     FunctionObject *function;
+    RefObject* upvalues[UINT8_COUNT]{};
 };
 
 struct StructObject : public Object

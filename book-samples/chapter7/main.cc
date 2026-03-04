@@ -60,7 +60,7 @@ void Run(std::string_view content)
 
     // for (auto index = 0; index < g_Compiler->GetSymbolDefCount(); ++index)
     // {
-    //     auto globalVariable = GET_GLOBAL_VARIABLE_REF(index);
+    //     auto globalVariable = GET_GLOBAL_VARIABLE_SLOT(index);
     //     std::cout << std::format("Global Variable {}:{}", index, globalVariable->Stringify()) << std::endl;
     // }
     // -- 删除内容

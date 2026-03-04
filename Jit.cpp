@@ -207,8 +207,8 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
     llvm::BasicBlock *codeBlock = llvm::BasicBlock::Create(*m_Context, "", currentCompileFunction);
     m_Builder->SetInsertPoint(codeBlock);
 
-    auto ip = frame.closure->function->chunk.opCodes.data();
-    while ((ip - frame.closure->function->chunk.opCodes.data()) < frame.closure->function->chunk.opCodes.size())
+    auto ip = frame.closure->function->chunk.opCodeList.data();
+    while ((ip - frame.closure->function->chunk.opCodeList.data()) < frame.closure->function->chunk.opCodeList.size())
     {
         int32_t instruction = *ip++;
         switch (instruction)
@@ -660,7 +660,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto mode = *ip++;
 
             auto fn = m_Builder->GetInsertBlock()->getParent();
-            auto curAddress = ip - frame.closure->function->chunk.opCodes.data();
+            auto curAddress = ip - frame.closure->function->chunk.opCodeList.data();
             JumpInstrSet instrSet;
 
             if (mode == JumpMode::IF)
@@ -848,7 +848,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         {
             auto index = *ip++;
 
-            auto vmGlobal = *GET_GLOBAL_VARIABLE_REF(index);
+            auto vmGlobal = *GET_GLOBAL_VARIABLE_SLOT(index);
             if (IS_CLOSURE_VALUE(vmGlobal))
                 Push(vmGlobal);
             else

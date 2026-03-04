@@ -8,6 +8,7 @@ enum class SymbolScope
 {
     GLOBAL,
     LOCAL,
+    UPVALUE,
     BUILTIN,
 };
 
@@ -16,9 +17,9 @@ struct Symbol
     std::string_view name;
     bool isStructSymbol{false};
     SymbolScope scope{SymbolScope::GLOBAL};
-    int32_t index{-1};
-    int32_t scopeDepth{0};
-    bool isUpValue{false};
+    uint8_t index{0};
+    uint8_t upvalueIndex{0};
+    uint8_t scopeDepth{0};
 };
 
 class SymbolTable
@@ -29,10 +30,13 @@ public:
     SymbolTable(SymbolTable *upper)
         : m_Upper(upper), m_ScopeDepth(upper->m_ScopeDepth + 1)
     {
+        if (m_ScopeDepth == UINT8_COUNT)
+            ASSERT("Too many scope depth, max is %d", UINT8_COUNT);
     }
 
     ~SymbolTable()
     {
+        m_Upper = nullptr;
     }
 
     Symbol Define(std::string_view name, bool isStructSymbol = false)
@@ -54,7 +58,7 @@ public:
         else
             symbol.scope = SymbolScope::LOCAL;
 
-        m_SymbolList[m_VarCount++] = symbol;
+        m_VarList[m_VarCount++] = symbol;
         return symbol;
     }
 
@@ -71,7 +75,7 @@ public:
         symbol.scopeDepth = m_ScopeDepth;
         symbol.scope = SymbolScope::BUILTIN;
 
-        m_SymbolList[m_VarCount++] = symbol;
+        m_VarList[m_VarCount++] = symbol;
         return symbol;
     }
 
@@ -92,9 +96,9 @@ public:
             if (symbol.scope == SymbolScope::GLOBAL || symbol.scope == SymbolScope::BUILTIN)
                 return true;
 
-            symbol.isUpValue = true;
-
-            m_SymbolList[m_VarCount++] = symbol;
+            symbol.scope = SymbolScope::UPVALUE;
+            symbol.upvalueIndex = m_UpvalueCount;
+            m_UpvalueList[m_UpvalueCount++] = symbol;
             return true;
         }
 
@@ -106,6 +110,16 @@ public:
         return m_VarCount;
     }
 
+    uint8_t GetUpvalueCount() const
+    {
+        return m_UpvalueCount;
+    }
+
+    std::array<Symbol, UINT8_COUNT> GetUpvalueList() const
+    {
+        return m_UpvalueList;
+    }
+
     SymbolTable *GetUpper() const
     {
         return m_Upper;
@@ -113,7 +127,7 @@ public:
 
     void EnterScope()
     {
-        if(m_ScopeDepth == UINT8_COUNT)
+        if (m_ScopeDepth == UINT8_COUNT)
             ASSERT("Too many scope depth, max is %d", UINT8_COUNT);
 
         m_ScopeDepth++;
@@ -121,7 +135,7 @@ public:
 
     void ExitScope()
     {
-        if(m_ScopeDepth == 0)
+        if (m_ScopeDepth == 0)
             ASSERT("Exit scope when scope depth is 0");
 
         m_ScopeDepth--;
@@ -132,14 +146,21 @@ private:
     {
         for (uint8_t i = 0; i <= m_VarCount; ++i)
         {
-            if (m_SymbolList[i].name == name)
-                return &m_SymbolList[i];
+            if (m_VarList[i].name == name)
+                return &m_VarList[i];
+        }
+        for (uint8_t i = 0; i <= m_UpvalueCount; ++i)
+        {
+            if (m_UpvalueList[i].name == name)
+                return &m_UpvalueList[i];
         }
         return nullptr;
     }
 
     SymbolTable *m_Upper{nullptr};
-    std::array<Symbol, UINT8_COUNT> m_SymbolList;
+    std::array<Symbol, UINT8_COUNT> m_VarList;
     uint8_t m_VarCount{0};
+    std::array<Symbol, UINT8_COUNT> m_UpvalueList;
+    uint8_t m_UpvalueCount{0};
     uint8_t m_ScopeDepth{0};
 };

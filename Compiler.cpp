@@ -33,7 +33,7 @@ FunctionObject *Compiler::Compile(const std::vector<Stmt *> &stmts)
 void Compiler::ResetStatus()
 {
     std::vector<Chunk>().swap(m_ScopeChunks);
-    m_ScopeChunks.emplace_back(Chunk()); // set a default opcodes
+    m_ScopeChunks.emplace_back(Chunk()); // set a default opCodeList
 
     m_SymbolTable = new SymbolTable();
 
@@ -95,12 +95,12 @@ void Compiler::CompileIfStmt(IfStmt *stmt)
     Emit(JumpMode::IF);
 #endif
 
-    ModifyOpCode(jumpIfFalseAddress, (int16_t)CurChunk().opCodes.size());
+    ModifyOpCode(jumpIfFalseAddress, (int16_t)CurChunk().opCodeList.size());
 
     if (stmt->elseBranch)
         CompileStmt(stmt->elseBranch);
 
-    ModifyOpCode(jumpAddress, (int16_t)CurChunk().opCodes.size());
+    ModifyOpCode(jumpAddress, (int16_t)CurChunk().opCodeList.size());
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     Emit(OP_JUMP_END);
 #endif
@@ -123,7 +123,7 @@ void Compiler::CompileWhileStmt(WhileStmt *stmt)
     Emit(JumpMode::WHILE);
 #endif
 
-    auto jumpAddress = (int32_t)CurChunk().opCodes.size();
+    auto jumpAddress = (int32_t)CurChunk().opCodeList.size();
     CompileExpr(stmt->condition);
 
     Emit(OP_JUMP_IF_FALSE);
@@ -140,7 +140,7 @@ void Compiler::CompileWhileStmt(WhileStmt *stmt)
     Emit(JumpMode::WHILE);
 #endif
 
-    ModifyOpCode(jumpIfFalseAddress, (int16_t)CurChunk().opCodes.size());
+    ModifyOpCode(jumpIfFalseAddress, (int16_t)CurChunk().opCodeList.size());
 }
 
 void Compiler::CompileReturnStmt(ReturnStmt *stmt)
@@ -169,8 +169,8 @@ void Compiler::CompileStructStmt(StructStmt *stmt)
     auto chunk = m_ScopeChunks.back();
     m_ScopeChunks.pop_back();
 
-    chunk.opCodes.emplace_back(OP_RETURN);
-    chunk.opCodes.emplace_back(1);
+    chunk.opCodeList.emplace_back(OP_RETURN);
+    chunk.opCodeList.emplace_back(1);
 
     auto fn = ALLOCATE_OBJECT(FunctionObject, chunk);
 
@@ -374,6 +374,20 @@ void Compiler::CompileFunctionExpr(FunctionExpr *expr)
         CompileStmt(s);
 
     auto localVarCount = m_SymbolTable->GetVarCount();
+    {
+        auto upvalueCount = m_SymbolTable->GetUpvalueCount();
+
+        OpCodeList opCodeList;
+        for (uint8_t i = 0; i < upvalueCount; ++i)
+        {
+            auto upvalue = m_SymbolTable->GetUpvalueList()[i];
+            opCodeList.emplace_back(OP_DEF_UPVALUE);
+            opCodeList.emplace_back(upvalue.index);
+            opCodeList.emplace_back(upvalue.scopeDepth);
+            opCodeList.emplace_back(upvalue.upvalueIndex);
+        }
+        InsertOpCodeList(0, opCodeList);
+    }
 
     auto chunk = m_ScopeChunks.back();
     m_ScopeChunks.pop_back();
@@ -383,10 +397,10 @@ void Compiler::CompileFunctionExpr(FunctionExpr *expr)
     SAFE_DELETE(tmpTable);
 
     // for non return  or empty stmt in function scope:add a return to return nothing
-    if (chunk.opCodes.empty() || chunk.opCodes[chunk.opCodes.size() - 2] != OP_RETURN)
+    if (chunk.opCodeList.empty() || chunk.opCodeList[chunk.opCodeList.size() - 2] != OP_RETURN)
     {
-        chunk.opCodes.emplace_back(OP_RETURN);
-        chunk.opCodes.emplace_back(0);
+        chunk.opCodeList.emplace_back(OP_RETURN);
+        chunk.opCodeList.emplace_back(0);
     }
 
     auto fn = ALLOCATE_OBJECT(FunctionObject, chunk, localVarCount, static_cast<uint8_t>(expr->parameters.size()));
@@ -444,20 +458,7 @@ void Compiler::CompileRefExpr(RefExpr *expr)
         bool isFound = m_SymbolTable->Resolve(((IndexExpr *)expr->refExpr)->ds->Stringify(), symbol);
         if (!isFound)
             ASSERT("Undefined variable:%s", expr->Stringify().c_str());
-
-        switch (symbol.scope)
-        {
-        case SymbolScope::GLOBAL:
-            Emit(OP_REF_INDEX_GLOBAL);
-            Emit(symbol.index);
-            break;
-        case SymbolScope::LOCAL:
-            Emit(OP_REF_INDEX_LOCAL);
-            Emit(symbol.index);
-            break;
-        default:
-            break;
-        }
+        RefSymbol(symbol, true);
     }
     else
     {
@@ -465,19 +466,7 @@ void Compiler::CompileRefExpr(RefExpr *expr)
         if (!isFound)
             ASSERT("Undefined variable:%s", expr->Stringify().c_str());
 
-        switch (symbol.scope)
-        {
-        case SymbolScope::GLOBAL:
-            Emit(OP_REF_GLOBAL);
-            Emit(symbol.index);
-            break;
-        case SymbolScope::LOCAL:
-            Emit(OP_REF_LOCAL);
-            Emit(symbol.index);
-            break;
-        default:
-            break;
-        }
+        RefSymbol(symbol, false);
     }
 }
 
@@ -520,8 +509,14 @@ uint16_t Compiler::AddConstant(const Value &value)
 
 uint32_t Compiler::Emit(int16_t opcode)
 {
-    CurChunk().opCodes.emplace_back(opcode);
-    return static_cast<uint32_t>(CurChunk().opCodes.size() - 1);
+    CurChunk().opCodeList.emplace_back(opcode);
+    return static_cast<uint32_t>(CurChunk().opCodeList.size() - 1);
+}
+
+uint32_t Compiler::InsertOpCodeList(size_t address, const OpCodeList &opcodeList)
+{
+    CurChunk().opCodeList.insert(CurChunk().opCodeList.begin() + address, opcodeList.begin(), opcodeList.end());
+    return static_cast<uint32_t>(CurChunk().opCodeList.size() - 1);
 }
 
 uint32_t Compiler::EmitConstant(const Value &value)
@@ -530,7 +525,7 @@ uint32_t Compiler::EmitConstant(const Value &value)
 
     Emit(OP_CONSTANT);
     Emit(pos);
-    return static_cast<uint32_t>(CurChunk().opCodes.size() - 1);
+    return static_cast<uint32_t>(CurChunk().opCodeList.size() - 1);
 }
 
 uint32_t Compiler::EmitClosure(FunctionObject *fn)
@@ -538,12 +533,12 @@ uint32_t Compiler::EmitClosure(FunctionObject *fn)
     uint32_t pos = AddConstant(fn);
     Emit(OP_CLOSURE);
     Emit(pos);
-    return static_cast<uint32_t>(CurChunk().opCodes.size() - 1);
+    return static_cast<uint32_t>(CurChunk().opCodeList.size() - 1);
 }
 
 void Compiler::ModifyOpCode(uint32_t pos, int16_t opcode)
 {
-    CurChunk().opCodes[pos] = opcode;
+    CurChunk().opCodeList[pos] = opcode;
 }
 
 void Compiler::DefineSymbol(const Symbol &symbol)
@@ -575,6 +570,10 @@ void Compiler::LoadSymbol(const Symbol &symbol)
         Emit(OP_GET_LOCAL);
         Emit(symbol.index);
         break;
+    case SymbolScope::UPVALUE:
+        Emit(OP_GET_UPVALUE);
+        Emit(symbol.upvalueIndex);
+        break;
     case SymbolScope::BUILTIN:
     {
         CurChunk().constants.emplace_back(ALLOCATE_OBJECT(StrObject, symbol.name.data()));
@@ -604,6 +603,27 @@ void Compiler::StoreSymbol(const Symbol &symbol)
         break;
     case SymbolScope::LOCAL:
         Emit(OP_SET_LOCAL);
+        Emit(symbol.index);
+        break;
+    case SymbolScope::UPVALUE:
+        Emit(OP_SET_UPVALUE);
+        Emit(symbol.upvalueIndex);
+        break;
+    default:
+        break;
+    }
+}
+
+void Compiler::RefSymbol(const Symbol &symbol, bool isIndexSymbol)
+{
+    switch (symbol.scope)
+    {
+    case SymbolScope::GLOBAL:
+        Emit(isIndexSymbol ? OP_REF_INDEX_GLOBAL : OP_REF_GLOBAL);
+        Emit(symbol.index);
+        break;
+    case SymbolScope::LOCAL:
+        Emit(isIndexSymbol ? OP_REF_INDEX_LOCAL : OP_REF_LOCAL);
         Emit(symbol.index);
         break;
     default:
