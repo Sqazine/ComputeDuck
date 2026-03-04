@@ -9,6 +9,9 @@ namespace ComputeDuck
     public class Utils
     {
         public const int UINT8_COUNT = 256;
+        public const int UPVALUE_COUNT = UINT8_COUNT / 8;
+        public const int STACK_COUNT = UINT8_COUNT * 2;
+
         public static void Assert(string msg)
         {
             Console.WriteLine(msg);

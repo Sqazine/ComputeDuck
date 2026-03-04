@@ -9,8 +9,7 @@ class BuiltinManager(object):
 
     def __new__(cls, *args, **kw):
         if not cls.__instance:
-            cls.__instance = super(
-                BuiltinManager, cls).__new__(cls, *args, **kw)
+            cls.__instance = super(BuiltinManager, cls).__new__(cls, *args, **kw)
         return cls.__instance
 
     def __init__(self) -> None:

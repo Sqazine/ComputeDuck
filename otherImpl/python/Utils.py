@@ -3,6 +3,7 @@ import sys
 import ctypes
 
 UINT8_COUNT:int = 256
+UPVALUE_COUNT:int = int(UINT8_COUNT / 8)
 
 def error(msg):
     print(msg)

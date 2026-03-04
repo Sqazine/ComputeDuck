@@ -6,6 +6,7 @@ namespace ComputeDuck
     {
         GLOBAL,
         LOCAL,
+        UPVALUE,
         BUILTIN
     }
 
@@ -15,66 +16,57 @@ namespace ComputeDuck
         {
             this.scope = SymbolScope.GLOBAL;
             this.index = 0;
+            this.upvalueIndex = 0;
             this.scopeDepth = 0;
             this.name = "";
-            this.isUpValue = false;
-        }
-
-        public Symbol(string name,
-                      SymbolScope scope,
-                      int index,
-                      int scopeDepth,
-                      bool isStructSymbol = false)
-        {
-            this.name = name;
-            this.isStructSymbol = isStructSymbol;
-            this.scope = scope;
-            this.index = index;
-            this.scopeDepth = scopeDepth;
-            this.isUpValue = false;
         }
 
         public string name;
         public bool isStructSymbol;
         public SymbolScope scope;
         public int index;
+        public int upvalueIndex;
         public int scopeDepth;
-        public bool isUpValue;
     }
 
     public class SymbolTable
     {
-        public SymbolTable()
-        {
-            this.upper = null;
-            this.symbolList = new Symbol[Utils.UINT8_COUNT];
-            this.varCount = 0;
-            this.scopeDepth = 0;
-        }
 
-        public SymbolTable(SymbolTable upper)
+        public SymbolTable(SymbolTable m_Upper = null)
         {
-            this.upper = upper;
-            this.symbolList = new Symbol[Utils.UINT8_COUNT];
-            this.varCount = 0;
-            this.scopeDepth = upper.scopeDepth + 1;
+            this.m_Upper = m_Upper;
+            this.m_VarList = new Symbol[Utils.UINT8_COUNT];
+            this.m_VarCount = 0;
+            this.m_UpvalueList = new Symbol[Utils.UPVALUE_COUNT];
+            this.m_UpvalueCount = 0;
+
+            if(m_Upper == null)
+                this.m_ScopeDepth = 0;
+            else
+                this.m_ScopeDepth = m_Upper.m_ScopeDepth + 1;
         }
 
         public Symbol Define(string name, bool isStructSymbol = false)
         {
-            if (varCount >= Utils.UINT8_COUNT)
+            if (m_VarCount >= Utils.UINT8_COUNT)
                 Utils.Assert("Too many variable definitions, max is " + Utils.UINT8_COUNT.ToString());
 
             if (FindSymbol(name) != null)
                 Utils.Assert("Variable already defined in this scope:" + name);
 
-            Symbol symbol = new Symbol(name, SymbolScope.GLOBAL, varCount, scopeDepth, isStructSymbol);
-            if (upper == null)
+            Symbol symbol =new Symbol();
+            symbol.name = name;
+            symbol.index = m_VarCount;
+            symbol.scope = SymbolScope.GLOBAL;
+            symbol.scopeDepth = m_ScopeDepth;
+            symbol.isStructSymbol = isStructSymbol;
+
+            if (m_Upper == null)
                 symbol.scope = SymbolScope.GLOBAL;
             else
                 symbol.scope = SymbolScope.LOCAL;
 
-            symbolList[varCount++] = symbol;
+            m_VarList[m_VarCount++] = symbol;
             return symbol;
         }
 
@@ -84,11 +76,15 @@ namespace ComputeDuck
             if (result != null)
                 return result;
 
-            if (varCount == Utils.UINT8_COUNT)
+            if (m_VarCount == Utils.UINT8_COUNT)
                 Utils.Assert("Too many variable definitions, max is " + Utils.UINT8_COUNT.ToString());
 
-            var symbol = new Symbol(name, SymbolScope.BUILTIN, -1, scopeDepth);
-            symbolList[varCount++] = symbol;
+            Symbol symbol = new Symbol();
+            symbol.name = name;
+            symbol.scope = SymbolScope.BUILTIN;
+            symbol.scopeDepth = m_ScopeDepth;
+
+            m_VarList[m_VarCount++] = symbol;
             return symbol;
         }
 
@@ -97,7 +93,7 @@ namespace ComputeDuck
             Symbol result = FindSymbol(name);
             if (result != null)
             {
-                if (scopeDepth < result.scopeDepth)
+                if (m_ScopeDepth < result.scopeDepth)
                     return (false, null);
                 return (true, result);
             }
@@ -109,8 +105,12 @@ namespace ComputeDuck
                 if (symbol.scope == SymbolScope.GLOBAL || symbol.scope == SymbolScope.BUILTIN)
                     return (true, symbol);
 
-                symbol.isUpValue = true;
-                symbolList[varCount++] = symbol;
+                if(m_UpvalueCount == Utils.UPVALUE_COUNT)
+                    Utils.Assert("Too many upvalue definitions, max is " + Utils.UPVALUE_COUNT.ToString());
+
+                symbol.scope = SymbolScope.UPVALUE;
+                symbol.upvalueIndex = m_UpvalueCount;
+                m_UpvalueList[m_UpvalueCount++] = symbol;
                 return (true, symbol);
             }
 
@@ -120,39 +120,57 @@ namespace ComputeDuck
         public void EnterScope()
         {
 
-            scopeDepth++;
+            m_ScopeDepth++;
         }
 
         public void ExitScope()
         {
-            scopeDepth--;
+            m_ScopeDepth--;
         }
 
         public int GetVarCount()
         {
-            return varCount;
+            return m_VarCount;
+        }
+
+        public int GetUpvalueCount()
+        {
+            return m_UpvalueCount;
+        }
+
+        public Symbol[] GetUpvalueList()
+        {
+            return m_UpvalueList;
         }
 
         public SymbolTable GetUpper()
         {
-            return upper;
+            return m_Upper;
         }
 
         private Symbol FindSymbol(string name)
         {
-            for (int i = 0; i <= varCount; ++i)
+            for (int i = 0; i <= m_VarCount; ++i)
             {
-                if (symbolList[i] !=null && symbolList[i].name == name)
-                    return symbolList[i];
+                if (m_VarList[i] !=null && m_VarList[i].name == name)
+                    return m_VarList[i];
+            }
+
+            for (int i = 0; i <= m_UpvalueCount; ++i)
+            {
+                if (m_UpvalueList[i] != null && m_UpvalueList[i].name == name)
+                    return m_UpvalueList[i];
             }
 
             return null;
         }
 
-        private SymbolTable? upper;
-        private Symbol[] symbolList;
-        private int varCount;
-        private int scopeDepth;
+        private SymbolTable? m_Upper;
+        private Symbol[] m_VarList;
+        private int m_VarCount;
+        private Symbol[] m_UpvalueList;
+        private int m_UpvalueCount;
+        private int m_ScopeDepth;
     }
 
 }

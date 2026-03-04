@@ -2,7 +2,7 @@
 #include <format>
 void Allocator::Init()
 {
-    memset(m_ValueStack, 0, sizeof(Value) * STACK_MAX);
+    memset(m_ValueStack, 0, sizeof(Value) * STACK_COUNT);
 
     ResetStatus();
 }
@@ -25,7 +25,7 @@ void Allocator::ResetStatus()
 void Allocator::Push(const Value &value)
 {
 #ifndef NDEBUG
-    if (m_StackTop - m_ValueStack >= STACK_MAX)
+    if (m_StackTop - m_ValueStack >= STACK_COUNT)
         ASSERT("Stack Overflow");
 #endif
     *m_StackTop++ = value;
@@ -40,7 +40,7 @@ Value Allocator::Pop()
     return *(--m_StackTop);
 }
 
-Value *Allocator::GetGlobalVariableRef(size_t index)
+Value *Allocator::GetGlobalVariableSlot(size_t index)
 {
     return &m_GlobalVariables[index];
 }

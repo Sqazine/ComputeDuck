@@ -60,7 +60,7 @@ public:
             auto symbol = m_ExitOnErr(m_Executor->LookUp(SET_GLOBAL_VARIABLE_FN_STR));
             using SetGlobalVarFnType = void(*)(Value *);
             SetGlobalVarFnType setGlobalVarFn = reinterpret_cast<SetGlobalVarFnType>(symbol.getAddress());
-            setGlobalVarFn(GET_GLOBAL_VARIABLE_REF(0));
+            setGlobalVarFn(GET_GLOBAL_VARIABLE_SLOT(0));
         }
 
         // set stack
@@ -242,7 +242,7 @@ private:
     llvm::PointerType *m_TablePtrType{ nullptr };
 
     StackValue *m_StackTop;
-    StackValue m_ValueStack[STACK_MAX];
+    StackValue m_ValueStack[STACK_COUNT];
 
     std::vector<JumpInstrSet> m_JumpInstrSetTable;
 

@@ -154,8 +154,8 @@ Chunk &Compiler::CurChunk()
 
 uint32_t Compiler::Emit(int16_t opcode)
 {
-    CurChunk().opCodes.emplace_back(opcode);
-    return static_cast<uint32_t>(CurChunk().opCodes.size() - 1);
+    CurChunk().opCodeList.emplace_back(opcode);
+    return static_cast<uint32_t>(CurChunk().opCodeList.size() - 1);
 }
 
 uint32_t Compiler::EmitConstant(const Value &value)
@@ -165,5 +165,5 @@ uint32_t Compiler::EmitConstant(const Value &value)
 
     Emit(OP_CONSTANT);
     Emit(pos);
-    return static_cast<uint32_t>(CurChunk().opCodes.size() - 1);
+    return static_cast<uint32_t>(CurChunk().opCodeList.size() - 1);
 }

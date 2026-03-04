@@ -8,7 +8,7 @@ public:
     static Config *GetInstance();
 
     void SetExecuteFileDirectory(std::string_view path);
-    const std::string& GetExecuteFileDirectory() const;
+    const std::string &GetExecuteFileDirectory() const;
 
     std::string ToFullPath(std::string_view filePath);
 

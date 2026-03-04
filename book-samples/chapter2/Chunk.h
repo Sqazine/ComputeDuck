@@ -19,24 +19,24 @@ enum OpCode
 };
 
 
-using OpCodes = std::vector<int16_t>;
+using OpCodeList = std::vector<int16_t>;
 
 class COMPUTEDUCK_API Chunk
 {
 public:
     Chunk() = default;
-    Chunk(OpCodes opCodes, const std::vector<Value> &constants);
+    Chunk(OpCodeList opCodeList, const std::vector<Value> &constants);
     ~Chunk()
     {
-        OpCodes().swap(opCodes);
+        OpCodeList().swap(opCodeList);
     }
 
     std::string Stringify();
 
-    OpCodes opCodes;
+    OpCodeList opCodeList;
 
     std::vector<Value> constants;
 
 private:
-    std::string OpCodeStringify(const OpCodes &opcodes);
+    std::string OpCodeStringify(const OpCodeList &opCodeList);
 };

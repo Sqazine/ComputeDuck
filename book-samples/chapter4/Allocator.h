@@ -34,7 +34,7 @@ private:
     ~Allocator() = default;
 
     Value *m_StackTop{nullptr};
-    Value m_ValueStack[STACK_MAX]{};
+    Value m_ValueStack[STACK_COUNT]{};
 };
 
 #define PUSH(x) (Allocator::GetInstance()->Push(x))

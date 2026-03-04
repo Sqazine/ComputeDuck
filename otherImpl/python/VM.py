@@ -3,7 +3,7 @@ from Chunk import OpCode
 from Object import *
 from BuiltinManager import *
 
-STACK_MAX = 512
+STACK_COUNT = 512
 
 
 class CallFrame:
@@ -17,7 +17,7 @@ class CallFrame:
         self.ip = 0
 
     def is_at_end(self):
-        if self.ip < len(self.closure.function.chunk.opCodes):
+        if self.ip < len(self.closure.function.chunk.opCodeList):
             return False
         return True
 
@@ -28,16 +28,18 @@ class VM:
     __objectStack: list[Object] = []
     __callFrameTop: int
     __callFrameStack: list[CallFrame] = []
+    __open_upvalues : UpvalueObject
 
     def __init__(self) -> None:
         self.__reset_status()
 
     def __reset_status(self) -> None:
-        self.__globalVariables = [NilObject()]*STACK_MAX
+        self.__globalVariables = [None]*STACK_COUNT
         self.__stackTop = 0
-        self.__objectStack = [NilObject()]*STACK_MAX
+        self.__objectStack = [None]*STACK_COUNT
         self.__callFrameTop = 0
-        self.__callFrameStack = [CallFrame()]*STACK_MAX
+        self.__callFrameStack = [CallFrame()]*STACK_COUNT
+        self.__open_upvalues = None
 
     def run(self, mainFn: FunctionObject) -> None:
         self.__reset_status()
@@ -55,16 +57,18 @@ class VM:
             if frame.is_at_end():
                 return
 
-            instruction = frame.closure.function.chunk.opCodes[frame.ip]
+            instruction = frame.closure.function.chunk.opCodeList[frame.ip]
             frame.ip += 1
 
             if instruction == OpCode.OP_RETURN:
-                returnCount = frame.closure.function.chunk.opCodes[frame.ip]
+                returnCount = frame.closure.function.chunk.opCodeList[frame.ip]
                 frame.ip += 1
 
                 object = NilObject()
                 if returnCount == 1:
                     object = self.__pop()
+
+                self.__closed_upvalues(id(self.__objectStack[frame.slot]))
 
                 callFrame = self.__pop_call_frame()
 
@@ -77,7 +81,7 @@ class VM:
                     self.__push(object)
 
             elif instruction == OpCode.OP_CONSTANT:
-                idx = frame.closure.function.chunk.opCodes[frame.ip]
+                idx = frame.closure.function.chunk.opCodeList[frame.ip]
                 frame.ip += 1
 
                 object = frame.closure.function.chunk.constants[idx]
@@ -211,7 +215,7 @@ class VM:
                 self.__push(NumObject(~int(obj.value)))
 
             elif instruction == OpCode.OP_ARRAY:
-                numElements = frame.closure.function.chunk.opCodes[frame.ip]
+                numElements = frame.closure.function.chunk.opCodeList[frame.ip]
                 frame.ip += 1
 
                 self.__stackTop -= numElements
@@ -249,7 +253,7 @@ class VM:
                     error("Invalid index op:" + ds.__str__() + "[" + index.__str__() + "]")
 
             elif instruction == OpCode.OP_JUMP_IF_FALSE:
-                address = frame.closure.function.chunk.opCodes[frame.ip]
+                address = frame.closure.function.chunk.opCodeList[frame.ip]
                 frame.ip += 1
                 obj = self.__pop()
                 if obj.type != ObjectType.BOOL:
@@ -258,21 +262,21 @@ class VM:
                     frame.ip = address+1
 
             elif instruction == OpCode.OP_JUMP:
-                address = frame.closure.function.chunk.opCodes[frame.ip]
+                address = frame.closure.function.chunk.opCodeList[frame.ip]
                 frame.ip = address+1
 
             elif instruction == OpCode.OP_DEF_GLOBAL:
-                index = frame.closure.function.chunk.opCodes[frame.ip]
+                index = frame.closure.function.chunk.opCodeList[frame.ip]
                 frame.ip += 1
                 obj = self.__pop()
                 self.__globalVariables[index] = obj
 
             elif instruction == OpCode.OP_SET_GLOBAL:
-                index = frame.closure.function.chunk.opCodes[frame.ip]
+                index = frame.closure.function.chunk.opCodeList[frame.ip]
                 frame.ip += 1
                 obj = self.__pop()
 
-                if self.__globalVariables[index].type == ObjectType.REF:
+                if self.__globalVariables[index] != None and self.__globalVariables[index].type == ObjectType.REF:
                     refObj, address = self.__get_end_of_ref_object(
                         self.__globalVariables[index])
                     self.__assign_object_by_address(address, obj)
@@ -288,12 +292,12 @@ class VM:
                     self.__globalVariables[index] = obj
 
             elif instruction == OpCode.OP_GET_GLOBAL:
-                index = frame.closure.function.chunk.opCodes[frame.ip]
+                index = frame.closure.function.chunk.opCodeList[frame.ip]
                 frame.ip += 1
                 self.__push(self.__globalVariables[index])
 
             elif instruction == OpCode.OP_FUNCTION_CALL:
-                argCount = frame.closure.function.chunk.opCodes[frame.ip]
+                argCount = frame.closure.function.chunk.opCodeList[frame.ip]
                 frame.ip += 1
 
                 obj = self.__objectStack[self.__stackTop-1-argCount]
@@ -315,7 +319,7 @@ class VM:
                     error("Calling not a function or a builtinFn")
 
             elif instruction == OpCode.OP_DEF_LOCAL:
-                index = frame.closure.function.chunk.opCodes[frame.ip]
+                index = frame.closure.function.chunk.opCodeList[frame.ip]
                 frame.ip += 1
 
                 obj = self.__pop()
@@ -324,14 +328,14 @@ class VM:
                 self.__objectStack[slot] = obj
 
             elif instruction == OpCode.OP_SET_LOCAL:
-                index = frame.closure.function.chunk.opCodes[frame.ip]
+                index = frame.closure.function.chunk.opCodeList[frame.ip]
                 frame.ip += 1
 
                 obj = self.__pop()
 
                 slot = self.__get_local_variable_slot(index)
 
-                if self.__objectStack[slot].type == ObjectType.REF:
+                if self.__objectStack[slot] != None and self.__objectStack[slot].type == ObjectType.REF:
                     refObj = self.__objectStack[slot]
                     refObj, refAddress = self.__get_end_of_ref_object(refObj)
 
@@ -348,7 +352,7 @@ class VM:
                     self.__objectStack[slot] = obj
 
             elif instruction == OpCode.OP_GET_LOCAL:
-                index = frame.closure.function.chunk.opCodes[frame.ip]
+                index = frame.closure.function.chunk.opCodeList[frame.ip]
                 frame.ip += 1
 
                 slot = self.__get_local_variable_slot(index)
@@ -363,7 +367,7 @@ class VM:
             elif instruction == OpCode.OP_STRUCT:
                 members: dict[str, Object] = {}
 
-                memberCount = frame.closure.function.chunk.opCodes[frame.ip]
+                memberCount = frame.closure.function.chunk.opCodeList[frame.ip]
                 frame.ip += 1
 
                 tmpPtr = self.__stackTop
@@ -405,12 +409,12 @@ class VM:
                     instance.members[memberName.value] = obj
 
             elif instruction == OpCode.OP_REF_GLOBAL:
-                index = frame.closure.function.chunk.opCodes[frame.ip]
+                index = frame.closure.function.chunk.opCodeList[frame.ip]
                 frame.ip += 1
                 self.__push(RefObject(id(self.__globalVariables[index])))
 
             elif instruction == OpCode.OP_REF_LOCAL:
-                index = frame.closure.function.chunk.opCodes[frame.ip]
+                index = frame.closure.function.chunk.opCodeList[frame.ip]
                 frame.ip += 1
 
                 slot = self.__get_local_variable_slot(index)
@@ -418,7 +422,7 @@ class VM:
                 self.__push(RefObject(id(self.__objectStack[slot])))
 
             elif instruction == OpCode.OP_REF_INDEX_GLOBAL:
-                index = frame.closure.function.chunk.opCodes[frame.ip]
+                index = frame.closure.function.chunk.opCodeList[frame.ip]
                 frame.ip += 1
                 idxValue = self.__pop()
 
@@ -428,7 +432,7 @@ class VM:
                 self.__push(self.__allocate_index_ref_object(obj, idxValue))
 
             elif instruction == OpCode.OP_REF_INDEX_LOCAL:
-                index = frame.closure.function.chunk.opCodes[frame.ip]
+                index = frame.closure.function.chunk.opCodeList[frame.ip]
                 frame.ip += 1
 
                 idxValue = self.__pop()
@@ -443,10 +447,36 @@ class VM:
                 register_dlls(name)
                 
             elif instruction == OpCode.OP_CLOSURE:
-                pos = frame.closure.function.chunk.opCodes[frame.ip]
+                pos = frame.closure.function.chunk.opCodeList[frame.ip]
+                frame.ip += 1
+                upvalueCount = frame.closure.function.chunk.opCodeList[frame.ip]
                 frame.ip += 1
                 closureObj = ClosureObject(frame.closure.function.chunk.constants[pos])
+                
+                for i in range(0,upvalueCount):
+                    index = frame.closure.function.chunk.opCodeList[frame.ip]
+                    frame.ip += 1
+                    scopeDepth = frame.closure.function.chunk.opCodeList[frame.ip]
+                    frame.ip += 1
+                    
+                    upvalue = self.__capture_upvalue(id(self.__objectStack[self.__get_upvalue_variable_slot(index,scopeDepth)]))
+                    closureObj.upvalues[i] = upvalue
+                    
                 self.__push(closureObj)
+                
+            elif instruction == OpCode.OP_GET_UPVALUE:
+                index = frame.closure.function.chunk.opCodeList[frame.ip]
+                frame.ip += 1
+                upvalue = frame.closure.upvalues[index]
+                self.__push(search_object_by_address(upvalue.location))
+                
+            elif instruction == OpCode.OP_SET_UPVALUE:
+                index = frame.closure.function.chunk.opCodeList[frame.ip]
+                frame.ip += 1
+
+                obj = self.__pop()
+
+                frame.closure.upvalues[index].location = id(obj)
 
     def __push(self, obj: Object) -> None:
         self.__objectStack[self.__stackTop] = obj
@@ -495,7 +525,7 @@ class VM:
 
     def __assign_object_by_address(self, address, obj: Object):
         for i in range(0, len(self.__globalVariables)):
-            if self.__globalVariables[i].type == ObjectType.ARRAY:
+            if self.__globalVariables[i] != None and self.__globalVariables[i].type == ObjectType.ARRAY:
                 for j in range(0, len(self.__globalVariables[i].elements)):
                     if id(self.__globalVariables[i].elements[j]) == address:
                         self.__globalVariables[i].elements[j] = obj
@@ -517,13 +547,13 @@ class VM:
     def __search_ref_object_list_by_address(self, address: int) -> list:
         result: list = []
         for i in range(0, len(self.__globalVariables)):
-            if self.__globalVariables[i].type == ObjectType.ARRAY:
+            if self.__globalVariables[i] != None and self.__globalVariables[i].type == ObjectType.ARRAY:
                 for j in range(0, len(self.__globalVariables[i].elements)):
                     if self.__globalVariables[i].elements[j].type == ObjectType.REF:
                         if self.__globalVariables[i].elements[j].pointer == address:
                             result.append(
                                 self.__globalVariables[i].elements[j])
-            elif self.__globalVariables[i].type == ObjectType.REF:
+            elif self.__globalVariables[i] != None and self.__globalVariables[i].type == ObjectType.REF:
                 if self.__globalVariables[i].pointer == address:
                     result.append(self.__globalVariables[i])
 
@@ -542,25 +572,53 @@ class VM:
 
     def __update_ref_address(self, originAddress, newAddress):
         for i in range(0, len(self.__globalVariables)):
-            if self.__globalVariables[i].type == ObjectType.ARRAY:
+            if self.__globalVariables[i] != None and self.__globalVariables[i].type == ObjectType.ARRAY:
                 for j in range(0, len(self.__globalVariables[i].elements)):
                     if self.__globalVariables[i].elements[j].type == ObjectType.REF:
                         if self.__globalVariables[i].elements[j].pointer == originAddress:
                             self.__globalVariables[i].elements[j].pointer = newAddress
-            elif self.__globalVariables[i].type == ObjectType.REF:
+            elif self.__globalVariables[i] != None and self.__globalVariables[i].type == ObjectType.REF:
                 if self.__globalVariables[i].pointer == originAddress:
                     self.__globalVariables[i].pointer = newAddress
 
         for p in range(0, self.__stackTop):
-            if self.__objectStack[p].type == ObjectType.ARRAY:
+            if self.__objectStack[p] != None and self.__objectStack[p].type == ObjectType.ARRAY:
                 for j in range(0, len(self.__objectStack[p].elements)):
                     if self.__objectStack[p].elements[j].type == ObjectType.REF:
                         if self.__objectStack[p].elements[j].pointer == originAddress:
                             self.__objectStack[p].elements[j].pointer = newAddress
 
-            elif self.__objectStack[p].type == ObjectType.REF:
+            elif self.__objectStack[p] != None and self.__objectStack[p].type == ObjectType.REF:
                 if self.__objectStack[p].pointer == originAddress:
                     self.__objectStack[p].pointer = newAddress
 
-    def __get_local_variable_slot(self, index) -> Object:
+    def __get_local_variable_slot(self, index) -> int:
         return self.__peek_call_frame(1).slot+index
+    
+    def __get_upvalue_variable_slot(self, index, scopeDepth) -> int:
+        return self.__callFrameStack[scopeDepth].slot+index
+    
+    def __capture_upvalue(self,pointer:int)->UpvalueObject:
+        prevUpValue : UpvalueObject = None
+        upvalue : UpvalueObject = self.__open_upvalues
+        while upvalue != None and upvalue.location > pointer:
+            prevUpValue = upvalue
+            upvalue = upvalue.nextUpvalue
+        
+        if upvalue != None and upvalue.location == pointer:
+            return upvalue
+        
+        createdUpvalue = UpvalueObject(pointer)
+        
+        if prevUpValue == None:
+            self.__open_upvalues = createdUpvalue
+        else:
+            prevUpValue.nextUpvalue = createdUpvalue
+        return createdUpvalue
+    
+    def __closed_upvalues(self, last:int)->None:
+        while self.__open_upvalues != None and self.__open_upvalues.location >= last:
+            upvalue :UpvalueObject = self.__open_upvalues
+            upvalue.closed = search_object_by_address(upvalue.location)
+            upvalue.location = id(upvalue.closed)
+            self.__open_upvalues = upvalue.nextUpvalue

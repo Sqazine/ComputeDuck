@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace ComputeDuck
 {
-    using OpCodes = List<int>;
+    using OpCodeList = List<int>;
     public enum OpCode
     {
         OP_CONSTANT = 0,
@@ -30,6 +30,8 @@ namespace ComputeDuck
         OP_DEF_LOCAL,
         OP_SET_LOCAL,
         OP_GET_LOCAL,
+        OP_SET_UPVALUE,
+        OP_GET_UPVALUE,
         OP_ARRAY,
         OP_GET_INDEX,
         OP_SET_INDEX,
@@ -49,23 +51,23 @@ namespace ComputeDuck
 
     public class Chunk
     {
-        public OpCodes opCodes;
+        public OpCodeList opCodeList;
         public List<Object> constants;
 
         public Chunk()
         {
-            this.opCodes = new OpCodes();
+            this.opCodeList = new OpCodeList();
             this.constants = new List<Object>();
         }
-        public Chunk(OpCodes opCodes, List<Object> constants)
+        public Chunk(OpCodeList opCodeList, List<Object> constants)
         {
-            this.opCodes = opCodes;
+            this.opCodeList = opCodeList;
             this.constants = constants;
         }
 
         public override string ToString()
         {
-            string result = OpCodeStringify(opCodes);
+            string result = OpCodeStringify(opCodeList);
             for (int i = 0; i < constants.Count; ++i)
                 if (constants[i].type == ObjectType.FUNCTION)
                     result += ((FunctionObject)constants[i]).ToStringWithChunk();
@@ -73,15 +75,15 @@ namespace ComputeDuck
             return result;
         }
 
-        private string OpCodeStringify(OpCodes opCodes)
+        private string OpCodeStringify(OpCodeList opCodeList)
         {
             string result = "";
-            for (int i = 0; i < opCodes.Count; ++i)
+            for (int i = 0; i < opCodeList.Count; ++i)
             {
-                switch (opCodes[i])
+                switch (opCodeList[i])
                 {
                     case (int)OpCode.OP_CONSTANT:
-                        result += string.Format("{0}\tOP_CONSTANT\t'{1}'\t\n", i.ToString().PadLeft(8), constants[opCodes[++i]].ToString());
+                        result += string.Format("{0}\tOP_CONSTANT\t'{1}'\t\n", i.ToString().PadLeft(8), constants[opCodeList[++i]].ToString());
                         break;
                     case (int)OpCode.OP_ADD:
                         result += string.Format("{0}\tOP_ADD\n", i.ToString().PadLeft(8));
@@ -129,7 +131,7 @@ namespace ComputeDuck
                         result += string.Format("{0}\tOP_BIT_NOT\n", i.ToString().PadLeft(8));
                         break;
                     case (int)OpCode.OP_ARRAY:
-                        result += string.Format("{0}\tOP_ARRAY\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
+                        result += string.Format("{0}\tOP_ARRAY\t{1}\n", i.ToString().PadLeft(8), opCodeList[++i]);
                         break;
                     case (int)OpCode.OP_GET_INDEX:
                         result += string.Format("{0}\tOP_GET_INDEX\n", i.ToString().PadLeft(8));
@@ -138,43 +140,47 @@ namespace ComputeDuck
                         result += string.Format("{0}\tOP_SET_INDEX\n", i.ToString().PadLeft(8));
                         break;
                     case (int)OpCode.OP_JUMP:
-                        result += string.Format("{0}\tOP_JUMP\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
+                        result += string.Format("{0}\tOP_JUMP\t{1}\n", i.ToString().PadLeft(8), opCodeList[++i]);
                         break;
                     case (int)OpCode.OP_JUMP_IF_FALSE:
-                        result += string.Format("{0}\tOP_JUMP_IF_FALSE\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
+                        result += string.Format("{0}\tOP_JUMP_IF_FALSE\t{1}\n", i.ToString().PadLeft(8), opCodeList[++i]);
                         break;
                     case (int)OpCode.OP_RETURN:
-                        result += string.Format("{0}\tOP_RETURN\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
+                        result += string.Format("{0}\tOP_RETURN\t{1}\n", i.ToString().PadLeft(8), opCodeList[++i]);
                         break;
                     case (int)OpCode.OP_DEF_GLOBAL:
-                        result += string.Format("{0}\tOP_DEF_GLOBAL\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
+                        result += string.Format("{0}\tOP_DEF_GLOBAL\t{1}\n", i.ToString().PadLeft(8), opCodeList[++i]);
                         break;
                     case (int)OpCode.OP_SET_GLOBAL:
-                        result += string.Format("{0}\tOP_SET_GLOBAL\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
+                        result += string.Format("{0}\tOP_SET_GLOBAL\t{1}\n", i.ToString().PadLeft(8), opCodeList[++i]);
                         break;
                     case (int)OpCode.OP_GET_GLOBAL:
-                        result += string.Format("{0}\tOP_GET_GLOBAL\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
+                        result += string.Format("{0}\tOP_GET_GLOBAL\t{1}\n", i.ToString().PadLeft(8), opCodeList[++i]);
                         break;
                     case (int)OpCode.OP_DEF_LOCAL:
-                        result += string.Format("{0}\tOP_DEF_LOCAL\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
+                        result += string.Format("{0}\tOP_DEF_LOCAL\t{1}\n", i.ToString().PadLeft(8), opCodeList[++i]);
                         break;
                     case (int)OpCode.OP_SET_LOCAL:
-                        result += string.Format("{0}\tOP_SET_LOCAL\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
+                        result += string.Format("{0}\tOP_SET_LOCAL\t{1}\n", i.ToString().PadLeft(8), opCodeList[++i]);
                         break;
                     case (int)OpCode.OP_GET_LOCAL:
-                        result += string.Format("{0}\tOP_GET_LOCAL\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
+                        result += string.Format("{0}\tOP_GET_LOCAL\t{1}\n", i.ToString().PadLeft(8), opCodeList[++i]);
                         break;
                     case (int)OpCode.OP_CLOSURE:
-                        result += string.Format("{0}\tOP_CLOSURE\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
-                        break;
+                        {
+                            result += string.Format("{0}\tOP_CLOSURE\t{1}\t{2}\n", i.ToString().PadLeft(8), opCodeList[++i], opCodeList[++i]);
+                            for (int j = 0; j < opCodeList[i]; ++j)
+                                result += string.Format("{0}\t|\t{1}\t{2}\n", i.ToString().PadLeft(8), opCodeList[++i], opCodeList[++i]);
+                            break;
+                        }
                     case (int)OpCode.OP_FUNCTION_CALL:
-                        result += string.Format("{0}\tOP_FUNCTION_CALL\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
+                        result += string.Format("{0}\tOP_FUNCTION_CALL\t{1}\n", i.ToString().PadLeft(8), opCodeList[++i]);
                         break;
                     case (int)OpCode.OP_GET_BUILTIN:
                         result += string.Format("{0}\tOP_GET_BUILTIN\n", i.ToString().PadLeft(8));
                         break;
                     case (int)OpCode.OP_STRUCT:
-                        result += string.Format("{0}\tOP_STRUCT\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
+                        result += string.Format("{0}\tOP_STRUCT\t{1}\n", i.ToString().PadLeft(8), opCodeList[++i]);
                         break;
                     case (int)OpCode.OP_GET_STRUCT:
                         result += string.Format("{0}\tOP_GET_STRUCT\n", i.ToString().PadLeft(8));
@@ -183,19 +189,25 @@ namespace ComputeDuck
                         result += string.Format("{0}\tOP_SET_STRUCT\n", i.ToString().PadLeft(8));
                         break;
                     case (int)OpCode.OP_REF_GLOBAL:
-                        result += string.Format("{0}\tOP_REF_GLOBAL\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
+                        result += string.Format("{0}\tOP_REF_GLOBAL\t{1}\n", i.ToString().PadLeft(8), opCodeList[++i]);
                         break;
                     case (int)OpCode.OP_REF_LOCAL:
-                        result += string.Format("{0}\tOP_REF_LOCAL\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
+                        result += string.Format("{0}\tOP_REF_LOCAL\t{1}\n", i.ToString().PadLeft(8), opCodeList[++i]);
                         break;
                     case (int)OpCode.OP_REF_INDEX_GLOBAL:
-                        result += string.Format("{0}\tOP_REF_INDEX_GLOBAL\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
+                        result += string.Format("{0}\tOP_REF_INDEX_GLOBAL\t{1}\n", i.ToString().PadLeft(8), opCodeList[++i]);
                         break;
                     case (int)OpCode.OP_REF_INDEX_LOCAL:
-                        result += string.Format("{0}\tOP_REF_INDEX_LOCAL\t{1}\n", i.ToString().PadLeft(8), opCodes[++i]);
+                        result += string.Format("{0}\tOP_REF_INDEX_LOCAL\t{1}\n", i.ToString().PadLeft(8), opCodeList[++i]);
                         break;
                     case (int)OpCode.OP_DLL_IMPORT:
                         result += string.Format("{0}\tOP_DLL_IMPORT\n", i.ToString().PadLeft(8));
+                        break;
+                    case (int)OpCode.OP_SET_UPVALUE:
+                        result += string.Format("{0}\tOP_SET_UPVALUE\t{1}\n", i.ToString().PadLeft(8), opCodeList[++i]);
+                        break;
+                    case (int)OpCode.OP_GET_UPVALUE:
+                        result += string.Format("{0}\tOP_GET_UPVALUE\t{1}\n", i.ToString().PadLeft(8), opCodeList[++i]);
                         break;
                     default:
                         break;

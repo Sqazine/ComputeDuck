@@ -30,6 +30,8 @@ enum OpCode
     OP_DEF_LOCAL,
     OP_SET_LOCAL,
     OP_GET_LOCAL,
+    OP_GET_UPVALUE,
+    OP_SET_UPVALUE,
     OP_ARRAY,
     OP_GET_INDEX,
     OP_SET_INDEX,
@@ -51,24 +53,24 @@ enum OpCode
 #endif
 };
 
-using OpCodes = std::vector<int16_t>;
+using OpCodeList = std::vector<int16_t>;
 
 class COMPUTEDUCK_API Chunk
 {
 public:
     Chunk() = default;
-    Chunk(OpCodes opCodes, const std::vector<Value> &constants);
+    Chunk(OpCodeList opCodeList, const std::vector<Value> &constants);
     ~Chunk()
     {
-        OpCodes().swap(opCodes);
+        OpCodeList().swap(opCodeList);
     }
 
     std::string Stringify();
 
-    OpCodes opCodes;
+    OpCodeList opCodeList;
 
     std::vector<Value> constants;
 
 private:
-    std::string OpCodeStringify(const OpCodes &opcodes);
+    std::string OpCodeStringify(const OpCodeList &opCodeList);
 };

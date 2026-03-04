@@ -12,7 +12,7 @@ void Config::SetExecuteFileDirectory(std::string_view path)
     m_CurExecuteFileDirectory = path;
 }
 
-const std::string& Config::GetExecuteFileDirectory() const
+const std::string &Config::GetExecuteFileDirectory() const
 {
     return m_CurExecuteFileDirectory;
 }

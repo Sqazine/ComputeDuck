@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
@@ -45,6 +46,7 @@ namespace ComputeDuck
         STRUCT,
         REF,
         FUNCTION,
+        UPVALUE,
         CLOSURE,
         BUILTIN
     };
@@ -266,12 +268,12 @@ namespace ComputeDuck
             if (base.IsEqualTo(other) == false)
                 return false;
 
-            var otherOpCodes = ((FunctionObject)other).chunk.opCodes;
-            if (chunk.opCodes.Count != otherOpCodes.Count)
+            var otherOpCodeList = ((FunctionObject)other).chunk.opCodeList;
+            if (chunk.opCodeList.Count != otherOpCodeList.Count)
                 return false;
 
-            for (int i = 0; i < chunk.opCodes.Count; ++i)
-                if (chunk.opCodes[i] != otherOpCodes[i])
+            for (int i = 0; i < chunk.opCodeList.Count; ++i)
+                if (chunk.opCodeList[i] != otherOpCodeList[i])
                     return false;
             return true;
         }
@@ -281,17 +283,46 @@ namespace ComputeDuck
         public int parameterCount;
     }
 
+    public class UpvalueObject : Object
+    {
+        public UpvalueObject()
+         : base(ObjectType.UPVALUE)
+        {
+            this.location = new IntPtr(-1);
+            this.closed = null;
+            this.nextUpvalue = null;
+        }
+        public UpvalueObject(IntPtr location)
+          : base(ObjectType.UPVALUE)
+        {
+            this.location = location;
+        }
+        public override string? ToString()
+        {
+            return GCHandle.FromIntPtr(location).Target?.ToString();
+        }
+        public override bool IsEqualTo(Object other)
+        {
+            return base.IsEqualTo(other) && this.location == ((UpvalueObject)other).location;
+        }
+        public IntPtr location;
+        public Object closed;
+        public UpvalueObject nextUpvalue;
+    }
+
     public class ClosureObject : Object
     {
         public ClosureObject()
          : base(ObjectType.CLOSURE)
         {
             this.function = null!;
+            this.upvalues = new UpvalueObject[Utils.UPVALUE_COUNT];
         }
         public ClosureObject(FunctionObject function)
             : base(ObjectType.CLOSURE)
         {
             this.function = function;
+            this.upvalues = new UpvalueObject[Utils.UPVALUE_COUNT];
         }
         public override string ToString()
         {
@@ -307,6 +338,7 @@ namespace ComputeDuck
             return true;
         }
         public FunctionObject function;
+        public UpvalueObject[] upvalues;
     }
     public class StructObject : Object
     {

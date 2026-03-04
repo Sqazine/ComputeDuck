@@ -12,10 +12,10 @@ void VM::Run(const Chunk &chunk)
 
 void VM::Execute()
 {
-    auto ip = m_Chunk.opCodes.data();
+    auto ip = m_Chunk.opCodeList.data();
     while (1)
     {
-        if (ip - m_Chunk.opCodes.data() >= m_Chunk.opCodes.size())
+        if (ip - m_Chunk.opCodeList.data() >= m_Chunk.opCodeList.size())
             return;
 
         int16_t instruction = *ip++;
@@ -177,7 +177,7 @@ void VM::Execute()
         {
             auto index = *ip++;
             auto value = POP();
-            auto ptr = GET_GLOBAL_VARIABLE_REF(index);
+            auto ptr = GET_GLOBAL_VARIABLE_SLOT(index);
             *ptr = value;
             break;
         }
@@ -185,14 +185,14 @@ void VM::Execute()
         {
             auto index = *ip++;
             auto value = POP();
-            auto ptr = GET_GLOBAL_VARIABLE_REF(index);
+            auto ptr = GET_GLOBAL_VARIABLE_SLOT(index);
             *ptr = value;
             break;
         }
         case OP_GET_GLOBAL:
         {
             auto index = *ip++;
-            PUSH(*GET_GLOBAL_VARIABLE_REF(index));
+            PUSH(*GET_GLOBAL_VARIABLE_SLOT(index));
             break;
         }
         // ++ 新增内容
