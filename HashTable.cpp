@@ -1,22 +1,22 @@
-#include "Table.h"
+#include "HashTable.h"
 #include "Object.h"
 #define TABLE_MAX_LOAD 0.75
 
 #define GROW_CAPACITY(capacity) ((capacity) < 8 ? 8 : (capacity)*2)
 
-Table::Table()
+HashTable::HashTable()
     :m_Count(0), m_Capacity(0), m_Entries(nullptr)
 {
 }
 
-Table::~Table()
+HashTable::~HashTable()
 {
     m_Entries = nullptr;
     m_Count = 0;
     m_Capacity = 0;
 }
 
-bool Table::Set(StrObject *key, const Value &value)
+bool HashTable::Set(StrObject *key, const Value &value)
 {
     if (m_Count + 1 > m_Capacity * TABLE_MAX_LOAD)
     {
@@ -34,29 +34,28 @@ bool Table::Set(StrObject *key, const Value &value)
     return isNewKey;
 }
 
-bool Table::Get(StrObject *key, Value &value)
+Value* HashTable::Get(StrObject *key)
+{
+    if (m_Count == 0)
+        return nullptr;
+    Entry *entry = FindEntry(m_Capacity, key);
+    if (entry->key == nullptr)
+        return nullptr;
+
+    return &entry->value;
+}
+
+bool HashTable::Find(StrObject *key)
 {
     if (m_Count == 0)
         return false;
     Entry *entry = FindEntry(m_Capacity, key);
     if (entry->key == nullptr)
         return false;
-
-    value = entry->value;
     return true;
 }
 
-bool Table::Find(StrObject *key)
-{
-    if (m_Count == 0)
-        return false;
-    Entry *entry = FindEntry(m_Capacity, key);
-    if (entry->key == nullptr)
-        return false;
-    return true;
-}
-
-bool Table::Delete(StrObject *key)
+bool HashTable::Delete(StrObject *key)
 {
     if (m_Count == 0)
         return false;
@@ -68,7 +67,7 @@ bool Table::Delete(StrObject *key)
     return true;
 }
 
-void Table::Mark()
+void HashTable::Mark()
 {
     for (size_t i = 0; i < m_Capacity; ++i)
     {
@@ -81,7 +80,7 @@ void Table::Mark()
     }
 }
 
-void Table::UnMark()
+void HashTable::UnMark()
 {
     for (size_t i = 0; i < m_Capacity; ++i)
     {
@@ -92,27 +91,27 @@ void Table::UnMark()
     }
 }
 
-uint32_t Table::GetCount() const
+uint32_t HashTable::GetCount() const
 {
     return m_Count;
 }
 
-uint32_t Table::GetCapacity() const
+uint32_t HashTable::GetCapacity() const
 {
     return m_Capacity;
 }
 
-const Entry *Table::GetEntries() const
+const Entry *HashTable::GetEntries() const
 {
     return m_Entries;
 }
 
-bool Table::IsValid(uint32_t idx)
+bool HashTable::IsValid(uint32_t idx)
 {
     return idx >= 0 && idx < m_Capacity && m_Entries[idx].key != nullptr;
 }
 
-Entry *Table::FindEntry(uint32_t capacity, StrObject *key)
+Entry *HashTable::FindEntry(uint32_t capacity, StrObject *key)
 {
     uint32_t index = key->hash & (capacity - 1);//equal to a%b;
     Entry *tombstone = nullptr;
@@ -133,7 +132,7 @@ Entry *Table::FindEntry(uint32_t capacity, StrObject *key)
     }
 }
 
-void Table::AdjustCapacity(uint32_t capacity)
+void HashTable::AdjustCapacity(uint32_t capacity)
 {
     Entry *entries = new Entry[capacity];
     m_Count = 0;
@@ -158,7 +157,7 @@ void Table::AdjustCapacity(uint32_t capacity)
     m_Capacity = capacity;
 }
 
-bool operator==(const Table &left, const Table &right)
+bool operator==(const HashTable &left, const HashTable &right)
 {
     return left.GetCount() == right.GetCount() && left.GetEntries() == right.GetEntries();
 }

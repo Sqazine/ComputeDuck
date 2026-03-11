@@ -8,7 +8,7 @@
 #include "Utils.h"
 #include "Chunk.h"
 #include "Value.h"
-#include "Table.h"
+#include "HashTable.h"
 
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
 #include "JitUtils.h"
@@ -144,10 +144,10 @@ struct ClosureObject:public Object
 
 struct StructObject : public Object
 {
-    StructObject(Table* membs) :Object(ObjectType::STRUCT), members(membs) {}
+    StructObject(HashTable* membs) :Object(ObjectType::STRUCT), members(membs) {}
     ~StructObject() { SAFE_DELETE(members); }
 
-    Table* members;
+    HashTable* members;
 };
 
 using BuiltinFn = std::function<bool(Value *, uint8_t, Value &)>;
