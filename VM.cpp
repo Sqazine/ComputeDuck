@@ -402,7 +402,7 @@ void VM::Execute()
         }
         case OP_STRUCT:
         {
-            Table *members = new Table();
+            HashTable *members = new HashTable();
             auto memberCount = 2 * (*frame->ip++);
             for (auto slot = GET_STACK_TOP(); slot > GET_STACK_TOP() - memberCount;)
             {
@@ -426,9 +426,8 @@ void VM::Execute()
             {
                 auto structInstance = TO_STRUCT_VALUE(instance);
 
-                Value value;
-                bool isSuccess = structInstance->members->Get(TO_STR_VALUE(memberName), value);
-                if (!isSuccess)
+                Value *value = structInstance->members->Get(TO_STR_VALUE(memberName));
+                if (!value)
                     ASSERT("no member named:(%s) in struct instance:%s", memberName.Stringify().c_str(), instance.Stringify().c_str());
                 PUSH(value);
             }

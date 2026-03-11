@@ -238,8 +238,8 @@ private:
     llvm::StructType *m_EntryType{ nullptr };
     llvm::PointerType *m_EntryPtrType{ nullptr };
 
-    llvm::StructType *m_TableType{ nullptr };
-    llvm::PointerType *m_TablePtrType{ nullptr };
+    llvm::StructType *m_HashTableType{ nullptr };
+    llvm::PointerType *m_HashTablePtrType{ nullptr };
 
     StackValue *m_StackTop;
     StackValue m_ValueStack[STACK_COUNT];

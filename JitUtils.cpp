@@ -5,7 +5,7 @@
 #include "Value.h"
 #include "Object.h"
 #include "Allocator.h"
-#include "Table.h"
+#include "HashTable.h"
 #include <random>
 
 extern "C" COMPUTEDUCK_API StrObject *AllocateStrObject(const char *v)
@@ -23,7 +23,7 @@ extern "C" COMPUTEDUCK_API RefObject *AllocateRefObject(Value *pointer)
     return ALLOCATE_OBJECT(RefObject, pointer);
 }
 
-extern "C" COMPUTEDUCK_API StructObject *AllocateStructObject(Table *table)
+extern "C" COMPUTEDUCK_API StructObject *AllocateStructObject(HashTable *table)
 {
     return ALLOCATE_OBJECT(StructObject, table);
 }
@@ -33,22 +33,22 @@ extern "C" COMPUTEDUCK_API Value *GetLocalVariableSlot(int16_t index)
     return GET_LOCAL_VARIABLE_SLOT(index);
 }
 
-extern "C" COMPUTEDUCK_API Table *AllocateTable()
+extern "C" COMPUTEDUCK_API HashTable *AllocateHashTable()
 {
-    return new Table();
+    return new HashTable();
 }
 
-extern "C" COMPUTEDUCK_API bool TableSet(Table *table, StrObject *key, const Value &value)
+extern "C" COMPUTEDUCK_API bool HashTableSet(HashTable *table, StrObject *key, const Value &value)
 {
     return table->Set(key, value);
 }
 
-extern "C" COMPUTEDUCK_API bool TableGet(Table *table, StrObject *key, Value &value)
+extern "C" COMPUTEDUCK_API Value* HashTableGet(HashTable *table, StrObject *key)
 {
-    return table->Get(key, value);
+    return table->Get(key);
 }
 
-extern "C" COMPUTEDUCK_API bool TableSetIfFound(Table *table, StrObject *key, const Value &value)
+extern "C" COMPUTEDUCK_API bool HashTableSetIfFound(HashTable *table, StrObject *key, const Value &value)
 {
     bool isSuccess = table->Find(key);
     if (!isSuccess)

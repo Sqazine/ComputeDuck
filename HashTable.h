@@ -5,22 +5,24 @@
 #include <cstdint>
 #include "Value.h"
 
+struct StrObject;
+
 struct Entry
 {
-    struct StrObject *key;
+    StrObject *key;
     Value value;
 };
 
-class Table
+class HashTable
 {
 public:
-    Table();
-    ~Table();
+    HashTable();
+    ~HashTable();
 
-    bool Set(struct StrObject *key,const Value& value);
-    bool Get(struct StrObject *key,Value& value);
-    bool Find(struct StrObject *key);
-    bool Delete(struct StrObject *key);
+    bool Set(StrObject *key,const Value& value);
+    Value* Get(StrObject *key);
+    bool Find(StrObject *key);
+    bool Delete(StrObject *key);
     void Mark();
     void UnMark();
 
@@ -30,7 +32,7 @@ public:
 
     bool IsValid(uint32_t idx);
 private:
-    Entry *FindEntry(uint32_t capacity, struct StrObject *key);
+    Entry *FindEntry(uint32_t capacity, StrObject *key);
     void AdjustCapacity(uint32_t capacity);
 
     uint32_t m_Count;
@@ -38,4 +40,4 @@ private:
     Entry *m_Entries;
 };
 
-bool operator==(const Table& left,const Table& right);
+bool operator==(const HashTable& left,const HashTable& right);

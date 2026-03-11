@@ -1070,7 +1070,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         {
             auto memberCount = *ip++;
 
-            auto tableInstancePtr = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateTable)));
+            auto tableInstancePtr = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateHashTable)));
 
             for (size_t i = 0; i < memberCount; ++i)
             {
@@ -1082,7 +1082,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 if (value->getType() != m_ValueType)
                     value = CreateLlvmValue(value);
 
-                m_Builder->CreateCall(m_Module->getFunction(STR(TableSet)), {tableInstancePtr, name, value});
+                m_Builder->CreateCall(m_Module->getFunction(STR(HashTableSet)), {tableInstancePtr, name, value});
             }
 
             auto structInstancePtr = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateStructObject)), {tableInstancePtr});
@@ -1109,11 +1109,9 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             }
 
             auto tablePtr = m_Builder->CreateInBoundsGEP(m_StructObjectType, instance, {m_Builder->getInt32(0), m_Builder->getInt32(1)});
-            tablePtr = m_Builder->CreateLoad(m_TablePtrType, tablePtr);
+            tablePtr = m_Builder->CreateLoad(m_HashTablePtrType, tablePtr);
 
-            auto resultValuePtr = m_Builder->CreateAlloca(m_ValueType);
-
-            m_Builder->CreateCall(m_Module->getFunction(STR(TableGet)), {tablePtr, memberName, resultValuePtr});
+            auto resultValuePtr = m_Builder->CreateCall(m_Module->getFunction(STR(HashTableGet)), {tablePtr, memberName});
 
             Push(resultValuePtr);
             break;
@@ -1143,9 +1141,9 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             }
 
             auto tablePtr = m_Builder->CreateInBoundsGEP(m_StructObjectType, instance, {m_Builder->getInt32(0), m_Builder->getInt32(1)});
-            tablePtr = m_Builder->CreateLoad(m_TablePtrType, tablePtr);
+            tablePtr = m_Builder->CreateLoad(m_HashTablePtrType, tablePtr);
 
-            m_Builder->CreateCall(m_Module->getFunction(STR(TableSetIfFound)), {tablePtr, memberName, value});
+            m_Builder->CreateCall(m_Module->getFunction(STR(HashTableSetIfFound)), {tablePtr, memberName, value});
 
             break;
         }
@@ -1324,10 +1322,10 @@ void Jit::InitTypes()
     m_EntryType = llvm::StructType::create(*m_Context, {m_StrObjectPtrType, m_ValueType}, "struct.Entry");
     m_EntryPtrType = llvm::PointerType::get(m_EntryType, 0);
 
-    m_TableType = llvm::StructType::create(*m_Context, {m_Int32Type, m_Int32Type, m_EntryPtrType}, "struct.Table");
-    m_TablePtrType = llvm::PointerType::get(m_TableType, 0);
+    m_HashTableType = llvm::StructType::create(*m_Context, {m_Int32Type, m_Int32Type, m_EntryPtrType}, "struct.Table");
+    m_HashTablePtrType = llvm::PointerType::get(m_HashTableType, 0);
 
-    m_StructObjectType = llvm::StructType::create(*m_Context, {m_ObjectType, m_TablePtrType}, "struct.StructObject");
+    m_StructObjectType = llvm::StructType::create(*m_Context, {m_ObjectType, m_HashTablePtrType}, "struct.StructObject");
     m_StructObjectPtrType = llvm::PointerType::get(m_StructObjectType, 0);
 }
 
@@ -1354,26 +1352,26 @@ void Jit::InitInternalFunctions()
     fnType = llvm::FunctionType::get(m_RefObjectPtrType, {m_ValuePtrType}, false);
     m_Module->getOrInsertFunction(STR(AllocateRefObject), fnType);
 
-    fnType = llvm::FunctionType::get(m_StructObjectPtrType, {m_TablePtrType}, false);
+    fnType = llvm::FunctionType::get(m_StructObjectPtrType, {m_HashTablePtrType}, false);
     m_Module->getOrInsertFunction(STR(AllocateStructObject), fnType);
 
     fnType = llvm::FunctionType::get(m_ValuePtrType, {m_Int16Type}, false);
     m_Module->getOrInsertFunction(STR(GetLocalVariableSlot), fnType);
 
-    fnType = llvm::FunctionType::get(m_TablePtrType, {}, false);
-    m_Module->getOrInsertFunction(STR(AllocateTable), fnType);
+    fnType = llvm::FunctionType::get(m_HashTablePtrType, {}, false);
+    m_Module->getOrInsertFunction(STR(AllocateHashTable), fnType);
 
     fnType = llvm::FunctionType::get(m_RefObjectPtrType, {m_ValuePtrType, m_ValuePtrType}, false);
     m_Module->getOrInsertFunction(STR(AllocateIndexRefObject), fnType);
 
-    fnType = llvm::FunctionType::get(m_BoolType, {m_TablePtrType, m_StrObjectPtrType, m_ValuePtrType}, false);
-    m_Module->getOrInsertFunction(STR(TableSet), fnType);
+    fnType = llvm::FunctionType::get(m_BoolType, {m_HashTablePtrType, m_StrObjectPtrType, m_ValuePtrType}, false);
+    m_Module->getOrInsertFunction(STR(HashTableSet), fnType);
 
-    fnType = llvm::FunctionType::get(m_BoolType, {m_TablePtrType, m_StrObjectPtrType, m_ValuePtrType}, false);
-    m_Module->getOrInsertFunction(STR(TableSetIfFound), fnType);
+    fnType = llvm::FunctionType::get(m_BoolType, {m_HashTablePtrType, m_StrObjectPtrType, m_ValuePtrType}, false);
+    m_Module->getOrInsertFunction(STR(HashTableSetIfFound), fnType);
 
-    fnType = llvm::FunctionType::get(m_BoolType, {m_TablePtrType, m_StrObjectPtrType, m_ValuePtrType}, false);
-    m_Module->getOrInsertFunction(STR(TableGet), fnType);
+    fnType = llvm::FunctionType::get(m_ValuePtrType, {m_HashTablePtrType, m_StrObjectPtrType}, false);
+    m_Module->getOrInsertFunction(STR(HashTableGet), fnType);
 
     fnType = llvm::FunctionType::get(m_ValuePtrType, {m_ValuePtrType}, false);
     m_Module->getOrInsertFunction(STR(GetEndOfRefValuePtr), fnType);
