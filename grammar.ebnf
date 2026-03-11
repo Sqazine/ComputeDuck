@@ -1,0 +1,98 @@
+(* ComputeDuck Language Grammar in EBNF *)
+
+(* ==================== *)
+(* Lexical Tokens *)
+(* ==================== *)
+
+LETTER          = "A".."Z" | "a".."z" | "_" ;
+DIGIT           = "0".."9" ;
+NUMBER          = DIGIT { DIGIT } [ "." DIGIT { DIGIT } ] ;
+STRING          = '"' { CHARACTER } '"' ;
+IDENTIFIER      = LETTER { LETTER | DIGIT } ;
+
+(* ==================== *)
+(* Whitespace and Comments *)
+(* ==================== *)
+
+(* These are handled by the lexer and ignored during parsing *)
+COMMENT         = "//" { CHARACTER } ;
+WHITESPACE      = " " | "\t" | "\n" | "\r" ;
+
+primaryExpr     = numberExpr
+                | stringExpr
+                | identifierExpr
+                | boolExpr
+                | nilExpr
+                | groupExpr
+                | arrayExpr
+                | structExpr
+                | functionExpr
+                | refExpr
+                | dllImportExpr
+                ;
+
+numberExpr      = NUMBER ;
+
+stringExpr      = STRING ;
+
+identifierExpr  = IDENTIFIER ;
+
+boolExpr        = "true" | "false" ;
+
+nilExpr         = "nil" ;
+
+groupExpr       = "(" expression ")" ;
+
+arrayExpr       = "[" [ expression { "," expression } ] "]" ;
+
+structExpr      = "{" [ structMember { "," structMember } ] "}" ;
+
+structMember    = identifierExpr [ ":" expression ] ;
+
+functionExpr    = "function" "(" [ identifierExpr { "," identifierExpr } ] ")" scopeStmt ;
+
+refExpr         = "ref" expression ;
+
+dllImportExpr   = "dllimport" "(" STRING ")" ;
+
+prefixExpr      = ( "-" | "not" | "~" ) expression ;
+
+infixExpr       = expression binaryOp expression ;
+
+binaryOp        = "==" | "!="
+                | "<" | "<=" | ">" | ">="
+                | "+" | "-" | "*" | "/"
+                | "and" | "or"
+                | "&" | "|" | "^"
+                ;
+
+indexExpr       = expression "[" expression "]" ;
+
+functionCallExpr = expression "(" [ expression { "," expression } ] ")" ;
+
+structCallExpr  = expression "." expression ;
+
+expression      = prefixExpr | infixExpr | primaryExpr ;
+
+exprStmt        = expression ";" ;
+
+returnStmt      = "return" [ expression ] ";" ;
+
+ifStmt          = "if" "(" expression ")" statement
+                  [ "else" statement ] ;
+
+scopeStmt       = "{" { statement } "}" ;
+
+whileStmt       = "while" "(" expression ")" statement ;
+
+structStmt      = "struct" identifierExpr "{" { structMember } "}" ;
+
+statement       = exprStmt
+                | returnStmt
+                | ifStmt
+                | scopeStmt
+                | whileStmt
+                | structStmt
+                ;
+
+program         = { statement } ;
