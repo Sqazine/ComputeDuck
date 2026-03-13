@@ -1,10 +1,7 @@
-from Utils import error
+from Utils import error,STACK_COUNT
 from Chunk import OpCode
 from Object import *
 from BuiltinManager import *
-
-STACK_COUNT = 512
-
 
 class CallFrame:
     closure: ClosureObject
@@ -41,7 +38,7 @@ class VM:
         self.__callFrameStack = [CallFrame()]*STACK_COUNT
         self.__open_upvalues = None
 
-    def run(self, mainFn: FunctionObject) -> None:
+    def run(self, mainFn: FunctionObject) -> None:    
         self.__reset_status()
 
         mainClosure = ClosureObject(mainFn)
@@ -279,8 +276,10 @@ class VM:
                 if self.__globalVariables[index] != None and self.__globalVariables[index].type == ObjectType.REF:
                     refObj, address = self.__get_end_of_ref_object(
                         self.__globalVariables[index])
+                    # 根据地址赋值新的对象
                     self.__assign_object_by_address(address, obj)
 
+                    # 更新所有引用该地址的对象
                     refObjs = self.__search_ref_object_list_by_address(address)
                     for i in range(0, len(refObjs)):
                         refObjs[i].pointer = id(obj)
@@ -426,8 +425,7 @@ class VM:
                 frame.ip += 1
                 idxValue = self.__pop()
 
-                obj, _ = self.__get_end_of_ref_object(
-                    self.__globalVariables[index])
+                obj, _ = self.__get_end_of_ref_object(self.__globalVariables[index])
 
                 self.__push(self.__allocate_index_ref_object(obj, idxValue))
 
@@ -468,7 +466,7 @@ class VM:
                 index = frame.closure.function.chunk.opCodeList[frame.ip]
                 frame.ip += 1
                 upvalue = frame.closure.upvalues[index]
-                self.__push(search_object_by_address(upvalue.location))
+                self.__push(search_object_by_address(upvalue.pointer))
                 
             elif instruction == OpCode.OP_SET_UPVALUE:
                 index = frame.closure.function.chunk.opCodeList[frame.ip]
@@ -476,7 +474,20 @@ class VM:
 
                 obj = self.__pop()
 
-                frame.closure.upvalues[index].location = id(obj)
+                frame.closure.upvalues[index].pointer = id(obj)
+            
+            elif instruction == OpCode.OP_REF_UPVALUE:
+                index = frame.closure.function.chunk.opCodeList[frame.ip]
+                frame.ip += 1
+                self.__push(RefObject(frame.closure.upvalues[index].pointer))
+            
+            elif instruction == OpCode.OP_REF_INDEX_UPVALUE:
+                index = frame.closure.function.chunk.opCodeList[frame.ip]
+                frame.ip += 1
+                idxValue = self.__pop()
+                slot,_ = self.__get_end_of_ref_object(search_object_by_address(frame.closure.upvalues[index].pointer))
+                self.__push(self.__allocate_index_ref_object(slot, idxValue))
+            
 
     def __push(self, obj: Object) -> None:
         self.__objectStack[self.__stackTop] = obj
@@ -530,19 +541,35 @@ class VM:
                     if id(self.__globalVariables[i].elements[j]) == address:
                         self.__globalVariables[i].elements[j] = obj
                         return
-            elif id(self.__globalVariables[i]) == address:
+            elif self.__globalVariables[i] != None and id(self.__globalVariables[i]) == address:
                 self.__globalVariables[i] = obj
                 return
 
         for p in range(0, self.__stackTop):
-            if self.__objectStack[p].type == ObjectType.ARRAY:
+            if self.__objectStack[p] != None and self.__objectStack[p].type == ObjectType.ARRAY:
                 for j in range(0, len(self.__objectStack[p].elements)):
                     if id(self.__objectStack[p].elements[j]) == address:
                         self.__objectStack[p].elements[j] = obj
                         return
-            elif id(self.__objectStack[p]) == address:
+            elif self.__objectStack[p] != None and id(self.__objectStack[p]) == address:
                 self.__objectStack[p] = obj
                 return
+            
+        for p in range(0, self.__callFrameTop):
+            if self.__callFrameStack[p] != None and self.__callFrameStack[p].closure != None and self.__callFrameStack[p].closure.upvalues != None:
+                for j in range(0, len(self.__callFrameStack[p].closure.upvalues)):
+                    if self.__callFrameStack[p].closure.upvalues[j] != None:
+                        if self.__callFrameStack[p].closure.upvalues[j].pointer == address:
+                            self.__callFrameStack[p].closure.upvalues[j].pointer = id(obj)
+                            return
+                        else:
+                            arrayObj =  search_object_by_address(self.__callFrameStack[p].closure.upvalues[j].pointer)
+                            if arrayObj != None and arrayObj.type == ObjectType.ARRAY:
+                                for k in range(0, len(arrayObj.elements)):
+                                    if id(arrayObj.elements[k]) == address:
+                                            arrayObj.elements[k] = obj
+                                            return
+                            
 
     def __search_ref_object_list_by_address(self, address: int) -> list:
         result: list = []
@@ -551,22 +578,35 @@ class VM:
                 for j in range(0, len(self.__globalVariables[i].elements)):
                     if self.__globalVariables[i].elements[j].type == ObjectType.REF:
                         if self.__globalVariables[i].elements[j].pointer == address:
-                            result.append(
-                                self.__globalVariables[i].elements[j])
+                            result.append(self.__globalVariables[i].elements[j])
             elif self.__globalVariables[i] != None and self.__globalVariables[i].type == ObjectType.REF:
                 if self.__globalVariables[i].pointer == address:
                     result.append(self.__globalVariables[i])
 
         for p in range(0, self.__stackTop):
-            if self.__objectStack[p].type == ObjectType.ARRAY:
+            if self.__objectStack[p] != None and self.__objectStack[p].type == ObjectType.ARRAY:
                 for j in range(0, len(self.__objectStack[p].elements)):
                     if self.__objectStack[p].elements[j].type == ObjectType.REF:
                         if self.__objectStack[p].elements[j].pointer == address:
                             result.append(self.__objectStack[p].elements[j])
 
-            elif self.__objectStack[p].type == ObjectType.REF:
+            elif self.__objectStack[p] != None and  self.__objectStack[p].type == ObjectType.REF:
                 if self.__objectStack[p].pointer == address:
                     result.append(self.__objectStack[p])
+
+        for p in range(0, self.__callFrameTop):
+            if self.__callFrameStack[p] != None and self.__callFrameStack[p].closure != None and self.__callFrameStack[p].closure.upvalues != None:
+                for j in range(0, len(self.__callFrameStack[p].closure.upvalues)):
+                    if self.__callFrameStack[p].closure.upvalues[j] != None:
+                        if self.__callFrameStack[p].closure.upvalues[j].pointer == address:
+                            result.append(self.__callFrameStack[p].closure.upvalues[j])
+                        else:
+                            arrayObj =  search_object_by_address(self.__callFrameStack[p].closure.upvalues[j].pointer)
+                            if arrayObj != None and arrayObj.type == ObjectType.ARRAY:
+                                for k in range(0, len(arrayObj.elements)):
+                                    if arrayObj.elements[k].type == ObjectType.REF:
+                                        if arrayObj.elements[k].pointer == address:
+                                            result.append(arrayObj.elements[k])
 
         return result
 
@@ -591,6 +631,21 @@ class VM:
             elif self.__objectStack[p] != None and self.__objectStack[p].type == ObjectType.REF:
                 if self.__objectStack[p].pointer == originAddress:
                     self.__objectStack[p].pointer = newAddress
+                    
+        for p in range(0,self.__callFrameTop):
+            if self.__callFrameStack[p] != None and self.__callFrameStack[p].closure != None and self.__callFrameStack[p].closure.upvalues != None:
+                for j in range(0, len(self.__callFrameStack[p].closure.upvalues)):
+                    if self.__callFrameStack[p].closure.upvalues[j] != None:
+                        if self.__callFrameStack[p].closure.upvalues[j].pointer == originAddress:
+                            self.__callFrameStack[p].closure.upvalues[j].pointer = newAddress
+                        else:
+                            arrayObj =  search_object_by_address(self.__callFrameStack[p].closure.upvalues[j].pointer)
+                            if arrayObj != None and arrayObj.type == ObjectType.ARRAY:
+                                for k in range(0, len(arrayObj.elements)):
+                                    if arrayObj.elements[k].type == ObjectType.REF:
+                                        if arrayObj.elements[k].pointer == originAddress:
+                                            arrayObj.elements[k].pointer = newAddress
+        
 
     def __get_local_variable_slot(self, index) -> int:
         return self.__peek_call_frame(1).slot+index
@@ -601,11 +656,11 @@ class VM:
     def __capture_upvalue(self,pointer:int)->UpvalueObject:
         prevUpValue : UpvalueObject = None
         upvalue : UpvalueObject = self.__open_upvalues
-        while upvalue != None and upvalue.location > pointer:
+        while upvalue != None and upvalue.pointer > pointer:
             prevUpValue = upvalue
             upvalue = upvalue.nextUpvalue
         
-        if upvalue != None and upvalue.location == pointer:
+        if upvalue != None and upvalue.pointer == pointer:
             return upvalue
         
         createdUpvalue = UpvalueObject(pointer)
@@ -617,8 +672,8 @@ class VM:
         return createdUpvalue
     
     def __closed_upvalues(self, last:int)->None:
-        while self.__open_upvalues != None and self.__open_upvalues.location >= last:
+        while self.__open_upvalues != None and self.__open_upvalues.pointer >= last:
             upvalue :UpvalueObject = self.__open_upvalues
-            upvalue.closed = search_object_by_address(upvalue.location)
-            upvalue.location = id(upvalue.closed)
+            upvalue.closed = search_object_by_address(upvalue.pointer)
+            upvalue.pointer = id(upvalue.closed)
             self.__open_upvalues = upvalue.nextUpvalue

@@ -31,13 +31,16 @@ class BuiltinManager(object):
     def __println(self, args: list[Object]):
         if len(args) == 0:
             return False, None
-        print(args[0])
+        for i in range(0, len(args)):
+            print(args[i], end="")
+        print()
         return False, None
 
     def __print(self, args: list[Object]):
         if len(args) == 0:
             return False, None
-        print(args[0], end="")
+        for i in range(0, len(args)):
+            print(args[i], end="")
         return False, None
 
     def __sizeof(self, args: list[Object]):

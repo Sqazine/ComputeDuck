@@ -161,11 +161,17 @@ std::string Chunk::OpCodeStringify(const OpCodeList &opCodeList)
         case OP_REF_LOCAL:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_LOCAL\t" << opCodeList[++i] << std::endl;
             break;
+        case OP_REF_UPVALUE:
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_UPVALUE\t" << opCodeList[++i] << std::endl;
+            break;
         case OP_REF_INDEX_GLOBAL:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_INDEX_GLOBAL\t" << opCodeList[++i] << std::endl;
             break;
         case OP_REF_INDEX_LOCAL:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_INDEX_LOCAL\t" << opCodeList[++i] << std::endl;
+            break;
+        case OP_REF_INDEX_UPVALUE:
+            cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_INDEX_UPVALUE\t" << opCodeList[++i] << std::endl;
             break;
         case OP_DLL_IMPORT:
             cout << std::setfill('0') << std::setw(8) << i << "\tOP_DLL_IMPORT" << std::endl;

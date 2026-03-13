@@ -618,6 +618,10 @@ void Compiler::RefSymbol(const Symbol &symbol, bool isIndexSymbol)
         Emit(isIndexSymbol ? OP_REF_INDEX_LOCAL : OP_REF_LOCAL);
         Emit(symbol.index);
         break;
+    case SymbolScope::UPVALUE:
+        Emit(isIndexSymbol ? OP_REF_INDEX_UPVALUE : OP_REF_UPVALUE);
+        Emit(symbol.upvalueIndex);
+        break;
     default:
         break;
     }

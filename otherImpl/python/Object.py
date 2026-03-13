@@ -1,6 +1,6 @@
 import ctypes
 from enum import IntEnum
-from Utils import UPVALUE_COUNT
+from Utils import UPVALUE_COUNT,search_object_by_address
 
 
 class ObjectType(IntEnum):
@@ -121,7 +121,7 @@ class RefObject(Object):
         self.pointer = pointer
 
     def __str__(self) -> str:
-        return str(ctypes.cast(self.pointer, ctypes.py_object).value)
+        return search_object_by_address(self.pointer).__str__()
 
     def __eq__(self, other) -> bool:
         return super().__eq__(other) and self.pointer == other.pointer
@@ -158,20 +158,20 @@ class FunctionObject(Object):
         return True
     
 class UpvalueObject(Object):
-    location : int
+    pointer : int
     closed: Object
     
     def __init__(self, pointer : int = -1 ):
         super().__init__(ObjectType.UPVALUE)
-        self.location = pointer
+        self.pointer = pointer
         self.nextUpvalue = None
         self.closed = None
         
     def __str__(self) -> str:
-        return str(ctypes.cast(self.location, ctypes.py_object).value)
+        return search_object_by_address(self.pointer).__str__()
 
     def __eq__(self, other) -> bool:
-        return super().__eq__(other) and self.location == other.location
+        return super().__eq__(other) and self.pointer == other.pointer
     
 class ClosureObject(Object):
     function: FunctionObject

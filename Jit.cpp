@@ -1217,9 +1217,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto iter = localVariables.find(name);
             if (iter == localVariables.end()) // create from function argumenet
             {
-                value = m_Builder->CreateCall(m_Module->getFunction(STR(GetLocalVariableSlot)), {
-                                                                                                    llvm::ConstantInt::get(m_Int16Type, index),
-                                                                                                });
+                value = m_Builder->CreateCall(m_Module->getFunction(STR(GetLocalVariableSlot)), {llvm::ConstantInt::get(m_Int16Type, index)});
             }
             else
             {

@@ -43,3 +43,39 @@ add = counter();
 add(); # 1
 add(); # 2
 add(); # 3
+
+refUpvalue = function()
+{
+    a = 0;
+    add = function()
+    {
+        b = ref a;
+        b = b + 1;
+        println(a, " " , b);
+    };
+    
+    return add;
+};
+
+refFunction = refUpvalue();
+refFunction(); # 1 1
+refFunction(); # 2 2
+refFunction(); # 3 3
+
+refIndexUpvalue = function()
+{
+    a = [1,2,3,4,5];
+    add = function()
+    {
+        b = ref a[2];
+        b = b + 1;
+        println(a, " " , b);
+    };
+
+    return add;
+};
+
+refIndexFunction = refIndexUpvalue();
+refIndexFunction(); # [1,2,4,4,5] 4
+refIndexFunction(); # [1,2,5,4,5] 5
+refIndexFunction(); # [1,2,6,4,5] 6

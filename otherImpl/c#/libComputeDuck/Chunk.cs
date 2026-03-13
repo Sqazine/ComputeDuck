@@ -44,8 +44,10 @@ namespace ComputeDuck
         OP_SET_STRUCT,
         OP_REF_GLOBAL,
         OP_REF_LOCAL,
+        OP_REF_UPVALUE,
         OP_REF_INDEX_GLOBAL,
         OP_REF_INDEX_LOCAL,
+        OP_REF_INDEX_UPVALUE,
         OP_DLL_IMPORT,
     };
 
@@ -194,11 +196,17 @@ namespace ComputeDuck
                     case (int)OpCode.OP_REF_LOCAL:
                         result += string.Format("{0}\tOP_REF_LOCAL\t{1}\n", i.ToString().PadLeft(8), opCodeList[++i]);
                         break;
+                    case (int)OpCode.OP_REF_UPVALUE:
+                        result += string.Format("{0}\tOP_REF_UPAVALUE\t{1}\n", i.ToString().PadLeft(8), opCodeList[++i]);
+                        break;
                     case (int)OpCode.OP_REF_INDEX_GLOBAL:
                         result += string.Format("{0}\tOP_REF_INDEX_GLOBAL\t{1}\n", i.ToString().PadLeft(8), opCodeList[++i]);
                         break;
                     case (int)OpCode.OP_REF_INDEX_LOCAL:
                         result += string.Format("{0}\tOP_REF_INDEX_LOCAL\t{1}\n", i.ToString().PadLeft(8), opCodeList[++i]);
+                        break;
+                    case (int)OpCode.OP_REF_INDEX_UPVALUE:
+                        result += string.Format("{0}\tOP_REF_INDEX_UPVALUE\t{1}\n", i.ToString().PadLeft(8), opCodeList[++i]);
                         break;
                     case (int)OpCode.OP_DLL_IMPORT:
                         result += string.Format("{0}\tOP_DLL_IMPORT\n", i.ToString().PadLeft(8));

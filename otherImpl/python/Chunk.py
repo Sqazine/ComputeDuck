@@ -44,6 +44,8 @@ class OpCode(IntEnum):
     OP_CLOSURE = 38,
     OP_GET_UPVALUE = 39
     OP_SET_UPVALUE = 40
+    OP_REF_UPVALUE = 41
+    OP_REF_INDEX_UPVALUE = 42
 
 
 class Chunk:
@@ -199,6 +201,14 @@ class Chunk:
             elif opCodeList[i] == OpCode.OP_SET_UPVALUE:
                 index = opCodeList[i+1]
                 result += ("%8d\tOP_SET_UPVALUE\t%d\n" % (i,index))
+                i+=1
+            elif opCodeList[i] == OpCode.OP_REF_UPVALUE:
+                index = opCodeList[i+1]
+                result += ("%8d\tOP_REF_UPVALUE\t%d\n" % (i,index))
+                i+=1
+            elif opCodeList[i] == OpCode.OP_REF_INDEX_UPVALUE:
+                index = opCodeList[i+1]
+                result += ("%8d\tOP_REF_INDEX_UPVALUE\t%d\n" % (i,index))
                 i+=1
             i = i+1
         return result
