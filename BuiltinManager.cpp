@@ -11,8 +11,6 @@ namespace
             for (size_t i = 0; i < argCount; ++i)
             {
                 std::cout << args[i].Stringify();
-                if (i < argCount - 1)
-                    std::cout << ",";
             }
         }
         return false;
@@ -25,8 +23,6 @@ namespace
             for (size_t i = 0; i < argCount; ++i)
             {
                 std::cout << args[i].Stringify();
-                if (i < argCount - 1)
-                    std::cout << ",";
             }
 
             std::cout << std::endl;

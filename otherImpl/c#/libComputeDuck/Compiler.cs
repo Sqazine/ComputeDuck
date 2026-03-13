@@ -589,6 +589,10 @@ namespace ComputeDuck
                     Emit((int)(isIndexSymbol ? OpCode.OP_REF_INDEX_LOCAL : OpCode.OP_REF_LOCAL));
                     Emit(symbol.index);
                     break;
+                case SymbolScope.UPVALUE:
+                    Emit((int)(isIndexSymbol ? OpCode.OP_REF_INDEX_UPVALUE : OpCode.OP_REF_UPVALUE));
+                    Emit(symbol.upvalueIndex);
+                    break;
                 default:
                     break;
             }

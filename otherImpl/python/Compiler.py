@@ -443,6 +443,12 @@ class Compiler:
             else:
                 self.__emit(OpCode.OP_REF_LOCAL)
             self.__emit(symbol.index)
+        elif symbol.scope == SymbolScope.UPVALUE:
+            if isIndexSymbol:
+                self.__emit(OpCode.OP_REF_INDEX_UPVALUE)
+            else:
+                self.__emit(OpCode.OP_REF_UPVALUE)
+            self.__emit(symbol.upvalueIndex)
 
     def __register_builtins(self):
         for k in gBuiltinManager.builtinObjects.keys():

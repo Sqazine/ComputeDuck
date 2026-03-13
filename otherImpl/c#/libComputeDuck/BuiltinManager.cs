@@ -45,7 +45,8 @@ namespace ComputeDuck
         {
             if (args.Count == 0)
                 return (false,null);
-            Console.Write(args[0].ToString());
+            foreach(var arg in args)
+                Console.Write(arg.ToString());
             return (false, null);
         }
 
@@ -53,7 +54,9 @@ namespace ComputeDuck
         {
             if (args.Count == 0)
                 return (false, null);
-            Console.WriteLine(args[0].ToString());
+            foreach (var arg in args)
+                Console.Write(arg.ToString());
+            Console.WriteLine();
             return (false, null);
         }
 

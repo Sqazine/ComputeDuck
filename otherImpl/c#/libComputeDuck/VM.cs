@@ -374,12 +374,12 @@ namespace ComputeDuck
                             var fn = (FunctionObject)frame.closure.function.chunk.constants[idx];
                             var closure = new ClosureObject(fn);
 
-                            for(int i=0;i<upvalueCount;++i)
+                            for (int i = 0; i < upvalueCount; ++i)
                             {
                                 var index = frame.closure.function.chunk.opCodeList[frame.ip++];
                                 var scopeDepth = frame.closure.function.chunk.opCodeList[frame.ip++];
 
-                                var upvalue = CaptureUpvalue(m_ObjectStack[GetUpvalueVariableSlot(index,scopeDepth)].GetAddress());
+                                var upvalue = CaptureUpvalue(m_ObjectStack[GetUpvalueVariableSlot(index, scopeDepth)].GetAddress());
                                 closure.upvalues[i] = upvalue;
                             }
 
@@ -545,9 +545,9 @@ namespace ComputeDuck
                     case (int)OpCode.OP_REF_INDEX_LOCAL:
                         {
                             var index = frame.closure.function.chunk.opCodeList[frame.ip++];
+                            var idxValue = Pop();
 
                             int slot = GetLocalVariableSlot(index);
-                            var idxValue = Pop();
                             var (obj, _) = GetEndOfRefObject(m_ObjectStack[slot]);
                             Push(AllocateIndexRefObject(obj, idxValue));
                             break;
@@ -572,6 +572,21 @@ namespace ComputeDuck
                             var index = frame.closure.function.chunk.opCodeList[frame.ip++];
                             var upvalue = frame.closure.upvalues[index];
                             Push(Utils.SearchObjectByAddress(upvalue.location));
+                            break;
+                        }
+                    case (int)OpCode.OP_REF_UPVALUE:
+                        {
+                            var index = frame.closure.function.chunk.opCodeList[frame.ip++];
+                            Push(new RefObject(frame.closure.upvalues[index].location));
+                            break;
+                        }
+                    case (int)OpCode.OP_REF_INDEX_UPVALUE:
+                        {
+                            var index = frame.closure.function.chunk.opCodeList[frame.ip++];
+                            var idxValue = Pop();
+
+                            var (obj, _) = GetEndOfRefObject(Utils.SearchObjectByAddress(frame.closure.upvalues[index].location));
+                            Push(AllocateIndexRefObject(obj, idxValue));
                             break;
                         }
                     default:
@@ -612,7 +627,7 @@ namespace ComputeDuck
             return PeekCallFrame(1).slot + index;
         }
 
-        private int GetUpvalueVariableSlot(int index,int scopeDepth)
+        private int GetUpvalueVariableSlot(int index, int scopeDepth)
         {
             return m_CallFrames[scopeDepth].slot + index;
         }
@@ -700,19 +715,40 @@ namespace ComputeDuck
 
             }
 
-            for(int i=0;i<m_CallFrameTop;++i)
+            for (int i = 0; i < m_CallFrameTop; ++i)
             {
                 var callFrame = m_CallFrames[i];
-                for(int j=0;j<callFrame.closure.upvalues.Count();++j)
+                if (callFrame != null && callFrame.closure != null)
                 {
-                    if (callFrame.closure.upvalues[j] != null && callFrame.closure.upvalues[j].location == address)
+                    for (int j = 0; j < callFrame.closure.upvalues.Count(); ++j)
                     {
-                        callFrame.closure.upvalues[j].location = obj.GetAddress();
-                        return;
+                        if (callFrame.closure.upvalues[j] != null)
+                        {
+                            if (callFrame.closure.upvalues[j].location == address)
+                            {
+                                callFrame.closure.upvalues[j].location = obj.GetAddress();
+                                return;
+                            }
+                            else
+                            {
+                                var arrayObj = Utils.SearchObjectByAddress(callFrame.closure.upvalues[j].location);
+                                if (arrayObj != null && arrayObj.type == ObjectType.ARRAY)
+                                {
+                                    for (int k = 0; k < ((ArrayObject)arrayObj).elements.Count(); ++k)
+                                    {
+                                        if (((ArrayObject)arrayObj).elements[k].GetAddress() == address)
+                                        {
+                                            ((ArrayObject)arrayObj).elements[k] = obj;
+                                            return;
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
-             Utils.Assert("Invalid reference address:" + address.ToString() + " for assigning object:" + obj.ToString());
+            Utils.Assert("Invalid reference address:" + address.ToString() + " for assigning object:" + obj.ToString());
         }
 
         private List<Object> SearchRefObjectListByAddress(IntPtr address)
@@ -749,6 +785,35 @@ namespace ComputeDuck
                 else if (m_ObjectStack[i].type == ObjectType.REF)
                     if (((RefObject)m_ObjectStack[i]).pointer == address)
                         result.Add(m_ObjectStack[i]);
+            }
+
+            for (int i = 0; i < m_CallFrameTop; ++i)
+            {
+                var callFrame = m_CallFrames[i];
+                if (callFrame != null && callFrame.closure != null)
+                {
+                    for (int j = 0; j < callFrame.closure.upvalues.Count(); ++j)
+                    {
+                        if (callFrame.closure.upvalues[j] != null)
+                        {
+                            if (callFrame.closure.upvalues[j].location == address)
+                                result.Add(callFrame.closure.upvalues[j]);
+                            else
+                            {
+                                var arrayObj = Utils.SearchObjectByAddress(callFrame.closure.upvalues[j].location);
+                                if (arrayObj != null && arrayObj.type == ObjectType.ARRAY)
+                                {
+                                    for (int k = 0; k < ((ArrayObject)arrayObj).elements.Count(); ++k)
+                                    {
+                                        if (((ArrayObject)arrayObj).elements[k].type == ObjectType.REF)
+                                            if (((RefObject)((ArrayObject)m_ObjectStack[i]).elements[j]).pointer == address)
+                                                result.Add(((ArrayObject)arrayObj).elements[k]);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             return result;
@@ -789,6 +854,34 @@ namespace ComputeDuck
                         ((RefObject)m_ObjectStack[i]).pointer = newAddress;
             }
 
+            for (int i = 0; i < m_CallFrameTop; ++i)
+            {
+                var callFrame = m_CallFrames[i];
+                if (callFrame != null && callFrame.closure != null)
+                {
+                    for (int j = 0; j < callFrame.closure.upvalues.Count(); ++j)
+                    {
+                        if (callFrame.closure.upvalues[j] != null)
+                        {
+                            if (callFrame.closure.upvalues[j].location == originAddress)
+                                callFrame.closure.upvalues[j].location = newAddress;
+                            else
+                            {
+                                var arrayObj = Utils.SearchObjectByAddress(callFrame.closure.upvalues[j].location);
+                                if (arrayObj != null && arrayObj.type == ObjectType.ARRAY)
+                                {
+                                    for (int k = 0; k < ((ArrayObject)arrayObj).elements.Count(); ++k)
+                                    {
+                                        if (((ArrayObject)arrayObj).elements[k].type == ObjectType.REF)
+                                            if (((RefObject)((ArrayObject)m_ObjectStack[i]).elements[j]).pointer == originAddress)
+                                                ((RefObject)((ArrayObject)arrayObj).elements[k]).pointer = newAddress;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
 
