@@ -147,7 +147,6 @@ int32_t main(int argc, const char **argv)
 	SAFE_DELETE(g_Parser);
 	SAFE_DELETE(g_PreProcessor);
 
-	BuiltinManager::GetInstance()->Destroy();
 	Allocator::GetInstance()->Destroy();
 
 	return 0;

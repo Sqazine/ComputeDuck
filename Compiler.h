@@ -64,6 +64,8 @@ private:
     void StoreSymbol(const Symbol &symbol);
     void RefSymbol(const Symbol &symbol, bool isIndexSymbol);
 
+    void DefineBuiltin();
+
     std::vector<Chunk> m_ScopeChunks;
 
     SymbolTable *m_SymbolTable{nullptr};

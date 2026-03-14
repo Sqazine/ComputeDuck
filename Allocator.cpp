@@ -170,8 +170,8 @@ void Allocator::Gc(bool deleteAll)
             MarkObject(slot->closure);
         for (UpvalueObject *upvalue = m_OpenUpvalues; upvalue != nullptr; upvalue = upvalue->nextUpvalue)
             MarkObject(upvalue);
-        for (const auto &[k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
-            MarkObject(v);
+      
+        BuiltinManager::GetInstance()->GetBuiltinObjectTable().Mark();
     }
     else
     {
@@ -184,8 +184,7 @@ void Allocator::Gc(bool deleteAll)
             UnMarkObject(slot.closure);
         for (UpvalueObject *upvalue = m_OpenUpvalues; upvalue != nullptr; upvalue = upvalue->nextUpvalue)
             UnMarkObject(upvalue);
-        for (const auto &[k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
-            UnMarkObject(v);
+         BuiltinManager::GetInstance()->GetBuiltinObjectTable().UnMark();
     }
 
     // sweep objects which is not reachable

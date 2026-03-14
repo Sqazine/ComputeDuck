@@ -395,7 +395,7 @@ void VM::Execute()
         case OP_GET_BUILTIN:
         {
             auto idx = *frame->ip++;
-            auto name = TO_STR_VALUE(frame->closure->function->chunk.constants[idx])->value;
+            auto name = TO_STR_VALUE(frame->closure->function->chunk.constants[idx]);
             auto builtinObj = BuiltinManager::GetInstance()->FindBuiltinObject(name);
             PUSH(builtinObj);
             break;
