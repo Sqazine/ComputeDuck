@@ -13,24 +13,23 @@ public:
     static BuiltinManager *GetInstance();
 
     void Init();
-    void Destroy();
 
     template <typename T>
-    requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value>) void Register(std::string_view name, const T &v)
+    requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value>) void Register(StrObject* name, const T &v)
     {
-        auto iter = m_BuiltinObjects.find(name);
-        if (iter != m_BuiltinObjects.end())
-            ASSERT("Redefined builtin:%s", name.data());
-        m_BuiltinObjects[name] = ALLOCATE_OBJECT(BuiltinObject, name, v);
+        auto isFound = m_BuiltinObjectsTable.Find(name);
+        if (isFound)
+            ASSERT("Redefined builtin:%s", ObjectStringify(name).c_str());
+        m_BuiltinObjectsTable.Set(name, ALLOCATE_OBJECT(BuiltinObject, v));
     }
 
-    BuiltinObject *FindBuiltinObject(std::string_view name);
+    BuiltinObject *FindBuiltinObject(StrObject* name);
 
-    const std::unordered_map<std::string_view, BuiltinObject *> GetBuiltinObjectList() const;
+    HashTable& GetBuiltinObjectTable();
 
 private:
     BuiltinManager() = default;
     ~BuiltinManager() = default;
 
-    std::unordered_map<std::string_view, BuiltinObject *> m_BuiltinObjects;
+    HashTable m_BuiltinObjectsTable;
 };

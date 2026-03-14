@@ -13,7 +13,7 @@ struct Entry
     Value value;
 };
 
-class HashTable
+class COMPUTEDUCK_API HashTable
 {
 public:
     HashTable();
@@ -32,7 +32,8 @@ public:
 
     bool IsValid(uint32_t idx);
 private:
-    Entry *FindEntry(uint32_t capacity, StrObject *key);
+    Entry *FindEntry(Entry *entries, uint32_t capacity, StrObject *key);
+    Entry *FindEntry(StrObject *key);
     void AdjustCapacity(uint32_t capacity);
 
     uint32_t m_Count;

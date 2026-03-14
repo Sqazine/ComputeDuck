@@ -183,7 +183,7 @@ struct BuiltinObject : public Object
 
     template <typename T>
         requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value>)
-    BuiltinObject(std::string_view name, const T &v)
+    BuiltinObject(const T &v)
         :Object(ObjectType::BUILTIN)
     {
         data = v;

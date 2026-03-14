@@ -1,5 +1,6 @@
 #include "BuiltinManager.h"
 #include <ctime>
+#include "Value.h"
 #include "Object.h"
 
 namespace
@@ -142,20 +143,16 @@ void BuiltinManager::Init()
 
     Allocator::GetInstance()->EnableGC();
 }
-void BuiltinManager::Destroy()
+
+BuiltinObject *BuiltinManager::FindBuiltinObject(StrObject* name)
 {
-    std::unordered_map<std::string_view, BuiltinObject *>().swap(m_BuiltinObjects);
+    auto value = m_BuiltinObjectsTable.Get(name);
+    if (!value)
+        ASSERT("No builtin object:%s", ObjectStringify(name).c_str());
+    return TO_BUILTIN_VALUE(*value);
 }
 
-BuiltinObject *BuiltinManager::FindBuiltinObject(std::string_view name)
+HashTable& BuiltinManager::GetBuiltinObjectTable()
 {
-    auto iter = m_BuiltinObjects.find(name);
-    if (iter == m_BuiltinObjects.end())
-        ASSERT("No builtin object:%s", name.data());
-    return iter->second;
-}
-
-const std::unordered_map<std::string_view, BuiltinObject *> BuiltinManager::GetBuiltinObjectList() const
-{
-    return m_BuiltinObjects;
+    return m_BuiltinObjectsTable;
 }

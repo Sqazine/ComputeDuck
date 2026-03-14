@@ -22,8 +22,8 @@
 #define BUILTIN_FN_PREFIX_STR STR(cd_builtin_fn_)
 #define BUILTIN_FN(x) cd_builtin_fn_##x
 
-#define REGISTER_BUILTIN_VALUE(x) BuiltinManager::GetInstance()->Register(#x, Value((uint64_t)x))
-#define REGISTER_BUILTIN_FN(x) BuiltinManager::GetInstance()->Register<BuiltinFn>(#x, cd_builtin_fn_##x)
+#define REGISTER_BUILTIN_VALUE(x) BuiltinManager::GetInstance()->Register(ALLOCATE_OBJECT(StrObject, #x), Value((uint64_t)x))
+#define REGISTER_BUILTIN_FN(x) BuiltinManager::GetInstance()->Register<BuiltinFn>(ALLOCATE_OBJECT(StrObject, #x), cd_builtin_fn_##x)
 
 constexpr uint32_t UINT8_COUNT = UINT8_MAX + 1; // 256
 constexpr uint32_t STACK_COUNT = UINT8_COUNT * 2; // 512
@@ -65,4 +65,4 @@ COMPUTEDUCK_API std::string PointerAddressToString(void *pointer);
 
 COMPUTEDUCK_API void RegisterDLLs(std::string rawDllPath);
 
-uint32_t HashString(char *str);
+COMPUTEDUCK_API uint32_t HashString(char *str);

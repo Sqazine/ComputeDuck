@@ -120,10 +120,11 @@ void MarkObject(Object *object)
     }
     case ObjectType::CLOSURE:
     {
-        MarkObject(TO_CLOSURE_OBJ(object)->function);
-        for (size_t i = 0; i < UINT8_COUNT; ++i)
+        ClosureObject* closure =TO_CLOSURE_OBJ(object);
+        MarkObject(closure->function);
+        for (size_t i = 0; i < UPVALUE_COUNT; ++i)
         {
-            auto upvalue = TO_CLOSURE_OBJ(object)->upvalues[i];
+            UpvalueObject* upvalue = closure->upvalues[i];
             MarkObject(upvalue);
         }
         break;
@@ -309,7 +310,7 @@ bool IsObjectEqual(Object *left, Object *right)
         auto rightClosure = TO_CLOSURE_OBJ(right);
         if (!IsObjectEqual(leftClosure->function, rightClosure->function))
             return false;
-        for (size_t i = 0; i < UINT8_COUNT; ++i)
+        for (size_t i = 0; i < UPVALUE_COUNT; ++i)
         {
             auto upvalue1 = leftClosure->upvalues[i];
             auto upvalue2 = rightClosure->upvalues[i];

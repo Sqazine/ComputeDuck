@@ -11,7 +11,7 @@ HashTable::HashTable()
 
 HashTable::~HashTable()
 {
-    m_Entries = nullptr;
+    SAFE_DELETE_ARRAY(m_Entries);
     m_Count = 0;
     m_Capacity = 0;
 }
@@ -24,7 +24,7 @@ bool HashTable::Set(StrObject *key, const Value &value)
         AdjustCapacity(capacity);
     }
 
-    Entry *entry = FindEntry(m_Capacity, key);
+    Entry *entry = FindEntry(key);
     bool isNewKey = entry->key == nullptr;
     if (isNewKey && IS_NIL_VALUE(entry->value))
         m_Count++;
@@ -38,7 +38,7 @@ Value* HashTable::Get(StrObject *key)
 {
     if (m_Count == 0)
         return nullptr;
-    Entry *entry = FindEntry(m_Capacity, key);
+    Entry *entry = FindEntry(key);
     if (entry->key == nullptr)
         return nullptr;
 
@@ -49,7 +49,7 @@ bool HashTable::Find(StrObject *key)
 {
     if (m_Count == 0)
         return false;
-    Entry *entry = FindEntry(m_Capacity, key);
+    Entry *entry = FindEntry(key);
     if (entry->key == nullptr)
         return false;
     return true;
@@ -59,7 +59,7 @@ bool HashTable::Delete(StrObject *key)
 {
     if (m_Count == 0)
         return false;
-    Entry *entry = FindEntry(m_Capacity, key);
+    Entry *entry = FindEntry(key);
     if (entry->key == nullptr)
         return false;
     entry->key = nullptr;
@@ -111,13 +111,13 @@ bool HashTable::IsValid(uint32_t idx)
     return idx >= 0 && idx < m_Capacity && m_Entries[idx].key != nullptr;
 }
 
-Entry *HashTable::FindEntry(uint32_t capacity, StrObject *key)
+Entry *HashTable::FindEntry(Entry* entries, uint32_t capacity, StrObject *key)
 {
     uint32_t index = key->hash & (capacity - 1);//equal to a%b;
     Entry *tombstone = nullptr;
     while (1)
     {
-        Entry *entry = &m_Entries[index];
+        Entry *entry = &entries[index];
         if (entry->key == nullptr)
         {
             if (IS_NIL_VALUE(entry->value))
@@ -132,26 +132,33 @@ Entry *HashTable::FindEntry(uint32_t capacity, StrObject *key)
     }
 }
 
+Entry *HashTable::FindEntry(StrObject *key)
+{
+    return FindEntry(m_Entries,m_Capacity,key);
+}
+
 void HashTable::AdjustCapacity(uint32_t capacity)
 {
     Entry *entries = new Entry[capacity];
-    m_Count = 0;
     for (size_t i = 0; i < capacity; ++i)
     {
         entries[i].key = nullptr;
         entries[i].value = Value();
     }
 
+    m_Count = 0;
     for (size_t i = 0; i < m_Capacity; ++i)
     {
         Entry *entry = &m_Entries[i];
         if (entry->key == nullptr)
             continue;
-        Entry *dest = FindEntry(capacity, entry->key);
+        Entry *dest = FindEntry(entries, capacity, entry->key);
         dest->key = entry->key;
         dest->value = entry->value;
         m_Count++;
     }
+
+    SAFE_DELETE_ARRAY(m_Entries);
 
     m_Entries = entries;
     m_Capacity = capacity;

@@ -37,8 +37,7 @@ void Compiler::ResetStatus()
 
     m_SymbolTable = new SymbolTable();
 
-    for (const auto &[k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
-        m_SymbolTable->DefineBuiltin(k);
+    DefineBuiltin();
 }
 
 void Compiler::CompileStmt(Stmt *stmt)
@@ -475,8 +474,7 @@ void Compiler::CompileDllImportExpr(DllImportExpr *expr)
 
     RegisterDLLs(dllpath);
 
-    for (const auto &[k, v] : BuiltinManager::GetInstance()->GetBuiltinObjectList())
-        m_SymbolTable->DefineBuiltin(k);
+    DefineBuiltin();
 
     EmitConstant(ALLOCATE_OBJECT(StrObject, dllpath.c_str()));
     Emit(OP_DLL_IMPORT);
@@ -625,4 +623,17 @@ void Compiler::RefSymbol(const Symbol &symbol, bool isIndexSymbol)
     default:
         break;
     }
+}
+
+void Compiler::DefineBuiltin()
+{
+	HashTable &builtinTable = BuiltinManager::GetInstance()->GetBuiltinObjectTable();
+	for (size_t i = 0; i < builtinTable.GetCapacity(); ++i)
+	{
+		if (builtinTable.IsValid(i))
+		{
+			auto key = builtinTable.GetEntries()[i].key;
+			m_SymbolTable->DefineBuiltin(key->value);
+		}
+	}
 }
