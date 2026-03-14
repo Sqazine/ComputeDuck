@@ -32,14 +32,14 @@
 #define IS_CLOSURE_OBJ(obj) (obj->type == ObjectType::CLOSURE)
 #define IS_BUILTIN_OBJ(obj) (obj->type == ObjectType::BUILTIN)
 
-enum ObjectType :uint8_t
+enum ObjectType : uint8_t
 {
     STR = ValueType::OBJECT + 1,
     ARRAY,
     STRUCT,
     REF,
-    FUNCTION,
     UPVALUE,
+    FUNCTION,
     CLOSURE,
     BUILTIN,
 };
@@ -56,26 +56,25 @@ struct Object
 
 struct StrObject : public Object
 {
-    StrObject(char *v) :Object(ObjectType::STR), value(v), len(strlen(value)) { hash = HashString(value); }
-    StrObject(const char *v) :Object(ObjectType::STR), len(strlen(v))
+    StrObject(char *v) : Object(ObjectType::STR), value(v), len(strlen(value)) { hash = HashString(value); }
+    StrObject(const char *v) : Object(ObjectType::STR), len(strlen(v))
     {
         value = new char[len + 1];
         strcpy(value, v);
         value[len] = '\0';
 
-        hash= HashString(value);
+        hash = HashString(value);
     }
     ~StrObject() { SAFE_DELETE_ARRAY(value); }
 
     char *value;
     size_t len;
     size_t hash;
-
 };
 
 struct ArrayObject : public Object
 {
-    ArrayObject(Value *eles, size_t len) :Object(ObjectType::ARRAY), elements(eles), len(len) {}
+    ArrayObject(Value *eles, size_t len) : Object(ObjectType::ARRAY), elements(eles), len(len) {}
     ~ArrayObject() = default;
 
     Value *elements;
@@ -93,68 +92,69 @@ struct RefObject : public Object
 struct FunctionObject : public Object
 {
     FunctionObject(Chunk chunk, uint8_t localVarCount = 0, uint8_t parameterCount = 0)
-        :Object(ObjectType::FUNCTION), chunk(chunk), localVarCount(localVarCount), parameterCount(parameterCount)
-#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-        , callCount(0)
-        , uuid(GenerateUUID())
-#endif
-    {}
-
-    ~FunctionObject()
+        : Object(ObjectType::FUNCTION), chunk(chunk), localVarCount(localVarCount), parameterCount(parameterCount)
     {
-#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-        SAFE_DELETE(probableReturnTypeSet);
-        jitCache.clear();
-#endif
     }
+
+    ~FunctionObject() = default;
 
     Chunk chunk;
     uint8_t localVarCount;
     uint8_t parameterCount;
-
-#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-    uint32_t callCount;
-    std::unordered_map<size_t, JitFnDecl> jitCache;
-    TypeSet *probableReturnTypeSet{ nullptr };//record function return types,some function with multiply return stmt may return mutiply types of value
-    std::string uuid;
-#endif
 };
 
 struct UpvalueObject : public Object
 {
-    UpvalueObject(Value *slot) :Object(ObjectType::UPVALUE), location(slot) {}
+    UpvalueObject(Value *slot) : Object(ObjectType::UPVALUE), location(slot) {}
     ~UpvalueObject() = default;
 
     Value *location;
-	Value closed;
-	UpvalueObject *nextUpvalue{ nullptr };
+    Value closed;
+    UpvalueObject *nextUpvalue{nullptr};
 };
 
-struct ClosureObject:public Object
+struct ClosureObject : public Object
 {
-    ClosureObject(FunctionObject *fn) :Object(ObjectType::CLOSURE), function(fn)
+    ClosureObject(FunctionObject *fn) : Object(ObjectType::CLOSURE), function(fn)
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+                                        ,
+                                        callCount(0), uuid(GenerateUUID())
+#endif
     {
-        memset(upvalues, 0, sizeof(UpvalueObject*) * UPVALUE_COUNT);
+        memset(upvalues, 0, sizeof(UpvalueObject *) * UPVALUE_COUNT);
     }
-    ~ClosureObject() = default;
+    ~ClosureObject()
+    {
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+        SAFE_DELETE(returnTypeSet);
+        jitCache.clear();
+#endif
+    }
 
     FunctionObject *function;
-    UpvalueObject* upvalues[UPVALUE_COUNT]{};
+    UpvalueObject *upvalues[UPVALUE_COUNT]{};
+
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+    uint32_t callCount;
+    std::unordered_map<size_t, JitFnDecl> jitCache;
+    TypeSet *returnTypeSet{nullptr}; //record function return types,some function with multiply return stmt may return different types of value
+    std::string uuid;
+#endif
 };
 
 struct StructObject : public Object
 {
-    StructObject(HashTable* membs) :Object(ObjectType::STRUCT), members(membs) {}
+    StructObject(HashTable *membs) : Object(ObjectType::STRUCT), members(membs) {}
     ~StructObject() { SAFE_DELETE(members); }
 
-    HashTable* members;
+    HashTable *members;
 };
 
 using BuiltinFn = std::function<bool(Value *, uint8_t, Value &)>;
 
 struct NativeData
 {
-    void *nativeData{ nullptr };
+    void *nativeData{nullptr};
     std::function<void(void *nativeData)> destroyFunc;
 
     template <typename T>
@@ -173,7 +173,7 @@ struct NativeData
 struct BuiltinObject : public Object
 {
     BuiltinObject(void *nativeData, std::function<void(void *nativeData)> destroyFunc)
-        :Object(ObjectType::BUILTIN)
+        : Object(ObjectType::BUILTIN)
     {
         NativeData nd;
         nd.nativeData = nativeData;
@@ -182,9 +182,9 @@ struct BuiltinObject : public Object
     }
 
     template <typename T>
-        requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value>)
-    BuiltinObject(const T &v)
-        :Object(ObjectType::BUILTIN)
+    requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value>)
+        BuiltinObject(const T &v)
+        : Object(ObjectType::BUILTIN)
     {
         data = v;
     }
@@ -195,16 +195,15 @@ struct BuiltinObject : public Object
             Get<NativeData>().destroyFunc(Get<NativeData>().nativeData);
     }
 
-    template<typename T>
-        requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value> || std::is_same_v<T, NativeData>)
-    T Get()
+    template <typename T>
+    requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value> || std::is_same_v<T, NativeData>)
+        T Get()
     {
         return std::get<T>(data);
     }
 
-    template<typename T>
-        requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value> || std::is_same_v<T, NativeData>)
-    bool Is()
+    template <typename T>
+    requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value> || std::is_same_v<T, NativeData>) bool Is()
     {
         return std::holds_alternative<T>(data);
     }
@@ -214,7 +213,8 @@ struct BuiltinObject : public Object
 
 COMPUTEDUCK_API std::string ObjectStringify(Object *object
 #ifndef NDEBUG
-    , bool printChunkIfIsFunctionObject = false
+                                            ,
+                                            bool printChunkIfIsFunctionObject = false
 #endif
 );
 

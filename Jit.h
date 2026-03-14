@@ -218,7 +218,6 @@ private:
 
     llvm::Type *m_Int8Type{ nullptr };
     llvm::PointerType *m_Int8PtrType{ nullptr };
-    llvm::PointerType *m_Int8PtrPtrType{ nullptr };
 
     llvm::Type *m_BoolType{ nullptr };
     llvm::PointerType *m_BoolPtrType{ nullptr };
@@ -227,10 +226,7 @@ private:
     llvm::PointerType *m_DoublePtrType{ nullptr };
 
     llvm::Type *m_Int64Type{ nullptr };
-    llvm::PointerType *m_Int64PtrType{ nullptr };
-
     llvm::Type *m_Int32Type{ nullptr };
-    llvm::PointerType *m_Int32PtrType{ nullptr };
 
     llvm::Type *m_Int16Type{ nullptr };
     llvm::Type *m_VoidType{ nullptr };
@@ -243,8 +239,6 @@ private:
 
     StackValue *m_StackTop;
     StackValue m_ValueStack[STACK_COUNT];
-
-    std::vector<JumpInstrSet> m_JumpInstrSetTable;
 
     std::unordered_map<std::string, llvm::Function *> m_BuiltinFnCache;
 
