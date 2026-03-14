@@ -13,7 +13,7 @@ struct CallFrame
     {
         ip = closure->function->chunk.opCodeList.data();
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-        closure->function->callCount++;
+        closure->callCount++;
 #endif
     }
 
@@ -74,14 +74,12 @@ public:
 
     void StackTopJump(size_t slotCount);
 
-    UpvalueObject *CaptureUpvalue(Value *local);
+    UpvalueObject *CaptureUpvalue(int16_t index, int16_t scopeDepth);
 	void ClosedUpvalues(Value *last);
 
     Value *GetGlobalVariableSlot(size_t index);
 
     Value *GetLocalVariableSlot(int16_t index);
-
-    Value *GetUpvalueVariableSlot(int16_t index, int16_t scopeDepth);
 
     void DisableGC();
     void EnableGC();
@@ -122,7 +120,6 @@ private:
 #define PEEK_CALL_FRAME(x) (Allocator::GetInstance()->PeekCallFrame(x))
 
 #define GET_LOCAL_VARIABLE_SLOT(idx) (Allocator::GetInstance()->GetLocalVariableSlot(idx))
-#define GET_UPVALUE_VARIABLE_SLOT(idx, scopeDepth) (Allocator::GetInstance()->GetUpvalueVariableSlot(idx, scopeDepth))
 
 #define GET_STACK_TOP() (Allocator::GetInstance()->GetStackTop())
 #define STACK_TOP_JUMP(x) (Allocator::GetInstance()->StackTopJump(x))

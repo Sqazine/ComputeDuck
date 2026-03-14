@@ -8,26 +8,16 @@
 #include <type_traits>
 #include <set>
 
-#ifndef NDEBUG
-#define ERROR(newState, ...)                                                        \
+#define JIT_ERROR(newState, ...)                                                    \
     do                                                                              \
     {                                                                               \
         printf("[file:%s,function:%s,line:%d]:", __FILE__, __FUNCTION__, __LINE__); \
         printf(__VA_ARGS__);                                                        \
         printf("\n");                                                               \
         InitModuleAndPassManager();                                                 \
-        jitFnDecl.state = newState;                                                 \
-        return jitFnDecl;                                                           \
+        jitFnDeclResult.state = newState;                                           \
+        return jitFnDeclResult;                                                     \
     } while (false);
-#else
-#define ERROR(newState, ...)        \
-    do                              \
-    {                               \
-        InitModuleAndPassManager(); \
-        jitFnDecl.state = newState; \
-        return jitFnDecl;           \
-    } while (false);
-#endif
 
 constexpr uint32_t JIT_TRIGGER_COUNT = 2;
 constexpr uint8_t JIT_FUNCTION_MAX_PARAMETER_COUNT = 6;
@@ -68,9 +58,9 @@ public:
 
     void Insert(uint8_t type);
     void Insert(const TypeSet *other);
-    bool IsOnly(uint8_t t);
-    uint8_t GetOnly();
-    bool IsMultiplyType();
+    bool IsOnlyTypeOf(uint8_t t);
+    uint8_t GetOnlyType();
+    bool IsOnlyOneType();
     bool IsNone();
     size_t Hash();
 

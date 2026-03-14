@@ -175,29 +175,33 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         m_Module->setModuleIdentifier(fnName);
     }
 
+    // local variables
+    std::vector<JumpInstrSet> jumpInstrSetTable;
     std::map<std::string, llvm::AllocaInst *> localVariables;
     BranchState branchState = BranchState::IF_CONDITION;
-    JitFnDecl jitFnDecl;
+    JitFnDecl jitFnDeclResult;
 
     std::vector<llvm::Type *> paramTypes;
     for (Value *slot = frame.slot; slot < frame.slot + frame.closure->function->parameterCount; ++slot)
     {
         auto typePair = GetTypeFromValue(*slot);
         paramTypes.emplace_back(typePair.first);
-        jitFnDecl.paramTypes.emplace_back(typePair.second);
+        jitFnDeclResult.paramTypes.emplace_back(typePair.second);
     }
 
     llvm::FunctionType *fnType = nullptr;
-    if (frame.closure->function->probableReturnTypeSet->IsNone())
+    if (frame.closure->returnTypeSet->IsNone())
         fnType = llvm::FunctionType::get(m_VoidType, paramTypes, false);
-    else if (!frame.closure->function->probableReturnTypeSet->IsMultiplyType())
+    else if (frame.closure->returnTypeSet->IsOnlyOneType())
     {
-        auto type = frame.closure->function->probableReturnTypeSet->GetOnly();
+        auto type = frame.closure->returnTypeSet->GetOnlyType();
         auto llvmType = GetLlvmTypeFromValueType(type);
+        if (llvmType == nullptr)
+            JIT_ERROR(JitCompileState::FAIL, "Unsupported return type:%d", type);
         fnType = llvm::FunctionType::get(llvmType, paramTypes, false);
     }
     else
-        ERROR(JitCompileState::FAIL, "Multiply return type of function,skip jit compile");
+        JIT_ERROR(JitCompileState::FAIL, "Multiply return type of function,skip jit compile");
 
     llvm::Function *currentCompileFunction = llvm::Function::Create(fnType, llvm::Function::ExternalLinkage, fnName.c_str(), m_Module.get());
     currentCompileFunction->setDSOLocal(true);
@@ -207,8 +211,10 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
     llvm::BasicBlock *codeBlock = llvm::BasicBlock::Create(*m_Context, "", currentCompileFunction);
     m_Builder->SetInsertPoint(codeBlock);
 
-    auto ip = frame.closure->function->chunk.opCodeList.data();
-    while ((ip - frame.closure->function->chunk.opCodeList.data()) < frame.closure->function->chunk.opCodeList.size())
+    const auto& opCodeList = frame.closure->function->chunk.opCodeList;
+
+    auto ip = opCodeList.data();
+    while ((ip - opCodeList.data()) < opCodeList.size())
     {
         int32_t instruction = *ip++;
         switch (instruction)
@@ -218,16 +224,11 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto idx = *ip++;
             auto value = frame.closure->function->chunk.constants[idx];
 
-            if (IS_FUNCTION_VALUE(value))
-                ERROR(JitCompileState::FAIL, "Not support jit compile for:%s", fnName.c_str())
-            else
-            {
-                auto llvmValue = CreateLlvmValue(value);
-                if (!llvmValue)
-                    ERROR(JitCompileState::FAIL, "Unsupported value type:%d", value.type);
+            auto llvmValue = CreateLlvmValue(value);
+            if (!llvmValue)
+                JIT_ERROR(JitCompileState::FAIL, "Unsupported value type:%d", value.type);
 
-                Push(llvmValue);
-            }
+            Push(llvmValue);
             break;
         }
         case OP_ADD:
@@ -599,7 +600,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             }
 
             if (!isSatis)
-                ERROR(JitCompileState::FAIL, "Invalid index op: %s[%s]", GetTypeName(ds->getType()).c_str(), GetTypeName(index->getType()).c_str());
+                JIT_ERROR(JitCompileState::FAIL, "Invalid index op: %s[%s]", GetTypeName(ds->getType()).c_str(), GetTypeName(index->getType()).c_str());
             break;
         }
         case OP_SET_INDEX:
@@ -652,7 +653,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             }
 
             if (!isSatis)
-                ERROR(JitCompileState::FAIL, "Invalid index op: %s[%s]", GetTypeName(ds->getType()).c_str(), GetTypeName(index->getType()).c_str());
+                JIT_ERROR(JitCompileState::FAIL, "Invalid index op: %s[%s]", GetTypeName(ds->getType()).c_str(), GetTypeName(index->getType()).c_str());
             break;
         }
         case OP_JUMP_START:
@@ -660,7 +661,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto mode = *ip++;
 
             auto fn = m_Builder->GetInsertBlock()->getParent();
-            auto curAddress = ip - frame.closure->function->chunk.opCodeList.data();
+            auto curAddress = ip - opCodeList.data();
             JumpInstrSet instrSet;
 
             if (mode == JumpMode::IF)
@@ -670,7 +671,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 instrSet.elseBranch = llvm::BasicBlock::Create(*m_Context, "jumpInstr.else." + std::to_string(curAddress), fn);
                 instrSet.endBranch = llvm::BasicBlock::Create(*m_Context, "jumpInstr.end." + std::to_string(curAddress));
 
-                m_JumpInstrSetTable.emplace_back(instrSet);
+                jumpInstrSetTable.emplace_back(instrSet);
 
                 m_Builder->CreateBr(instrSet.conditionBranch);
 
@@ -683,7 +684,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 instrSet.bodyBranch = llvm::BasicBlock::Create(*m_Context, "jumpInstr.body." + std::to_string(curAddress), fn);
                 instrSet.endBranch = llvm::BasicBlock::Create(*m_Context, "jumpInstr.end." + std::to_string(curAddress));
 
-                m_JumpInstrSetTable.emplace_back(instrSet);
+                jumpInstrSetTable.emplace_back(instrSet);
 
                 m_Builder->CreateBr(instrSet.conditionBranch);
 
@@ -699,7 +700,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
 
             auto condition = Pop().GetLlvmValue();
             auto conditionValue = m_Builder->CreateICmpEQ(condition, llvm::ConstantInt::get(m_BoolType, true));
-            auto &instrSet = m_JumpInstrSetTable.back();
+            auto &instrSet = jumpInstrSetTable.back();
             if (mode == JumpMode::IF)
             {
                 m_Builder->CreateCondBr(conditionValue, instrSet.bodyBranch, instrSet.elseBranch);
@@ -721,7 +722,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto address = *ip++;
             auto mode = *ip++;
 
-            auto &instrSet = m_JumpInstrSetTable.back();
+            auto &instrSet = jumpInstrSetTable.back();
             if (instrSet.endBranch->getParent() == nullptr)
             {
                 // set endBranch parent
@@ -739,7 +740,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             }
             else
             {
-                m_JumpInstrSetTable.pop_back();
+                jumpInstrSetTable.pop_back();
 
                 m_Builder->CreateBr(instrSet.conditionBranch);
                 m_Builder->SetInsertPoint(instrSet.endBranch);
@@ -749,7 +750,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         }
         case OP_JUMP_END:
         {
-            auto &br = m_JumpInstrSetTable.back();
+            auto &br = jumpInstrSetTable.back();
             // set endBranch parent
             if (br.endBranch->getParent() == nullptr)
             {
@@ -764,12 +765,12 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             branchState = BranchState::IF_END;
 
             {
-                auto offset = m_JumpInstrSetTable.size() - 1;
+                auto offset = jumpInstrSetTable.size() - 1;
                 if (offset > 0)
-                    m_Builder->CreateBr(m_JumpInstrSetTable[offset - 1].endBranch);
+                    m_Builder->CreateBr(jumpInstrSetTable[offset - 1].endBranch);
             }
 
-            m_JumpInstrSetTable.pop_back();
+            jumpInstrSetTable.pop_back();
             break;
         }
         case OP_RETURN:
@@ -881,7 +882,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
 
             auto iter = localVariables.find(name);
             if (iter == localVariables.end())
-                ERROR(JitCompileState::FAIL, "Cannot find local variable:%s,maybe it is a upvalue.", name.c_str());
+                JIT_ERROR(JitCompileState::FAIL, "Cannot find local variable:%s,maybe it is a upvalue.", name.c_str());
             if (iter->second->getAllocatedType() == m_RefObjectPtrType)
             {
                 if (value->getType() != m_ValuePtrType)
@@ -1001,19 +1002,18 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             }
             else
             {
-                auto vmFn = TO_CLOSURE_VALUE(fnSlot->GetVmValue())->function;
+                auto vmClosure = TO_CLOSURE_VALUE(fnSlot->GetVmValue());
 
                 size_t paramTypeHash = 0;
-                for (auto slot = m_StackTop - vmFn->parameterCount; slot < m_StackTop; ++slot)
+                for (auto slot = m_StackTop - vmClosure->function->parameterCount; slot < m_StackTop; ++slot)
                 {
                     auto vType = GetValueTypeFromLlvmType(slot->GetLlvmValue()->getType());
                     paramTypeHash ^= std::hash<uint8_t>()(vType);
                 }
 
-                auto fnName = GenerateFunctionName(vmFn->uuid, vmFn->probableReturnTypeSet->Hash(), paramTypeHash);
+                auto fnName = GenerateFunctionName(vmClosure->uuid, vmClosure->returnTypeSet->Hash(), paramTypeHash);
 
-                auto iter = vmFn->jitCache.find(paramTypeHash);
-                if (iter != vmFn->jitCache.end() && !vmFn->probableReturnTypeSet->IsMultiplyType())
+                if (vmClosure->returnTypeSet->IsOnlyOneType())
                 {
                     std::vector<llvm::Value *> args;
                     for (auto slot = m_StackTop - argCount; slot < m_StackTop; ++slot)
@@ -1024,6 +1024,10 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                     auto internalFunction = m_Module->getFunction(fnName);
                     if (internalFunction == nullptr)
                     {
+                        auto iter = vmClosure->jitCache.find(paramTypeHash);
+                        if (iter == vmClosure->jitCache.end())
+                            JIT_ERROR(JitCompileState::DEPEND, "%s depends on another function %s", currentCompileFunction->getName().str().c_str(), vmClosure->uuid.c_str());
+
                         JitFnDecl jitDecl = iter->second;
 
                         llvm::Type *fnReturnType = GetLlvmTypeFromValueType(jitDecl.returnType);
@@ -1042,7 +1046,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                     Push(ret);
                 }
                 else
-                    ERROR(JitCompileState::DEPEND, "%s depends on another function %s", currentCompileFunction->getName().str().c_str(), vmFn->uuid.c_str());
+                    JIT_ERROR(JitCompileState::FAIL, "Not support multiply return type function %s", currentCompileFunction->getName().str().c_str());
             }
             break;
         }
@@ -1098,7 +1102,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 memberName = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateStrObject)), {memberName});
 
             if (memberName->getType() != m_StrObjectPtrType)
-                ERROR(JitCompileState::FAIL, "Invalid member name of struct instance");
+                JIT_ERROR(JitCompileState::FAIL, "Invalid member name of struct instance");
 
             if (instance->getType() == m_ValuePtrType)
             {
@@ -1127,7 +1131,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 memberName = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateStrObject)), {memberName});
 
             if (memberName->getType() != m_StrObjectPtrType)
-                ERROR(JitCompileState::FAIL, "Invalid member name of struct instance");
+                JIT_ERROR(JitCompileState::FAIL, "Invalid member name of struct instance");
 
             if (value->getType() != m_ValuePtrType)
                 value = CreateLlvmValue(value);
@@ -1179,7 +1183,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                     value = CreateLlvmValue(value);
                 }
                 else
-                    ERROR(JitCompileState::FAIL, "Cannot refer jit internal variable");
+                    JIT_ERROR(JitCompileState::FAIL, "Cannot refer jit internal variable");
             }
             value = m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)), {value});
             value = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateRefObject)), {value});
@@ -1227,12 +1231,60 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                     value = CreateLlvmValue(value);
                 }
                 else
-                    ERROR(JitCompileState::FAIL, "Cannot refer jit internal variable");
+                    JIT_ERROR(JitCompileState::FAIL, "Cannot refer jit internal variable");
             }
 
             value = m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)), {value});
             value = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateIndexRefObject)), {value, idxValue});
             Push(value);
+            break;
+        }
+        case OP_DLL_IMPORT:
+        {
+            // TODO
+            JIT_ERROR(JitCompileState::FAIL, "Jit Compiler not support OP_DLL_IMPORT now");
+            break;
+        }
+        case OP_SET_UPVALUE:
+        {
+            auto index = *ip++;
+            JIT_ERROR(JitCompileState::FAIL, "Jit Compiler not support OP_SET_UPVALUE now");
+            // TODO
+            break;
+        }
+        case OP_GET_UPVALUE:
+        {
+            auto index = *ip++;
+            JIT_ERROR(JitCompileState::FAIL, "Jit Compiler not support OP_GET_UPVALUE now");
+            // TODO
+            break;
+        }
+        case OP_REF_UPVALUE:
+        {
+            auto index = *ip++;
+            JIT_ERROR(JitCompileState::FAIL, "Jit Compiler not support OP_REF_UPVALUE now");
+            // TODO
+            break;
+        }
+        case OP_REF_INDEX_UPVALUE:
+        {
+            auto index = *ip++;
+            JIT_ERROR(JitCompileState::FAIL, "Jit Compiler not support OP_REF_INDEX_UPVALUE now");
+            // TODO
+            break;
+        }
+        case OP_CLOSURE:
+        {
+            auto idx = *ip++;
+            auto upvalueCount = *ip++;
+
+            for (uint8_t i = 0; i < upvalueCount; ++i)
+            {
+                auto index = *ip++;
+                auto scopeDepth = *ip++;
+            }
+            JIT_ERROR(JitCompileState::FAIL, "Jit Compiler not support OP_CLOSURE now");
+            // TODO
             break;
         }
         default:
@@ -1247,7 +1299,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
     llvm::verifyFunction(*currentCompileFunction);
     m_FPM->run(*currentCompileFunction);
 
-    return jitFnDecl;
+    return jitFnDeclResult;
 }
 
 void Jit::InitModuleAndPassManager()
@@ -1288,13 +1340,9 @@ void Jit::InitTypes()
     m_Int16Type = llvm::Type::getInt16Ty(*m_Context);
     m_VoidType = llvm::Type::getVoidTy(*m_Context);
 
-    m_Int64PtrType = llvm::PointerType::get(m_Int64Type, 0);
-    m_Int32PtrType = llvm::PointerType::get(m_Int32Type, 0);
     m_Int8PtrType = llvm::PointerType::get(m_Int8Type, 0);
     m_BoolPtrType = llvm::PointerType::get(m_BoolType, 0);
     m_DoublePtrType = llvm::PointerType::get(m_DoubleType, 0);
-
-    m_Int8PtrPtrType = llvm::PointerType::get(m_Int8PtrType, 0);
 
     m_UnionType = llvm::StructType::create(*m_Context, {m_DoubleType}, "union.anon");
 
@@ -1446,6 +1494,10 @@ llvm::Value *Jit::CreateLlvmValue(llvm::Value *v)
         auto strObject = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateStrObject)), {v});
         //to base ptr
         storedV = m_Builder->CreateBitCast(strObject, m_ObjectPtrType);
+    }
+    else
+    {
+        return nullptr;
     }
 
     auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr);

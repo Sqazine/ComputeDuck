@@ -50,10 +50,12 @@ void VM::Execute()
         case OP_RETURN:
         {
             auto returnCount = *frame->ip++;
+
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-            if (frame->closure->function->probableReturnTypeSet == nullptr)
-                frame->closure->function->probableReturnTypeSet = new TypeSet();
+            if (frame->closure->returnTypeSet == nullptr)
+                frame->closure->returnTypeSet = new TypeSet();
 #endif
+
             Value value;
             if (returnCount == 1)
             {
@@ -61,13 +63,13 @@ void VM::Execute()
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
                 if (IS_OBJECT_VALUE(value))
                 {
-                    if (IS_FUNCTION_VALUE(value))
-                        frame->closure->function->probableReturnTypeSet->Insert(TO_FUNCTION_VALUE(value)->probableReturnTypeSet);
+                    if (IS_CLOSURE_VALUE(value))
+                        frame->closure->returnTypeSet->Insert(TO_CLOSURE_VALUE(value)->returnTypeSet);
                     else
-                        frame->closure->function->probableReturnTypeSet->Insert(TO_OBJECT_VALUE(value)->type);
+                        frame->closure->returnTypeSet->Insert(TO_OBJECT_VALUE(value)->type);
                 }
                 else
-                    frame->closure->function->probableReturnTypeSet->Insert(value.type);
+                    frame->closure->returnTypeSet->Insert(value.type);
 #endif
             }
 
@@ -338,18 +340,18 @@ void VM::Execute()
             auto upvalueCount = *frame->ip++;
             auto function = TO_FUNCTION_VALUE(frame->closure->function->chunk.constants[idx]);
             auto closure = ALLOCATE_OBJECT(ClosureObject, function);
+            PUSH(closure);
 
             for (uint8_t i = 0; i < upvalueCount; ++i)
             {
                 auto index = *frame->ip++;
                 auto scopeDepth = *frame->ip++;
 
-                auto upvalue = Allocator::GetInstance()->CaptureUpvalue(GET_UPVALUE_VARIABLE_SLOT(index, scopeDepth));
+                auto upvalue = Allocator::GetInstance()->CaptureUpvalue(index, scopeDepth);
 
                 closure->upvalues[i] = upvalue;
             }
 
-            PUSH(closure);
             break;
         }
         case OP_DEF_LOCAL:
@@ -487,7 +489,7 @@ void VM::Execute()
         {
             auto index = *frame->ip++;
             auto idxValue = POP();
-            Value* slot = GetEndOfRefValuePtr(frame->closure->upvalues[index]->location);
+            Value *slot = GetEndOfRefValuePtr(frame->closure->upvalues[index]->location);
             PUSH(ALLOCATE_INDEX_REF_OBJECT(slot, idxValue));
             break;
         }
@@ -509,61 +511,52 @@ void VM::Execute()
 void VM::RunJit(const CallFrame &frame)
 {
     if (!Config::GetInstance()->IsUseJit() ||
-        frame.closure->function->callCount < JIT_TRIGGER_COUNT ||
-        !frame.closure->function->probableReturnTypeSet ||
+        frame.closure->callCount < JIT_TRIGGER_COUNT ||
+        !frame.closure->returnTypeSet ||
         frame.closure->function->parameterCount > JIT_FUNCTION_MAX_PARAMETER_COUNT)
         return;
 
     // get function name by hashing arguments
     size_t paramTypeHash = HashValueList(frame.slot, frame.slot + frame.closure->function->parameterCount);
-    auto fnName = GenerateFunctionName(frame.closure->function->uuid, frame.closure->function->probableReturnTypeSet->Hash(), paramTypeHash);
+    auto fnName = GenerateFunctionName(frame.closure->uuid, frame.closure->returnTypeSet->Hash(), paramTypeHash);
 
     // compile jit function
     {
-        auto iter = frame.closure->function->jitCache.find(paramTypeHash);
-        if ((iter == frame.closure->function->jitCache.end() && !frame.closure->function->probableReturnTypeSet->IsMultiplyType()) ||
+        auto iter = frame.closure->jitCache.find(paramTypeHash);
+        if (frame.closure->jitCache.size() == 0 ||
+            (iter == frame.closure->jitCache.end() && frame.closure->returnTypeSet->IsOnlyOneType()) ||
             iter->second.state == JitCompileState::DEPEND)
         {
             m_Jit->ResetStatus();
-
-            frame.closure->function->jitCache[paramTypeHash] = JitFnDecl();
-
-            frame.closure->function->jitCache[paramTypeHash] = m_Jit->Compile(frame, fnName);
-            iter = frame.closure->function->jitCache.find(paramTypeHash);
+            frame.closure->jitCache[paramTypeHash] = m_Jit->Compile(frame, fnName);
+            iter = frame.closure->jitCache.find(paramTypeHash);
         }
 
-        if (iter->second.state != JitCompileState::SUCCESS) //means current paramTypeHash compile error,not try compiling anymore
+        if (iter->second.state != JitCompileState::SUCCESS)
             return;
     }
 
     //execute jit function
     {
-        //TODO:maybe in jit compiler need to stop GC,but NOT test yet!
-        // here we enable GC as default
-
-        // Allocator::GetInstance()->DisableGC();
-
-        if (frame.closure->function->probableReturnTypeSet->IsOnly(ValueType::NUM))
+        if (frame.closure->returnTypeSet->IsOnlyTypeOf(ValueType::NUM))
             ExecuteJitFunction<double>(frame, fnName);
-        else if (frame.closure->function->probableReturnTypeSet->IsOnly(ValueType::BOOL))
+        else if (frame.closure->returnTypeSet->IsOnlyTypeOf(ValueType::BOOL))
             ExecuteJitFunction<bool>(frame, fnName);
-        else if (frame.closure->function->probableReturnTypeSet->IsOnly(ObjectType::STR))
+        else if (frame.closure->returnTypeSet->IsOnlyTypeOf(ObjectType::STR))
             ExecuteJitFunction<StrObject *>(frame, fnName);
-        else if (frame.closure->function->probableReturnTypeSet->IsOnly(ObjectType::ARRAY))
+        else if (frame.closure->returnTypeSet->IsOnlyTypeOf(ObjectType::ARRAY))
             ExecuteJitFunction<ArrayObject *>(frame, fnName);
-        else if (frame.closure->function->probableReturnTypeSet->IsOnly(ObjectType::REF))
+        else if (frame.closure->returnTypeSet->IsOnlyTypeOf(ObjectType::REF))
             ExecuteJitFunction<RefObject *>(frame, fnName);
-        else if (frame.closure->function->probableReturnTypeSet->IsOnly(ObjectType::STRUCT))
+        else if (frame.closure->returnTypeSet->IsOnlyTypeOf(ObjectType::STRUCT))
             ExecuteJitFunction<StructObject *>(frame, fnName);
-        else if (frame.closure->function->probableReturnTypeSet->IsOnly(ValueType::NIL))
+        else if (frame.closure->returnTypeSet->IsOnlyTypeOf(ValueType::NIL))
         {
             ExecuteJitFunction<void>(frame, fnName);
             PUSH(Value());
         }
         else
             ExecuteJitFunction<void>(frame, fnName);
-
-        // Allocator::GetInstance()->EnableGC();
     }
 }
 

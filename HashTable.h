@@ -9,7 +9,7 @@ struct StrObject;
 
 struct Entry
 {
-    StrObject *key;
+    StrObject *key{nullptr};
     Value value;
 };
 

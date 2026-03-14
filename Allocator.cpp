@@ -97,8 +97,9 @@ void Allocator::StackTopJump(size_t slotCount)
     m_StackTop += slotCount;
 }
 
-UpvalueObject *Allocator::CaptureUpvalue(Value *local)
+UpvalueObject *Allocator::CaptureUpvalue(int16_t index, int16_t scopeDepth)
 {
+    Value* local = (m_CallFrameStack + scopeDepth)->slot + index;
     UpvalueObject *prevUpvalue = nullptr;
     UpvalueObject *upvalue = m_OpenUpvalues;
     while (upvalue != nullptr && upvalue->location > local)
@@ -141,11 +142,6 @@ Value *Allocator::GetLocalVariableSlot(int16_t index)
     return PeekCallFrame(1)->slot + index;
 }
 
-Value *Allocator::GetUpvalueVariableSlot(int16_t index, int16_t scopeDepth)
-{
-    return (m_CallFrameStack + scopeDepth)->slot + index;
-}
-
 void Allocator::DisableGC()
 {
     m_IsGCEnabled = false;
@@ -184,6 +180,7 @@ void Allocator::Gc(bool deleteAll)
             UnMarkObject(slot.closure);
         for (UpvalueObject *upvalue = m_OpenUpvalues; upvalue != nullptr; upvalue = upvalue->nextUpvalue)
             UnMarkObject(upvalue);
+
          BuiltinManager::GetInstance()->GetBuiltinObjectTable().UnMark();
     }
 
