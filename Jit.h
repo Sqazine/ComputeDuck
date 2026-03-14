@@ -244,8 +244,6 @@ private:
     StackValue *m_StackTop;
     StackValue m_ValueStack[STACK_COUNT];
 
-    std::vector<JumpInstrSet> m_JumpInstrSetTable;
-
     std::unordered_map<std::string, llvm::Function *> m_BuiltinFnCache;
 
     std::unique_ptr<llvm::LLVMContext> m_Context;

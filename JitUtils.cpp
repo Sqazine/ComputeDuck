@@ -72,25 +72,19 @@ void TypeSet::Insert(const TypeSet *other)
         m_ValueTypeSet.insert(other->m_ValueTypeSet.begin(), other->m_ValueTypeSet.end());
 }
 
-bool TypeSet::IsOnly(uint8_t t)
+bool TypeSet::IsOnlyTypeOf(uint8_t t)
 {
     return m_ValueTypeSet.size() == 1 && m_ValueTypeSet.contains(t);
 }
 
-uint8_t TypeSet::GetOnly()
+uint8_t TypeSet::GetOnlyType()
 {
-    if (m_ValueTypeSet.size() == 1)
-    {
-        for (auto iter : m_ValueTypeSet)
-            return iter;
-    }
-
-    ASSERT("Unreachedable");
+    return m_ValueTypeSet.begin().operator*();
 }
 
-bool TypeSet::IsMultiplyType()
+bool TypeSet::IsOnlyOneType()
 {
-    return m_ValueTypeSet.size() >= 2;
+    return m_ValueTypeSet.size() == 1;
 }
 
 bool TypeSet::IsNone()

@@ -184,6 +184,7 @@ void Allocator::Gc(bool deleteAll)
             UnMarkObject(slot.closure);
         for (UpvalueObject *upvalue = m_OpenUpvalues; upvalue != nullptr; upvalue = upvalue->nextUpvalue)
             UnMarkObject(upvalue);
+
          BuiltinManager::GetInstance()->GetBuiltinObjectTable().UnMark();
     }
 

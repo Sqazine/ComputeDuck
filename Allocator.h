@@ -13,7 +13,7 @@ struct CallFrame
     {
         ip = closure->function->chunk.opCodeList.data();
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-        closure->function->callCount++;
+        closure->callCount++;
 #endif
     }
 
