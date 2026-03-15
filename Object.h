@@ -126,7 +126,6 @@ struct ClosureObject : public Object
     ~ClosureObject()
     {
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-        SAFE_DELETE(returnTypeSet);
         jitCache.clear();
 #endif
     }
@@ -137,7 +136,7 @@ struct ClosureObject : public Object
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     uint32_t callCount;
     std::unordered_map<size_t, JitFnDecl> jitCache;
-    TypeSet *returnTypeSet{nullptr}; //record function return types,some function with multiply return stmt may return different types of value
+    TypeSet returnTypeSet; //record function return types,some function with multiply return stmt may return different types of value
     std::string uuid;
 #endif
 };

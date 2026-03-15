@@ -190,11 +190,11 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
     }
 
     llvm::FunctionType *fnType = nullptr;
-    if (frame.closure->returnTypeSet->IsNone())
+    if (frame.closure->returnTypeSet.IsNone())
         fnType = llvm::FunctionType::get(m_VoidType, paramTypes, false);
-    else if (frame.closure->returnTypeSet->IsOnlyOneType())
+    else if (frame.closure->returnTypeSet.IsOnlyOneType())
     {
-        auto type = frame.closure->returnTypeSet->GetOnlyType();
+        auto type = frame.closure->returnTypeSet.GetOnlyType();
         auto llvmType = GetLlvmTypeFromValueType(type);
         if (llvmType == nullptr)
             JIT_ERROR(JitCompileState::FAIL, "Unsupported return type:%d", type);
@@ -211,8 +211,10 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
     llvm::BasicBlock *codeBlock = llvm::BasicBlock::Create(*m_Context, "", currentCompileFunction);
     m_Builder->SetInsertPoint(codeBlock);
 
-    auto ip = frame.closure->function->chunk.opCodeList.data();
-    while ((ip - frame.closure->function->chunk.opCodeList.data()) < frame.closure->function->chunk.opCodeList.size())
+    const auto& opCodeList = frame.closure->function->chunk.opCodeList;
+
+    auto ip = opCodeList.data();
+    while ((ip - opCodeList.data()) < opCodeList.size())
     {
         int32_t instruction = *ip++;
         switch (instruction)
@@ -222,16 +224,11 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto idx = *ip++;
             auto value = frame.closure->function->chunk.constants[idx];
 
-            if (IS_FUNCTION_VALUE(value))
-                JIT_ERROR(JitCompileState::FAIL, "Not support jit compile for:%s", fnName.c_str())
-            else
-            {
-                auto llvmValue = CreateLlvmValue(value);
-                if (!llvmValue)
-                    JIT_ERROR(JitCompileState::FAIL, "Unsupported value type:%d", value.type);
+            auto llvmValue = CreateLlvmValue(value);
+            if (!llvmValue)
+                JIT_ERROR(JitCompileState::FAIL, "Unsupported value type:%d", value.type);
 
-                Push(llvmValue);
-            }
+            Push(llvmValue);
             break;
         }
         case OP_ADD:
@@ -664,7 +661,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto mode = *ip++;
 
             auto fn = m_Builder->GetInsertBlock()->getParent();
-            auto curAddress = ip - frame.closure->function->chunk.opCodeList.data();
+            auto curAddress = ip - opCodeList.data();
             JumpInstrSet instrSet;
 
             if (mode == JumpMode::IF)
@@ -1014,9 +1011,9 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                     paramTypeHash ^= std::hash<uint8_t>()(vType);
                 }
 
-                auto fnName = GenerateFunctionName(vmClosure->uuid, vmClosure->returnTypeSet->Hash(), paramTypeHash);
+                auto fnName = GenerateFunctionName(vmClosure->uuid, vmClosure->returnTypeSet.Hash(), paramTypeHash);
 
-                if (vmClosure->returnTypeSet->IsOnlyOneType())
+                if (vmClosure->returnTypeSet.IsOnlyOneType())
                 {
                     std::vector<llvm::Value *> args;
                     for (auto slot = m_StackTop - argCount; slot < m_StackTop; ++slot)
@@ -1501,6 +1498,10 @@ llvm::Value *Jit::CreateLlvmValue(llvm::Value *v)
         auto strObject = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateStrObject)), {v});
         //to base ptr
         storedV = m_Builder->CreateBitCast(strObject, m_ObjectPtrType);
+    }
+    else
+    {
+        return nullptr;
     }
 
     auto alloc = m_Builder->CreateAlloca(m_ValueType, nullptr);

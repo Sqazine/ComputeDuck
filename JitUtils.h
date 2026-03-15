@@ -8,7 +8,6 @@
 #include <type_traits>
 #include <set>
 
-#ifndef NDEBUG
 #define JIT_ERROR(newState, ...)                                                    \
     do                                                                              \
     {                                                                               \
@@ -19,15 +18,6 @@
         jitFnDeclResult.state = newState;                                           \
         return jitFnDeclResult;                                                     \
     } while (false);
-#else
-#define JIT_ERROR(newState, ...)          \
-    do                                    \
-    {                                     \
-        InitModuleAndPassManager();       \
-        jitFnDeclResult.state = newState; \
-        return jitFnDeclResult;           \
-    } while (false);
-#endif
 
 constexpr uint32_t JIT_TRIGGER_COUNT = 2;
 constexpr uint8_t JIT_FUNCTION_MAX_PARAMETER_COUNT = 6;
@@ -67,7 +57,7 @@ public:
     ~TypeSet() = default;
 
     void Insert(uint8_t type);
-    void Insert(const TypeSet *other);
+    void Insert(const TypeSet &other);
     bool IsOnlyTypeOf(uint8_t t);
     uint8_t GetOnlyType();
     bool IsOnlyOneType();

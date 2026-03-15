@@ -66,10 +66,10 @@ void TypeSet::Insert(uint8_t type)
     m_ValueTypeSet.insert(type);
 }
 
-void TypeSet::Insert(const TypeSet *other)
+void TypeSet::Insert(const TypeSet &other)
 {
-    if (other != nullptr && !other->m_ValueTypeSet.empty())
-        m_ValueTypeSet.insert(other->m_ValueTypeSet.begin(), other->m_ValueTypeSet.end());
+    if (!other.m_ValueTypeSet.empty())
+        m_ValueTypeSet.insert(other.m_ValueTypeSet.begin(), other.m_ValueTypeSet.end());
 }
 
 bool TypeSet::IsOnlyTypeOf(uint8_t t)

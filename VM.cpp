@@ -50,10 +50,7 @@ void VM::Execute()
         case OP_RETURN:
         {
             auto returnCount = *frame->ip++;
-#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-            if (frame->closure->returnTypeSet == nullptr)
-                frame->closure->returnTypeSet = new TypeSet();
-#endif
+
             Value value;
             if (returnCount == 1)
             {
@@ -62,12 +59,12 @@ void VM::Execute()
                 if (IS_OBJECT_VALUE(value))
                 {
                     if (IS_CLOSURE_VALUE(value))
-                        frame->closure->returnTypeSet->Insert(TO_CLOSURE_VALUE(value)->returnTypeSet);
+                        frame->closure->returnTypeSet.Insert(TO_CLOSURE_VALUE(value)->returnTypeSet);
                     else
-                        frame->closure->returnTypeSet->Insert(TO_OBJECT_VALUE(value)->type);
+                        frame->closure->returnTypeSet.Insert(TO_OBJECT_VALUE(value)->type);
                 }
                 else
-                    frame->closure->returnTypeSet->Insert(value.type);
+                    frame->closure->returnTypeSet.Insert(value.type);
 #endif
             }
 
@@ -345,7 +342,7 @@ void VM::Execute()
                 auto index = *frame->ip++;
                 auto scopeDepth = *frame->ip++;
 
-                auto upvalue = Allocator::GetInstance()->CaptureUpvalue(GET_UPVALUE_VARIABLE_SLOT(index, scopeDepth));
+                auto upvalue = Allocator::GetInstance()->CaptureUpvalue(index, scopeDepth);
 
                 closure->upvalues[i] = upvalue;
             }
@@ -510,18 +507,18 @@ void VM::RunJit(const CallFrame &frame)
 {
     if (!Config::GetInstance()->IsUseJit() ||
         frame.closure->callCount < JIT_TRIGGER_COUNT ||
-        !frame.closure->returnTypeSet ||
         frame.closure->function->parameterCount > JIT_FUNCTION_MAX_PARAMETER_COUNT)
         return;
 
     // get function name by hashing arguments
     size_t paramTypeHash = HashValueList(frame.slot, frame.slot + frame.closure->function->parameterCount);
-    auto fnName = GenerateFunctionName(frame.closure->uuid, frame.closure->returnTypeSet->Hash(), paramTypeHash);
+    auto fnName = GenerateFunctionName(frame.closure->uuid, frame.closure->returnTypeSet.Hash(), paramTypeHash);
 
     // compile jit function
     {
         auto iter = frame.closure->jitCache.find(paramTypeHash);
-        if ((iter == frame.closure->jitCache.end() && frame.closure->returnTypeSet->IsOnlyOneType()) ||
+        if (frame.closure->jitCache.size() == 0 ||
+            (iter == frame.closure->jitCache.end() && frame.closure->returnTypeSet.IsOnlyOneType()) ||
             iter->second.state == JitCompileState::DEPEND)
         {
             m_Jit->ResetStatus();
@@ -535,19 +532,19 @@ void VM::RunJit(const CallFrame &frame)
 
     //execute jit function
     {
-        if (frame.closure->returnTypeSet->IsOnlyTypeOf(ValueType::NUM))
+        if (frame.closure->returnTypeSet.IsOnlyTypeOf(ValueType::NUM))
             ExecuteJitFunction<double>(frame, fnName);
-        else if (frame.closure->returnTypeSet->IsOnlyTypeOf(ValueType::BOOL))
+        else if (frame.closure->returnTypeSet.IsOnlyTypeOf(ValueType::BOOL))
             ExecuteJitFunction<bool>(frame, fnName);
-        else if (frame.closure->returnTypeSet->IsOnlyTypeOf(ObjectType::STR))
+        else if (frame.closure->returnTypeSet.IsOnlyTypeOf(ObjectType::STR))
             ExecuteJitFunction<StrObject *>(frame, fnName);
-        else if (frame.closure->returnTypeSet->IsOnlyTypeOf(ObjectType::ARRAY))
+        else if (frame.closure->returnTypeSet.IsOnlyTypeOf(ObjectType::ARRAY))
             ExecuteJitFunction<ArrayObject *>(frame, fnName);
-        else if (frame.closure->returnTypeSet->IsOnlyTypeOf(ObjectType::REF))
+        else if (frame.closure->returnTypeSet.IsOnlyTypeOf(ObjectType::REF))
             ExecuteJitFunction<RefObject *>(frame, fnName);
-        else if (frame.closure->returnTypeSet->IsOnlyTypeOf(ObjectType::STRUCT))
+        else if (frame.closure->returnTypeSet.IsOnlyTypeOf(ObjectType::STRUCT))
             ExecuteJitFunction<StructObject *>(frame, fnName);
-        else if (frame.closure->returnTypeSet->IsOnlyTypeOf(ValueType::NIL))
+        else if (frame.closure->returnTypeSet.IsOnlyTypeOf(ValueType::NIL))
         {
             ExecuteJitFunction<void>(frame, fnName);
             PUSH(Value());
