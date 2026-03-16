@@ -177,8 +177,8 @@ private:
     void InitTypes();
     void InitInternalFunctions();
 
-    llvm::Value *CreateLlvmValue(llvm::Value *v);
-    llvm::Value *CreateLlvmValue(const Value &value);
+    llvm::Value *AllocateValue(llvm::Value *v);
+    llvm::Value *AllocateValue(const Value &value);
 
     void Push(llvm::Value *v);
     void Push(const Value &v);
@@ -227,7 +227,6 @@ private:
 
     llvm::Type *m_Int64Type{ nullptr };
     llvm::Type *m_Int32Type{ nullptr };
-
     llvm::Type *m_Int16Type{ nullptr };
     llvm::Type *m_VoidType{ nullptr };
 
