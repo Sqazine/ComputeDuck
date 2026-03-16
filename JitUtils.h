@@ -60,7 +60,7 @@ public:
     void Insert(const TypeSet *other);
     bool IsOnlyTypeOf(uint8_t t);
     uint8_t GetOnlyType();
-    bool IsOnlyOneType();
+    bool IsNotMultiType();
     bool IsNone();
     size_t Hash();
 

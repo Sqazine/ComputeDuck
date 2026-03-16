@@ -524,7 +524,7 @@ void VM::RunJit(const CallFrame &frame)
     {
         auto iter = frame.closure->jitCache.find(paramTypeHash);
         if (frame.closure->jitCache.size() == 0 ||
-            (iter == frame.closure->jitCache.end() && frame.closure->returnTypeSet->IsOnlyOneType()) ||
+            (iter == frame.closure->jitCache.end() && frame.closure->returnTypeSet->IsNotMultiType()) ||
             iter->second.state == JitCompileState::DEPEND)
         {
             m_Jit->ResetStatus();
@@ -538,6 +538,9 @@ void VM::RunJit(const CallFrame &frame)
 
     //execute jit function
     {
+        // Disable gc to avoid memory leak while jit function is running
+        Allocator::GetInstance()->DisableGC();
+
         if (frame.closure->returnTypeSet->IsOnlyTypeOf(ValueType::NUM))
             ExecuteJitFunction<double>(frame, fnName);
         else if (frame.closure->returnTypeSet->IsOnlyTypeOf(ValueType::BOOL))
@@ -557,6 +560,8 @@ void VM::RunJit(const CallFrame &frame)
         }
         else
             ExecuteJitFunction<void>(frame, fnName);
+
+        Allocator::GetInstance()->EnableGC();
     }
 }
 
