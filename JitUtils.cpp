@@ -67,26 +67,6 @@ extern "C" COMPUTEDUCK_API Value* GetUpvalue(uint8_t index)
     return frame->closure->upvalues[index]->location;
 }
 
-extern "C" COMPUTEDUCK_API void SetUpvalue(const Value& value,uint8_t index)
-{
-    auto frame = PEEK_CALL_FRAME(1);
-    auto slot = frame->closure->upvalues[index]->location;
-    slot = GetEndOfRefValuePtr(slot);
-    *slot = value;
-}
-
-extern "C" COMPUTEDUCK_API RefObject *RefUpvalue(uint8_t index)
-{
-    auto frame = PEEK_CALL_FRAME(1);
-   return ALLOCATE_OBJECT(RefObject, frame->closure->upvalues[index]->location);
-}
-
-extern "C" COMPUTEDUCK_API RefObject *RefIndexUpvalue(Value* idxValue,uint8_t index)
-{
-     auto frame = PEEK_CALL_FRAME(1);
-    Value *slot = GetEndOfRefValuePtr(frame->closure->upvalues[index]->location);
-    return ALLOCATE_INDEX_REF_OBJECT(slot, *idxValue);
-}
 void TypeSet::Insert(uint8_t type)
 {
     m_ValueTypeSet.insert(type);

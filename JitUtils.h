@@ -54,7 +54,7 @@ class TypeSet
 {
 public:
     TypeSet() = default;
-    ~TypeSet() = default;
+    ~TypeSet() { std::set<uint8_t>().swap(m_ValueTypeSet); }
 
     void Insert(uint8_t type);
     void Insert(const TypeSet *other);

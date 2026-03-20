@@ -192,6 +192,8 @@ private:
 
     bool IsObjectType(llvm::Type* type);
 
+    void AssignValue(llvm::Value* dst,llvm::Value* src,size_t size = sizeof(Value));
+
     llvm::StructType *m_UnionType{ nullptr };
 
     llvm::StructType *m_ValueType{ nullptr };
