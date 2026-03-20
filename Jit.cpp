@@ -407,9 +407,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             for (auto i = 0; i < elements.size(); ++i)
             {
                 memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, load, {m_Builder->getInt64(i)});
-                auto addrBitCast = m_Builder->CreateBitCast(memberAddr, m_Int8PtrType);
-                auto eleBitCast = m_Builder->CreateBitCast(elements[i], m_Int8PtrType);
-                m_Builder->CreateMemCpy(addrBitCast, llvm::MaybeAlign(sizeof(Value)), eleBitCast, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+                AssignValue(memberAddr, elements[i]);
             }
 
             auto arrayObject = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateArrayObject)), {load, llvm::ConstantInt::get(m_Int32Type, numElements)});
@@ -426,7 +424,6 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 Push(m_Builder->CreateLogicalAnd(left, right));
             else
             {
-               
                 left = AllocateValue(left);
                 right = AllocateValue(right);
 
@@ -608,10 +605,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
 
                         v = AllocateValue(v);
 
-                        auto castV = m_Builder->CreateBitCast(v, m_Int8PtrType);
-                        auto castMemberAddr = m_Builder->CreateBitCast(memberAddr, m_Int8PtrType);
-
-                        m_Builder->CreateMemCpy(castMemberAddr, llvm::MaybeAlign(sizeof(Value)), castV, llvm::MaybeAlign(sizeof(Value)), m_Builder->getInt64(sizeof(Value)));
+                        AssignValue(memberAddr, v);
                     }
                 }
             }
@@ -782,10 +776,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(GLOBAL_VARIABLE_STR));
             auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
 
-            v = m_Builder->CreateBitCast(v, m_Int8PtrType);
-            globalVar = m_Builder->CreateBitCast(v, m_Int8PtrType);
-
-            m_Builder->CreateMemCpy(globalVar, llvm::MaybeAlign(8), v, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+            AssignValue(globalVar, v);
             break;
         }
         case OP_SET_GLOBAL:
@@ -799,10 +790,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
 
             globalVar = m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)), {globalVar});
 
-            v = m_Builder->CreateBitCast(v, m_Int8PtrType);
-            globalVar = m_Builder->CreateBitCast(v, m_Int8PtrType);
-
-            m_Builder->CreateMemCpy(globalVar, llvm::MaybeAlign(8), v, llvm::MaybeAlign(8), m_Builder->getInt64(sizeof(Value)));
+            AssignValue(globalVar, v);
             break;
         }
         case OP_GET_GLOBAL:
@@ -845,17 +833,12 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 JIT_ERROR(JitCompileState::FAIL, "Cannot find local variable:%s,maybe it is a upvalue.", name.c_str());
             if (iter->second->getAllocatedType() == m_RefObjectPtrType)
             {
-                    value = AllocateValue(value);
+                value = AllocateValue(value);
 
                 llvm::Value *refValue = m_Builder->CreateLoad(m_RefObjectPtrType, iter->second);
                 refValue = AllocateValue(refValue);
-
                 refValue = m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)), {refValue});
-
-                value = m_Builder->CreateBitCast(value, m_Int8PtrType);
-                refValue = m_Builder->CreateBitCast(refValue, m_Int8PtrType);
-
-                m_Builder->CreateMemCpy(refValue, llvm::MaybeAlign(8), value, llvm::MaybeAlign(8), llvm::ConstantInt::get(m_Int64Type, sizeof(Value)));
+                AssignValue(refValue, value);
             }
             else
                 m_Builder->CreateStore(value, iter->second);
@@ -1200,7 +1183,10 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto v = Pop().GetLlvmValue();
             v = AllocateValue(v);
 
-            m_Builder->CreateCall(m_Module->getFunction(STR(SetUpvalue)), {v,m_Builder->getInt8(index) });
+            llvm::Value* upValue = m_Builder->CreateCall(m_Module->getFunction(STR(GetUpvalue)), { m_Builder->getInt8(index) });
+            upValue = m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)), {upValue});
+
+            AssignValue(upValue, v);
             break;
         }
         case OP_GET_UPVALUE:
@@ -1213,7 +1199,8 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         case OP_REF_UPVALUE:
         {
             auto index = *ip++;
-            auto refObject = m_Builder->CreateCall(m_Module->getFunction(STR(RefUpvalue)), {m_Builder->getInt8(index)});
+            auto upvalue = m_Builder->CreateCall(m_Module->getFunction(STR(GetUpvalue)), {m_Builder->getInt8(index)});
+            auto refObject = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateRefObject)), {upvalue});
             Push(refObject);
             break;
         }
@@ -1223,7 +1210,9 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto v = Pop().GetLlvmValue();
             v = AllocateValue(v);
 
-            auto refObject = m_Builder->CreateCall(m_Module->getFunction(STR(RefIndexUpvalue)), {v,m_Builder->getInt8(index)});
+            auto upvalue = m_Builder->CreateCall(m_Module->getFunction(STR(GetUpvalue)), {m_Builder->getInt8(index)});
+            auto actualValue = m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)), {upvalue});
+            auto refObject = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateIndexRefObject)), {actualValue, v});
             Push(refObject);
             break;
         }
@@ -1404,15 +1393,6 @@ void Jit::InitInternalFunctions()
 
     fnType = llvm::FunctionType::get(m_ValuePtrType, {m_Int8Type}, false);
     m_Module->getOrInsertFunction(STR(GetUpvalue), fnType);
-
-    fnType = llvm::FunctionType::get(m_VoidType, {m_ValuePtrType,m_Int8Type}, false);
-    m_Module->getOrInsertFunction(STR(SetUpvalue), fnType);
-
-    fnType = llvm::FunctionType::get(m_RefObjectPtrType, {m_Int8Type}, false);
-    m_Module->getOrInsertFunction(STR(RefUpvalue), fnType);
-
-    fnType = llvm::FunctionType::get(m_RefObjectPtrType, {m_ValuePtrType,m_Int8Type}, false);
-    m_Module->getOrInsertFunction(STR(RefIndexUpvalue), fnType);
 }
 
 llvm::Value *Jit::AllocateValue(llvm::Value *v)
@@ -1483,20 +1463,11 @@ llvm::Value *Jit::AllocateValue(llvm::Value *v)
 llvm::Value *Jit::AllocateValue(const Value &value)
 {
     if (IS_NUM_VALUE(value))
-    {
-        llvm::Value *alloc = llvm::ConstantFP::get(m_DoubleType, TO_NUM_VALUE(value));
-        return alloc;
-    }
+        return llvm::ConstantFP::get(m_DoubleType, TO_NUM_VALUE(value));
     else if (IS_BOOL_VALUE(value))
-    {
-        llvm::Value *alloc = llvm::ConstantInt::get(m_BoolType, TO_BOOL_VALUE(value));
-        return alloc;
-    }
+        return llvm::ConstantInt::get(m_BoolType, TO_BOOL_VALUE(value));
     else if (IS_NIL_VALUE(value))
-    {
-        llvm::Value *alloc = llvm::ConstantPointerNull::get(m_BoolPtrType);
-        return alloc;
-    }
+        return llvm::ConstantPointerNull::get(m_BoolPtrType);
     else if (IS_STR_VALUE(value))
     {
         auto str = TO_STR_VALUE(value)->value;
@@ -1590,7 +1561,7 @@ uint8_t Jit::GetValueTypeFromLlvmType(llvm::Type *v)
     else if (v == m_RefObjectPtrType || v == m_RefObjectType)
         return ObjectType::REF;
     else if (v == m_StructObjectPtrType || v == m_StructObjectType)
-        return ObjectType::REF;
+        return ObjectType::STRUCT;
     return ValueType::NIL;
 }
 
@@ -1601,6 +1572,13 @@ bool Jit::IsObjectType(llvm::Type *type)
            type == m_ArrayObjectPtrType ||
            type == m_RefObjectPtrType ||
            type == m_StructObjectPtrType;
+}
+
+void Jit::AssignValue(llvm::Value* dst,llvm::Value* src,size_t size)
+{
+    auto dstCast = m_Builder->CreateBitCast(dst, m_Int8PtrType);
+    auto srcCast = m_Builder->CreateBitCast(src, m_Int8PtrType);
+    m_Builder->CreateMemCpy(dstCast, llvm::MaybeAlign(8), srcCast, llvm::MaybeAlign(8), m_Builder->getInt64(size));
 }
 
 #endif
