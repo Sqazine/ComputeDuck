@@ -1,6 +1,7 @@
 #include "Chunk.h"
 #include "Object.h"
-
+#include <format>
+#include <sstream>
 Chunk::Chunk(OpCodeList opCodeList, const std::vector<Value> &constants)
     : opCodeList(opCodeList), constants(constants)
 {
@@ -28,153 +29,155 @@ std::string Chunk::OpCodeStringify(const OpCodeList &opCodeList)
         switch (opCodeList[i])
         {
         case OP_CONSTANT:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_CONSTANT\t'" << constants[opCodeList[++i]].Stringify() << "'" << std::endl;
+            cout << std::format("{:08}\tOP_CONSTANT\t{}\n", i, constants[opCodeList[++i]].Stringify());
             break;
         case OP_ADD:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_ADD" << std::endl;
+            cout << std::format("{:08}\tOP_ADD\n", i);
             break;
         case OP_SUB:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_SUB" << std::endl;
+            cout << std::format("{:08}\tOP_SUB\n", i);
             break;
         case OP_MUL:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_MUL" << std::endl;
+            cout << std::format("{:08}\tOP_MUL\n", i);
             break;
         case OP_DIV:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_DIV" << std::endl;
+            cout << std::format("{:08}\tOP_DIV\n", i); 
             break;
         case OP_LESS:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_LESS" << std::endl;
+            cout << std::format("{:08}\tOP_LESS\n", i);
             break;
         case OP_GREATER:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_GREATER" << std::endl;
+            cout << std::format("{:08}\tOP_GREATER\n", i);
             break;
         case OP_NOT:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_NOT" << std::endl;
+            cout << std::format("{:08}\tOP_NOT\n", i);
             break;
         case OP_MINUS:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_MINUS" << std::endl;
+            cout << std::format("{:08}\tOP_MINUS\n", i);
             break;
         case OP_EQUAL:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_EQUAL" << std::endl;
+            cout << std::format("{:08}\tOP_EQUAL\n", i);
             break;
         case OP_ARRAY:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_ARRAY\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_ARRAY\t{}", i, opCodeList[++i]);
             break;
         case OP_AND:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_AND" << std::endl;
+            cout << std::format("{:08}\tOP_AND\n", i);
             break;
         case OP_OR:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_OR" << std::endl;
+            cout << std::format("{:08}\tOP_OR\n", i);
             break;
         case OP_BIT_AND:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_BIT_AND" << std::endl;
+            cout << std::format("{:08}\tOP_BIT_AND\n", i);
             break;
         case OP_BIT_OR:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_BIT_OR" << std::endl;
+            cout << std::format("{:08}\tOP_BIT_OR\n", i);
             break;
         case OP_BIT_NOT:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_BIT_NOT" << std::endl;
+            cout << std::format("{:08}\tOP_BIT_NOT\n", i);
             break;
         case OP_BIT_XOR:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_BIT_XOR" << std::endl;
+            cout << std::format("{:08}\tOP_BIT_XOR\n", i);
             break;
         case OP_GET_INDEX:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_GET_INDEX" << std::endl;
+            cout << std::format("{:08}\tOP_GET_INDEX\n", i);
             break;
         case OP_SET_INDEX:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_SET_INDEX" << std::endl;
+            cout << std::format("{:08}\tOP_SET_INDEX\n", i);
             break;
         case OP_JUMP:
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP\t" << opCodeList[++i] << "\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_JUMP\t{}\n", i, opCodeList[++i]);
+            break;
 #else
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_JUMP\t{}\n", i, opCodeList[++i]);
 #endif
             break;
         case OP_JUMP_IF_FALSE:
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP_IF_FALSE\t" << opCodeList[++i] << "\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_JUMP_IF_FALSE\t{}\t{}\n", i, opCodeList[++i],opCodeList[++i]);
+            break;
 #else
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP_IF_FALSE\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_JUMP_IF_FALSE\t{}\n", i, opCodeList[++i]);
 #endif
             break;
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
         case OP_JUMP_START:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP_START\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_JUMP_START\t{}\n", i, opCodeList[++i]);
             break;
         case OP_JUMP_END:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_JUMP_END" << std::endl;
+            cout << std::format("{:08}\tOP_JUMP_END\n", i);
             break;
 #endif
         case OP_RETURN:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_RETURN\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_RETURN\t{}\n", i, opCodeList[++i]);
             break;
         case OP_DEF_GLOBAL:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_DEF_GLOBAL\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_DEF_GLOBAL\t{}\n", i, opCodeList[++i]);
             break;
         case OP_SET_GLOBAL:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_SET_GLOBAL\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_SET_GLOBAL\t{}\n", i, opCodeList[++i]);
             break;
         case OP_GET_GLOBAL:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_GET_GLOBAL\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_GET_GLOBAL\t{}\n", i, opCodeList[++i]);
             break;
         case OP_DEF_LOCAL:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_DEF_LOCAL\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_DEF_LOCAL\t{}\n", i, opCodeList[++i]);
             break;
         case OP_SET_LOCAL:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_SET_LOCAL\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_SET_LOCAL\t{}\n", i, opCodeList[++i]);
             break;
         case OP_GET_LOCAL:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_GET_LOCAL\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_GET_LOCAL\t{}\n", i, opCodeList[++i]);
             break;
         case OP_GET_UPVALUE:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_GET_UPVALUE\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_GET_UPVALUE\t{}\n", i, opCodeList[++i]);
             break;
         case OP_SET_UPVALUE:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_SET_UPVALUE\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_SET_UPVALUE\t{}\n", i, opCodeList[++i]);
             break;
         case OP_CLOSURE:
         {
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_CLOSURE\t" << opCodeList[++i] << "\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_CLOSURE\t{}\t{}\n", i, opCodeList[++i], opCodeList[++i]);
             for (uint8_t j = 0; j < opCodeList[i]; ++j)
-                cout << std::setfill('0') << std::setw(8) << i << "\t|\t" << opCodeList[++i] << "\t" << opCodeList[++i] << std::endl;
+                cout << std::format("{:08}\t|\t{}\t{}\n", i, opCodeList[++i], opCodeList[++i]);
             break;
         }
         case OP_FUNCTION_CALL:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_FUNCTION_CALL\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_FUNCTION_CALL\t{}\n", i, opCodeList[++i]);
             break;
         case OP_GET_BUILTIN:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_GET_BUILTIN\t'" << constants[opCodeList[++i]].Stringify() << "'" << std::endl;
+            cout << std::format("{:08}\tOP_GET_BUILTIN\t'{}'\n", i, constants[opCodeList[++i]].Stringify());
             break;
         case OP_STRUCT:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_STRUCT\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_STRUCT\t{}\n", i, opCodeList[++i]);
             break;
         case OP_GET_STRUCT:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_GET_STRUCT" << std::endl;
+            cout << std::format("{:08}\tOP_GET_STRUCT\n", i);
             break;
         case OP_SET_STRUCT:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_SET_STRUCT" << std::endl;
+            cout << std::format("{:08}\tOP_SET_STRUCT\n", i);
             break;
         case OP_REF_GLOBAL:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_GLOBAL\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_REF_GLOBAL\t{}\n", i, opCodeList[++i]);
             break;
         case OP_REF_LOCAL:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_LOCAL\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_REF_LOCAL\t{}\n", i, opCodeList[++i]);
             break;
         case OP_REF_UPVALUE:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_UPVALUE\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_REF_UPVALUE\t{}\n", i, opCodeList[++i]);
             break;
         case OP_REF_INDEX_GLOBAL:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_INDEX_GLOBAL\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_REF_INDEX_GLOBAL\t{}\n", i, opCodeList[++i]);
             break;
         case OP_REF_INDEX_LOCAL:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_INDEX_LOCAL\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_REF_INDEX_LOCAL\t{}\n", i, opCodeList[++i]);
             break;
         case OP_REF_INDEX_UPVALUE:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_REF_INDEX_UPVALUE\t" << opCodeList[++i] << std::endl;
+            cout << std::format("{:08}\tOP_REF_INDEX_UPVALUE\t{}\n", i, opCodeList[++i]);
             break;
         case OP_DLL_IMPORT:
-            cout << std::setfill('0') << std::setw(8) << i << "\tOP_DLL_IMPORT" << std::endl;
+            cout << std::format("{:08}\tOP_DLL_IMPORT\n", i);
             break;
         default:
             break;

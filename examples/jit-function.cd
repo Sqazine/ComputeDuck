@@ -409,3 +409,18 @@ while(i<100)
     println(refIndexlocal());
     i=i+1;
 }
+
+##################################################
+println("stringAdd() start");
+
+stringAdd = function(a,b)
+{
+    return a+b;
+};
+
+i=0;
+while(i<100)
+{
+    println(stringAdd("string","add"));
+    i=i+1;
+}
