@@ -48,15 +48,22 @@ public:
             ASSERT("Variable already defined in this scope:%s", name.data());
 
         Symbol symbol;
+        
+        symbol.scopeDepth = m_ScopeDepth;
+        if (m_ScopeDepth == 0)
+        {
+            symbol.scope = SymbolScope::GLOBAL;
+            symbol.index = m_GlobalVarCount++;
+        }
+        else
+        {
+            symbol.scope = SymbolScope::LOCAL;
+            symbol.index = m_LocalVarCount++;
+        }
+
         symbol.name = name;
-        symbol.index = m_VarCount;
         symbol.scopeDepth = m_ScopeDepth;
         symbol.isStructSymbol = isStructSymbol;
-
-        if (symbol.scopeDepth == 0)
-            symbol.scope = SymbolScope::GLOBAL;
-        else
-            symbol.scope = SymbolScope::LOCAL;
 
         m_VarList[m_VarCount++] = symbol;
         return symbol;
@@ -107,9 +114,9 @@ public:
         return false;
     }
 
-    uint8_t GetVarCount() const
+    uint8_t GetLocalVarCount()
     {
-        return m_VarCount;
+        return m_LocalVarCount;
     }
 
     uint8_t GetUpvalueCount() const
@@ -162,6 +169,8 @@ private:
     SymbolTable *m_Upper{nullptr};
     std::array<Symbol, UINT8_COUNT> m_VarList;
     uint8_t m_VarCount{0};
+    uint8_t m_LocalVarCount{0};
+    uint8_t m_GlobalVarCount{0};
     std::array<Symbol, UPVALUE_COUNT> m_UpvalueList;
     uint8_t m_UpvalueCount{0};
     uint8_t m_ScopeDepth{0};

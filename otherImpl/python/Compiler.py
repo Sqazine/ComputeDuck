@@ -27,7 +27,7 @@ class Compiler:
 
         for stmt in stmts:
             self.__compile_stmt(stmt)
-        return FunctionObject(self.__scope_chunk.pop())
+        return FunctionObject(self.__scope_chunk.pop(),self.__symbolTable.get_local_var_count())
 
     def reset_status(self) -> None:
         self.__scope_chunk = [Chunk()]
@@ -108,7 +108,7 @@ class Compiler:
             self.__compile_expr(v)
             self.__emit_constant(StrObject(k.literal))
 
-        localVarCount = self.__symbolTable.get_var_count()
+        localVarCount = self.__symbolTable.get_local_var_count()
 
         self.__emit(OpCode.OP_STRUCT)
         self.__emit(len(stmt.members))
@@ -273,7 +273,7 @@ class Compiler:
         for s in stmt.body.stmts:
             self.__compile_stmt(s)
 
-        localVarCount = self.__symbolTable.get_var_count()
+        localVarCount = self.__symbolTable.get_local_var_count()
         
         chunk = self.__scope_chunk.pop()
 

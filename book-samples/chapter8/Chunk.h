@@ -55,6 +55,10 @@ public:
 
     std::vector<Value> constants;
 
+
+    // ++ 新增内容
+    uint8_t localVarCount{0};
+    // -- 新增内容
 private:
     std::string OpCodeStringify(const OpCodeList &opCodeList);
 };

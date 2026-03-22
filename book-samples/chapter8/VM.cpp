@@ -6,7 +6,9 @@ void VM::Run(const Chunk &chunk)
     Allocator::GetInstance()->ResetStatus();
 
     m_Chunk = chunk;
-
+    // ++ 新增内容
+    STACK_TOP_JUMP(m_Chunk.localVarCount);
+    // -- 新增内容
     Execute();
 }
 

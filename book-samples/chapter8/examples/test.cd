@@ -25,5 +25,5 @@ print b;# Error!
         }
         print d;# Error!
     } 
-    print b;#80
+    print b;#20
 }

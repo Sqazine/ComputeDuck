@@ -64,6 +64,7 @@ namespace ComputeDuck
             var closure = new ClosureObject(mainFn);
             var mainCallFrame = new CallFrame(closure, m_StackTop);
             PushCallFrame(mainCallFrame);
+            m_StackTop = mainCallFrame.slot + mainFn.localVarCount;
 
             Execute();
         }

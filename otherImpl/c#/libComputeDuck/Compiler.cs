@@ -31,7 +31,7 @@ namespace ComputeDuck
             foreach (var stmt in stmts)
                 CompileStmt(stmt);
 
-            return new FunctionObject(CurChunk());
+            return new FunctionObject(CurChunk(),m_SymbolTable.GetLocalVarCount());
         }
 
         public void ResetStatus()
@@ -144,7 +144,7 @@ namespace ComputeDuck
                 EmitConstant(new StrObject(stmt.members[i].Key.literal));
             }
 
-            var localVarCount = m_SymbolTable.GetVarCount();
+            var localVarCount = m_SymbolTable.GetLocalVarCount();
 
             Emit((int)OpCode.OP_STRUCT);
             Emit((int)stmt.members.Count);
@@ -357,7 +357,7 @@ namespace ComputeDuck
             foreach (var s in expr.body.stmts)
                 CompileStmt(s);
 
-            var localVarCount = m_SymbolTable.GetVarCount();
+            var localVarCount = m_SymbolTable.GetLocalVarCount();
 
 
             var chunk = m_ScopeChunk[m_ScopeChunk.Count - 1];

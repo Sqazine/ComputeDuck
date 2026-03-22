@@ -31,6 +31,7 @@ void VM::Run(FunctionObject *fn)
     auto closure = ALLOCATE_OBJECT(ClosureObject, fn);
     auto mainCallFrame = CallFrame(closure, GET_STACK_TOP());
     PUSH_CALL_FRAME(mainCallFrame);
+    SET_STACK_TOP(mainCallFrame.slot + closure->function->localVarCount);
 
     Execute();
 }
