@@ -27,7 +27,7 @@ public:
     {
         for (int32_t i = m_VarCount - 1; i >= 0; --i)
         {
-            Symbol *symbol = &m_SymbolList[i];
+            Symbol *symbol = &m_VarList[i];
             if (symbol->name == name)
                 ASSERT("Variable already defined in this scope:%s", name.data());
         }
@@ -40,19 +40,16 @@ public:
         symbol.index = m_VarCount;
         symbol.scope = SymbolScope::GLOBAL;
 
-        m_SymbolList[m_VarCount++] = symbol;
+        m_VarList[m_VarCount++] = symbol;
         return symbol;
     }
 
     bool Resolve(std::string_view name, Symbol &symbol)
     {
-        for (int32_t i = m_VarCount - 1; i >= 0; --i)
+        if (Symbol *result = FindSymbolReference(name))
         {
-            if (m_SymbolList[i].name == name)
-            {
-                symbol = m_SymbolList[i];
-                return true;
-            }
+            symbol = *result;
+            return true;
         }
 
         return false;
@@ -64,6 +61,17 @@ public:
     }
 
 private:
-    std::array<Symbol, UINT8_COUNT> m_SymbolList;
+    Symbol *FindSymbolReference(std::string_view name)
+    {
+        for (uint8_t i = 0; i <= m_VarCount; ++i)
+        {
+            if (m_VarList[i].name == name)
+                return &m_VarList[i];
+        }
+        return nullptr;
+    }
+
+
+    std::array<Symbol, UINT8_COUNT> m_VarList;
     uint8_t m_VarCount{0};
 };

@@ -14,7 +14,9 @@ const Chunk &Compiler::Compile(const std::vector<Stmt *> &stmts)
 
     for (const auto &stmt : stmts)
         CompileStmt(stmt);
-
+    // ++ 新增内容
+    CurChunk().localVarCount = m_SymbolTable->GetLocalVarCount();
+    // -- 新增内容
     return CurChunk();
 }
 
@@ -36,12 +38,8 @@ void Compiler::CompileStmt(Stmt *stmt)
         break;
     // ++ 新增内容
     case AstType::SCOPE:
-    {
-        m_SymbolTable->BeginScope();
         CompileScopeStmt((ScopeStmt *)stmt);
-        m_SymbolTable->EndScope();
         break;
-    }
     // -- 新增内容
     case AstType::PRINT:
         CompilePrintStmt((PrintStmt *)stmt);
@@ -66,8 +64,10 @@ void Compiler::CompilePrintStmt(PrintStmt *stmt)
 // ++ 新增内容
 void Compiler::CompileScopeStmt(ScopeStmt *stmt)
 {
+    m_SymbolTable->EnterScope();
     for (const auto &s : stmt->stmts)
         CompileStmt(s);
+    m_SymbolTable->ExitScope();
 }
 // -- 新增内容
 

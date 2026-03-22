@@ -43,8 +43,9 @@ class VM:
 
         mainClosure = ClosureObject(mainFn)
         mainCallFrame = CallFrame(mainClosure, self.__stackTop)
-
         self.__push_call_frame(mainCallFrame)
+        self.__stackTop = mainCallFrame.slot + mainFn.localVarCount
+        
         self.__execute()
 
     def __execute(self) -> None:

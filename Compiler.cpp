@@ -20,7 +20,7 @@ FunctionObject *Compiler::Compile(const std::vector<Stmt *> &stmts)
     for (const auto &stmt : stmts)
         CompileStmt(stmt);
 
-    auto mainFn = ALLOCATE_OBJECT(FunctionObject, CurChunk());
+    auto mainFn = ALLOCATE_OBJECT(FunctionObject, CurChunk(),m_SymbolTable->GetLocalVarCount());
 
     SAFE_DELETE(m_SymbolTable);
 
@@ -372,7 +372,7 @@ void Compiler::CompileFunctionExpr(FunctionExpr *expr)
     for (const auto &s : expr->body->stmts)
         CompileStmt(s);
 
-    auto localVarCount = m_SymbolTable->GetVarCount();
+    auto localVarCount = m_SymbolTable->GetLocalVarCount();
     auto parameterCount = static_cast<uint8_t>(expr->parameters.size());
 
     auto chunk = m_ScopeChunks.back();

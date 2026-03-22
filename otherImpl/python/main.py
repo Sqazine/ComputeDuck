@@ -65,20 +65,18 @@ def print_usage():
 
 
 if __name__ == "__main__":
-    # sourceFilePath = ""
+    sourceFilePath = ""
 
-    # for i in range(0, len(sys.argv)):
-    #     if sys.argv[i] == "-f" or sys.argv[i] == "--file":
-    #         if i+1 < len(sys.argv):
-    #             sourceFilePath = sys.argv[i+1]
-    #         else:
-    #             print_usage()
-    #     if sys.argv[i] == "-h" or sys.argv[i] == "--help":
-    #         print_usage()
+    for i in range(0, len(sys.argv)):
+        if sys.argv[i] == "-f" or sys.argv[i] == "--file":
+            if i+1 < len(sys.argv):
+                sourceFilePath = sys.argv[i+1]
+            else:
+                print_usage()
+        if sys.argv[i] == "-h" or sys.argv[i] == "--help":
+            print_usage()
 
-    # if sourceFilePath != "":
-    #     run_file(sourceFilePath)
-    # else:
-    #     repl(sys.argv[0])
-    
-    run_file("D:\\.sc\\ComputeDuck\\examples\\upvalue.cd")
+    if sourceFilePath != "":
+        run_file(sourceFilePath)
+    else:
+        repl(sys.argv[0])

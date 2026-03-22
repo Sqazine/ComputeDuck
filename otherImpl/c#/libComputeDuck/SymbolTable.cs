@@ -37,6 +37,7 @@ namespace ComputeDuck
             this.m_Upper = m_Upper;
             this.m_VarList = new Symbol[Utils.UINT8_COUNT];
             this.m_VarCount = 0;
+            this.m_LocalVarCount = 0;
             this.m_UpvalueList = new Symbol[Utils.UPVALUE_COUNT];
             this.m_UpvalueCount = 0;
 
@@ -55,16 +56,21 @@ namespace ComputeDuck
                 Utils.Assert("Variable already defined in this scope:" + name);
 
             Symbol symbol =new Symbol();
-            symbol.name = name;
-            symbol.index = m_VarCount;
-            symbol.scope = SymbolScope.GLOBAL;
-            symbol.scopeDepth = m_ScopeDepth;
-            symbol.isStructSymbol = isStructSymbol;
 
             if (m_Upper == null)
+            {
                 symbol.scope = SymbolScope.GLOBAL;
+                symbol.index = m_GlobalVarCount++;
+            }
             else
+            {
                 symbol.scope = SymbolScope.LOCAL;
+                symbol.index = m_LocalVarCount++;
+            }
+
+            symbol.name = name;
+            symbol.scopeDepth = m_ScopeDepth;
+            symbol.isStructSymbol = isStructSymbol;
 
             m_VarList[m_VarCount++] = symbol;
             return symbol;
@@ -119,7 +125,6 @@ namespace ComputeDuck
 
         public void EnterScope()
         {
-
             m_ScopeDepth++;
         }
 
@@ -128,9 +133,10 @@ namespace ComputeDuck
             m_ScopeDepth--;
         }
 
-        public int GetVarCount()
+        public int GetLocalVarCount()
         {
-            return m_VarCount;
+
+            return m_LocalVarCount;
         }
 
         public int GetUpvalueCount()
@@ -168,6 +174,8 @@ namespace ComputeDuck
         private SymbolTable? m_Upper;
         private Symbol[] m_VarList;
         private int m_VarCount;
+        private int m_LocalVarCount;
+        private int m_GlobalVarCount;
         private Symbol[] m_UpvalueList;
         private int m_UpvalueCount;
         private int m_ScopeDepth;

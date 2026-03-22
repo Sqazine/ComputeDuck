@@ -29,6 +29,8 @@ class SymbolTable:
     __upper = None
     __varList: list[Symbol] = [None]*UINT8_COUNT
     __varCount: int
+    __localVarCount : int
+    __globalVarCount: int
     __upvalueList: list[Symbol] = [None]*UPVALUE_COUNT
     __upvalueCount: int
     __scopeDepth: int
@@ -37,6 +39,8 @@ class SymbolTable:
         self.__upper = upper
         self.__varList = [None]*UINT8_COUNT
         self.__varCount = 0
+        self.__localVarCount = 0
+        self.__globalVarCount = 0
         self.__upvalueList = [None]*UPVALUE_COUNT
         self.__upvalueCount = 0
         
@@ -54,16 +58,19 @@ class SymbolTable:
             error("Variable already defined in this scope:{}".format(name))
 
         symbol = Symbol()
+        if self.__upper == None:
+            symbol.scope = SymbolScope.GLOBAL
+            symbol.index = self.__globalVarCount
+            self.__globalVarCount += 1
+        else:
+            symbol.scope = SymbolScope.LOCAL
+            symbol.index = self.__localVarCount
+            self.__localVarCount +=1
+            
         symbol.name = name
-        symbol.scope = SymbolScope.GLOBAL
-        symbol.index = self.__varCount
         symbol.scopeDepth = self.__scopeDepth
         symbol.isStructSymbol = isStructSymbol
         
-        if self.__upper == None:
-            symbol.scope = SymbolScope.GLOBAL
-        else:
-            symbol.scope = SymbolScope.LOCAL
 
         self.__varList[self.__varCount] = symbol
         self.__varCount += 1
@@ -117,9 +124,9 @@ class SymbolTable:
         if self.__scopeDepth == 0:
             error("Exit scope when scope depth is 0")
         self.__scopeDepth -= 1
-
-    def get_var_count(self):
-        return self.__varCount
+    
+    def get_local_var_count(self):
+        return self.__localVarCount
     
     def get_upvalue_count(self):
         return self.__upvalueCount

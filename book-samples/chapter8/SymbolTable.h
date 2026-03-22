@@ -33,7 +33,7 @@ public:
     {
         for (int32_t i = m_VarCount - 1; i >= 0; --i)
         {
-            Symbol *symbol = &m_SymbolList[i];
+            Symbol *symbol = &m_VarList[i];
              // ++ 新增内容
             if (symbol->scopeDepth != m_ScopeDepth) // not in same scope
                 continue;
@@ -47,37 +47,39 @@ public:
 
         Symbol symbol;
         symbol.name = name;
-        symbol.index = m_VarCount;
         // ++ 删除内容
+        //symbol.index = m_VarCount;
         //symbol.scope = SymbolScope::GLOBAL;
         // -- 删除内容
         
         // ++ 新增内容
         symbol.scopeDepth = m_ScopeDepth;
         if (m_ScopeDepth == 0)
+        {
             symbol.scope = SymbolScope::GLOBAL;
+            symbol.index = m_GlobalVarCount++;
+        }
         else
+        {
             symbol.scope = SymbolScope::LOCAL;
+            symbol.index = m_LocalVarCount++;
+        }
         // -- 新增内容
 
-        m_SymbolList[m_VarCount++] = symbol;
+        m_VarList[m_VarCount++] = symbol;
         return symbol;
     }
 
     bool Resolve(std::string_view name, Symbol &symbol)
     {
-        for (int32_t i = m_VarCount - 1; i >= 0; --i)
+       if (Symbol *result = FindSymbolReference(name))
         {
-            if (m_SymbolList[i].name == name)
-            {
-                // ++ 新增内容
-                if(m_SymbolList[i].scopeDepth <= m_ScopeDepth)
-                {
-                    symbol = m_SymbolList[i];
-                    return true;
-                }
-                 // -- 新增内容
-            }
+            // ++ 新增内容
+            if (m_ScopeDepth < result->scopeDepth)
+                return false;
+            // -- 新增内容
+            symbol = *result;
+            return true;
         }
 
         return false;
@@ -89,21 +91,43 @@ public:
     }
 
     // ++ 新增内容
-    void BeginScope()
+    uint8_t GetLocalVarCount() const
     {
+        return m_LocalVarCount;
+    }
+
+    void EnterScope()
+    {
+        if (m_ScopeDepth == UINT8_COUNT)
+            ASSERT("Too many scope depth, max is %d", UINT8_COUNT);
+        
         m_ScopeDepth++;
     }
 
-    void EndScope()
+    void ExitScope()
     {
+        if (m_ScopeDepth == 0)
+            ASSERT("Exit scope when scope depth is 0");
         m_ScopeDepth--;
     }
     // -- 新增内容
 
 private:
-    std::array<Symbol, UINT8_COUNT> m_SymbolList;
+    Symbol *FindSymbolReference(std::string_view name)
+    {
+        for (uint8_t i = 0; i <= m_VarCount; ++i)
+        {
+            if (m_VarList[i].name == name)
+                return &m_VarList[i];
+        }
+        return nullptr;
+    }
+
+    std::array<Symbol, UINT8_COUNT> m_VarList;
     uint8_t m_VarCount{0};
     // ++ 新增内容
+    uint8_t m_LocalVarCount{0};
+    uint8_t m_GlobalVarCount{0};
     uint8_t m_ScopeDepth{0};
     // -- 新增内容
 };
