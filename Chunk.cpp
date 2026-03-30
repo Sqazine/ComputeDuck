@@ -24,160 +24,160 @@ std::string Chunk::Stringify()
 std::string Chunk::OpCodeStringify(const OpCodeList &opCodeList)
 {
     std::stringstream cout;
-    for (int32_t i = 0; i < opCodeList.size(); ++i)
+    for (size_t i = 0; i < opCodeList.size(); ++i)
     {
-        switch (opCodeList[i])
+        size_t curAddress = i;
+        switch (opCodeList[curAddress])
         {
         case OP_CONSTANT:
-            cout << std::format("{:08}\tOP_CONSTANT\t{}\n", i, constants[opCodeList[++i]].Stringify());
+            cout << std::format("{:08}\tOP_CONSTANT\t{}\n", curAddress, constants[opCodeList[++i]].Stringify());
             break;
         case OP_ADD:
-            cout << std::format("{:08}\tOP_ADD\n", i);
+            cout << std::format("{:08}\tOP_ADD\n", curAddress);
             break;
         case OP_SUB:
-            cout << std::format("{:08}\tOP_SUB\n", i);
+            cout << std::format("{:08}\tOP_SUB\n", curAddress);
             break;
         case OP_MUL:
-            cout << std::format("{:08}\tOP_MUL\n", i);
+            cout << std::format("{:08}\tOP_MUL\n", curAddress);
             break;
         case OP_DIV:
-            cout << std::format("{:08}\tOP_DIV\n", i); 
+            cout << std::format("{:08}\tOP_DIV\n", curAddress); 
             break;
         case OP_LESS:
-            cout << std::format("{:08}\tOP_LESS\n", i);
+            cout << std::format("{:08}\tOP_LESS\n", curAddress);
             break;
         case OP_GREATER:
-            cout << std::format("{:08}\tOP_GREATER\n", i);
+            cout << std::format("{:08}\tOP_GREATER\n", curAddress);
             break;
         case OP_NOT:
-            cout << std::format("{:08}\tOP_NOT\n", i);
+            cout << std::format("{:08}\tOP_NOT\n", curAddress);
             break;
         case OP_MINUS:
-            cout << std::format("{:08}\tOP_MINUS\n", i);
+            cout << std::format("{:08}\tOP_MINUS\n", curAddress);
             break;
         case OP_EQUAL:
-            cout << std::format("{:08}\tOP_EQUAL\n", i);
+            cout << std::format("{:08}\tOP_EQUAL\n", curAddress);
             break;
         case OP_ARRAY:
-            cout << std::format("{:08}\tOP_ARRAY\t{}", i, opCodeList[++i]);
+            cout << std::format("{:08}\tOP_ARRAY\t{}", curAddress,opCodeList[++i]);
             break;
         case OP_AND:
-            cout << std::format("{:08}\tOP_AND\n", i);
+            cout << std::format("{:08}\tOP_AND\n", curAddress);
             break;
         case OP_OR:
-            cout << std::format("{:08}\tOP_OR\n", i);
+            cout << std::format("{:08}\tOP_OR\n", curAddress);
             break;
         case OP_BIT_AND:
-            cout << std::format("{:08}\tOP_BIT_AND\n", i);
+            cout << std::format("{:08}\tOP_BIT_AND\n", curAddress);
             break;
         case OP_BIT_OR:
-            cout << std::format("{:08}\tOP_BIT_OR\n", i);
+            cout << std::format("{:08}\tOP_BIT_OR\n", curAddress);
             break;
         case OP_BIT_NOT:
-            cout << std::format("{:08}\tOP_BIT_NOT\n", i);
+            cout << std::format("{:08}\tOP_BIT_NOT\n", curAddress);
             break;
         case OP_BIT_XOR:
-            cout << std::format("{:08}\tOP_BIT_XOR\n", i);
+            cout << std::format("{:08}\tOP_BIT_XOR\n", curAddress);
             break;
         case OP_GET_INDEX:
-            cout << std::format("{:08}\tOP_GET_INDEX\n", i);
+            cout << std::format("{:08}\tOP_GET_INDEX\n", curAddress);
             break;
         case OP_SET_INDEX:
-            cout << std::format("{:08}\tOP_SET_INDEX\n", i);
+            cout << std::format("{:08}\tOP_SET_INDEX\n", curAddress);
             break;
         case OP_JUMP:
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-            cout << std::format("{:08}\tOP_JUMP\t{}\n", i, opCodeList[++i]);
-            break;
+            cout << std::format("{:08}\tOP_JUMP\t{}\t{}\n", curAddress,opCodeList[++i],opCodeList[++i]);
 #else
-            cout << std::format("{:08}\tOP_JUMP\t{}\n", i, opCodeList[++i]);
+            cout << std::format("{:08}\tOP_JUMP\t{}\n", curAddress,opCodeList[++i]);
 #endif
             break;
         case OP_JUMP_IF_FALSE:
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-            cout << std::format("{:08}\tOP_JUMP_IF_FALSE\t{}\t{}\n", i, opCodeList[++i],opCodeList[++i]);
+            cout << std::format("{:08}\tOP_JUMP_IF_FALSE\t{}\t{}\n", curAddress,opCodeList[++i],opCodeList[++i]);
             break;
 #else
-            cout << std::format("{:08}\tOP_JUMP_IF_FALSE\t{}\n", i, opCodeList[++i]);
+            cout << std::format("{:08}\tOP_JUMP_IF_FALSE\t{}\n", curAddress,opCodeList[++i]);
 #endif
             break;
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
         case OP_JUMP_START:
-            cout << std::format("{:08}\tOP_JUMP_START\t{}\n", i, opCodeList[++i]);
+            cout << std::format("{:08}\tOP_JUMP_START\t{}\n", curAddress,opCodeList[++i]);
             break;
         case OP_JUMP_END:
-            cout << std::format("{:08}\tOP_JUMP_END\n", i);
+            cout << std::format("{:08}\tOP_JUMP_END\n", curAddress);
             break;
 #endif
         case OP_RETURN:
-            cout << std::format("{:08}\tOP_RETURN\t{}\n", i, opCodeList[++i]);
+            cout << std::format("{:08}\tOP_RETURN\t{}\n", curAddress,opCodeList[++i]);
             break;
         case OP_DEF_GLOBAL:
-            cout << std::format("{:08}\tOP_DEF_GLOBAL\t{}\n", i, opCodeList[++i]);
+            cout << std::format("{:08}\tOP_DEF_GLOBAL\t{}\n", curAddress,opCodeList[++i]);
             break;
         case OP_SET_GLOBAL:
-            cout << std::format("{:08}\tOP_SET_GLOBAL\t{}\n", i, opCodeList[++i]);
+            cout << std::format("{:08}\tOP_SET_GLOBAL\t{}\n", curAddress,opCodeList[++i]);
             break;
         case OP_GET_GLOBAL:
-            cout << std::format("{:08}\tOP_GET_GLOBAL\t{}\n", i, opCodeList[++i]);
+            cout << std::format("{:08}\tOP_GET_GLOBAL\t{}\n", curAddress,opCodeList[++i]);
             break;
         case OP_DEF_LOCAL:
-            cout << std::format("{:08}\tOP_DEF_LOCAL\t{}\n", i, opCodeList[++i]);
+            cout << std::format("{:08}\tOP_DEF_LOCAL\t{}\n", curAddress,opCodeList[++i]);
             break;
         case OP_SET_LOCAL:
-            cout << std::format("{:08}\tOP_SET_LOCAL\t{}\n", i, opCodeList[++i]);
+            cout << std::format("{:08}\tOP_SET_LOCAL\t{}\n", curAddress,opCodeList[++i]);
             break;
         case OP_GET_LOCAL:
-            cout << std::format("{:08}\tOP_GET_LOCAL\t{}\n", i, opCodeList[++i]);
+            cout << std::format("{:08}\tOP_GET_LOCAL\t{}\n", curAddress,opCodeList[++i]);
             break;
         case OP_GET_UPVALUE:
-            cout << std::format("{:08}\tOP_GET_UPVALUE\t{}\n", i, opCodeList[++i]);
+            cout << std::format("{:08}\tOP_GET_UPVALUE\t{}\n", curAddress,opCodeList[++i]);
             break;
         case OP_SET_UPVALUE:
-            cout << std::format("{:08}\tOP_SET_UPVALUE\t{}\n", i, opCodeList[++i]);
+            cout << std::format("{:08}\tOP_SET_UPVALUE\t{}\n", curAddress,opCodeList[++i]);
             break;
         case OP_CLOSURE:
         {
-            cout << std::format("{:08}\tOP_CLOSURE\t{}\t{}\n", i, opCodeList[++i], opCodeList[++i]);
+            cout << std::format("{:08}\tOP_CLOSURE\t{}\t{}\n", curAddress,opCodeList[++i], opCodeList[++i]);
             for (uint8_t j = 0; j < opCodeList[i]; ++j)
-                cout << std::format("{:08}\t|\t{}\t{}\n", i, opCodeList[++i], opCodeList[++i]);
+                cout << std::format("{:08}\t|\t{}\t{}\n", curAddress,opCodeList[++i], opCodeList[++i]);
             break;
         }
         case OP_FUNCTION_CALL:
-            cout << std::format("{:08}\tOP_FUNCTION_CALL\t{}\n", i, opCodeList[++i]);
+            cout << std::format("{:08}\tOP_FUNCTION_CALL\t{}\n", curAddress,opCodeList[++i]);
             break;
         case OP_GET_BUILTIN:
-            cout << std::format("{:08}\tOP_GET_BUILTIN\t'{}'\n", i, constants[opCodeList[++i]].Stringify());
+            cout << std::format("{:08}\tOP_GET_BUILTIN\t'{}'\n", curAddress,constants[opCodeList[++i]].Stringify());
             break;
         case OP_STRUCT:
-            cout << std::format("{:08}\tOP_STRUCT\t{}\n", i, opCodeList[++i]);
+            cout << std::format("{:08}\tOP_STRUCT\t{}\n", curAddress,opCodeList[++i]);
             break;
         case OP_GET_STRUCT:
-            cout << std::format("{:08}\tOP_GET_STRUCT\n", i);
+            cout << std::format("{:08}\tOP_GET_STRUCT\n", curAddress);
             break;
         case OP_SET_STRUCT:
-            cout << std::format("{:08}\tOP_SET_STRUCT\n", i);
+            cout << std::format("{:08}\tOP_SET_STRUCT\n", curAddress);
             break;
         case OP_REF_GLOBAL:
-            cout << std::format("{:08}\tOP_REF_GLOBAL\t{}\n", i, opCodeList[++i]);
+            cout << std::format("{:08}\tOP_REF_GLOBAL\t{}\n", curAddress,opCodeList[++i]);
             break;
         case OP_REF_LOCAL:
-            cout << std::format("{:08}\tOP_REF_LOCAL\t{}\n", i, opCodeList[++i]);
+            cout << std::format("{:08}\tOP_REF_LOCAL\t{}\n", curAddress,opCodeList[++i]);
             break;
         case OP_REF_UPVALUE:
-            cout << std::format("{:08}\tOP_REF_UPVALUE\t{}\n", i, opCodeList[++i]);
+            cout << std::format("{:08}\tOP_REF_UPVALUE\t{}\n", curAddress,opCodeList[++i]);
             break;
         case OP_REF_INDEX_GLOBAL:
-            cout << std::format("{:08}\tOP_REF_INDEX_GLOBAL\t{}\n", i, opCodeList[++i]);
+            cout << std::format("{:08}\tOP_REF_INDEX_GLOBAL\t{}\n", curAddress,opCodeList[++i]);
             break;
         case OP_REF_INDEX_LOCAL:
-            cout << std::format("{:08}\tOP_REF_INDEX_LOCAL\t{}\n", i, opCodeList[++i]);
+            cout << std::format("{:08}\tOP_REF_INDEX_LOCAL\t{}\n", curAddress,opCodeList[++i]);
             break;
         case OP_REF_INDEX_UPVALUE:
-            cout << std::format("{:08}\tOP_REF_INDEX_UPVALUE\t{}\n", i, opCodeList[++i]);
+            cout << std::format("{:08}\tOP_REF_INDEX_UPVALUE\t{}\n", curAddress,opCodeList[++i]);
             break;
         case OP_DLL_IMPORT:
-            cout << std::format("{:08}\tOP_DLL_IMPORT\n", i);
+            cout << std::format("{:08}\tOP_DLL_IMPORT\n", curAddress);
             break;
         default:
             break;
