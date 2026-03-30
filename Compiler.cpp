@@ -20,7 +20,7 @@ FunctionObject *Compiler::Compile(const std::vector<Stmt *> &stmts)
     for (const auto &stmt : stmts)
         CompileStmt(stmt);
 
-    auto mainFn = ALLOCATE_OBJECT(FunctionObject, CurChunk(),m_SymbolTable->GetLocalVarCount());
+    auto mainFn = ALLOCATE_OBJECT(FunctionObject, CurChunk(), m_SymbolTable->GetLocalVarCount());
 
     SAFE_DELETE(m_SymbolTable);
 
@@ -88,18 +88,24 @@ void Compiler::CompileIfStmt(IfStmt *stmt)
 
     CompileStmt(stmt->thenBranch);
 
-    Emit(OP_JUMP);
-    auto jumpAddress = Emit(INVALID_OPCODE);
+    int16_t jumpAddress = -1;
+    if (stmt->elseBranch)
+    {
+        Emit(OP_JUMP);
+        jumpAddress = Emit(INVALID_OPCODE);
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-    Emit(JumpMode::IF);
+        Emit(JumpMode::IF);
 #endif
+    }
 
     ModifyOpCode(jumpIfFalseAddress, (int16_t)CurChunk().opCodeList.size());
 
     if (stmt->elseBranch)
+    {
         CompileStmt(stmt->elseBranch);
+        ModifyOpCode(jumpAddress, (int16_t)CurChunk().opCodeList.size());
+    }
 
-    ModifyOpCode(jumpAddress, (int16_t)CurChunk().opCodeList.size());
 #ifdef COMPUTEDUCK_BUILD_WITH_LLVM
     Emit(OP_JUMP_END);
 #endif
@@ -627,13 +633,13 @@ void Compiler::RefSymbol(const Symbol &symbol, bool isIndexSymbol)
 
 void Compiler::DefineBuiltin()
 {
-	HashTable &builtinTable = BuiltinManager::GetInstance()->GetBuiltinObjectTable();
-	for (size_t i = 0; i < builtinTable.GetCapacity(); ++i)
-	{
-		if (builtinTable.IsValid(i))
-		{
-			auto key = builtinTable.GetEntries()[i].key;
-			m_SymbolTable->DefineBuiltin(key->value);
-		}
-	}
+    HashTable &builtinTable = BuiltinManager::GetInstance()->GetBuiltinObjectTable();
+    for (size_t i = 0; i < builtinTable.GetCapacity(); ++i)
+    {
+        if (builtinTable.IsValid(i))
+        {
+            auto key = builtinTable.GetEntries()[i].key;
+            m_SymbolTable->DefineBuiltin(key->value);
+        }
+    }
 }

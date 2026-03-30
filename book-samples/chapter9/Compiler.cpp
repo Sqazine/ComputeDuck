@@ -93,15 +93,22 @@ void Compiler::CompileIfStmt(IfStmt *stmt)
 
     CompileStmt(stmt->thenBranch);
 
-    Emit(OP_JUMP);
-    auto jumpAddress = Emit(INVALID_OPCODE);
+    uint32_t jumpAddress = INVALID_OPCODE;
+    // 优化内容
+    if (stmt->elseBranch)
+    {
+        Emit(OP_JUMP);
+        jumpAddress = Emit(INVALID_OPCODE);
+    }
 
     ModifyOpCode(jumpIfFalseAddress, (int16_t)CurChunk().opCodeList.size());
 
+    // 优化内容
     if (stmt->elseBranch)
+    {
         CompileStmt(stmt->elseBranch);
-
-    ModifyOpCode(jumpAddress, (int16_t)CurChunk().opCodeList.size());
+        ModifyOpCode(jumpAddress, (int16_t)CurChunk().opCodeList.size());
+    }
 }
 // -- 新增内容
 

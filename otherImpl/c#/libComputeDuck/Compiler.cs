@@ -84,15 +84,21 @@ namespace ComputeDuck
 
             CompileStmt(stmt.thenBranch);
 
-            Emit((int)OpCode.OP_JUMP);
-            var jumpAddress = Emit(INVALID_OPCODE);
+            uint jumpAddress = INVALID_OPCODE;
+            if(stmt.elseBranch != null)
+            {
+                Emit((int)OpCode.OP_JUMP);
+                jumpAddress = Emit(INVALID_OPCODE);
+            }
 
             ModifyOpCode(jumpIfFalseAddress, CurChunk().opCodeList.Count - 1);
 
             if (stmt.elseBranch != null)
+            {
                 CompileStmt(stmt.elseBranch);
+                ModifyOpCode(jumpAddress, CurChunk().opCodeList.Count - 1);
+            }
 
-            ModifyOpCode(jumpAddress, CurChunk().opCodeList.Count - 1);
         }
         void CompileScopeStmt(ScopeStmt stmt)
         {
