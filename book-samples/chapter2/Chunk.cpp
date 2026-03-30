@@ -17,37 +17,38 @@ std::string Chunk::OpCodeStringify(const OpCodeList &opCodeList)
     std::stringstream cout;
     for (int32_t i = 0; i < opCodeList.size(); ++i)
     {
-        switch (opCodeList[i])
+        size_t curAddress = i;
+        switch (opCodeList[curAddress])
         {
         case OP_CONSTANT:
-            cout << std::format("{:08}\tOP_CONSTANT\t'{}'\n", i, constants[opCodeList[++i]].Stringify());
+            cout << std::format("{:08}\tOP_CONSTANT\t'{}'\n", curAddress, constants[opCodeList[++i]].Stringify());
             break;
         case OP_ADD:
-            cout << std::format("{:08}\tOP_ADD\n", i);
+            cout << std::format("{:08}\tOP_ADD\n", curAddress);
             break;
         case OP_SUB:
-            cout << std::format("{:08}\tOP_SUB\n", i);
+            cout << std::format("{:08}\tOP_SUB\n", curAddress);
             break;
         case OP_MUL:
-            cout << std::format("{:08}\tOP_MUL\n", i);
+            cout << std::format("{:08}\tOP_MUL\n", curAddress);
             break;
         case OP_DIV:
-            cout << std::format("{:08}\tOP_DIV\n", i);
+            cout << std::format("{:08}\tOP_DIV\n", curAddress);
             break;
         case OP_MINUS:
-            cout << std::format("{:08}\tOP_MINUS\n", i);
+            cout << std::format("{:08}\tOP_MINUS\n", curAddress);
             break;
         case OP_BIT_AND:
-            cout << std::format("{:08}\tOP_BIT_AND\n", i);
+            cout << std::format("{:08}\tOP_BIT_AND\n", curAddress);
             break;
         case OP_BIT_OR:
-            cout << std::format("{:08}\tOP_BIT_OR\n", i);
+            cout << std::format("{:08}\tOP_BIT_OR\n", curAddress);
             break;
         case OP_BIT_NOT:
-            cout << std::format("{:08}\tOP_BIT_NOT\n", i);
+            cout << std::format("{:08}\tOP_BIT_NOT\n", curAddress);
             break;
         case OP_BIT_XOR:
-            cout << std::format("{:08}\tOP_BIT_XOR\n", i);
+            cout << std::format("{:08}\tOP_BIT_XOR\n", curAddress);
             break;
         default:
             break;
