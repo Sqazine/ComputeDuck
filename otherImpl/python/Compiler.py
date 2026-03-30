@@ -58,15 +58,17 @@ class Compiler:
         self.__emit(OpCode.OP_JUMP_IF_FALSE)
         jumpIfFalseAddress = self.__emit(INVALID_OPCODE)
         self.__compile_stmt(stmt.thenBranch)
-        self.__emit(OpCode.OP_JUMP)
-        jumpAddress = self.__emit(INVALID_OPCODE)
+        
+        jumpAddress = -1
+        if stmt.elseBranch:
+            self.__emit(OpCode.OP_JUMP)
+            jumpAddress = self.__emit(INVALID_OPCODE)
 
         self.__modify_opcode(jumpIfFalseAddress, len(self.__cur_chunk().opCodeList)-1)
 
         if stmt.elseBranch:
             self.__compile_stmt(stmt.elseBranch)
-
-        self.__modify_opcode(jumpAddress, len(self.__cur_chunk().opCodeList)-1)
+            self.__modify_opcode(jumpAddress, len(self.__cur_chunk().opCodeList)-1)
 
     def __compile_scope_stmt(self, stmt: ScopeStmt) -> None:
         self.__symbolTable.enter_scope()
