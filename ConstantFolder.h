@@ -19,10 +19,10 @@ private:
     Stmt *FoldStructStmt(StructStmt *stmt);
 
     Expr *FoldExpr(Expr *expr);
-    Expr *FoldInfixExpr(InfixExpr *expr);
+    Expr *FoldBinaryExpr(BinaryExpr *expr);
     Expr *FoldNumExpr(NumExpr *expr);
     Expr *FoldBoolExpr(BoolExpr *expr);
-    Expr *FoldPrefixExpr(PrefixExpr *expr);
+    Expr *FoldUnaryExpr(UnaryExpr *expr);
     Expr *FoldStrExpr(StrExpr *expr);
     Expr *FoldNilExpr(NilExpr *expr);
     Expr *FoldGroupExpr(GroupExpr *expr);

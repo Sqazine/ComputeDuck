@@ -11,9 +11,10 @@ class COMPUTEDUCK_API Compiler
 public:
     Compiler() = default;
     ~Compiler();
-
+    // ++ 修改内容
+    // const Chunk &Compile(const std::vector<Stmt *> &stmts);
     FunctionObject *Compile(const std::vector<Stmt *> &stmts);
-
+    // -- 修改内容
 private:
     enum class RWState
     {
@@ -25,11 +26,15 @@ private:
 
     void CompileStmt(Stmt *stmt);
     void CompileExprStmt(ExprStmt *stmt);
-    void CompileIfStmt(IfStmt *stmt);
     void CompileScopeStmt(ScopeStmt *stmt);
-    void CompileWhileStmt(WhileStmt *stmt);
+    void CompilePrintStmt(PrintStmt *stmt);
+
+    void CompileIfStmt(IfStmt *stmt);
+    // ++ 新增内容
     void CompileReturnStmt(ReturnStmt *stmt);
-    void CompileStructStmt(StructStmt *stmt);
+    // -- 新增内容
+
+    void CompileWhileStmt(WhileStmt *stmt);
 
     void CompileExpr(Expr *expr, const RWState &state = RWState::READ);
     void CompileBinaryExpr(BinaryExpr *expr);
@@ -37,36 +42,31 @@ private:
     void CompileBoolExpr(BoolExpr *expr);
     void CompileUnaryExpr(UnaryExpr *expr);
     void CompileStrExpr(StrExpr *expr);
+    void CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state);
     void CompileNilExpr(NilExpr *expr);
     void CompileGroupExpr(GroupExpr *expr);
     void CompileArrayExpr(ArrayExpr *expr);
     void CompileIndexExpr(IndexExpr *expr, const RWState &state);
-    void CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state = RWState::READ);
+    // ++ 新增内容
     void CompileFunctionExpr(FunctionExpr *expr);
     void CompileFunctionCallExpr(FunctionCallExpr *expr);
-    void CompileStructCallExpr(StructCallExpr *expr, const RWState &state);
-    void CompileRefExpr(RefExpr *expr);
-    void CompileStructExpr(StructExpr *expr);
-    void CompileDllImportExpr(DllImportExpr *expr);
+    // -- 新增内容
 
     Chunk &CurChunk();
 
-    uint16_t AddConstant(const Value &value);
-
     uint32_t Emit(int16_t opcode);
     uint32_t EmitConstant(const Value &value);
-    uint32_t EmitClosure(FunctionObject *fn);
-
-    void ModifyOpCode(uint32_t pos, int16_t opcode);
 
     void DefineSymbol(const Symbol &symbol);
     void LoadSymbol(const Symbol &symbol);
     void StoreSymbol(const Symbol &symbol);
-    void RefSymbol(const Symbol &symbol, bool isIndexSymbol);
 
-    void DefineBuiltin();
+    void ModifyOpCode(uint32_t pos, int16_t opcode);
 
+    // ++ 修改内容
+    // Chunk m_Chunk;
     std::vector<Chunk> m_ScopeChunks;
+    // -- 修改内容
 
     SymbolTable *m_SymbolTable{nullptr};
 };

@@ -160,7 +160,7 @@ class Compiler:
         elif expr.type == AstType.DLL_IMPORT:
             self.__compile_dll_import_expr(expr)
 
-    def __compile_infix_expr(self, expr: InfixExpr) -> None:
+    def __compile_infix_expr(self, expr: BinaryExpr) -> None:
         if expr.op == "=":
             if expr.left.type == AstType.IDENTIFIER and expr.right.type == AstType.FUNCTION:
                 self.__symbolTable.define(expr.left.literal)
@@ -214,7 +214,7 @@ class Compiler:
         else:
             self.__emit_constant(BoolObject(False))
 
-    def __compile_prefix_expr(self, expr: PrefixExpr) -> None:
+    def __compile_prefix_expr(self, expr: UnaryExpr) -> None:
         self.__compile_expr(expr.right)
         if expr.op == "-":
             self.__emit(OpCode.OP_MINUS)

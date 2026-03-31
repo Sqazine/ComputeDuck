@@ -32,6 +32,17 @@ bool IsObjectEqual(Object *left, Object *right)
     {
     case ObjectType::STR:
         return TO_STR_OBJ(left)->hash == TO_STR_OBJ(right)->hash;
+    // ++ 新增内容
+    case ObjectType::ARRAY:
+    {
+        if (TO_ARRAY_OBJ(left)->len != TO_ARRAY_OBJ(right)->len)
+            return false;
+        for (size_t i = 0; i < TO_ARRAY_OBJ(left)->len; ++i)
+            if (TO_ARRAY_OBJ(left)->elements[i] != TO_ARRAY_OBJ(right)->elements[i])
+                return false;
+        return true;
+    }
+    // -- 新增内容
     default:
         ASSERT("Unknown object type");
         return false;

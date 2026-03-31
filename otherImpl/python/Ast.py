@@ -127,7 +127,7 @@ class GroupExpr(Expr):
         return "("+self.expr.__str__()+")"
 
 
-class PrefixExpr(Expr):
+class UnaryExpr(Expr):
     op: str = ""
     right: Expr = None
 
@@ -140,7 +140,7 @@ class PrefixExpr(Expr):
         return self.op+self.right.__str__()
 
 
-class InfixExpr(Expr):
+class BinaryExpr(Expr):
     left: Expr = None
     op: str = ""
     right: Expr = None

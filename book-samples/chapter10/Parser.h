@@ -6,7 +6,6 @@
 #include "Token.h"
 #include "Ast.h"
 #include "Utils.h"
-#include "ConstantFolder.h"
 
 enum class Precedence
 {
@@ -19,10 +18,13 @@ enum class Precedence
 	BIT_AND,	// &
 	EQUAL,		// == !=
 	COMPARE,	// < <= > >=
-	ADD_PLUS,	// + -
+	ADD_SUB,	// + -
 	MUL_DIV,	// * /
 	UNARY,		// not - ~
-	BINARY,		// [] () .
+	// ++ 修改内容
+	// CALL,		// []
+	BINARY, // [] ()
+			// -- 修改内容
 };
 
 class Parser;
@@ -41,11 +43,17 @@ public:
 private:
 	Stmt *ParseStmt();
 	Stmt *ParseExprStmt();
-	Stmt *ParseReturnStmt();
-	Stmt *ParseIfStmt();
+
 	Stmt *ParseScopeStmt();
+
+	Stmt *ParseIfStmt();
+
 	Stmt *ParseWhileStmt();
-	Stmt *ParseStructStmt();
+
+	Stmt *ParsePrintStmt();
+	// ++ 新增内容
+	Stmt *ParseReturnStmt();
+	// -- 新增内容
 
 	Expr *ParseExpr(Precedence precedence = Precedence::LOWEST);
 	Expr *ParseIdentifierExpr();
@@ -56,39 +64,31 @@ private:
 	Expr *ParseGroupExpr();
 	Expr *ParseArrayExpr();
 	Expr *ParseUnaryExpr();
-	Expr *ParseRefExpr();
+	// ++ 新增内容
 	Expr *ParseFunctionExpr();
-	Expr *ParseStructExpr();
-	Expr *ParseBinaryExpr(Expr *prefixExpr);
-	Expr *ParseIndexExpr(Expr *prefixExpr);
 	Expr *ParseFunctionCallExpr(Expr *prefixExpr);
-	Expr *ParseStructCallExpr(Expr *prefixExpr);
-	Expr *ParseDllImportExpr();
+	// -- 新增内容
+	Expr *ParseBinaryExpr(Expr *unaryExpr);
+	Expr *ParseIndexExpr(Expr *unaryExpr);
 
 	Token GetCurToken();
 	Token GetCurTokenAndStepOnce();
 	Precedence GetCurTokenPrecedence();
 
-	Token GetNextToken();
-	Token GetNextTokenAndStepOnce();
-	Precedence GetNextTokenPrecedence();
-
 	bool IsMatchCurToken(TokenType type);
 	bool IsMatchCurTokenAndStepOnce(TokenType type);
-	bool IsMatchNextToken(TokenType type);
-	bool IsMatchNextTokenAndStepOnce(TokenType type);
 
 	Token Consume(TokenType type, std::string_view errMsg);
 
 	bool IsAtEnd();
 
+	// ++ 新增内容
+	int32_t m_FunctionScopeDepth;
+	// -- 新增内容
+
 	int64_t m_CurPos;
 
 	std::vector<Token> m_Tokens;
-
-	int32_t m_FunctionScopeDepth;
-
-	ConstantFolder m_ConstantFolder;
 
 	static std::unordered_map<TokenType, UnaryFn> m_UnaryFunctions;
 	static std::unordered_map<TokenType, BinaryFn> m_BinaryFunctions;

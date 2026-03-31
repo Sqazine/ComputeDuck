@@ -288,13 +288,13 @@ class Parser:
         return arrayExpr
 
     def __parse_prefix_expr(self) -> Expr:
-        prefixExpr = PrefixExpr("", None)
+        prefixExpr = UnaryExpr("", None)
         prefixExpr.op = self.__get_cur_token_and_step_once().literal
         prefixExpr.right = self.__parse_expr(Precedence.PREFIX)
         return prefixExpr
 
     def __parse_infix_expr(self, prefixExpr: Expr) -> Expr:
-        infixExpr = InfixExpr(None, "", None)
+        infixExpr = BinaryExpr(None, "", None)
         infixExpr.left = prefixExpr
         opPrece = self.__get_cur_token_precedence()
         infixExpr.op = self.__get_cur_token_and_step_once().literal
