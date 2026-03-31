@@ -13,7 +13,7 @@ Jit::OrcExecutor::OrcExecutor(std::unique_ptr<llvm::orc::ExecutionSession> es, l
                      std::make_unique<llvm::orc::ConcurrentIRCompiler>(std::move(jtmb))),
       m_MainJD(m_Es->createBareJITDylib("<main>"))
 {
-    m_MainJD.addGenerator(cantFail(llvm::orc::DynamicLibrarySearchGenerator::GetForCurrentProcess(m_DataLayout.getGlobalPrefix())));
+     m_MainJD.addGenerator(cantFail(llvm::orc::DynamicLibrarySearchGenerator::GetForCurrentProcess(m_DataLayout.getGlobalPrefix())));
 
     if (jtmb.getTargetTriple().isOSBinFormatCOFF())
     {
@@ -999,7 +999,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             llvm::Function *fn = nullptr;
             if (iter == m_BuiltinFnCache.end())
             {
-                fn = llvm::Function::Create(m_BuiltinFunctionType, llvm::Function::ExternalLinkage, BUILTIN_FN_PREFIX_STR + name, m_Module.get());
+                fn = llvm::Function::Create(m_BuiltinFunctionType, llvm::Function::ExternalLinkage, BUILTIN_FN_UNARY_STR + name, m_Module.get());
                 m_BuiltinFnCache[name] = fn;
             }
             else

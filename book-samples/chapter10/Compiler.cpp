@@ -1,8 +1,7 @@
 #include "Compiler.h"
 #include <limits>
-#include "Object.h"
-#include "BuiltinManager.h"
 #include "Allocator.h"
+#include "Object.h"
 
 constexpr int16_t INVALID_OPCODE = std::numeric_limits<int16_t>::max();
 
@@ -10,59 +9,67 @@ Compiler::~Compiler()
 {
     SAFE_DELETE(m_SymbolTable);
 }
-
+// ++ 修改内容
+// const Chunk &Compiler::Compile(const std::vector<Stmt *> &stmts)
 FunctionObject *Compiler::Compile(const std::vector<Stmt *> &stmts)
+// -- 修改内容
 {
     ResetStatus();
 
-    Allocator::GetInstance()->DisableGC();
-
     for (const auto &stmt : stmts)
         CompileStmt(stmt);
+    // ++ 修改内容
+    // CurChunk().localVarCount = m_SymbolTable->GetLocalVarCount();
 
+    // return CurChunk();
     auto mainFn = ALLOCATE_OBJECT(FunctionObject, CurChunk(), m_SymbolTable->GetLocalVarCount());
 
     SAFE_DELETE(m_SymbolTable);
-
-    Allocator::GetInstance()->EnableGC();
-    Allocator::GetInstance()->ResetStatus();
-
     return mainFn;
+    // -- 修改内容
 }
 
 void Compiler::ResetStatus()
 {
+    // ++ 修改内容
+    // m_Chunk = Chunk();
     std::vector<Chunk>().swap(m_ScopeChunks);
     m_ScopeChunks.emplace_back(Chunk()); // set a default opCodeList
+    // -- 修改内容
 
     SAFE_DELETE(m_SymbolTable);
-    m_SymbolTable = new SymbolTable();
 
-    DefineBuiltin();
+    m_SymbolTable = new SymbolTable();
 }
 
 void Compiler::CompileStmt(Stmt *stmt)
 {
     switch (stmt->type)
     {
-    case AstType::RETURN:
-        CompileReturnStmt((ReturnStmt *)stmt);
-        break;
     case AstType::EXPR:
         CompileExprStmt((ExprStmt *)stmt);
         break;
-    case AstType::SCOPE:
-        CompileScopeStmt((ScopeStmt *)stmt);
-        break;
+
     case AstType::IF:
         CompileIfStmt((IfStmt *)stmt);
         break;
+        // ++ 新增内容
+    case AstType::RETURN:
+        CompileReturnStmt((ReturnStmt *)stmt);
+        break;
+        // -- 新增内容
     case AstType::WHILE:
         CompileWhileStmt((WhileStmt *)stmt);
         break;
-    case AstType::STRUCT:
-        CompileStructStmt((StructStmt *)stmt);
+
+    case AstType::SCOPE:
+        CompileScopeStmt((ScopeStmt *)stmt);
         break;
+
+    case AstType::PRINT:
+        CompilePrintStmt((PrintStmt *)stmt);
+        break;
+
     default:
         ASSERT("Unknown stmt")
     }
@@ -73,30 +80,34 @@ void Compiler::CompileExprStmt(ExprStmt *stmt)
     CompileExpr(stmt->expr);
 }
 
+void Compiler::CompilePrintStmt(PrintStmt *stmt)
+{
+    CompileExpr(stmt->expr);
+    Emit(OP_PRINT);
+}
+
+void Compiler::CompileScopeStmt(ScopeStmt *stmt)
+{
+    m_SymbolTable->EnterScope();
+    for (const auto &s : stmt->stmts)
+        CompileStmt(s);
+    m_SymbolTable->ExitScope();
+}
+
 void Compiler::CompileIfStmt(IfStmt *stmt)
 {
-#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-    Emit(OP_JUMP_START);
-    Emit(JumpMode::IF);
-#endif
-
     CompileExpr(stmt->condition);
     Emit(OP_JUMP_IF_FALSE);
     auto jumpIfFalseAddress = Emit(INVALID_OPCODE);
-#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-    Emit(JumpMode::IF);
-#endif
 
     CompileStmt(stmt->thenBranch);
 
-    int16_t jumpAddress = -1;
+    uint32_t jumpAddress = INVALID_OPCODE;
+
     if (stmt->elseBranch)
     {
         Emit(OP_JUMP);
         jumpAddress = Emit(INVALID_OPCODE);
-#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-        Emit(JumpMode::IF);
-#endif
     }
 
     ModifyOpCode(jumpIfFalseAddress, (int16_t)CurChunk().opCodeList.size());
@@ -106,49 +117,25 @@ void Compiler::CompileIfStmt(IfStmt *stmt)
         CompileStmt(stmt->elseBranch);
         ModifyOpCode(jumpAddress, (int16_t)CurChunk().opCodeList.size());
     }
-
-#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-    Emit(OP_JUMP_END);
-#endif
-}
-
-void Compiler::CompileScopeStmt(ScopeStmt *stmt)
-{
-    m_SymbolTable->EnterScope();
-
-    for (const auto &s : stmt->stmts)
-        CompileStmt(s);
-
-    m_SymbolTable->ExitScope();
 }
 
 void Compiler::CompileWhileStmt(WhileStmt *stmt)
 {
-#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-    Emit(OP_JUMP_START);
-    Emit(JumpMode::WHILE);
-#endif
-
     auto jumpAddress = (int32_t)CurChunk().opCodeList.size();
     CompileExpr(stmt->condition);
 
     Emit(OP_JUMP_IF_FALSE);
     auto jumpIfFalseAddress = Emit(INVALID_OPCODE);
-#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-    Emit(JumpMode::WHILE);
-#endif
 
     CompileStmt(stmt->body);
 
     Emit(OP_JUMP);
     Emit(jumpAddress);
-#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-    Emit(JumpMode::WHILE);
-#endif
 
     ModifyOpCode(jumpIfFalseAddress, (int16_t)CurChunk().opCodeList.size());
 }
 
+// ++ 新增内容
 void Compiler::CompileReturnStmt(ReturnStmt *stmt)
 {
     if (stmt->expr)
@@ -163,27 +150,7 @@ void Compiler::CompileReturnStmt(ReturnStmt *stmt)
         Emit(0);
     }
 }
-
-void Compiler::CompileStructStmt(StructStmt *stmt)
-{
-    auto symbol = m_SymbolTable->Define(stmt->name, true);
-
-    m_ScopeChunks.emplace_back(Chunk());
-
-    CompileStructExpr(stmt->body);
-
-    auto chunk = m_ScopeChunks.back();
-    m_ScopeChunks.pop_back();
-
-    chunk.opCodeList.emplace_back(OP_RETURN);
-    chunk.opCodeList.emplace_back(1);
-
-    auto fn = ALLOCATE_OBJECT(FunctionObject, chunk);
-
-    EmitClosure(fn);
-
-    StoreSymbol(symbol);
-}
+// -- 新增内容
 
 void Compiler::CompileExpr(Expr *expr, const RWState &state)
 {
@@ -209,18 +176,12 @@ void Compiler::CompileExpr(Expr *expr, const RWState &state)
         return CompileUnaryExpr((UnaryExpr *)expr);
     case AstType::BINARY:
         return CompileBinaryExpr((BinaryExpr *)expr);
+    // ++ 新增内容
     case AstType::FUNCTION_CALL:
         return CompileFunctionCallExpr((FunctionCallExpr *)expr);
-    case AstType::STRUCT_CALL:
-        return CompileStructCallExpr((StructCallExpr *)expr, state);
-    case AstType::REF:
-        return CompileRefExpr((RefExpr *)expr);
     case AstType::FUNCTION:
         return CompileFunctionExpr((FunctionExpr *)expr);
-    case AstType::STRUCT:
-        return CompileStructExpr((StructExpr *)expr);
-    case AstType::DLL_IMPORT:
-        return CompileDllImportExpr((DllImportExpr *)expr);
+    // -- 新增内容
     default:
         ASSERT("Unknown expr.");
     }
@@ -230,8 +191,10 @@ void Compiler::CompileBinaryExpr(BinaryExpr *expr)
 {
     if (expr->op == "=")
     {
+        // ++ 新增内容
         if (expr->left->type == AstType::IDENTIFIER && expr->right->type == AstType::FUNCTION)
             m_SymbolTable->Define(((IdentifierExpr *)expr->left)->literal);
+        // -- 新增内容
         CompileExpr(expr->right);
         CompileExpr(expr->left, RWState::WRITE);
     }
@@ -303,17 +266,18 @@ void Compiler::CompileUnaryExpr(UnaryExpr *expr)
         Emit(OP_MINUS);
     else if (expr->op == "~")
         Emit(OP_BIT_NOT);
-
     else if (expr->op == "not")
         Emit(OP_NOT);
-
     else
-        ASSERT("Unrecognized prefix type.");
+        ASSERT("Unrecognized unary type.");
 }
 
 void Compiler::CompileStrExpr(StrExpr *expr)
 {
+    // ++修改内容
+    // EmitConstant(Allocator::GetInstance()->AllocateObject<StrObject>(expr->value.c_str()));
     EmitConstant(ALLOCATE_OBJECT(StrObject, expr->value.c_str()));
+    // -- 修改内容
 }
 
 void Compiler::CompileNilExpr(NilExpr *expr)
@@ -367,6 +331,7 @@ void Compiler::CompileIdentifierExpr(IdentifierExpr *expr, const RWState &state)
     }
 }
 
+// ++ 新增内容
 void Compiler::CompileFunctionExpr(FunctionExpr *expr)
 {
     m_SymbolTable = new SymbolTable(m_SymbolTable);
@@ -394,7 +359,7 @@ void Compiler::CompileFunctionExpr(FunctionExpr *expr)
 
     auto fn = ALLOCATE_OBJECT(FunctionObject, chunk, localVarCount, parameterCount);
 
-    EmitClosure(fn);
+    EmitConstant(fn);
 
     auto tmpTable = m_SymbolTable;
     m_SymbolTable = m_SymbolTable->GetUpper();
@@ -411,92 +376,14 @@ void Compiler::CompileFunctionCallExpr(FunctionCallExpr *expr)
     Emit(OP_FUNCTION_CALL);
     Emit(static_cast<int16_t>(expr->arguments.size()));
 }
-
-void Compiler::CompileStructCallExpr(StructCallExpr *expr, const RWState &state)
-{
-    if (expr->callMember->type == AstType::FUNCTION_CALL && state == RWState::WRITE)
-        ASSERT("Cannot assign to a struct's function call expr");
-
-    CompileExpr(expr->callee);
-
-    if (expr->callMember->type == AstType::IDENTIFIER)
-        EmitConstant(ALLOCATE_OBJECT(StrObject, ((IdentifierExpr *)expr->callMember)->literal.c_str()));
-    else if (expr->callMember->type == AstType::FUNCTION_CALL)
-        EmitConstant(ALLOCATE_OBJECT(StrObject, ((IdentifierExpr *)((FunctionCallExpr *)expr->callMember)->name)->literal.data()));
-
-    if (state == RWState::READ)
-    {
-        Emit(OP_GET_STRUCT);
-
-        if (expr->callMember->type == AstType::FUNCTION_CALL)
-        {
-            auto funcCall = (FunctionCallExpr *)expr->callMember;
-            for (const auto &argu : funcCall->arguments)
-                CompileExpr(argu);
-
-            Emit(OP_FUNCTION_CALL);
-            Emit(static_cast<int16_t>(funcCall->arguments.size()));
-        }
-    }
-    else
-        Emit(OP_SET_STRUCT);
-}
-
-void Compiler::CompileRefExpr(RefExpr *expr)
-{
-    Symbol symbol;
-    if (expr->refExpr->type == AstType::INDEX)
-    {
-        CompileExpr(((IndexExpr *)expr->refExpr)->index);
-        bool isFound = m_SymbolTable->Resolve(((IndexExpr *)expr->refExpr)->ds->Stringify(), symbol);
-        if (!isFound)
-            ASSERT("Undefined variable:%s", expr->Stringify().c_str());
-        RefSymbol(symbol, true);
-    }
-    else
-    {
-        bool isFound = m_SymbolTable->Resolve(expr->refExpr->Stringify(), symbol);
-        if (!isFound)
-            ASSERT("Undefined variable:%s", expr->Stringify().c_str());
-
-        RefSymbol(symbol, false);
-    }
-}
-
-void Compiler::CompileStructExpr(StructExpr *expr)
-{
-    for (const auto &[k, v] : expr->members)
-    {
-        CompileExpr(v);
-        EmitConstant(ALLOCATE_OBJECT(StrObject, k->literal.c_str()));
-    }
-
-    Emit(OP_STRUCT);
-    Emit(static_cast<int16_t>(expr->members.size()));
-}
-
-void Compiler::CompileDllImportExpr(DllImportExpr *expr)
-{
-    auto dllpath = expr->dllPath;
-
-    RegisterDLLs(dllpath);
-
-    DefineBuiltin();
-
-    EmitConstant(ALLOCATE_OBJECT(StrObject, dllpath.c_str()));
-    Emit(OP_DLL_IMPORT);
-}
+// -- 新增内容
 
 Chunk &Compiler::CurChunk()
 {
+    // ++ 修改内容
+    // return m_Chunk;
     return m_ScopeChunks.back();
-}
-
-uint16_t Compiler::AddConstant(const Value &value)
-{
-    CurChunk().constants.emplace_back(value);
-    auto pos = static_cast<int16_t>(CurChunk().constants.size() - 1);
-    return pos;
+    // -- 修改内容
 }
 
 uint32_t Compiler::Emit(int16_t opcode)
@@ -507,35 +394,12 @@ uint32_t Compiler::Emit(int16_t opcode)
 
 uint32_t Compiler::EmitConstant(const Value &value)
 {
-    auto pos = AddConstant(value);
+    CurChunk().constants.emplace_back(value);
+    auto pos = static_cast<int16_t>(CurChunk().constants.size() - 1);
 
     Emit(OP_CONSTANT);
     Emit(pos);
     return static_cast<uint32_t>(CurChunk().opCodeList.size() - 1);
-}
-
-uint32_t Compiler::EmitClosure(FunctionObject *fn)
-{
-    auto upvalueCount = m_SymbolTable->GetUpvalueCount();
-
-    uint32_t pos = AddConstant(fn);
-    Emit(OP_CLOSURE);
-    Emit(pos);
-    Emit(upvalueCount);
-
-    for (uint8_t i = 0; i < upvalueCount; ++i)
-    {
-        auto upvalue = m_SymbolTable->GetUpvalueList()[i];
-        Emit(upvalue.index);
-        Emit(upvalue.scopeDepth);
-    }
-
-    return static_cast<uint32_t>(CurChunk().opCodeList.size() - 1);
-}
-
-void Compiler::ModifyOpCode(uint32_t pos, int16_t opcode)
-{
-    CurChunk().opCodeList[pos] = opcode;
 }
 
 void Compiler::DefineSymbol(const Symbol &symbol)
@@ -546,10 +410,12 @@ void Compiler::DefineSymbol(const Symbol &symbol)
         Emit(OP_DEF_GLOBAL);
         Emit(symbol.index);
         break;
+
     case SymbolScope::LOCAL:
         Emit(OP_DEF_LOCAL);
         Emit(symbol.index);
         break;
+
     default:
         break;
     }
@@ -563,30 +429,14 @@ void Compiler::LoadSymbol(const Symbol &symbol)
         Emit(OP_GET_GLOBAL);
         Emit(symbol.index);
         break;
+
     case SymbolScope::LOCAL:
         Emit(OP_GET_LOCAL);
         Emit(symbol.index);
         break;
-    case SymbolScope::UPVALUE:
-        Emit(OP_GET_UPVALUE);
-        Emit(symbol.upvalueIndex);
-        break;
-    case SymbolScope::BUILTIN:
-    {
-        CurChunk().constants.emplace_back(ALLOCATE_OBJECT(StrObject, symbol.name.data()));
-        auto pos = static_cast<int16_t>(CurChunk().constants.size() - 1);
-        Emit(OP_GET_BUILTIN);
-        Emit(pos);
-        break;
-    }
+
     default:
         break;
-    }
-
-    if (symbol.isStructSymbol)
-    {
-        Emit(OP_FUNCTION_CALL);
-        Emit(0);
     }
 }
 
@@ -598,49 +448,18 @@ void Compiler::StoreSymbol(const Symbol &symbol)
         Emit(OP_SET_GLOBAL);
         Emit(symbol.index);
         break;
+
     case SymbolScope::LOCAL:
         Emit(OP_SET_LOCAL);
         Emit(symbol.index);
         break;
-    case SymbolScope::UPVALUE:
-        Emit(OP_SET_UPVALUE);
-        Emit(symbol.upvalueIndex);
-        break;
+
     default:
         break;
     }
 }
 
-void Compiler::RefSymbol(const Symbol &symbol, bool isIndexSymbol)
+void Compiler::ModifyOpCode(uint32_t pos, int16_t opcode)
 {
-    switch (symbol.scope)
-    {
-    case SymbolScope::GLOBAL:
-        Emit(isIndexSymbol ? OP_REF_INDEX_GLOBAL : OP_REF_GLOBAL);
-        Emit(symbol.index);
-        break;
-    case SymbolScope::LOCAL:
-        Emit(isIndexSymbol ? OP_REF_INDEX_LOCAL : OP_REF_LOCAL);
-        Emit(symbol.index);
-        break;
-    case SymbolScope::UPVALUE:
-        Emit(isIndexSymbol ? OP_REF_INDEX_UPVALUE : OP_REF_UPVALUE);
-        Emit(symbol.upvalueIndex);
-        break;
-    default:
-        break;
-    }
-}
-
-void Compiler::DefineBuiltin()
-{
-    HashTable &builtinTable = BuiltinManager::GetInstance()->GetBuiltinObjectTable();
-    for (size_t i = 0; i < builtinTable.GetCapacity(); ++i)
-    {
-        if (builtinTable.IsValid(i))
-        {
-            auto key = builtinTable.GetEntries()[i].key;
-            m_SymbolTable->DefineBuiltin(key->value);
-        }
-    }
+    CurChunk().opCodeList[pos] = opcode;
 }

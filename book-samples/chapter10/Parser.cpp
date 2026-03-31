@@ -4,18 +4,17 @@ std::unordered_map<TokenType, UnaryFn> Parser::m_UnaryFunctions =
 	{
 		{TokenType::IDENTIFIER, &Parser::ParseIdentifierExpr},
 		{TokenType::NUMBER, &Parser::ParseNumExpr},
-		{TokenType::STRING, &Parser::ParseStrExpr},
 		{TokenType::NIL, &Parser::ParseNilExpr},
+		{TokenType::STRING, &Parser::ParseStrExpr},
 		{TokenType::TRUE, &Parser::ParseBoolExpr},
 		{TokenType::FALSE, &Parser::ParseBoolExpr},
 		{TokenType::MINUS, &Parser::ParseUnaryExpr},
 		{TokenType::NOT, &Parser::ParseUnaryExpr},
 		{TokenType::LPAREN, &Parser::ParseGroupExpr},
-		{TokenType::LBRACKET, &Parser::ParseArrayExpr},
-		{TokenType::REF, &Parser::ParseRefExpr},
+		// ++ 新增时间
 		{TokenType::FUNCTION, &Parser::ParseFunctionExpr},
-		{TokenType::LBRACE, &Parser::ParseStructExpr},
-		{TokenType::DLLIMPORT, &Parser::ParseDllImportExpr},
+		// -- 新增内容
+		{TokenType::LBRACKET, &Parser::ParseArrayExpr},
 		{TokenType::TILDE, &Parser::ParseUnaryExpr},
 };
 
@@ -32,11 +31,12 @@ std::unordered_map<TokenType, BinaryFn> Parser::m_BinaryFunctions =
 		{TokenType::MINUS, &Parser::ParseBinaryExpr},
 		{TokenType::ASTERISK, &Parser::ParseBinaryExpr},
 		{TokenType::SLASH, &Parser::ParseBinaryExpr},
+		// ++ 新增内容
 		{TokenType::LPAREN, &Parser::ParseFunctionCallExpr},
+		// -- 新增内容
 		{TokenType::LBRACKET, &Parser::ParseIndexExpr},
 		{TokenType::AND, &Parser::ParseBinaryExpr},
 		{TokenType::OR, &Parser::ParseBinaryExpr},
-		{TokenType::DOT, &Parser::ParseStructCallExpr},
 		{TokenType::AMPERSAND, &Parser::ParseBinaryExpr},
 		{TokenType::VBAR, &Parser::ParseBinaryExpr},
 		{TokenType::CARET, &Parser::ParseBinaryExpr},
@@ -51,22 +51,29 @@ std::unordered_map<TokenType, Precedence> Parser::m_Precedence =
 		{TokenType::LESS_EQUAL, Precedence::COMPARE},
 		{TokenType::GREATER, Precedence::COMPARE},
 		{TokenType::GREATER_EQUAL, Precedence::COMPARE},
-		{TokenType::PLUS, Precedence::ADD_PLUS},
-		{TokenType::MINUS, Precedence::ADD_PLUS},
+		{TokenType::PLUS, Precedence::ADD_SUB},
+		{TokenType::MINUS, Precedence::ADD_SUB},
 		{TokenType::ASTERISK, Precedence::MUL_DIV},
 		{TokenType::SLASH, Precedence::MUL_DIV},
+		// ++ 修改内容
+		// {TokenType::LBRACKET, Precedence::CALL},
 		{TokenType::LBRACKET, Precedence::BINARY},
+		// -- 修改内容
+		// ++ 新增内容
 		{TokenType::LPAREN, Precedence::BINARY},
+		// -- 新增内容
 		{TokenType::AND, Precedence::AND},
 		{TokenType::OR, Precedence::OR},
-		{TokenType::DOT, Precedence::BINARY},
 		{TokenType::AMPERSAND, Precedence::BIT_AND},
 		{TokenType::VBAR, Precedence::BIT_OR},
 		{TokenType::CARET, Precedence::BIT_XOR},
 };
 
 Parser::Parser()
-	: m_CurPos(0), m_FunctionScopeDepth(0)
+	: m_CurPos(0)
+	// ++ 新增内容
+	, m_FunctionScopeDepth(0)
+	// -- 新增内容
 {
 }
 Parser::~Parser()
@@ -80,41 +87,40 @@ std::vector<Stmt *> Parser::Parse(const std::vector<Token> &tokens)
 {
 	m_CurPos = 0;
 	m_Tokens = tokens;
+
+	// ++ 新增内容
 	m_FunctionScopeDepth = 0;
+	// -- 新增内容
 
 	std::vector<Stmt *> stmts;
 	while (!IsMatchCurToken(TokenType::END))
 		stmts.emplace_back(ParseStmt());
-
-	m_ConstantFolder.Fold(stmts);
 
 	return stmts;
 }
 
 Stmt *Parser::ParseStmt()
 {
-	if (IsMatchCurToken(TokenType::RETURN))
-		return ParseReturnStmt();
-	else if (IsMatchCurToken(TokenType::IF))
-		return ParseIfStmt();
+
+	if (IsMatchCurToken(TokenType::PRINT))
+		return ParsePrintStmt();
+	
 	else if (IsMatchCurToken(TokenType::LBRACE))
 		return ParseScopeStmt();
+	
+	else if (IsMatchCurToken(TokenType::IF))
+		return ParseIfStmt();
+	// ++ 新增内容
+	else if (IsMatchCurToken(TokenType::RETURN))
+		return ParseReturnStmt();
+	// -- 新增内容
 	else if (IsMatchCurToken(TokenType::WHILE))
 		return ParseWhileStmt();
-	else if (IsMatchCurToken(TokenType::STRUCT))
-		return ParseStructStmt();
+	
 	else
 		return ParseExprStmt();
 }
-
-Stmt *Parser::ParseExprStmt()
-{
-	auto exprStmt = new ExprStmt(ParseExpr());
-	Consume(TokenType::SEMICOLON, "Expect ';' after expr stmt.");
-
-	return exprStmt;
-}
-
+// ++ 新增内容
 Stmt *Parser::ParseReturnStmt()
 {
 	if (m_FunctionScopeDepth == 0)
@@ -131,6 +137,37 @@ Stmt *Parser::ParseReturnStmt()
 
 	return returnStmt;
 }
+// -- 新增内容
+
+Stmt *Parser::ParseExprStmt()
+{
+	auto exprStmt = new ExprStmt(ParseExpr());
+	Consume(TokenType::SEMICOLON, "Expect ';' after expr stmt.");
+
+	return exprStmt;
+}
+
+Stmt *Parser::ParsePrintStmt()
+{
+	Consume(TokenType::PRINT, "Expect 'print' keyword.");
+	auto printStmt = new PrintStmt(ParseExpr());
+	Consume(TokenType::SEMICOLON, "Expect ';' after expr stmt.");
+
+	return printStmt;
+}
+
+
+Stmt *Parser::ParseScopeStmt()
+{
+	Consume(TokenType::LBRACE, "Expect '{'.");
+	auto scopeStmt = new ScopeStmt();
+	while (!IsMatchCurToken(TokenType::RBRACE))
+		scopeStmt->stmts.emplace_back(ParseStmt());
+	Consume(TokenType::RBRACE, "Expect '}'.");
+
+	return scopeStmt;
+}
+
 
 Stmt *Parser::ParseIfStmt()
 {
@@ -151,16 +188,7 @@ Stmt *Parser::ParseIfStmt()
 	return ifStmt;
 }
 
-Stmt *Parser::ParseScopeStmt()
-{
-	Consume(TokenType::LBRACE, "Expect '{'.");
-	auto scopeStmt = new ScopeStmt();
-	while (!IsMatchCurToken(TokenType::RBRACE))
-		scopeStmt->stmts.emplace_back(ParseStmt());
-	Consume(TokenType::RBRACE, "Expect '}'.");
 
-	return scopeStmt;
-}
 
 Stmt *Parser::ParseWhileStmt()
 {
@@ -178,55 +206,29 @@ Stmt *Parser::ParseWhileStmt()
 	return whileStmt;
 }
 
-Stmt *Parser::ParseStructStmt()
-{
-	Consume(TokenType::STRUCT, "Expect 'struct' keyword");
-
-	auto structStmt = new StructStmt();
-
-	structStmt->name = ParseIdentifierExpr()->Stringify();
-
-	Consume(TokenType::LBRACE, "Expect '{'.");
-	while (!IsMatchCurToken(TokenType::RBRACE))
-	{
-		auto k = (IdentifierExpr *)ParseIdentifierExpr();
-		Expr *v = new NilExpr();
-		if (IsMatchCurToken(TokenType::COLON))
-		{
-			Consume(TokenType::COLON, "Expect ':'");
-			v = ParseExpr();
-		}
-		IsMatchCurTokenAndStepOnce(TokenType::COMMA);
-		structStmt->body->members[k] = v;
-	}
-
-	Consume(TokenType::RBRACE, "Expect '}'.");
-
-	return structStmt;
-}
 
 Expr *Parser::ParseExpr(Precedence precedence)
 {
 	if (m_UnaryFunctions.find(GetCurToken().type) == m_UnaryFunctions.end())
 	{
-		ASSERT("no prefix definition for:%s", GetCurTokenAndStepOnce().literal.c_str());
+		ASSERT("no unary definition for:%s", GetCurTokenAndStepOnce().literal.c_str());
 		return new NilExpr();
 	}
-	auto prefixFn = m_UnaryFunctions[GetCurToken().type];
+	auto unaryFn = m_UnaryFunctions[GetCurToken().type];
 
-	auto leftExpr = (this->*prefixFn)();
+	auto expr = (this->*unaryFn)();
 
 	while (!IsMatchCurToken(TokenType::SEMICOLON) && precedence < GetCurTokenPrecedence())
 	{
 		if (m_BinaryFunctions.find(GetCurToken().type) == m_BinaryFunctions.end())
-			return leftExpr;
+			return expr;
 
-		auto infixFn = m_BinaryFunctions[GetCurToken().type];
+		auto binaryFn = m_BinaryFunctions[GetCurToken().type];
 
-		leftExpr = (this->*infixFn)(leftExpr);
+		expr = (this->*binaryFn)(expr);
 	}
 
-	return leftExpr;
+	return expr;
 }
 
 Expr *Parser::ParseIdentifierExpr()
@@ -290,43 +292,13 @@ Expr *Parser::ParseArrayExpr()
 
 Expr *Parser::ParseUnaryExpr()
 {
-	auto prefixExpr = new UnaryExpr();
-	prefixExpr->op = GetCurTokenAndStepOnce().literal;
-	prefixExpr->right = ParseExpr(Precedence::UNARY);
-	return prefixExpr;
+	auto unaryExpr = new UnaryExpr();
+	unaryExpr->op = GetCurTokenAndStepOnce().literal;
+	unaryExpr->right = ParseExpr(Precedence::UNARY);
+	return unaryExpr;
 }
 
-Expr *Parser::ParseBinaryExpr(Expr *prefixExpr)
-{
-	auto infixExpr = new BinaryExpr();
-	infixExpr->left = prefixExpr;
-
-	Precedence opPrece = GetCurTokenPrecedence();
-
-	infixExpr->op = GetCurTokenAndStepOnce().literal;
-	infixExpr->right = ParseExpr(opPrece);
-	return infixExpr;
-}
-
-Expr *Parser::ParseIndexExpr(Expr *prefixExpr)
-{
-	Consume(TokenType::LBRACKET, "Expect '['.");
-	auto indexExpr = new IndexExpr();
-	indexExpr->ds = prefixExpr;
-	indexExpr->index = ParseExpr(Precedence::BINARY);
-	Consume(TokenType::RBRACKET, "Expect ']'.");
-	return indexExpr;
-}
-
-Expr *Parser::ParseRefExpr()
-{
-	Consume(TokenType::REF, "Expect 'ref' keyword.");
-
-	auto refExpr = ParseExpr(Precedence::LOWEST);
-
-	return new RefExpr(refExpr);
-}
-
+// ++ 新增内容
 Expr *Parser::ParseFunctionExpr()
 {
 	m_FunctionScopeDepth++;
@@ -356,27 +328,6 @@ Expr *Parser::ParseFunctionExpr()
 	return functionExpr;
 }
 
-Expr *Parser::ParseStructExpr()
-{
-	std::unordered_map<IdentifierExpr *, Expr *> memPairs;
-	Consume(TokenType::LBRACE, "Expect '{'.");
-	while (!IsMatchCurToken(TokenType::RBRACE))
-	{
-		auto k = (IdentifierExpr *)ParseIdentifierExpr();
-		Expr *v = new NilExpr();
-		if (IsMatchCurToken(TokenType::COLON))
-		{
-			Consume(TokenType::COLON, "Expect ':'");
-			v = ParseExpr();
-		}
-		IsMatchCurTokenAndStepOnce(TokenType::COMMA);
-		memPairs[k] = v;
-	}
-
-	Consume(TokenType::RBRACE, "Expect '}'.");
-	return new StructExpr(memPairs);
-}
-
 Expr *Parser::ParseFunctionCallExpr(Expr *prefixExpr)
 {
 	auto funcCallExpr = new FunctionCallExpr();
@@ -393,26 +344,31 @@ Expr *Parser::ParseFunctionCallExpr(Expr *prefixExpr)
 
 	return funcCallExpr;
 }
+// -- 新增内容
 
-Expr *Parser::ParseStructCallExpr(Expr *prefixExpr)
+Expr *Parser::ParseBinaryExpr(Expr *unaryExpr)
 {
-	Consume(TokenType::DOT, "Expect '.'.");
-	auto structCallExpr = new StructCallExpr();
-	structCallExpr->callee = prefixExpr;
-	structCallExpr->callMember = ParseExpr(Precedence::BINARY);
-	return structCallExpr;
+	auto binaryExpr = new BinaryExpr();
+	binaryExpr->left = unaryExpr;
+
+	Precedence opPrece = GetCurTokenPrecedence();
+
+	binaryExpr->op = GetCurTokenAndStepOnce().literal;
+	binaryExpr->right = ParseExpr(opPrece);
+	return binaryExpr;
 }
 
-Expr *Parser::ParseDllImportExpr()
+Expr *Parser::ParseIndexExpr(Expr *unaryExpr)
 {
-	Consume(TokenType::DLLIMPORT, "Expect 'dllimport' keyword");
-	Consume(TokenType::LPAREN, "Expect '(' after 'dllimport' keyword");
-
-	auto path = Consume(TokenType::STRING, "Expect dll path.").literal;
-
-	Consume(TokenType::RPAREN, "Expect ')' after dllimport expr");
-
-	return new DllImportExpr(path);
+	Consume(TokenType::LBRACKET, "Expect '['.");
+	auto indexExpr = new IndexExpr();
+	indexExpr->ds = unaryExpr;
+	// ++ 修改内容
+	// indexExpr->index = ParseExpr(Precedence::CALL);
+	indexExpr->index = ParseExpr(Precedence::BINARY);
+	// -- 修改内容
+	Consume(TokenType::RBRACKET, "Expect ']'.");
+	return indexExpr;
 }
 
 Token Parser::GetCurToken()
@@ -435,26 +391,6 @@ Precedence Parser::GetCurTokenPrecedence()
 	return Precedence::LOWEST;
 }
 
-Token Parser::GetNextToken()
-{
-	if (m_CurPos + 1 < (int32_t)m_Tokens.size())
-		return m_Tokens[m_CurPos + 1];
-	return m_Tokens.back();
-}
-Token Parser::GetNextTokenAndStepOnce()
-{
-	if (m_CurPos + 1 < (int32_t)m_Tokens.size())
-		return m_Tokens[++m_CurPos];
-	return m_Tokens.back();
-}
-
-Precedence Parser::GetNextTokenPrecedence()
-{
-	if (m_Precedence.find(GetNextToken().type) != m_Precedence.end())
-		return m_Precedence[GetNextToken().type];
-	return Precedence::LOWEST;
-}
-
 bool Parser::IsMatchCurToken(TokenType type)
 {
 	return GetCurToken().type == type;
@@ -463,21 +399,6 @@ bool Parser::IsMatchCurToken(TokenType type)
 bool Parser::IsMatchCurTokenAndStepOnce(TokenType type)
 {
 	if (IsMatchCurToken(type))
-	{
-		m_CurPos++;
-		return true;
-	}
-	return false;
-}
-
-bool Parser::IsMatchNextToken(TokenType type)
-{
-	return GetNextToken().type == type;
-}
-
-bool Parser::IsMatchNextTokenAndStepOnce(TokenType type)
-{
-	if (IsMatchNextToken(type))
 	{
 		m_CurPos++;
 		return true;

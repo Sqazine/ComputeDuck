@@ -1,6 +1,13 @@
 #include "Object.h"
 #include "Allocator.h"
-std::string ObjectStringify(Object *object)
+std::string ObjectStringify(Object *object
+// ++ 新增内容
+#ifndef NDEBUG
+                            ,
+                            bool printChunkIfIsFunctionObject
+#endif
+// -- 新增内容
+)
 {
     switch (object->type)
     {
@@ -19,6 +26,20 @@ std::string ObjectStringify(Object *object)
         result += "]";
         return result;
     }
+    // ++ 新增内容
+    case ObjectType::FUNCTION:
+    {
+        std::string result = "function(0x" + PointerAddressToString(object) + ")";
+#ifndef NDEBUG
+        if (printChunkIfIsFunctionObject)
+        {
+            result += ":\n";
+            result += TO_FUNCTION_OBJ(object)->chunk.Stringify();
+        }
+#endif
+        return result;
+    }
+    // -- 新增内容
     default:
         ASSERT("Unknown object type");
     }
@@ -32,15 +53,21 @@ bool IsObjectEqual(Object *left, Object *right)
     {
     case ObjectType::STR:
         return TO_STR_OBJ(left)->hash == TO_STR_OBJ(right)->hash;
-    case ObjectType::ARRAY:
+    // ++ 新增内容
+    case ObjectType::FUNCTION:
     {
-        if (TO_ARRAY_OBJ(left)->len != TO_ARRAY_OBJ(right)->len)
+        if (TO_FUNCTION_OBJ(left)->chunk.opCodeList.size() != TO_FUNCTION_OBJ(right)->chunk.opCodeList.size())
             return false;
-        for (size_t i = 0; i < TO_ARRAY_OBJ(left)->len; ++i)
-            if (TO_ARRAY_OBJ(left)->elements[i] != TO_ARRAY_OBJ(right)->elements[i])
+        if (TO_FUNCTION_OBJ(left)->parameterCount != TO_FUNCTION_OBJ(right)->parameterCount)
+            return false;
+        if (TO_FUNCTION_OBJ(left)->localVarCount != TO_FUNCTION_OBJ(right)->localVarCount)
+            return false;
+        for (int32_t i = 0; i < TO_FUNCTION_OBJ(left)->chunk.opCodeList.size(); ++i)
+            if (TO_FUNCTION_OBJ(left)->chunk.opCodeList[i] != TO_FUNCTION_OBJ(right)->chunk.opCodeList[i])
                 return false;
         return true;
     }
+    // -- 新增内容
     default:
         ASSERT("Unknown object type");
         return false;

@@ -15,22 +15,27 @@ enum class AstType
 	IDENTIFIER,
 	GROUP,
 	ARRAY,
+	INDEX,
 	UNARY,
 	BINARY,
-	INDEX,
-	REF,
-	FUNCTION,
-	FUNCTION_CALL,
-	STRUCT_CALL,
-	DLL_IMPORT,
 
 	EXPR,
-	RETURN,
-	IF,
-	SCOPE,
-	WHILE,
 
-	STRUCT,
+	PRINT,
+	
+	SCOPE,
+	
+	IF,
+	
+	
+	
+	WHILE,
+	
+	// ++ 新增内容
+	FUNCTION,
+	FUNCTION_CALL,
+	RETURN,
+	// -- 新增内容
 };
 
 struct AstNode
@@ -106,12 +111,7 @@ struct ArrayExpr : public Expr
 {
 	ArrayExpr() : Expr(AstType::ARRAY) {}
 	ArrayExpr(std::vector<Expr *> elements) : Expr(AstType::ARRAY), elements(elements) {}
-	~ArrayExpr() override
-	{
-		for (auto e : elements)
-			SAFE_DELETE(e);
-		std::vector<Expr *>().swap(elements);
-	}
+	~ArrayExpr() override { std::vector<Expr *>().swap(elements); }
 
 	std::string Stringify() override
 	{
@@ -128,6 +128,21 @@ struct ArrayExpr : public Expr
 	}
 
 	std::vector<Expr *> elements;
+};
+
+struct IndexExpr : public Expr
+{
+	IndexExpr() : Expr(AstType::INDEX), ds(nullptr), index(nullptr) {}
+	IndexExpr(Expr *ds, Expr *index) : Expr(AstType::INDEX), ds(ds), index(index) {}
+	~IndexExpr() override
+	{
+		SAFE_DELETE(ds);
+		SAFE_DELETE(index);
+	}
+	std::string Stringify() override { return ds->Stringify() + "[" + index->Stringify() + "]"; }
+
+	Expr *ds;
+	Expr *index;
 };
 
 struct GroupExpr : public Expr
@@ -170,88 +185,6 @@ struct BinaryExpr : public Expr
 	Expr *right;
 };
 
-struct IndexExpr : public Expr
-{
-	IndexExpr() : Expr(AstType::INDEX), ds(nullptr), index(nullptr) {}
-	IndexExpr(Expr *ds, Expr *index) : Expr(AstType::INDEX), ds(ds), index(index) {}
-	~IndexExpr() override
-	{
-		SAFE_DELETE(ds);
-		SAFE_DELETE(index);
-	}
-	std::string Stringify() override { return ds->Stringify() + "[" + index->Stringify() + "]"; }
-
-	Expr *ds;
-	Expr *index;
-};
-
-struct RefExpr : public Expr
-{
-	RefExpr() : Expr(AstType::REF), refExpr(nullptr) {}
-	RefExpr(Expr *refExpr) : Expr(AstType::REF), refExpr(refExpr) {}
-	~RefExpr() override { SAFE_DELETE(refExpr); }
-	std::string Stringify() override { return "ref " + refExpr->Stringify(); }
-
-	Expr *refExpr;
-};
-
-struct FunctionCallExpr : public Expr
-{
-	FunctionCallExpr() : Expr(AstType::FUNCTION_CALL), name(nullptr) {}
-	FunctionCallExpr(Expr *name, std::vector<Expr *> arguments) : Expr(AstType::FUNCTION_CALL), name(name), arguments(arguments) {}
-	~FunctionCallExpr() override
-	{
-		SAFE_DELETE(name);
-		for (auto arg : arguments)
-			SAFE_DELETE(arg);
-		std::vector<Expr *>().swap(arguments);
-	}
-
-	std::string Stringify() override
-	{
-		std::string result = name->Stringify() + "(";
-
-		if (!arguments.empty())
-		{
-			for (const auto &arg : arguments)
-				result += arg->Stringify() + ",";
-			result = result.substr(0, result.size() - 1);
-		}
-		result += ")";
-		return result;
-	}
-
-	Expr *name;
-	std::vector<Expr *> arguments;
-};
-
-struct StructCallExpr : public Expr
-{
-	StructCallExpr() : Expr(AstType::STRUCT_CALL), callee(nullptr), callMember(nullptr) {}
-	StructCallExpr(Expr *callee, Expr *callMember) : Expr(AstType::STRUCT_CALL), callee(callee), callMember(callMember) {}
-	~StructCallExpr() override
-	{
-		SAFE_DELETE(callee);
-		SAFE_DELETE(callMember);
-	}
-
-	std::string Stringify() override { return callee->Stringify() + "." + callMember->Stringify(); }
-
-	Expr *callee;
-	Expr *callMember;
-};
-
-struct DllImportExpr : public Expr
-{
-	DllImportExpr() : Expr(AstType::DLL_IMPORT) {}
-	DllImportExpr(std::string_view path) : Expr(AstType::DLL_IMPORT), dllPath(path) {}
-	~DllImportExpr() override = default;
-
-	std::string Stringify() override { return "dllimport(\"" + dllPath + "\")"; }
-
-	std::string dllPath;
-};
-
 struct Stmt : public AstNode
 {
 	Stmt(AstType type) : AstNode(type) {}
@@ -271,16 +204,37 @@ struct ExprStmt : public Stmt
 	Expr *expr;
 };
 
-struct ReturnStmt : public Stmt
+struct PrintStmt : public Stmt
 {
-	ReturnStmt() : Stmt(AstType::RETURN), expr(nullptr) {}
-	ReturnStmt(Expr *expr) : Stmt(AstType::RETURN), expr(expr) {}
-	~ReturnStmt() override { SAFE_DELETE(expr); }
+	PrintStmt() : Stmt(AstType::PRINT), expr(nullptr) {}
+	PrintStmt(Expr *expr) : Stmt(AstType::PRINT), expr(expr) {}
+	~PrintStmt() override { SAFE_DELETE(expr); }
 
-	std::string Stringify() override { return "return " + expr->Stringify() + ";"; }
+	std::string Stringify() override { return "print " + expr->Stringify() + ";"; }
 
 	Expr *expr;
 };
+
+
+struct ScopeStmt : public Stmt
+{
+	ScopeStmt() : Stmt(AstType::SCOPE) {}
+	ScopeStmt(std::vector<Stmt *> stmts) : Stmt(AstType::SCOPE), stmts(stmts) {}
+	~ScopeStmt() override { std::vector<Stmt *>().swap(stmts); }
+
+	std::string Stringify() override
+	{
+		std::string result = "{";
+		for (const auto &stmt : stmts)
+			result += stmt->Stringify();
+		result += "}";
+		return result;
+	}
+
+	std::vector<Stmt *> stmts;
+};
+
+
 
 struct IfStmt : public Stmt
 {
@@ -313,29 +267,28 @@ struct IfStmt : public Stmt
 	Stmt *elseBranch;
 };
 
-struct ScopeStmt : public Stmt
+
+
+struct WhileStmt : public Stmt
 {
-	ScopeStmt() : Stmt(AstType::SCOPE) {}
-	ScopeStmt(std::vector<Stmt *> stmts) : Stmt(AstType::SCOPE), stmts(stmts) {}
-	~ScopeStmt() override
+	WhileStmt() : Stmt(AstType::WHILE), condition(nullptr), body(nullptr) {}
+	WhileStmt(Expr *condition, Stmt *body) : Stmt(AstType::WHILE), condition(condition), body(body) {}
+	~WhileStmt() override
 	{
-		for (auto stmt : stmts)
-			SAFE_DELETE(stmt);
-		std::vector<Stmt *>().swap(stmts);
+		SAFE_DELETE(condition);
+		SAFE_DELETE(body);
 	}
 
 	std::string Stringify() override
 	{
-		std::string result = "{";
-		for (const auto &stmt : stmts)
-			result += stmt->Stringify();
-		result += "}";
-		return result;
+		return "while(" + condition->Stringify() + ")" + body->Stringify();
 	}
 
-	std::vector<Stmt *> stmts;
+	Expr *condition;
+	Stmt *body;
 };
 
+// ++ 新增内容
 struct FunctionExpr : public Expr
 {
 	FunctionExpr() : Expr(AstType::FUNCTION), body(nullptr) {}
@@ -366,59 +319,44 @@ struct FunctionExpr : public Expr
 	ScopeStmt *body;
 };
 
-struct StructExpr : public Expr
+struct FunctionCallExpr : public Expr
 {
-	StructExpr() : Expr(AstType::STRUCT) {}
-	StructExpr(const std::unordered_map<IdentifierExpr *, Expr *> &members) : Expr(AstType::STRUCT), members(members) {}
-	~StructExpr() override
+	FunctionCallExpr() : Expr(AstType::FUNCTION_CALL), name(nullptr) {}
+	FunctionCallExpr(Expr *name, std::vector<Expr *> arguments) : Expr(AstType::FUNCTION_CALL), name(name), arguments(arguments) {}
+	~FunctionCallExpr() override
 	{
-		for (auto [k, v] : members)
-			SAFE_DELETE(v);
-		std::unordered_map<IdentifierExpr *, Expr *>().swap(members);
+		SAFE_DELETE(name);
+		for (auto arg : arguments)
+			SAFE_DELETE(arg);
+		std::vector<Expr *>().swap(arguments);
 	}
 
 	std::string Stringify() override
 	{
-		std::string result = "{";
-		for (const auto &[k, v] : members)
-			result += k->Stringify() + ":" + v->Stringify() + ",\n";
-		result += "}";
+		std::string result = name->Stringify() + "(";
+
+		if (!arguments.empty())
+		{
+			for (const auto &arg : arguments)
+				result += arg->Stringify() + ",";
+			result = result.substr(0, result.size() - 1);
+		}
+		result += ")";
 		return result;
 	}
 
-	std::unordered_map<IdentifierExpr *, Expr *> members;
+	Expr *name;
+	std::vector<Expr *> arguments;
 };
 
-struct WhileStmt : public Stmt
+struct ReturnStmt : public Stmt
 {
-	WhileStmt() : Stmt(AstType::WHILE), condition(nullptr), body(nullptr) {}
-	WhileStmt(Expr *condition, Stmt *body) : Stmt(AstType::WHILE), condition(condition), body(body) {}
-	~WhileStmt() override
-	{
-		SAFE_DELETE(condition);
-		SAFE_DELETE(body);
-	}
+	ReturnStmt() : Stmt(AstType::RETURN), expr(nullptr) {}
+	ReturnStmt(Expr *expr) : Stmt(AstType::RETURN), expr(expr) {}
+	~ReturnStmt() override { SAFE_DELETE(expr); }
 
-	std::string Stringify() override
-	{
-		return "while(" + condition->Stringify() + ")" + body->Stringify();
-	}
+	std::string Stringify() override { return "return " + expr->Stringify() + ";"; }
 
-	Expr *condition;
-	Stmt *body;
+	Expr *expr;
 };
-
-struct StructStmt : public Stmt
-{
-	StructStmt() : Stmt(AstType::STRUCT), body(new StructExpr()) {}
-	StructStmt(std::string_view name, StructExpr *body) : Stmt(AstType::STRUCT), name(name), body(body) {}
-	~StructStmt() override { SAFE_DELETE(body); }
-
-	std::string Stringify() override
-	{
-		return "struct " + name + body->Stringify();
-	}
-
-	std::string name;
-	StructExpr *body;
-};
+// -- 新增内容

@@ -92,10 +92,10 @@ Expr *ConstantFolder::FoldExpr(Expr *expr)
         return FoldArrayExpr((ArrayExpr *)expr);
     case AstType::INDEX:
         return FoldIndexExpr((IndexExpr *)expr);
-    case AstType::PREFIX:
-        return FoldPrefixExpr((PrefixExpr *)expr);
-    case AstType::INFIX:
-        return FoldInfixExpr((InfixExpr *)expr);
+    case AstType::UNARY:
+        return FoldUnaryExpr((UnaryExpr *)expr);
+    case AstType::BINARY:
+        return FoldBinaryExpr((BinaryExpr *)expr);
     case AstType::FUNCTION_CALL:
         return FoldFunctionCallExpr((FunctionCallExpr *)expr);
     case AstType::STRUCT_CALL:
@@ -110,7 +110,7 @@ Expr *ConstantFolder::FoldExpr(Expr *expr)
         return expr;
     }
 }
-Expr *ConstantFolder::FoldInfixExpr(InfixExpr *expr)
+Expr *ConstantFolder::FoldBinaryExpr(BinaryExpr *expr)
 {
     expr->left = FoldExpr(expr->left);
     expr->right = FoldExpr(expr->right);
@@ -125,7 +125,7 @@ Expr *ConstantFolder::FoldBoolExpr(BoolExpr *expr)
 {
     return expr;
 }
-Expr *ConstantFolder::FoldPrefixExpr(PrefixExpr *expr)
+Expr *ConstantFolder::FoldUnaryExpr(UnaryExpr *expr)
 {
     expr->right = FoldExpr(expr->right);
     return ConstantFold(expr);
@@ -191,9 +191,9 @@ Expr *ConstantFolder::FoldStructExpr(StructExpr *expr)
 
 Expr *ConstantFolder::ConstantFold(Expr *expr)
 {
-    if (expr->type == AstType::INFIX)
+    if (expr->type == AstType::BINARY)
     {
-        auto infix = (InfixExpr *)expr;
+        auto infix = (BinaryExpr *)expr;
         if (infix->left->type == AstType::NUM && infix->right->type == AstType::NUM)
         {
             Expr *newExpr = nullptr;
@@ -234,9 +234,9 @@ Expr *ConstantFolder::ConstantFold(Expr *expr)
             return strExpr;
         }
     }
-    else if (expr->type == AstType::PREFIX)
+    else if (expr->type == AstType::UNARY)
     {
-        auto prefix = (PrefixExpr *)expr;
+        auto prefix = (UnaryExpr *)expr;
         if (prefix->right->type == AstType::NUM && prefix->op == "-")
         {
             auto numExpr = new NumExpr(-((NumExpr *)prefix->right)->value);

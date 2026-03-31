@@ -1,8 +1,8 @@
 
 if(WIN32)
-    # Prefix all shared libraries with 'lib'.
+    # Unary all shared libraries with 'lib'.
     set(CMAKE_SHARED_LIBRARY_PREFIX "lib")
-    # Prefix all static libraries with 'lib'.
+    # Unary all static libraries with 'lib'.
     set(CMAKE_STATIC_LIBRARY_PREFIX "lib")
 endif()
 

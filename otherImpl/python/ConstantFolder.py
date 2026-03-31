@@ -90,7 +90,7 @@ class ConstantFolder:
         else:
             return expr
 
-    def __fold_infix_expr(self, expr: InfixExpr) -> Expr:
+    def __fold_infix_expr(self, expr: BinaryExpr) -> Expr:
         expr.left = self.__fold_expr(expr.left)
         expr.right = self.__fold_expr(expr.right)
         return self.__constant_fold(expr)
@@ -101,7 +101,7 @@ class ConstantFolder:
     def __fold_bool_expr(self, expr: BoolExpr) -> Expr:
         return expr
 
-    def __fold_prefix_expr(self, expr: PrefixExpr) -> Expr:
+    def __fold_prefix_expr(self, expr: UnaryExpr) -> Expr:
         expr.right = self.__fold_expr(expr.right)
         return self.__constant_fold(expr)
 

@@ -168,14 +168,14 @@ namespace ComputeDuck
         public Expr? expr;
     }
 
-    public class PrefixExpr : Expr
+    public class UnaryExpr : Expr
     {
-        public PrefixExpr()
+        public UnaryExpr()
         : base(AstType.PREFIX)
         {
             this.op = ""; this.right = null;
         }
-        public PrefixExpr(string op, Expr right)
+        public UnaryExpr(string op, Expr right)
         : base(AstType.PREFIX)
         {
             this.op = op; this.right = right;
@@ -186,16 +186,16 @@ namespace ComputeDuck
         public Expr? right;
     }
 
-    public class InfixExpr : Expr
+    public class BinaryExpr : Expr
     {
-        public InfixExpr()
+        public BinaryExpr()
         : base(AstType.INFIX)
         {
             this.op = "";
             this.left = null;
             this.right = null;
         }
-        public InfixExpr(string op, Expr left, Expr right)
+        public BinaryExpr(string op, Expr left, Expr right)
         : base(AstType.INFIX)
         {
             this.op = op;

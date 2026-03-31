@@ -98,9 +98,9 @@ namespace ComputeDuck
                 case AstType.INDEX:
                     return FoldIndexExpr((IndexExpr)expr);
                 case AstType.PREFIX:
-                    return FoldPrefixExpr((PrefixExpr)expr);
+                    return FoldUnaryExpr((UnaryExpr)expr);
                 case AstType.INFIX:
-                    return FoldInfixExpr((InfixExpr)expr);
+                    return FoldBinaryExpr((BinaryExpr)expr);
                 case AstType.FUNCTION_CALL:
                     return FoldFunctionCallExpr((FunctionCallExpr)expr);
                 case AstType.STRUCT_CALL:
@@ -115,7 +115,7 @@ namespace ComputeDuck
                     return expr;
             }
         }
-        Expr FoldInfixExpr(InfixExpr expr)
+        Expr FoldBinaryExpr(BinaryExpr expr)
         {
             expr.left = FoldExpr(expr.left);
             expr.right = FoldExpr(expr.right);
@@ -130,7 +130,7 @@ namespace ComputeDuck
         {
             return expr;
         }
-        Expr FoldPrefixExpr(PrefixExpr expr)
+        Expr FoldUnaryExpr(UnaryExpr expr)
         {
             expr.right = FoldExpr(expr.right);
             return ConstantFold(expr);
@@ -200,7 +200,7 @@ namespace ComputeDuck
         {
             if (expr.type == AstType.INFIX)
             {
-                var infix = (InfixExpr)expr;
+                var infix = (BinaryExpr)expr;
                 if (infix.left.type == AstType.NUM && infix.right.type == AstType.NUM)
                 {
                     Expr newExpr = null;
@@ -234,7 +234,7 @@ namespace ComputeDuck
             }
             else if (expr.type == AstType.PREFIX)
             {
-                var prefix = (PrefixExpr)expr;
+                var prefix = (UnaryExpr)expr;
                 if (prefix.right.type == AstType.NUM && prefix.op == "-")
                 {
                     var numExpr = new NumExpr(-((NumExpr)prefix.right).value);
