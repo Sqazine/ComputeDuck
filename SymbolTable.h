@@ -44,8 +44,9 @@ public:
         if (m_VarCount == UINT8_COUNT)
             ASSERT("Too many variable definitions, max is %d", UINT8_COUNT);
 
-        if (FindSymbolReference(name))
-            ASSERT("Variable already defined in this scope:%s", name.data());
+        if (auto symbol = FindSymbolReference(name))
+            if (symbol && symbol->scopeDepth == m_ScopeDepth)
+                ASSERT("Variable already defined in this scope:%s", name.data());
 
         Symbol symbol;
         

@@ -7,18 +7,17 @@
 enum class SymbolScope
 {
     GLOBAL,
-
     LOCAL,
-
+    // ++ 新增内容
+    BUILTIN,
+    // -- 新增内容
 };
 
 struct Symbol
 {
     std::string_view name;
     SymbolScope scope{SymbolScope::GLOBAL};
-
     int32_t scopeDepth{0};
-
     int32_t index{-1};
 };
 
@@ -27,46 +26,26 @@ class SymbolTable
 public:
     SymbolTable() = default;
 
-    // ++ 新增内容
     SymbolTable(SymbolTable *upper)
         : m_Upper(upper), m_ScopeDepth(upper->m_ScopeDepth + 1)
     {
         if (m_ScopeDepth == UINT8_COUNT)
             ASSERT("Too many scope depth, max is %d", UINT8_COUNT);
     }
-    // -- 新增内容
-    // ++ 修改内容
-    // ~SymbolTable() = default;
 
     ~SymbolTable()
     {
         m_Upper = nullptr;
     }
-    // -- 修改内容
 
     Symbol Define(std::string_view name)
     {
-        // ++ 删除内容
-        // for (int32_t i = m_VarCount - 1; i >= 0; --i)
-        // {
-        //     Symbol *symbol = &m_VarList[i];
-
-        //     if (symbol->scopeDepth != m_ScopeDepth) // not in same scope
-        //         continue;
-
-        //     if (symbol->name == name)
-        //         ASSERT("Variable already defined in this scope:%s", name.data());
-        // }
-        // -- 删除内容
-
         if (m_VarCount == UINT8_COUNT)
             ASSERT("Too many variable definitions, max is %d", UINT8_COUNT);
 
-        // ++ 新增内容
         if (auto symbol = FindSymbolReference(name))
             if (symbol && symbol->scopeDepth == m_ScopeDepth)
                 ASSERT("Variable already defined in this scope:%s", name.data());
-        // -- 新增内容
 
         Symbol symbol;
         symbol.name = name;
@@ -87,18 +66,36 @@ public:
         return symbol;
     }
 
+    // ++ 新增内容
+    Symbol DefineBuiltin(std::string_view name)
+    {
+        if (Symbol *result = FindSymbolReference(name))
+            return *result;
+
+        if (m_VarCount == UINT8_COUNT)
+            ASSERT("Too many variable definitions, max is %d", UINT8_COUNT);
+
+        Symbol symbol;
+        symbol.name = name;
+        symbol.scopeDepth = m_ScopeDepth;
+        symbol.scope = SymbolScope::BUILTIN;
+
+        m_VarList[m_VarCount++] = symbol;
+        return symbol;
+    }
+    // -- 新增内容
+
     bool Resolve(std::string_view name, Symbol &symbol)
     {
         if (Symbol *result = FindSymbolReference(name))
         {
-
             if (m_ScopeDepth < result->scopeDepth)
                 return false;
 
             symbol = *result;
             return true;
         }
-        // ++ 新增内容
+
         else if (GetUpper())
         {
             if (!GetUpper()->Resolve(name, symbol))
@@ -106,7 +103,6 @@ public:
             if (symbol.scope == SymbolScope::GLOBAL)
                 return true;
         }
-        // -- 新增内容
 
         return false;
     }
@@ -121,12 +117,10 @@ public:
         return m_LocalVarCount;
     }
 
-    // ++ 新增内容
     SymbolTable *GetUpper() const
     {
         return m_Upper;
     }
-    // -- 新增内容
 
     void EnterScope()
     {
@@ -153,9 +147,9 @@ private:
         }
         return nullptr;
     }
-    // ++ 新增内容
+
     SymbolTable *m_Upper{nullptr};
-    // -- 新增内容
+
     std::array<Symbol, UINT8_COUNT> m_VarList;
     uint8_t m_VarCount{0};
 

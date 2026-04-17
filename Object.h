@@ -75,7 +75,7 @@ struct StrObject : public Object
 struct ArrayObject : public Object
 {
     ArrayObject(Value *eles, size_t len) : Object(ObjectType::ARRAY), elements(eles), len(len) {}
-    ~ArrayObject() = default;
+    ~ArrayObject() { SAFE_DELETE_ARRAY(elements); }
 
     Value *elements;
     size_t len;

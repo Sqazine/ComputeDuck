@@ -6,7 +6,8 @@
 #include "Utils.h"
 #include "Object.h"
 #include "Allocator.h"
-
+#include "HashTable.h"
+// ++ 新增内容
 class COMPUTEDUCK_API BuiltinManager
 {
 public:
@@ -34,3 +35,4 @@ private:
 
     HashTable m_BuiltinObjectsTable;
 };
+// -- 新增内容
