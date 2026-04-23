@@ -200,13 +200,14 @@ void VM::Execute()
             PUSH(*GET_GLOBAL_VARIABLE_SLOT(index));
             break;
         }
-
-        case OP_PRINT:
-        {
-            auto value = POP();
-            std::cout << value.Stringify() << std::endl;
-            break;
-        }
+        // ++ 删除内容
+        //case OP_PRINT:
+        //{
+        //    auto value = POP();
+        //    std::cout << value.Stringify() << std::endl;
+        //    break;
+        //}
+        // -- 删除内容
         case OP_DEF_LOCAL:
         {
             auto index = *frame->ip++;
