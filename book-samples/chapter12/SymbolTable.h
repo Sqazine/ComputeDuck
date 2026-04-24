@@ -9,14 +9,24 @@ enum class SymbolScope
     GLOBAL,
     LOCAL,
     BUILTIN,
+    // ++ 新增内容
+    UPVALUE,
+    // -- 新增内容
 };
 
 struct Symbol
 {
     std::string_view name;
     SymbolScope scope{SymbolScope::GLOBAL};
-    int32_t scopeDepth{0};
-    int32_t index{-1};
+    // ++ 修改内容
+    // int32_t scopeDepth{0};
+    // int32_t index{-1};
+    uint8_t index{0};
+    uint8_t scopeDepth{0};
+    // -- 修改内容
+    // ++ 新增内容
+    uint8_t upvalueIndex{0};
+    // -- 新增内容
 };
 
 class SymbolTable
@@ -47,7 +57,6 @@ public:
 
         Symbol symbol;
         symbol.name = name;
-
         symbol.scopeDepth = m_ScopeDepth;
         if (m_ScopeDepth == 0)
         {
@@ -96,22 +105,50 @@ public:
         {
             if (!GetUpper()->Resolve(name, symbol))
                 return false;
-            if (symbol.scope == SymbolScope::GLOBAL)
+            // ++ 修改内容
+            // if (symbol.scope == SymbolScope::GLOBAL)
+            //     return true;
+             if (symbol.scope == SymbolScope::GLOBAL || symbol.scope == SymbolScope::BUILTIN)
                 return true;
+            // -- 修改内容
+
+            // ++ 新增内容
+            if (m_UpvalueCount == UPVALUE_COUNT)
+                ASSERT("Too many upvalue definitions, max is %d", UPVALUE_COUNT);
+
+            symbol.scope = SymbolScope::UPVALUE;
+            symbol.upvalueIndex = m_UpvalueCount;
+            m_UpvalueList[m_UpvalueCount++] = symbol;
+            return true;
+            // -- 新增内容
         }
 
         return false;
     }
 
-    uint8_t GetVarCount() const
-    {
-        return m_VarCount;
-    }
+    // ++ 删除内容
+    // uint8_t GetVarCount() const
+    // {
+    //     return m_VarCount;
+    // }
+    // -- 删除内容
 
     uint8_t GetLocalVarCount() const
     {
         return m_LocalVarCount;
     }
+
+    // ++ 新增内容
+    uint8_t GetUpvalueCount() const
+    {
+        return m_UpvalueCount;
+    }
+
+    std::array<Symbol, UPVALUE_COUNT> GetUpvalueList() const
+    {
+        return m_UpvalueList;
+    }
+    // -- 新增内容
 
     SymbolTable *GetUpper() const
     {
@@ -141,6 +178,13 @@ private:
             if (m_VarList[i].name == name)
                 return &m_VarList[i];
         }
+        // ++ 新增内容
+        for (uint8_t i = 0; i <= m_UpvalueCount; ++i)
+        {
+            if (m_UpvalueList[i].name == name)
+                return &m_UpvalueList[i];
+        }
+        // -- 新增内容
         return nullptr;
     }
 
@@ -148,8 +192,12 @@ private:
 
     std::array<Symbol, UINT8_COUNT> m_VarList;
     uint8_t m_VarCount{0};
-
     uint8_t m_LocalVarCount{0};
     uint8_t m_GlobalVarCount{0};
     uint8_t m_ScopeDepth{0};
+
+    // ++ 新增内容
+    std::array<Symbol, UPVALUE_COUNT> m_UpvalueList;
+    uint8_t m_UpvalueCount{0};
+    // -- 新增内容
 };

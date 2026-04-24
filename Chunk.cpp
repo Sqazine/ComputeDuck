@@ -138,9 +138,10 @@ std::string Chunk::OpCodeStringify(const OpCodeList &opCodeList)
             break;
         case OP_CLOSURE:
         {
-            cout << std::format("{:08}\tOP_CLOSURE\t{}\t{}\n", curAddress,opCodeList[++i], opCodeList[++i]);
-            for (uint8_t j = 0; j < opCodeList[i]; ++j)
-                cout << std::format("{:08}\t|\t{}\t{}\n", curAddress,opCodeList[++i], opCodeList[++i]);
+            cout << std::format("{:08}\tOP_CLOSURE\t{}\t{}\n", curAddress, opCodeList[++i], opCodeList[++i]);
+            auto upvalueCount = opCodeList[i];
+            for (uint8_t j = 0; j < upvalueCount; ++j)
+                cout << std::format("\t\t\t|\t{}\t{}\n", opCodeList[++i], opCodeList[++i]);
             break;
         }
         case OP_FUNCTION_CALL:

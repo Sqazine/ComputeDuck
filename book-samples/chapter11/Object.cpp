@@ -39,7 +39,13 @@ std::string ObjectStringify(Object *object
 #endif
         return result;
     }
-    
+    // ++ 新增内容
+    case ObjectType::BUILTIN:
+    {
+        std::string vStr = "(0x" + PointerAddressToString(object) + ")";
+        return "Builtin :" + vStr;
+    }
+    // -- 新增内容
     default:
         ASSERT("Unknown object type");
     }
@@ -67,7 +73,14 @@ bool IsObjectEqual(Object *left, Object *right)
                 return false;
         return true;
     }
-    
+    // ++ 新增内容
+    case ObjectType::BUILTIN:
+    {
+        auto leftFn = TO_BUILTIN_OBJ(left)->Get();
+        auto rightFn = TO_BUILTIN_OBJ(right)->Get();
+       return leftFn.target<BuiltinFn>() == rightFn.target<BuiltinFn>();
+    }
+    // -- 新增内容
     default:
         ASSERT("Unknown object type");
         return false;

@@ -110,7 +110,6 @@ std::string Chunk::OpCodeStringify(const OpCodeList &opCodeList)
         case OP_JUMP_IF_FALSE:
             cout << std::format("{:08}\tOP_JUMP_IF_FALSE\t{}\n", curAddress, opCodeList[++i]);
             break;
-        
         case OP_RETURN:
             cout << std::format("{:08}\tOP_RETURN\t{}\n", curAddress, opCodeList[++i]);
             break;
@@ -120,6 +119,22 @@ std::string Chunk::OpCodeStringify(const OpCodeList &opCodeList)
         case OP_GET_BUILTIN:
             cout << std::format("{:08}\tOP_GET_BUILTIN\t{}\n", curAddress, opCodeList[++i]);
             break;
+        // ++ 新增内容
+        case OP_CLOSURE:
+        {
+            cout << std::format("{:08}\tOP_CLOSURE\t{}\t{}\n", curAddress, opCodeList[++i], opCodeList[++i]);
+            auto upvalueCount = opCodeList[i];
+            for (uint8_t j = 0; j < upvalueCount; ++j)
+                cout << std::format("\t\t\t|\t{}\t{}\n", opCodeList[++i], opCodeList[++i]);
+            break;
+        }
+        case OP_GET_UPVALUE:
+            cout << std::format("{:08}\tOP_GET_UPVALUE\t{}\n", curAddress, opCodeList[++i]);
+            break;
+        case OP_SET_UPVALUE:
+            cout << std::format("{:08}\tOP_SET_UPVALUE\t{}\n", curAddress, opCodeList[++i]);
+            break;
+        // -- 新增内容
         default:
             break;
         }

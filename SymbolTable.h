@@ -50,7 +50,6 @@ public:
 
         Symbol symbol;
         
-        symbol.scopeDepth = m_ScopeDepth;
         if (m_ScopeDepth == 0)
         {
             symbol.scope = SymbolScope::GLOBAL;

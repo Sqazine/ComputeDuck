@@ -47,6 +47,10 @@ private:
 
     uint32_t Emit(int16_t opcode);
     uint32_t EmitConstant(const Value &value);
+    // ++ 新增内容
+    uint16_t AddConstant(const Value &value);
+    uint32_t EmitClosure(FunctionObject *fn);
+    // -- 新增内容
 
     void DefineSymbol(const Symbol &symbol);
     void LoadSymbol(const Symbol &symbol);
