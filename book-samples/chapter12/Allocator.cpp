@@ -81,3 +81,40 @@ Value *Allocator::GetLocalVariableSlot(int16_t index)
 {
     return PeekCallFrame(1)->slot + index;
 }
+
+// ++ 新增内容
+UpvalueObject *Allocator::CaptureUpvalue(int16_t index, int16_t scopeDepth)
+{
+    Value* local = (m_CallFrameStack + scopeDepth)->slot + index;
+    UpvalueObject *prevUpvalue = nullptr;
+    UpvalueObject *upvalue = m_OpenUpvalues;
+    while (upvalue != nullptr && upvalue->location > local)
+    {
+        prevUpvalue = upvalue;
+        upvalue = upvalue->nextUpvalue;
+    }
+
+    if (upvalue != nullptr && upvalue->location == local)
+        return upvalue;
+
+    auto createdUpvalue = ALLOCATE_OBJECT(UpvalueObject, local);
+    createdUpvalue->nextUpvalue = upvalue;
+
+    if (prevUpvalue == nullptr)
+        m_OpenUpvalues = createdUpvalue;
+    else
+        prevUpvalue->nextUpvalue = createdUpvalue;
+
+    return createdUpvalue;
+}
+void Allocator::ClosedUpvalues(Value *last)
+{
+    while (m_OpenUpvalues != nullptr && m_OpenUpvalues->location >= last)
+    {
+        UpvalueObject *upvalue = m_OpenUpvalues;
+        upvalue->closed = *upvalue->location;
+        upvalue->location = &upvalue->closed;
+        m_OpenUpvalues = upvalue->nextUpvalue;
+    }
+}
+// -- 新增内容

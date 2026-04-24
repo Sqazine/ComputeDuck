@@ -327,7 +327,10 @@ void Compiler::CompileFunctionExpr(FunctionExpr *expr)
 
     auto fn = ALLOCATE_OBJECT(FunctionObject, chunk, localVarCount, parameterCount);
 
-    EmitConstant(fn);
+    // ++ 修改内容
+    // EmitConstant(fn);
+    EmitClosure(fn);
+    // -- 修改内容
 
     auto tmpTable = m_SymbolTable;
     m_SymbolTable = m_SymbolTable->GetUpper();
@@ -358,13 +361,44 @@ uint32_t Compiler::Emit(int16_t opcode)
 
 uint32_t Compiler::EmitConstant(const Value &value)
 {
-    CurChunk().constants.emplace_back(value);
-    auto pos = static_cast<int16_t>(CurChunk().constants.size() - 1);
+    // ++ 修改内容
+    // CurChunk().constants.emplace_back(value);
+    // auto pos = static_cast<int16_t>(CurChunk().constants.size() - 1);
+    auto pos = AddConstant(value);
+    // -- 修改内容
 
     Emit(OP_CONSTANT);
     Emit(pos);
     return static_cast<uint32_t>(CurChunk().opCodeList.size() - 1);
 }
+
+// ++ 新增内容
+uint16_t Compiler::AddConstant(const Value &value)
+{
+    CurChunk().constants.emplace_back(value);
+    auto pos = static_cast<int16_t>(CurChunk().constants.size() - 1);
+    return pos;
+}
+
+uint32_t Compiler::EmitClosure(FunctionObject *fn)
+{
+    auto upvalueCount = m_SymbolTable->GetUpvalueCount();
+
+    uint32_t pos = AddConstant(fn);
+    Emit(OP_CLOSURE);
+    Emit(pos);
+    Emit(upvalueCount);
+
+    for (uint8_t i = 0; i < upvalueCount; ++i)
+    {
+        auto upvalue = m_SymbolTable->GetUpvalueList()[i];
+        Emit(upvalue.index);
+        Emit(upvalue.scopeDepth);
+    }
+
+    return static_cast<uint32_t>(CurChunk().opCodeList.size() - 1);
+}
+// -- 新增内容
 
 void Compiler::DefineSymbol(const Symbol &symbol)
 {
@@ -395,6 +429,12 @@ void Compiler::LoadSymbol(const Symbol &symbol)
         Emit(OP_GET_LOCAL);
         Emit(symbol.index);
         break;
+    // ++ 新增内容
+    case SymbolScope::UPVALUE:
+        Emit(OP_GET_UPVALUE);
+        Emit(symbol.upvalueIndex);
+        break;
+    // -- 新增内容
     case SymbolScope::BUILTIN:
     {
         CurChunk().constants.emplace_back(ALLOCATE_OBJECT(StrObject, symbol.name.data()));
@@ -420,6 +460,12 @@ void Compiler::StoreSymbol(const Symbol &symbol)
         Emit(OP_SET_LOCAL);
         Emit(symbol.index);
         break;
+    // ++ 新增内容
+    case SymbolScope::UPVALUE:
+        Emit(OP_SET_UPVALUE);
+        Emit(symbol.upvalueIndex);
+        break;
+    // -- 新增内容
     default:
         break;
     }

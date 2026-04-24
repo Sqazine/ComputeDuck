@@ -36,6 +36,11 @@ enum OpCode
     OP_FUNCTION_CALL,
     OP_RETURN,
     OP_GET_BUILTIN,
+    // ++ 新增内容
+    OP_CLOSURE,
+    OP_GET_UPVALUE,
+    OP_SET_UPVALUE,
+    // -- 新增内容
 };
 
 using OpCodeList = std::vector<int16_t>;
@@ -55,6 +60,7 @@ public:
     OpCodeList opCodeList;
 
     std::vector<Value> constants;
+
 private:
     std::string OpCodeStringify(const OpCodeList &opCodeList);
 };

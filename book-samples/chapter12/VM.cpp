@@ -5,11 +5,18 @@
 void VM::Run(FunctionObject *fn)
 {
     Allocator::GetInstance()->ResetStatus();
-    
-    auto mainCallFrame = CallFrame(fn, GET_STACK_TOP());
+
+    // ++ 新增内容
+    auto closure = ALLOCATE_OBJECT(ClosureObject, fn);
+    // -- 新增内容
+    // ++ 修改内容
+    // auto mainCallFrame = CallFrame(fn, GET_STACK_TOP());
+    //PUSH_CALL_FRAME(mainCallFrame);
+    //SET_STACK_TOP(mainCallFrame.slot + fn->localVarCount);
+    auto mainCallFrame = CallFrame(closure, GET_STACK_TOP());
     PUSH_CALL_FRAME(mainCallFrame);
-    SET_STACK_TOP(mainCallFrame.slot + fn->localVarCount);
-    
+    SET_STACK_TOP(mainCallFrame.slot + closure->function->localVarCount);
+    // -- 修改内容
 
     Execute();
 }
@@ -22,7 +29,7 @@ void VM::Execute()
 
         if (frame->IsEnd())
             return;
-        
+
         int32_t instruction = *frame->ip++;
 
         switch (instruction)
@@ -30,7 +37,10 @@ void VM::Execute()
         case OP_CONSTANT:
         {
             auto idx = *frame->ip++;
-            auto value = frame->function->chunk.constants[idx];
+            // ++ 修改内容
+            // auto value = frame->function->chunk.constants[idx];
+            auto value = frame->closure->function->chunk.constants[idx];
+            // -- 修改内容
             PUSH(value);
             break;
         }
@@ -230,13 +240,19 @@ void VM::Execute()
             if (!IS_BOOL_VALUE(value))
                 ASSERT("The if condition not a boolean value");
             if (!TO_BOOL_VALUE(value))
-                frame->ip = frame->function->chunk.opCodeList.data() + address;
+            // ++ 修改内容
+                // frame->ip = frame->function->chunk.opCodeList.data() + address;
+                frame->ip = frame->closure->function->chunk.opCodeList.data() + address;
+            // -- 修改内容
             break;
         }
         case OP_JUMP:
         {
             auto address = *frame->ip++;
-            frame->ip = frame->function->chunk.opCodeList.data() + address;
+            // ++ 修改内容
+            // frame->ip = frame->function->chunk.opCodeList.data() + address;
+            frame->ip = frame->closure->function->chunk.opCodeList.data() + address;
+            // -- 修改内容
             break;
         }
         case OP_RETURN:
@@ -248,6 +264,10 @@ void VM::Execute()
             {
                 value = POP();
             }
+
+            // ++ 新增内容
+            Allocator::GetInstance()->ClosedUpvalues(frame->slot);
+            // -- 新增内容
 
             auto callFrame = POP_CALL_FRAME();
 
@@ -263,7 +283,10 @@ void VM::Execute()
         case OP_GET_BUILTIN:
         {
             auto idx = *frame->ip++;
-            auto name = TO_STR_VALUE(frame->function->chunk.constants[idx]);
+            // ++ 修改内容
+            // auto name = TO_STR_VALUE(frame->function->chunk.constants[idx]);
+            auto name = TO_STR_VALUE(frame->closure->function->chunk.constants[idx]);
+            // -- 修改内容
             auto builtinObj = BuiltinManager::GetInstance()->FindBuiltinObject(name);
             PUSH(builtinObj);
             break;
@@ -273,16 +296,27 @@ void VM::Execute()
             auto argCount = (uint8_t)*frame->ip++;
 
             auto value = *(GET_STACK_TOP() - argCount - 1);
-            if (IS_FUNCTION_VALUE(value))
+            // ++ 新增内容
+            // if (IS_FUNCTION_VALUE(value))
+            if (IS_CLOSURE_VALUE(value))
+            // -- 新增内容
             {
-                auto function = TO_FUNCTION_VALUE(value);
+                // ++ 修改内容
+                // auto function = TO_FUNCTION_VALUE(value);
+                // if (argCount != function->parameterCount)
+                //     ASSERT("Non matching function parameters for calling arguments,parameter count:%d,argument count:%d", function->parameterCount, argCount);
+                // auto callFrame = CallFrame(function, GET_STACK_TOP() - argCount);
+                // PUSH_CALL_FRAME(callFrame);
+                // SET_STACK_TOP(callFrame.slot + function->localVarCount);
 
-                if (argCount != function->parameterCount)
-                    ASSERT("Non matching function parameters for calling arguments,parameter count:%d,argument count:%d", function->parameterCount, argCount);
-
-                auto callFrame = CallFrame(function, GET_STACK_TOP() - argCount);
+                auto closure = TO_CLOSURE_VALUE(value);
+                if (argCount != closure->function->parameterCount)
+                    ASSERT("Non matching function parameters for calling arguments,parameter count:%d,argument count:%d", closure->function->parameterCount, argCount);
+                auto callFrame = CallFrame(closure, GET_STACK_TOP() - argCount);
                 PUSH_CALL_FRAME(callFrame);
-                SET_STACK_TOP(callFrame.slot + function->localVarCount);
+                SET_STACK_TOP(callFrame.slot + closure->function->localVarCount);
+
+                // -- 修改内容
             }
             else if (IS_BUILTIN_VALUE(value))
             {
@@ -302,7 +336,43 @@ void VM::Execute()
                 ASSERT("Calling not a function");
             break;
         }
-        
+        // ++ 新增内容
+        case OP_CLOSURE:
+        {
+            auto idx = *frame->ip++;
+            auto upvalueCount = *frame->ip++;
+            auto function = TO_FUNCTION_VALUE(frame->closure->function->chunk.constants[idx]);
+            auto closure = ALLOCATE_OBJECT(ClosureObject, function);
+            PUSH(closure);
+
+            for (uint8_t i = 0; i < upvalueCount; ++i)
+            {
+                auto index = *frame->ip++;
+                auto scopeDepth = *frame->ip++;
+
+                auto upvalue = Allocator::GetInstance()->CaptureUpvalue(index, scopeDepth);
+
+                closure->upvalues[i] = upvalue;
+            }
+
+            break;
+        }
+        case OP_GET_UPVALUE:
+        {
+            auto index = *frame->ip++;
+            auto upvalue = frame->closure->upvalues[index];
+            PUSH(*upvalue->location);
+            break;
+        }
+        case OP_SET_UPVALUE:
+        {
+            auto value = POP();
+            auto index = *frame->ip++;
+            auto slot = frame->closure->upvalues[index]->location;
+            *slot = value;
+            break;
+        }
+        // -- 新增内容
         default:
             break;
         }

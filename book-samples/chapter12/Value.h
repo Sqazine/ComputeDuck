@@ -9,8 +9,9 @@
 #define IS_STR_VALUE(v) (IS_OBJECT_VALUE(v) && IS_STR_OBJ((v).object))
 #define IS_ARRAY_VALUE(v) (IS_OBJECT_VALUE(v) && IS_ARRAY_OBJ((v).object))
 #define IS_FUNCTION_VALUE(v) (IS_OBJECT_VALUE(v) && IS_FUNCTION_OBJ((v).object))
-// ++ 新增内容
 #define IS_BUILTIN_VALUE(v) (IS_OBJECT_VALUE(v) && IS_BUILTIN_OBJ((v).object))
+// ++ 新增内容
+#define IS_CLOSURE_VALUE(v) (IS_OBJECT_VALUE(v) && IS_CLOSURE_OBJ((v).object))
 // -- 新增内容
 
 #define TO_NUM_VALUE(v) ((v).stored)
@@ -19,8 +20,9 @@
 #define TO_STR_VALUE(v) (TO_STR_OBJ((v).object))
 #define TO_ARRAY_VALUE(v) (TO_ARRAY_OBJ((v).object))
 #define TO_FUNCTION_VALUE(v) (TO_FUNCTION_OBJ((v).object))
-// ++ 新增内容
 #define TO_BUILTIN_VALUE(v) (TO_BUILTIN_OBJ((v).object))
+// ++ 新增内容
+#define TO_CLOSURE_VALUE(v) (TO_CLOSURE_OBJ((v).object))
 // -- 新增内容
 
 enum ValueType : uint8_t

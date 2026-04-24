@@ -21,8 +21,15 @@
 
 #define REGISTER_BUILTIN_FN(x) BuiltinManager::GetInstance()->Register<BuiltinFn>(ALLOCATE_OBJECT(StrObject, #x), cd_builtin_fn_##x)
 
-#define UINT8_COUNT (UINT8_MAX + 1)
-constexpr uint32_t STACK_COUNT = 512;
+// ++ 修改内容
+// #define UINT8_COUNT (UINT8_MAX + 1)
+// constexpr uint32_t STACK_COUNT = 512;
+constexpr uint32_t UINT8_COUNT = UINT8_MAX + 1; // 256
+constexpr uint32_t STACK_COUNT = UINT8_COUNT * 2; // 512
+// -- 修改内容
+// ++ 新增内容
+constexpr uint32_t UPVALUE_COUNT = UINT8_COUNT / 8; // 16
+// -- 新增内容
 
 #define SAFE_DELETE(x)   \
     do                   \

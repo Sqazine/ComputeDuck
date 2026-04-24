@@ -11,11 +11,19 @@
 #define TO_ARRAY_OBJ(obj) (static_cast<ArrayObject *>(obj))
 #define TO_FUNCTION_OBJ(obj) (static_cast<FunctionObject *>(obj))
 #define TO_BUILTIN_OBJ(obj) (static_cast<BuiltinObject *>(obj))
+// ++ 新增内容
+#define TO_UPVALUE_OBJ(obj) (static_cast<UpvalueObject *>(obj))
+#define TO_CLOSURE_OBJ(obj) (static_cast<ClosureObject *>(obj))
+// -- 新增内容
 
 #define IS_STR_OBJ(obj) (obj->type == ObjectType::STR)
 #define IS_ARRAY_OBJ(obj) (obj->type == ObjectType::ARRAY)
 #define IS_FUNCTION_OBJ(obj) (obj->type == ObjectType::FUNCTION)
 #define IS_BUILTIN_OBJ(obj) (obj->type == ObjectType::BUILTIN)
+// ++ 新增内容
+#define IS_UPVALUE_OBJ(obj) (obj->type == ObjectType::UPVALUE)
+#define IS_CLOSURE_OBJ(obj) (obj->type == ObjectType::CLOSURE)
+// -- 新增内容
 
 enum ObjectType : uint8_t
 {
@@ -23,6 +31,10 @@ enum ObjectType : uint8_t
     ARRAY,
     FUNCTION,
     BUILTIN,
+    // ++ 新增内容
+    UPVALUE,
+    CLOSURE,
+    // -- 新增内容
 };
 
 struct Object
@@ -93,6 +105,30 @@ struct BuiltinObject : public Object
 
     BuiltinFn data;
 };
+
+// ++ 新增内容
+struct UpvalueObject : public Object
+{
+    UpvalueObject(Value *slot) : Object(ObjectType::UPVALUE), location(slot) {}
+    ~UpvalueObject() = default;
+
+    Value *location;
+    Value closed;
+    UpvalueObject *nextUpvalue{nullptr};
+};
+
+struct ClosureObject : public Object
+{
+    ClosureObject(FunctionObject *fn) : Object(ObjectType::CLOSURE), function(fn)
+    {
+        memset(upvalues, 0, sizeof(UpvalueObject *) * UPVALUE_COUNT);
+    }
+    ~ClosureObject() = default;
+
+    FunctionObject *function;
+    UpvalueObject *upvalues[UPVALUE_COUNT]{};
+};
+// -- 新增内容
 
 COMPUTEDUCK_API std::string ObjectStringify(Object *object
 
