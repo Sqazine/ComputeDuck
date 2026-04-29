@@ -18,24 +18,18 @@ enum class AstType
 	INDEX,
 	UNARY,
 	BINARY,
-
 	EXPR,
-
-	PRINT,
-	
 	SCOPE,
-	
 	IF,
-	
-	
-	
 	WHILE,
-	
-	
 	FUNCTION,
 	FUNCTION_CALL,
 	RETURN,
-	
+
+	// ++ 新增内容
+	STRUCT,
+	STRUCT_CALL,
+	// -- 新增内容
 };
 
 struct AstNode
@@ -348,3 +342,58 @@ struct ReturnStmt : public Stmt
 	Expr *expr;
 };
 
+// ++ 新增内容
+struct StructExpr : public Expr
+{
+	StructExpr() : Expr(AstType::STRUCT) {}
+	StructExpr(const std::unordered_map<IdentifierExpr *, Expr *> &members) : Expr(AstType::STRUCT), members(members) {}
+	~StructExpr() override
+	{
+		for (auto [k, v] : members)
+			SAFE_DELETE(v);
+		std::unordered_map<IdentifierExpr *, Expr *>().swap(members);
+	}
+
+	std::string Stringify() override
+	{
+		std::string result = "{";
+		for (const auto &[k, v] : members)
+			result += k->Stringify() + ":" + v->Stringify() + ",\n";
+		result += "}";
+		return result;
+	}
+
+	std::unordered_map<IdentifierExpr *, Expr *> members;
+};
+
+struct StructStmt : public Stmt
+{
+	StructStmt() : Stmt(AstType::STRUCT), body(new StructExpr()) {}
+	StructStmt(std::string_view name, StructExpr *body) : Stmt(AstType::STRUCT), name(name), body(body) {}
+	~StructStmt() override { SAFE_DELETE(body); }
+
+	std::string Stringify() override
+	{
+		return "struct " + name + body->Stringify();
+	}
+
+	std::string name;
+	StructExpr *body;
+};
+
+struct StructCallExpr : public Expr
+{
+	StructCallExpr() : Expr(AstType::STRUCT_CALL), callee(nullptr), callMember(nullptr) {}
+	StructCallExpr(Expr *callee, Expr *callMember) : Expr(AstType::STRUCT_CALL), callee(callee), callMember(callMember) {}
+	~StructCallExpr() override
+	{
+		SAFE_DELETE(callee);
+		SAFE_DELETE(callMember);
+	}
+
+	std::string Stringify() override { return callee->Stringify() + "." + callMember->Stringify(); }
+
+	Expr *callee;
+	Expr *callMember;
+};
+// -- 新增内容

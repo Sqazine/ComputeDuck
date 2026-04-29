@@ -10,15 +10,17 @@ enum class TokenType
     STRING,
     IDENTIFIER,
     COMMA,		   // ,
+    // ++ 新增内容
+    DOT,		   // .
+    COLON,		   // :
+    // -- 新增内容
     SEMICOLON,     // ;
     LPAREN,        // (
     RPAREN,        // )
     LBRACKET,      // [
     RBRACKET,      // ]
-    
     LBRACE,		   // {
     RBRACE,		   // }
-    
     PLUS,          // +
     MINUS,         // -
     ASTERISK,      // *
@@ -45,6 +47,9 @@ enum class TokenType
     WHILE,		   // while
     FUNCTION,	   // function
     RETURN,		   // return
+    // ++ 新增内容
+    STRUCT,		   // struct
+    // -- 新增内容
     END
 };
 

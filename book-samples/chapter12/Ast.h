@@ -18,24 +18,13 @@ enum class AstType
 	INDEX,
 	UNARY,
 	BINARY,
-
 	EXPR,
-
-	PRINT,
-	
 	SCOPE,
-	
 	IF,
-	
-	
-	
 	WHILE,
-	
-	
 	FUNCTION,
 	FUNCTION_CALL,
 	RETURN,
-	
 };
 
 struct AstNode

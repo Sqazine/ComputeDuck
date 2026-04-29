@@ -432,7 +432,7 @@ void VM::Execute()
                 Value *value = structInstance->members->Get(TO_STR_VALUE(memberName));
                 if (!value)
                     ASSERT("no member named:(%s) in struct instance:%s", memberName.Stringify().c_str(), instance.Stringify().c_str());
-                PUSH(value);
+                PUSH(*value);
             }
             break;
         }

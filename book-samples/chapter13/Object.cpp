@@ -55,6 +55,25 @@ std::string ObjectStringify(Object *object
         std::string vStr = "(0x" + PointerAddressToString(object) + ")";
         return "Builtin :" + vStr;
     }
+    // ++ 新增内容
+    case ObjectType::STRUCT:
+    {
+        auto structObj = TO_STRUCT_OBJ(object);
+        std::string result = "struct instance(0x" + PointerAddressToString(object) + "):\n{\n";
+        for (size_t i = 0; i < structObj->members->GetCapacity(); ++i)
+        {
+            if (structObj->members->IsValid(i))
+            {
+                auto key = structObj->members->GetEntries()[i].key;
+                auto value = structObj->members->GetEntries()[i].value;
+                result += ObjectStringify(key) + ":" + value.Stringify() + "\n";
+            }
+        }
+        result = result.substr(0, result.size() - 1);
+        result += "\n}\n";
+        return result;
+    }
+    // -- 新增内容
     default:
         ASSERT("Unknown object type");
     }
@@ -107,6 +126,10 @@ bool IsObjectEqual(Object *left, Object *right)
         }
         return true;
     }
+    // ++ 新增内容
+    case ObjectType::STRUCT:
+        return TO_STRUCT_OBJ(left)->members == TO_STRUCT_OBJ(right)->members;
+    // -- 新增内容
     default:
         ASSERT("Unknown object type");
         return false;

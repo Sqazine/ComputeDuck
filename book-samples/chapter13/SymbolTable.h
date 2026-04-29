@@ -15,6 +15,9 @@ enum class SymbolScope
 struct Symbol
 {
     std::string_view name;
+    // ++ 新增内容
+    bool isStructSymbol{false};
+    // -- 新增内容
     SymbolScope scope{SymbolScope::GLOBAL};
     uint8_t index{0};
     uint8_t scopeDepth{0};
@@ -38,7 +41,10 @@ public:
         m_Upper = nullptr;
     }
 
-    Symbol Define(std::string_view name)
+    // ++ 修改内容
+    // Symbol Define(std::string_view name)
+    Symbol Define(std::string_view name, bool isStructSymbol = false)
+    // -- 修改内容
     {
         if (m_VarCount == UINT8_COUNT)
             ASSERT("Too many variable definitions, max is %d", UINT8_COUNT);
@@ -50,6 +56,9 @@ public:
         Symbol symbol;
         symbol.name = name;
         symbol.scopeDepth = m_ScopeDepth;
+        // ++ 新增内容
+        symbol.isStructSymbol = isStructSymbol;
+        // -- 新增内容
         if (m_ScopeDepth == 0)
         {
             symbol.scope = SymbolScope::GLOBAL;

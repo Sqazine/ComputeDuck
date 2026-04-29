@@ -39,6 +39,11 @@ enum OpCode
     OP_CLOSURE,
     OP_GET_UPVALUE,
     OP_SET_UPVALUE,
+    // ++ 新增内容
+    OP_STRUCT,
+    OP_GET_STRUCT,
+    OP_SET_STRUCT,
+    // -- 新增内容
 };
 
 using OpCodeList = std::vector<int16_t>;

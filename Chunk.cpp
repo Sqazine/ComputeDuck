@@ -148,7 +148,7 @@ std::string Chunk::OpCodeStringify(const OpCodeList &opCodeList)
             cout << std::format("{:08}\tOP_FUNCTION_CALL\t{}\n", curAddress,opCodeList[++i]);
             break;
         case OP_GET_BUILTIN:
-            cout << std::format("{:08}\tOP_GET_BUILTIN\t'{}'\n", curAddress,constants[opCodeList[++i]].Stringify());
+            cout << std::format("{:08}\tOP_GET_BUILTIN\t{}\n", curAddress,constants[opCodeList[++i]].Stringify());
             break;
         case OP_STRUCT:
             cout << std::format("{:08}\tOP_STRUCT\t{}\n", curAddress,opCodeList[++i]);

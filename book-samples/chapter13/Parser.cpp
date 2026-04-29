@@ -14,6 +14,9 @@ std::unordered_map<TokenType, UnaryFn> Parser::m_UnaryFunctions =
 		{TokenType::FUNCTION, &Parser::ParseFunctionExpr},
 		{TokenType::LBRACKET, &Parser::ParseArrayExpr},
 		{TokenType::TILDE, &Parser::ParseUnaryExpr},
+		// ++ 新增内容
+		{TokenType::LBRACE, &Parser::ParseStructExpr},
+		// -- 新增内容
 };
 
 std::unordered_map<TokenType, BinaryFn> Parser::m_BinaryFunctions =
@@ -29,15 +32,16 @@ std::unordered_map<TokenType, BinaryFn> Parser::m_BinaryFunctions =
 		{TokenType::MINUS, &Parser::ParseBinaryExpr},
 		{TokenType::ASTERISK, &Parser::ParseBinaryExpr},
 		{TokenType::SLASH, &Parser::ParseBinaryExpr},
-		
 		{TokenType::LPAREN, &Parser::ParseFunctionCallExpr},
-		
 		{TokenType::LBRACKET, &Parser::ParseIndexExpr},
 		{TokenType::AND, &Parser::ParseBinaryExpr},
 		{TokenType::OR, &Parser::ParseBinaryExpr},
 		{TokenType::AMPERSAND, &Parser::ParseBinaryExpr},
 		{TokenType::VBAR, &Parser::ParseBinaryExpr},
 		{TokenType::CARET, &Parser::ParseBinaryExpr},
+		// ++ 新增内容
+		{TokenType::DOT, &Parser::ParseStructCallExpr},
+		// -- 新增内容
 };
 
 std::unordered_map<TokenType, Precedence> Parser::m_Precedence =
@@ -54,14 +58,15 @@ std::unordered_map<TokenType, Precedence> Parser::m_Precedence =
 		{TokenType::ASTERISK, Precedence::MUL_DIV},
 		{TokenType::SLASH, Precedence::MUL_DIV},
 		{TokenType::LBRACKET, Precedence::BINARY},
-		
 		{TokenType::LPAREN, Precedence::BINARY},
-		
 		{TokenType::AND, Precedence::AND},
 		{TokenType::OR, Precedence::OR},
 		{TokenType::AMPERSAND, Precedence::BIT_AND},
 		{TokenType::VBAR, Precedence::BIT_OR},
 		{TokenType::CARET, Precedence::BIT_XOR},
+		// ++ 新增内容
+		{TokenType::DOT, Precedence::BINARY},
+		// -- 新增内容
 };
 
 Parser::Parser()
@@ -104,6 +109,10 @@ Stmt *Parser::ParseStmt()
 		return ParseReturnStmt();
 	else if (IsMatchCurToken(TokenType::WHILE))
 		return ParseWhileStmt();
+	// ++ 新增内容
+	else if (IsMatchCurToken(TokenType::STRUCT))
+		return ParseStructStmt();
+	// -- 新增内容
 	else
 		return ParseExprStmt();
 }
@@ -165,8 +174,6 @@ Stmt *Parser::ParseIfStmt()
 	return ifStmt;
 }
 
-
-
 Stmt *Parser::ParseWhileStmt()
 {
 	Consume(TokenType::WHILE, "Expect 'while' keyword.");
@@ -183,6 +190,34 @@ Stmt *Parser::ParseWhileStmt()
 	return whileStmt;
 }
 
+// ++ 新增内容
+Stmt *Parser::ParseStructStmt()
+{
+	Consume(TokenType::STRUCT, "Expect 'struct' keyword");
+
+	auto structStmt = new StructStmt();
+
+	structStmt->name = ParseIdentifierExpr()->Stringify();
+
+	Consume(TokenType::LBRACE, "Expect '{'.");
+	while (!IsMatchCurToken(TokenType::RBRACE))
+	{
+		auto k = (IdentifierExpr *)ParseIdentifierExpr();
+		Expr *v = new NilExpr();
+		if (IsMatchCurToken(TokenType::COLON))
+		{
+			Consume(TokenType::COLON, "Expect ':'");
+			v = ParseExpr();
+		}
+		IsMatchCurTokenAndStepOnce(TokenType::COMMA);
+		structStmt->body->members[k] = v;
+	}
+
+	Consume(TokenType::RBRACE, "Expect '}'.");
+
+	return structStmt;
+}
+// -- 新增内容
 
 Expr *Parser::ParseExpr(Precedence precedence)
 {
@@ -344,6 +379,38 @@ Expr *Parser::ParseIndexExpr(Expr *unaryExpr)
 	Consume(TokenType::RBRACKET, "Expect ']'.");
 	return indexExpr;
 }
+
+// ++ 新增内容
+Expr *Parser::ParseStructExpr()
+{
+	std::unordered_map<IdentifierExpr *, Expr *> memPairs;
+	Consume(TokenType::LBRACE, "Expect '{'.");
+	while (!IsMatchCurToken(TokenType::RBRACE))
+	{
+		auto k = (IdentifierExpr *)ParseIdentifierExpr();
+		Expr *v = new NilExpr();
+		if (IsMatchCurToken(TokenType::COLON))
+		{
+			Consume(TokenType::COLON, "Expect ':'");
+			v = ParseExpr();
+		}
+		IsMatchCurTokenAndStepOnce(TokenType::COMMA);
+		memPairs[k] = v;
+	}
+
+	Consume(TokenType::RBRACE, "Expect '}'.");
+	return new StructExpr(memPairs);
+}
+
+Expr *Parser::ParseStructCallExpr(Expr *prefixExpr)
+{
+	Consume(TokenType::DOT, "Expect '.'.");
+	auto structCallExpr = new StructCallExpr();
+	structCallExpr->callee = prefixExpr;
+	structCallExpr->callMember = ParseExpr(Precedence::BINARY);
+	return structCallExpr;
+}
+// -- 新增内容
 
 Token Parser::GetCurToken()
 {
