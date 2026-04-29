@@ -13,6 +13,9 @@ const std::unordered_map<std::string, TokenType> keywords =
         {"function", TokenType::FUNCTION},
         {"return", TokenType::RETURN},
         {"while", TokenType::WHILE},
+        // ++ 新增内容
+        {"struct", TokenType::STRUCT},
+        // -- 新增内容
 };
 
 Lexer::Lexer()
@@ -56,14 +59,12 @@ void Lexer::GenerateToken()
     case ']':
         AddToken(TokenType::RBRACKET);
         break;
-
     case '{':
         AddToken(TokenType::LBRACE);
         break;
     case '}':
         AddToken(TokenType::RBRACE);
         break;
-
     case ',':
         AddToken(TokenType::COMMA);
         break;
@@ -105,6 +106,14 @@ void Lexer::GenerateToken()
     case '^':
         AddToken(TokenType::CARET);
         break;
+    // ++ 新增内容
+    case '.':
+        AddToken(TokenType::DOT);
+        break;
+    case ':':
+        AddToken(TokenType::COLON);
+        break;
+    // -- 新增内容
     case '#':
     {
         while (!IsMatchCurChar('\n') && !IsAtEnd())

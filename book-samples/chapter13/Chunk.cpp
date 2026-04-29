@@ -30,7 +30,7 @@ std::string Chunk::OpCodeStringify(const OpCodeList &opCodeList)
         switch (opCodeList[curAddress])
         {
         case OP_CONSTANT:
-            cout << std::format("{:08}\tOP_CONSTANT\t'{}'\n", curAddress, constants[opCodeList[++i]].Stringify());
+            cout << std::format("{:08}\tOP_CONSTANT\t{}\n", curAddress, constants[opCodeList[++i]].Stringify());
             break;
         case OP_ADD:
             cout << std::format("{:08}\tOP_ADD\n", curAddress);
@@ -117,7 +117,7 @@ std::string Chunk::OpCodeStringify(const OpCodeList &opCodeList)
             cout << std::format("{:08}\tOP_FUNCTION_CALL\t{}\n", curAddress, opCodeList[++i]);
             break;
         case OP_GET_BUILTIN:
-            cout << std::format("{:08}\tOP_GET_BUILTIN\t{}\n", curAddress, opCodeList[++i]);
+            cout << std::format("{:08}\tOP_GET_BUILTIN\t{}\n", curAddress,constants[opCodeList[++i]].Stringify());
             break;
         case OP_CLOSURE:
         {
@@ -133,6 +133,17 @@ std::string Chunk::OpCodeStringify(const OpCodeList &opCodeList)
         case OP_SET_UPVALUE:
             cout << std::format("{:08}\tOP_SET_UPVALUE\t{}\n", curAddress, opCodeList[++i]);
             break;
+        // ++ 新增内容
+        case OP_STRUCT:
+            cout << std::format("{:08}\tOP_STRUCT\t{}\n", curAddress,opCodeList[++i]);
+            break;
+        case OP_GET_STRUCT:
+            cout << std::format("{:08}\tOP_GET_STRUCT\n", curAddress);
+            break;
+        case OP_SET_STRUCT:
+            cout << std::format("{:08}\tOP_SET_STRUCT\n", curAddress);
+            break;
+        // -- 新增内容
         default:
             break;
         }

@@ -53,6 +53,11 @@ void Compiler::CompileStmt(Stmt *stmt)
     case AstType::SCOPE:
         CompileScopeStmt((ScopeStmt *)stmt);
         break;
+    // ++ 新增内容
+    case AstType::STRUCT:
+        CompileStructStmt((StructStmt *)stmt);
+        break;
+    // -- 新增内容
     default:
         ASSERT("Unknown stmt")
     }
@@ -127,6 +132,29 @@ void Compiler::CompileReturnStmt(ReturnStmt *stmt)
     }
 }
 
+// ++ 新增内容
+void Compiler::CompileStructStmt(StructStmt *stmt)
+{
+    auto symbol = m_SymbolTable->Define(stmt->name, true);
+
+    m_ScopeChunks.emplace_back(Chunk());
+
+    CompileStructExpr(stmt->body);
+
+    auto chunk = m_ScopeChunks.back();
+    m_ScopeChunks.pop_back();
+
+    chunk.opCodeList.emplace_back(OP_RETURN);
+    chunk.opCodeList.emplace_back(1);
+
+    auto fn = ALLOCATE_OBJECT(FunctionObject, chunk);
+
+    EmitClosure(fn);
+
+    StoreSymbol(symbol);
+}
+// -- 新增内容
+
 void Compiler::CompileExpr(Expr *expr, const RWState &state)
 {
     switch (expr->type)
@@ -155,6 +183,12 @@ void Compiler::CompileExpr(Expr *expr, const RWState &state)
         return CompileFunctionCallExpr((FunctionCallExpr *)expr);
     case AstType::FUNCTION:
         return CompileFunctionExpr((FunctionExpr *)expr);
+    // ++ 新增内容
+    case AstType::STRUCT_CALL:
+        return CompileStructCallExpr((StructCallExpr *)expr, state);
+    case AstType::STRUCT:
+        return CompileStructExpr((StructExpr *)expr);
+    // -- 新增内容
     default:
         ASSERT("Unknown expr.");
     }
@@ -345,6 +379,50 @@ void Compiler::CompileFunctionCallExpr(FunctionCallExpr *expr)
     Emit(static_cast<int16_t>(expr->arguments.size()));
 }
 
+// ++ 新增内容
+void Compiler::CompileStructExpr(StructExpr *expr)
+{
+    for (const auto &[k, v] : expr->members)
+    {
+        CompileExpr(v);
+        EmitConstant(ALLOCATE_OBJECT(StrObject, k->literal.c_str()));
+    }
+
+    Emit(OP_STRUCT);
+    Emit(static_cast<int16_t>(expr->members.size()));
+}
+
+void Compiler::CompileStructCallExpr(StructCallExpr *expr, const RWState &state)
+{
+    if (expr->callMember->type == AstType::FUNCTION_CALL && state == RWState::WRITE)
+        ASSERT("Cannot assign to a struct's function call expr");
+
+    CompileExpr(expr->callee);
+
+    if (expr->callMember->type == AstType::IDENTIFIER)
+        EmitConstant(ALLOCATE_OBJECT(StrObject, ((IdentifierExpr *)expr->callMember)->literal.c_str()));
+    else if (expr->callMember->type == AstType::FUNCTION_CALL)
+        EmitConstant(ALLOCATE_OBJECT(StrObject, ((IdentifierExpr *)((FunctionCallExpr *)expr->callMember)->name)->literal.data()));
+
+    if (state == RWState::READ)
+    {
+        Emit(OP_GET_STRUCT);
+
+        if (expr->callMember->type == AstType::FUNCTION_CALL)
+        {
+            auto funcCall = (FunctionCallExpr *)expr->callMember;
+            for (const auto &argu : funcCall->arguments)
+                CompileExpr(argu);
+
+            Emit(OP_FUNCTION_CALL);
+            Emit(static_cast<int16_t>(funcCall->arguments.size()));
+        }
+    }
+    else
+        Emit(OP_SET_STRUCT);
+}
+// -- 新增内容
+
 Chunk &Compiler::CurChunk()
 {
     return m_ScopeChunks.back();
@@ -435,6 +513,14 @@ void Compiler::LoadSymbol(const Symbol &symbol)
     default:
         break;
     }
+
+    // ++ 新增内容
+    if (symbol.isStructSymbol)
+    {
+        Emit(OP_FUNCTION_CALL);
+        Emit(0);
+    }
+    // -- 新增内容
 }
 
 void Compiler::StoreSymbol(const Symbol &symbol)

@@ -6,6 +6,7 @@
 #include <variant>
 #include "Value.h"
 #include "Chunk.h"
+#include "HashTable.h"
 
 #define TO_STR_OBJ(obj) (static_cast<StrObject *>(obj))
 #define TO_ARRAY_OBJ(obj) (static_cast<ArrayObject *>(obj))
@@ -13,6 +14,9 @@
 #define TO_BUILTIN_OBJ(obj) (static_cast<BuiltinObject *>(obj))
 #define TO_UPVALUE_OBJ(obj) (static_cast<UpvalueObject *>(obj))
 #define TO_CLOSURE_OBJ(obj) (static_cast<ClosureObject *>(obj))
+// ++ 新增内容
+#define TO_STRUCT_OBJ(obj) (static_cast<StructObject *>(obj))
+// -- 新增内容
 
 #define IS_STR_OBJ(obj) (obj->type == ObjectType::STR)
 #define IS_ARRAY_OBJ(obj) (obj->type == ObjectType::ARRAY)
@@ -20,6 +24,9 @@
 #define IS_BUILTIN_OBJ(obj) (obj->type == ObjectType::BUILTIN)
 #define IS_UPVALUE_OBJ(obj) (obj->type == ObjectType::UPVALUE)
 #define IS_CLOSURE_OBJ(obj) (obj->type == ObjectType::CLOSURE)
+// ++ 新增内容
+#define IS_STRUCT_OBJ(obj) (obj->type == ObjectType::STRUCT)
+// -- 新增内容
 
 enum ObjectType : uint8_t
 {
@@ -29,6 +36,9 @@ enum ObjectType : uint8_t
     BUILTIN,
     UPVALUE,
     CLOSURE,
+    // ++ 新增内容
+    STRUCT,
+    // -- 新增内容
 };
 
 struct Object
@@ -121,6 +131,16 @@ struct ClosureObject : public Object
     FunctionObject *function;
     UpvalueObject *upvalues[UPVALUE_COUNT]{};
 };
+
+// ++ 新增内容
+struct StructObject : public Object
+{
+    StructObject(HashTable *membs) : Object(ObjectType::STRUCT), members(membs) {}
+    ~StructObject() { SAFE_DELETE(members); }
+
+    HashTable *members;
+};
+// -- 新增内容
 
 COMPUTEDUCK_API std::string ObjectStringify(Object *object
 

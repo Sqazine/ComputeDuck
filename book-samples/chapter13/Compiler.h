@@ -28,6 +28,9 @@ private:
     void CompileIfStmt(IfStmt *stmt);
     void CompileReturnStmt(ReturnStmt *stmt);
     void CompileWhileStmt(WhileStmt *stmt);
+    // ++ 新增内容
+    void CompileStructStmt(StructStmt *stmt);
+    // -- 新增内容
 
     void CompileExpr(Expr *expr, const RWState &state = RWState::READ);
     void CompileBinaryExpr(BinaryExpr *expr);
@@ -42,6 +45,10 @@ private:
     void CompileIndexExpr(IndexExpr *expr, const RWState &state);
     void CompileFunctionExpr(FunctionExpr *expr);
     void CompileFunctionCallExpr(FunctionCallExpr *expr);
+    // ++ 新增内容
+        void CompileStructCallExpr(StructCallExpr *expr, const RWState &state);
+    void CompileStructExpr(StructExpr *expr);
+    // -- 新增内容
 
     Chunk &CurChunk();
 

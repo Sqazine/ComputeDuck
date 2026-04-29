@@ -1,0 +1,14 @@
+struct Vec2
+{
+    length:function(x,y)
+    {
+        return x*x+y*y;
+    }
+} 
+struct Vec3
+{
+    super:Vec2
+} 
+a=Vec3;
+b=a.super.length(10,8);
+println(b);    #164.000000

@@ -21,7 +21,7 @@ enum class Precedence
 	ADD_SUB,	// + -
 	MUL_DIV,	// * /
 	UNARY,		// not - ~
-	BINARY, // [] ()
+	BINARY,     // [] () .
 };
 
 class Parser;
@@ -44,7 +44,9 @@ private:
 	Stmt *ParseIfStmt();
 	Stmt *ParseWhileStmt();
 	Stmt *ParseReturnStmt();
-	
+	// ++ 新增内容
+	Stmt *ParseStructStmt();
+	// -- 新增内容
 
 	Expr *ParseExpr(Precedence precedence = Precedence::LOWEST);
 	Expr *ParseIdentifierExpr();
@@ -59,6 +61,10 @@ private:
 	Expr *ParseFunctionCallExpr(Expr *prefixExpr);
 	Expr *ParseBinaryExpr(Expr *unaryExpr);
 	Expr *ParseIndexExpr(Expr *unaryExpr);
+	// ++ 新增内容
+	Expr *ParseStructExpr();
+	Expr *ParseStructCallExpr(Expr *prefixExpr);
+	// -- 新增内容
 
 	Token GetCurToken();
 	Token GetCurTokenAndStepOnce();

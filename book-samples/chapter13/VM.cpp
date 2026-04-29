@@ -338,6 +338,55 @@ void VM::Execute()
             *slot = value;
             break;
         }
+        // ++ 新增内容
+        case OP_STRUCT:
+        {
+            HashTable *members = new HashTable();
+            auto memberCount = 2 * (*frame->ip++);
+            for (auto slot = GET_STACK_TOP(); slot > GET_STACK_TOP() - memberCount;)
+            {
+                auto name = TO_STR_VALUE(*--slot);
+                auto value = *--slot;
+                members->Set(name, value);
+            }
+            auto structInstance = ALLOCATE_OBJECT(StructObject, members);
+
+            STACK_TOP_JUMP(-memberCount);
+
+            PUSH(structInstance);
+            break;
+        }
+        case OP_GET_STRUCT:
+        {
+            auto memberName = POP();
+            Value instance = POP();
+            if (IS_STR_VALUE(memberName))
+            {
+                auto structInstance = TO_STRUCT_VALUE(instance);
+
+                Value *value = structInstance->members->Get(TO_STR_VALUE(memberName));
+                if (!value)
+                    ASSERT("no member named:(%s) in struct instance:%s", memberName.Stringify().c_str(), instance.Stringify().c_str());
+                PUSH(*value);
+            }
+            break;
+        }
+        case OP_SET_STRUCT:
+        {
+            auto memberName = POP();
+            Value instance = POP();
+            auto structInstance = TO_STRUCT_VALUE(instance);
+            auto value = POP();
+            if (IS_STR_VALUE(memberName))
+            {
+                bool isSuccess = structInstance->members->Find(TO_STR_VALUE(memberName));
+                if (!isSuccess)
+                    ASSERT("no member named:(%s) in struct instance:(0x%s)", memberName.Stringify().c_str(), PointerAddressToString(structInstance).c_str());
+                structInstance->members->Set(TO_STR_VALUE(memberName), value);
+            }
+            break;
+        }
+        // -- 新增内容
         default:
             break;
         }
