@@ -185,22 +185,7 @@ Stmt *Parser::ParseStructStmt()
 	auto structStmt = new StructStmt();
 
 	structStmt->name = ParseIdentifierExpr()->Stringify();
-
-	Consume(TokenType::LBRACE, "Expect '{'.");
-	while (!IsMatchCurToken(TokenType::RBRACE))
-	{
-		auto k = (IdentifierExpr *)ParseIdentifierExpr();
-		Expr *v = new NilExpr();
-		if (IsMatchCurToken(TokenType::COLON))
-		{
-			Consume(TokenType::COLON, "Expect ':'");
-			v = ParseExpr();
-		}
-		IsMatchCurTokenAndStepOnce(TokenType::COMMA);
-		structStmt->body->members[k] = v;
-	}
-
-	Consume(TokenType::RBRACE, "Expect '}'.");
+	structStmt->body = (StructExpr *)ParseStructExpr();
 
 	return structStmt;
 }
