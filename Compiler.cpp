@@ -414,30 +414,12 @@ void Compiler::CompileFunctionCallExpr(FunctionCallExpr *expr)
 
 void Compiler::CompileStructCallExpr(StructCallExpr *expr, const RWState &state)
 {
-    if (expr->callMember->type == AstType::FUNCTION_CALL && state == RWState::WRITE)
-        ASSERT("Cannot assign to a struct's function call expr");
-
     CompileExpr(expr->callee);
 
-    if (expr->callMember->type == AstType::IDENTIFIER)
-        EmitConstant(ALLOCATE_OBJECT(StrObject, ((IdentifierExpr *)expr->callMember)->literal.c_str()));
-    else if (expr->callMember->type == AstType::FUNCTION_CALL)
-        EmitConstant(ALLOCATE_OBJECT(StrObject, ((IdentifierExpr *)((FunctionCallExpr *)expr->callMember)->name)->literal.data()));
-
+    EmitConstant(ALLOCATE_OBJECT(StrObject, ((IdentifierExpr *)expr->callMember)->literal.c_str()));
+    
     if (state == RWState::READ)
-    {
         Emit(OP_GET_STRUCT);
-
-        if (expr->callMember->type == AstType::FUNCTION_CALL)
-        {
-            auto funcCall = (FunctionCallExpr *)expr->callMember;
-            for (const auto &argu : funcCall->arguments)
-                CompileExpr(argu);
-
-            Emit(OP_FUNCTION_CALL);
-            Emit(static_cast<int16_t>(funcCall->arguments.size()));
-        }
-    }
     else
         Emit(OP_SET_STRUCT);
 }

@@ -384,7 +384,7 @@ Expr *Parser::ParseStructCallExpr(Expr *prefixExpr)
 	Consume(TokenType::DOT, "Expect '.'.");
 	auto structCallExpr = new StructCallExpr();
 	structCallExpr->callee = prefixExpr;
-	structCallExpr->callMember = ParseExpr(Precedence::BINARY);
+	structCallExpr->callMember = (IdentifierExpr *)ParseIdentifierExpr();
 	return structCallExpr;
 }
 

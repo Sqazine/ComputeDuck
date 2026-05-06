@@ -425,15 +425,13 @@ void VM::Execute()
             auto memberName = POP();
             Value instance;
             GetEndOfRefValue(POP(), instance);
-            if (IS_STR_VALUE(memberName))
-            {
-                auto structInstance = TO_STRUCT_VALUE(instance);
+    
+            auto structInstance = TO_STRUCT_VALUE(instance);
 
-                Value *value = structInstance->members->Get(TO_STR_VALUE(memberName));
-                if (!value)
-                    ASSERT("no member named:(%s) in struct instance:%s", memberName.Stringify().c_str(), instance.Stringify().c_str());
-                PUSH(*value);
-            }
+            Value *value = structInstance->members->Get(TO_STR_VALUE(memberName));
+            if (!value)
+                ASSERT("no member named:(%s) in struct instance:%s", memberName.Stringify().c_str(), instance.Stringify().c_str());
+            PUSH(*value);
             break;
         }
         case OP_SET_STRUCT:
@@ -443,13 +441,11 @@ void VM::Execute()
             GetEndOfRefValue(POP(), instance);
             auto structInstance = TO_STRUCT_VALUE(instance);
             auto value = POP();
-            if (IS_STR_VALUE(memberName))
-            {
-                bool isSuccess = structInstance->members->Find(TO_STR_VALUE(memberName));
-                if (!isSuccess)
-                    ASSERT("no member named:(%s) in struct instance:(0x%s)", memberName.Stringify().c_str(), PointerAddressToString(structInstance).c_str());
-                structInstance->members->Set(TO_STR_VALUE(memberName), value);
-            }
+           
+            bool isSuccess = structInstance->members->Find(TO_STR_VALUE(memberName));
+            if (!isSuccess)
+                ASSERT("no member named:(%s) in struct instance:(0x%s)", memberName.Stringify().c_str(), PointerAddressToString(structInstance).c_str());
+            structInstance->members->Set(TO_STR_VALUE(memberName), value);
             break;
         }
         case OP_REF_GLOBAL:
