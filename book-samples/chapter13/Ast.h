@@ -384,7 +384,7 @@ struct StructStmt : public Stmt
 struct StructCallExpr : public Expr
 {
 	StructCallExpr() : Expr(AstType::STRUCT_CALL), callee(nullptr), callMember(nullptr) {}
-	StructCallExpr(Expr *callee, Expr *callMember) : Expr(AstType::STRUCT_CALL), callee(callee), callMember(callMember) {}
+	StructCallExpr(Expr *callee, IdentifierExpr *callMember) : Expr(AstType::STRUCT_CALL), callee(callee), callMember(callMember) {}
 	~StructCallExpr() override
 	{
 		SAFE_DELETE(callee);
@@ -394,6 +394,6 @@ struct StructCallExpr : public Expr
 	std::string Stringify() override { return callee->Stringify() + "." + callMember->Stringify(); }
 
 	Expr *callee;
-	Expr *callMember;
+	IdentifierExpr *callMember;
 };
 // -- 新增内容

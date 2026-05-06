@@ -173,7 +173,6 @@ Expr *ConstantFolder::FoldFunctionCallExpr(FunctionCallExpr *expr)
 Expr *ConstantFolder::FoldStructCallExpr(StructCallExpr *expr)
 {
     expr->callee = FoldExpr(expr->callee);
-    expr->callMember = FoldExpr(expr->callMember);
     return expr;
 }
 Expr *ConstantFolder::FoldRefExpr(RefExpr *expr)
