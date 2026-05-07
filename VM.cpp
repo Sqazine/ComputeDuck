@@ -445,7 +445,9 @@ void VM::Execute()
             bool isSuccess = structInstance->members->Find(TO_STR_VALUE(memberName));
             if (!isSuccess)
                 ASSERT("no member named:(%s) in struct instance:(0x%s)", memberName.Stringify().c_str(), PointerAddressToString(structInstance).c_str());
-            structInstance->members->Set(TO_STR_VALUE(memberName), value);
+              Value *structMember = structInstance->members->Get(TO_STR_VALUE(memberName));
+            structMember = GetEndOfRefValuePtr(structMember);
+            *structMember = value;
             break;
         }
         case OP_REF_GLOBAL:
