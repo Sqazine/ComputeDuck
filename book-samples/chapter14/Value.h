@@ -12,6 +12,9 @@
 #define IS_BUILTIN_VALUE(v) (IS_OBJECT_VALUE(v) && IS_BUILTIN_OBJ((v).object))
 #define IS_CLOSURE_VALUE(v) (IS_OBJECT_VALUE(v) && IS_CLOSURE_OBJ((v).object))
 #define IS_STRUCT_VALUE(v) (IS_OBJECT_VALUE(v) && IS_STRUCT_OBJ((v).object))
+// ++ 新增内容
+#define IS_REF_VALUE(v) (IS_OBJECT_VALUE(v) && IS_REF_OBJ((v).object))
+// -- 新增内容
 
 #define TO_NUM_VALUE(v) ((v).stored)
 #define TO_BOOL_VALUE(v) (((v).stored >= DBL_EPSILON) ? true : false)
@@ -22,6 +25,9 @@
 #define TO_BUILTIN_VALUE(v) (TO_BUILTIN_OBJ((v).object))
 #define TO_CLOSURE_VALUE(v) (TO_CLOSURE_OBJ((v).object))
 #define TO_STRUCT_VALUE(v) (TO_STRUCT_OBJ((v).object))
+// ++ 新增内容
+#define TO_REF_VALUE(v) (TO_REF_OBJ((v).object))
+// -- 新增内容
 
 enum ValueType : uint8_t
 {
@@ -53,6 +59,12 @@ struct COMPUTEDUCK_API Value
 
 bool operator==(const Value &left, const Value &right);
 bool operator!=(const Value &left, const Value &right);
+
+// ++ 新增内容
+extern "C" COMPUTEDUCK_API void FindActualValue(const Value &v,Value& result);
+extern "C" COMPUTEDUCK_API Value *GetEndOfRefValuePtr(Value *v);
+extern "C" COMPUTEDUCK_API void GetEndOfRefValue(const Value &v, Value &result);
+// -- 新增内容
 
 extern "C" COMPUTEDUCK_API void ValueAdd(const Value &l, const Value &r, Value &result);
 extern "C" COMPUTEDUCK_API double ValueSub(const Value &l, const Value &r);

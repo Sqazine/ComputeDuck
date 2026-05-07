@@ -40,53 +40,139 @@ bool operator!=(const Value &left, const Value &right)
     return !(left == right);
 }
 
+// ++ 新增内容
+void FindActualValue(const Value &v, Value &result)
+{
+    GetEndOfRefValue(v, result);
+}
+
+Value *GetEndOfRefValuePtr(Value *v)
+{
+    auto result = v;
+    while (IS_REF_VALUE(*result))
+        result = TO_REF_VALUE(*result)->pointer;
+    return result;
+}
+
+void GetEndOfRefValue(const Value &v, Value &result)
+{
+    result = v;
+    while (IS_REF_VALUE(result))
+        result = *TO_REF_VALUE(result)->pointer;
+}
+// -- 新增内容
+
+
 // - * /
-#define COMMON_BINARY(l, op, r)                                                                        \
-    do                                                                                                 \
-    {                                                                                                  \
-        if (IS_NUM_VALUE(r) && IS_NUM_VALUE(l))                                                        \
-            return (TO_NUM_VALUE(l) op TO_NUM_VALUE(r));                                               \
-        else                                                                                           \
-            ASSERT("Invalid binary op:%s %s %s", l.Stringify().c_str(), (#op), r.Stringify().c_str()); \
+// ++ 修改内容
+// #define COMMON_BINARY(l, op, r)                                                                        \
+//     do                                                                                                 \
+//     {                                                                                                  \
+//         if (IS_NUM_VALUE(r) && IS_NUM_VALUE(l))                                                        \
+//             return (TO_NUM_VALUE(l) op TO_NUM_VALUE(r));                                               \
+//         else                                                                                           \
+//             ASSERT("Invalid binary op:%s %s %s", l.Stringify().c_str(), (#op), r.Stringify().c_str()); \
+//     } while (0);
+#define COMMON_BINARY(l, op, r)                                                                               \
+    do                                                                                                        \
+    {                                                                                                         \
+        Value left, right;                                                                                    \
+        FindActualValue(l, left);                                                                             \
+        FindActualValue(r, right);                                                                            \
+        if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                                        \
+            return (TO_NUM_VALUE(left) op TO_NUM_VALUE(right));                                               \
+        else                                                                                                  \
+            ASSERT("Invalid binary op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
     } while (0);
+// -- 修改内容
 
 // > >= < <=
-#define COMPARE_BINARY(l, op, r)                                        \
-    do                                                                  \
-    {                                                                   \
-        if (IS_NUM_VALUE(r) && IS_NUM_VALUE(l))                         \
-            return (TO_NUM_VALUE(l) op TO_NUM_VALUE(r) ? true : false); \
-        else                                                            \
-            return (false);                                             \
+// ++ 修改内容
+// #define COMPARE_BINARY(l, op, r)                                        \
+//     do                                                                  \
+//     {                                                                   \
+//         if (IS_NUM_VALUE(r) && IS_NUM_VALUE(l))                         \
+//             return (TO_NUM_VALUE(l) op TO_NUM_VALUE(r) ? true : false); \
+//         else                                                            \
+//             return (false);                                             \
+//     } while (0);
+#define COMPARE_BINARY(l, op, r)                                               \
+    do                                                                         \
+    {                                                                          \
+        Value left, right;                                                     \
+        FindActualValue(l, left);                                              \
+        FindActualValue(r, right);                                             \
+        if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                         \
+            return (TO_NUM_VALUE(left) op TO_NUM_VALUE(right) ? true : false); \
+        else                                                                   \
+            return (false);                                                    \
     } while (0);
+// -- 修改内容
 
 // and or
-#define LOGIC_BINARY(l, op, r)                                                                  \
-    do                                                                                          \
-    {                                                                                           \
-        if (IS_BOOL_VALUE(r) && IS_BOOL_VALUE(l))                                               \
-            return (TO_BOOL_VALUE(l) op TO_BOOL_VALUE(r) ? true : false);                       \
-        else                                                                                    \
-            ASSERT("Invalid op:%s %s %s", l.Stringify().c_str(), (#op), r.Stringify().c_str()); \
+// ++ 修改内容
+// #define LOGIC_BINARY(l, op, r)                                                                  \
+//     do                                                                                          \
+//     {                                                                                           \
+//         if (IS_BOOL_VALUE(r) && IS_BOOL_VALUE(l))                                               \
+//             return (TO_BOOL_VALUE(l) op TO_BOOL_VALUE(r) ? true : false);                       \
+//         else                                                                                    \
+//             ASSERT("Invalid op:%s %s %s", l.Stringify().c_str(), (#op), r.Stringify().c_str()); \
+//     } while (0);
+#define LOGIC_BINARY(l, op, r)                                                                         \
+    do                                                                                                 \
+    {                                                                                                  \
+        Value left, right;                                                                             \
+        FindActualValue(l, left);                                                                      \
+        FindActualValue(r, right);                                                                     \
+        if (IS_BOOL_VALUE(right) && IS_BOOL_VALUE(left))                                               \
+            return (TO_BOOL_VALUE(left) op TO_BOOL_VALUE(right) ? true : false);                       \
+        else                                                                                           \
+            ASSERT("Invalid op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
     } while (0);
+// -- 修改内容
 
-#define BIT_BINARY(l, op, r)                                                                    \
-    do                                                                                          \
-    {                                                                                           \
-        if (IS_NUM_VALUE(r) && IS_NUM_VALUE(l))                                                 \
-            return (double)((uint64_t)TO_NUM_VALUE(l) op(uint64_t) TO_NUM_VALUE(r));            \
-        else                                                                                    \
-            ASSERT("Invalid op:%s %s %s", l.Stringify().c_str(), (#op), r.Stringify().c_str()); \
+// ++ 修改内容
+// #define BIT_BINARY(l, op, r)                                                                    \
+//     do                                                                                          \
+//     {                                                                                           \
+//         if (IS_NUM_VALUE(r) && IS_NUM_VALUE(l))                                                 \
+//             return (double)((uint64_t)TO_NUM_VALUE(l) op(uint64_t) TO_NUM_VALUE(r));            \
+//         else                                                                                    \
+//             ASSERT("Invalid op:%s %s %s", l.Stringify().c_str(), (#op), r.Stringify().c_str()); \
+//     } while (0);
+#define BIT_BINARY(l, op, r)                                                                           \
+    do                                                                                                 \
+    {                                                                                                  \
+        Value left, right;                                                                             \
+        FindActualValue(l, left);                                                                      \
+        FindActualValue(r, right);                                                                     \
+        if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                                 \
+            return ((uint64_t)TO_NUM_VALUE(left) op(uint64_t) TO_NUM_VALUE(right));                    \
+        else                                                                                           \
+            ASSERT("Invalid op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
     } while (0);
+// -- 修改内容
 
 void ValueAdd(const Value &l, const Value &r, Value &result)
 {
-    if (IS_NUM_VALUE(r) && IS_NUM_VALUE(l))
-        result = (TO_NUM_VALUE(l) + TO_NUM_VALUE(r));
-    else if (IS_STR_VALUE(l) && IS_STR_VALUE(r))
-        result = (StrAdd(TO_STR_VALUE(l), TO_STR_VALUE(r)));
+    // ++ 修改内容
+    // if (IS_NUM_VALUE(r) && IS_NUM_VALUE(l))
+    //     result = (TO_NUM_VALUE(l) + TO_NUM_VALUE(r));
+    // else if (IS_STR_VALUE(l) && IS_STR_VALUE(r))
+    //     result = (StrAdd(TO_STR_VALUE(l), TO_STR_VALUE(r)));
+    // else
+    //     ASSERT("Invalid binary op:%s+%s", l.Stringify().c_str(), r.Stringify().c_str());
+    Value left, right;
+    FindActualValue(l, left);
+    FindActualValue(r, right);
+    if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))
+        result = (TO_NUM_VALUE(left) + TO_NUM_VALUE(right));
+    else if (IS_STR_VALUE(right) && IS_STR_VALUE(left))
+        result = (StrAdd(TO_STR_VALUE(left), TO_STR_VALUE(right)));
     else
-        ASSERT("Invalid binary op:%s+%s", l.Stringify().c_str(), r.Stringify().c_str());
+        ASSERT("Invalid binary op:%s+%s", left.Stringify().c_str(), right.Stringify().c_str());
+    // -- 修改内容
 }
 
 double ValueSub(const Value &l, const Value &r)

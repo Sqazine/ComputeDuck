@@ -14,6 +14,9 @@ const std::unordered_map<std::string, TokenType> keywords =
         {"return", TokenType::RETURN},
         {"while", TokenType::WHILE},
         {"struct", TokenType::STRUCT},
+        // ++ 新增内容
+        {"ref", TokenType::REF},
+        // -- 新增内容
 };
 
 Lexer::Lexer()

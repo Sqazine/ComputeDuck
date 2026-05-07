@@ -72,6 +72,10 @@ std::string ObjectStringify(Object *object
         result += "\n}\n";
         return result;
     }
+    // ++ 新增内容
+    case ObjectType::REF:
+        return TO_REF_OBJ(object)->pointer->Stringify();
+    // -- 新增内容
     default:
         ASSERT("Unknown object type");
     }
@@ -126,6 +130,10 @@ bool IsObjectEqual(Object *left, Object *right)
     }
     case ObjectType::STRUCT:
         return TO_STRUCT_OBJ(left)->members == TO_STRUCT_OBJ(right)->members;
+    // ++ 新增内容
+    case ObjectType::REF:
+        return *TO_REF_OBJ(left)->pointer == *TO_REF_OBJ(right)->pointer;
+    // -- 新增内容
     default:
         ASSERT("Unknown object type");
         return false;

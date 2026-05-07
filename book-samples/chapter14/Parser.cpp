@@ -15,6 +15,9 @@ std::unordered_map<TokenType, UnaryFn> Parser::m_UnaryFunctions =
 		{TokenType::LBRACKET, &Parser::ParseArrayExpr},
 		{TokenType::TILDE, &Parser::ParseUnaryExpr},
 		{TokenType::LBRACE, &Parser::ParseStructExpr},
+		// ++ 新增内容
+		{TokenType::REF, &Parser::ParseRefExpr},
+		// -- 新增内容
 };
 
 std::unordered_map<TokenType, BinaryFn> Parser::m_BinaryFunctions =
@@ -375,6 +378,18 @@ Expr *Parser::ParseStructExpr()
 	Consume(TokenType::RBRACE, "Expect '}'.");
 	return new StructExpr(memPairs);
 }
+
+// ++ 新增内容
+Expr *Parser::ParseRefExpr()
+{
+	Consume(TokenType::REF, "Expect 'ref' keyword.");
+
+	auto refExpr = ParseExpr(Precedence::LOWEST);
+
+	return new RefExpr(refExpr);
+}
+// -- 新增内容
+
 
 Expr *Parser::ParseStructCallExpr(Expr *prefixExpr)
 {

@@ -42,6 +42,14 @@ enum OpCode
     OP_STRUCT,
     OP_GET_STRUCT,
     OP_SET_STRUCT,
+    // ++ 新增内容
+    OP_REF_GLOBAL,
+    OP_REF_LOCAL,
+    OP_REF_UPVALUE,
+    OP_REF_INDEX_GLOBAL,
+    OP_REF_INDEX_LOCAL,
+    OP_REF_INDEX_UPVALUE,
+    // -- 新增内容
 };
 
 using OpCodeList = std::vector<int16_t>;

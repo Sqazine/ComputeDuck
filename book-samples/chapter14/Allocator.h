@@ -61,6 +61,10 @@ public:
         return object;
     }
 
+    // ++ 新增内容
+    RefObject *AllocateIndexRefObject(Value *ptr, const Value &idxValue);
+    // -- 新增内容
+
     Value *GetLocalVariableSlot(int16_t index);
 
     UpvalueObject *CaptureUpvalue(int16_t index, int16_t scopeDepth);
@@ -81,6 +85,9 @@ private:
 };
 
 #define ALLOCATE_OBJECT(type, ...) (Allocator::GetInstance()->AllocateObject<type>(__VA_ARGS__))
+// ++ 新增内容
+#define ALLOCATE_INDEX_REF_OBJECT(ptr, idxValue) (Allocator::GetInstance()->AllocateIndexRefObject(ptr, idxValue))
+// -- 新增内容
 
 #define GET_GLOBAL_VARIABLE_SLOT(x) (Allocator::GetInstance()->GetGlobalVariableSlot(x))
 

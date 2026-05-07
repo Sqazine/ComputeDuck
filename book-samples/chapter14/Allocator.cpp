@@ -116,3 +116,20 @@ void Allocator::ClosedUpvalues(Value *last)
         m_OpenUpvalues = upvalue->nextUpvalue;
     }
 }
+
+// ++ 新增内容
+RefObject *Allocator::AllocateIndexRefObject(Value *ptr, const Value &idxValue)
+{
+    if (IS_ARRAY_VALUE(*ptr))
+    {
+        if (!IS_NUM_VALUE(idxValue))
+            ASSERT("Invalid idx for array,only integer is available.");
+        auto intIdx = TO_NUM_VALUE(idxValue);
+        if (intIdx < 0 || intIdx >= TO_ARRAY_VALUE(*ptr)->len)
+            ASSERT("Idx out of range.");
+        return ALLOCATE_OBJECT(RefObject, &(TO_ARRAY_VALUE(*ptr)->elements[(uint64_t)intIdx]));
+    }
+    else
+        ASSERT("Invalid indexed reference type: %s not a array value.", ptr->Stringify().c_str());
+}
+// -- 新增内容
