@@ -172,7 +172,7 @@ void VM::Execute()
                 if (i < 0 || i >= array->len)
                     ASSERT("Invalid index:%ld outside of array's size:%ld", i, array->len)
                 else
-                    array->elements[i] = v;
+                   SetValue(&array->elements[i], v);
             }
             else
                 ASSERT("Invalid index op: %s[%s]", ds.Stringify().c_str(), index.Stringify().c_str());
@@ -190,11 +190,10 @@ void VM::Execute()
         {
             auto index = *frame->ip++;
             auto value = POP();
-            auto ptr = GET_GLOBAL_VARIABLE_SLOT(index);
+            auto slot = GET_GLOBAL_VARIABLE_SLOT(index);
             // ++ 新增内容
-            ptr = GetEndOfRefValuePtr(ptr);
+            SetValue(slot, value);
             // -- 新增内容
-            *ptr = value;
             break;
         }
         case OP_GET_GLOBAL:
@@ -217,9 +216,8 @@ void VM::Execute()
             auto value = POP();
             Value *slot = GET_LOCAL_VARIABLE_SLOT(index);
             // ++ 新增内容
-            slot = GetEndOfRefValuePtr(slot);
+            SetValue(slot, value);
             // -- 新增内容
-            *slot = value;
             break;
         }
         case OP_GET_LOCAL:
@@ -342,9 +340,8 @@ void VM::Execute()
             auto index = *frame->ip++;
             auto slot = frame->closure->upvalues[index]->location;
             // ++ 新增内容
-            slot = GetEndOfRefValuePtr(slot);
+            SetValue(slot, value);
             // -- 新增内容
-            *slot = value;
             break;
         }
         case OP_STRUCT:
@@ -395,8 +392,8 @@ void VM::Execute()
             bool isSuccess = structInstance->members->Find(TO_STR_VALUE(memberName));
             if (!isSuccess)
                 ASSERT("no member named:(%s) in struct instance:(0x%s)", memberName.Stringify().c_str(), PointerAddressToString(structInstance).c_str());
-            structInstance->members->Set(TO_STR_VALUE(memberName), value);
-
+            Value *structMember = structInstance->members->Get(TO_STR_VALUE(memberName));
+            SetValue(structMember, value);
             break;
         }
         // ++ 新增内容
