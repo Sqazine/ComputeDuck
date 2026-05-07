@@ -60,6 +60,13 @@ void GetEndOfRefValue(const Value &v, Value &result)
     while (IS_REF_VALUE(result))
         result = *TO_REF_VALUE(result)->pointer;
 }
+
+void SetValue(Value* slot,const Value& value)
+{
+    if(!IS_REF_VALUE(value) && IS_REF_VALUE(*slot))
+        slot = GetEndOfRefValuePtr(slot);
+    *slot = value;
+}
 // -- 新增内容
 
 

@@ -1,4 +1,8 @@
+using Microsoft.VisualBasic;
+using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -311,7 +315,17 @@ namespace ComputeDuck
                                 if (i < 0 || i >= ((ArrayObject)ds).elements.Count)
                                     Utils.Assert("Invalid Index:" + i.ToString() + " outside of array's size:" + ((ArrayObject)ds).elements.Count.ToString());
                                 else
-                                    ((ArrayObject)ds).elements[i] = v;
+                                {
+                                    var member = ((ArrayObject)ds).elements[i];
+                                    if (member.type == ObjectType.REF)
+                                        SetValue((RefObject)member, v);
+                                    else
+                                    {
+                                        var originAddress = ((ArrayObject)ds).elements[i].GetAddress();
+                                        ((ArrayObject)ds).elements[i] = v;
+                                        UpdateRefAddress(originAddress,v.GetAddress());
+                                    }    
+                                }
                             }
                             else
                                 Utils.Assert("Invalid index op:" + ds.ToString() + "[" + index.ToString() + "]");
@@ -346,19 +360,12 @@ namespace ComputeDuck
                             var obj = Pop();
 
                             if (m_GlobalVariables[index].type == ObjectType.REF)
-                            {
-                                var (refObj, address) = GetEndOfRefObject(m_GlobalVariables[index]);
-
-                                AssignObjectByAddress(address, obj);
-
-                                var refObjs = SearchRefObjectListByAddress(address);
-                                for (int i = 0; i < refObjs.Count; ++i)
-                                    ((RefObject)refObjs[i]).pointer = obj.GetAddress();
-                            }
+                                SetValue((RefObject)m_GlobalVariables[index], obj);
                             else
                             {
-                                UpdateRefAddress(m_GlobalVariables[index].GetAddress(), obj.GetAddress());
+                                var originAddress = m_GlobalVariables[index].GetAddress();
                                 m_GlobalVariables[index] = obj;
+                                UpdateRefAddress(originAddress, obj.GetAddress());
                             }
                             break;
                         }
@@ -431,22 +438,14 @@ namespace ComputeDuck
 
                             var obj = Pop();
 
-                            int slot = GetLocalVariableSlot(index);
-
-                            if (m_ObjectStack[slot].type == ObjectType.REF)
-                            {
-                                var (refObj, address) = GetEndOfRefObject(m_ObjectStack[slot]);
-                                AssignObjectByAddress(address, obj);
-
-                                var refObjs = SearchRefObjectListByAddress(address);
-                                for (int i = 0; i < refObjs.Count; ++i)
-                                    ((RefObject)refObjs[i]).pointer = obj.GetAddress();
-                                ((RefObject)m_ObjectStack[slot]).pointer = obj.GetAddress();
-                            }
+                            var slot = m_ObjectStack[GetLocalVariableSlot(index)];
+                            if (slot.type == ObjectType.REF)
+                                SetValue((RefObject)slot, obj);
                             else
                             {
-                                UpdateRefAddress(m_ObjectStack[slot].GetAddress(), obj.GetAddress());
-                                m_ObjectStack[slot] = obj;
+                                var originAddress = m_ObjectStack[GetLocalVariableSlot(index)].GetAddress();
+                                m_ObjectStack[GetLocalVariableSlot(index)] = obj;
+                                UpdateRefAddress(originAddress,obj.GetAddress());
                             }
                             break;
                         }
@@ -495,8 +494,8 @@ namespace ComputeDuck
                             if (memberName.type == ObjectType.STR)
                             {
                                 var obj = ((StructObject)instance).members.GetValueOrDefault(((StrObject)memberName).value, new NilObject());
-                                if (obj.type == ObjectType.NIL)
-                                    Utils.Assert("no member named:" + memberName.ToString() + ") in struct instance:" + instance.ToString());
+                                if (obj == null)
+                                    Utils.Assert("no member named:" + memberName.ToString() + "in struct instance:" + instance.ToString());
                                 Push(obj);
                             }
                             break;
@@ -513,7 +512,15 @@ namespace ComputeDuck
                                 var isFound = ((StructObject)instance).members.ContainsKey(((StrObject)memberName).value);
                                 if (isFound == false)
                                     Utils.Assert("no member named:" + memberName.ToString() + " in struct instance:" + instance.ToString());
-                                ((StructObject)instance).members[((StrObject)memberName).value] = obj;
+                                var member = ((StructObject)instance).members[((StrObject)memberName).value];
+                                if (member.type == ObjectType.REF)
+                                    SetValue((RefObject)member, obj);
+                                else
+                                {
+                                    var originAddress = ((StructObject)instance).members[((StrObject)memberName).value].GetAddress();
+                                    ((StructObject)instance).members[((StrObject)memberName).value] = obj;
+                                    UpdateRefAddress(originAddress,obj.GetAddress());
+                                }
                             }
 
                             break;
@@ -672,11 +679,41 @@ namespace ComputeDuck
             return (retObj, address);
         }
 
+        private bool AssignStructMemberByAddress(StructObject srcObject, IntPtr address, Object obj)
+        {
+            var keys = new List<string>(srcObject.members.Keys);
+            for (int j = 0; j < keys.Count; ++j)
+            {
+                var key = keys[j];
+                if (srcObject.members[key].GetAddress() == address)
+                {
+                    srcObject.members[key] = obj;
+                    return true;
+                }
+
+            }
+
+            for (int j = 0; j < keys.Count; ++j)
+            {
+                var key = keys[j];
+                if (srcObject.members[key].type == ObjectType.STRUCT)
+                {
+                    var subStructMember = (StructObject)srcObject.members[key];
+                    return AssignStructMemberByAddress(subStructMember, address, obj);
+                }
+            }
+            return false;
+        }
         private void AssignObjectByAddress(IntPtr address, Object obj)
         {
             for (int i = 0; i < m_GlobalVariables.Count(); ++i)
             {
-                if (m_GlobalVariables[i].type == ObjectType.ARRAY)
+                if (m_GlobalVariables[i].GetAddress() == address)
+                {
+                    m_GlobalVariables[i] = obj;
+                    return;
+                }
+                else if (m_GlobalVariables[i].type == ObjectType.ARRAY)
                 {
                     for (int j = 0; j < ((ArrayObject)m_GlobalVariables[i]).elements.Count(); ++j)
                     {
@@ -687,17 +724,21 @@ namespace ComputeDuck
                         }
                     }
                 }
-                else if (m_GlobalVariables[i].GetAddress() == address)
+                else if (m_GlobalVariables[i].type == ObjectType.STRUCT)
                 {
-                    m_GlobalVariables[i] = obj;
-                    return;
+                    if (AssignStructMemberByAddress((StructObject)m_GlobalVariables[i], address, obj))
+                        return;
                 }
-
             }
 
             for (int i = 0; i < m_StackTop; ++i)
             {
-                if (m_ObjectStack[i].type == ObjectType.ARRAY)
+                if (m_ObjectStack[i].GetAddress() == address)
+                {
+                    m_ObjectStack[i] = obj;
+                    return;
+                }
+                else if (m_ObjectStack[i].type == ObjectType.ARRAY)
                 {
                     for (int j = 0; j < ((ArrayObject)m_ObjectStack[i]).elements.Count(); ++j)
                     {
@@ -708,12 +749,19 @@ namespace ComputeDuck
                         }
                     }
                 }
-                else if (m_ObjectStack[i].GetAddress() == address)
+                else if (m_ObjectStack[i].type == ObjectType.STRUCT)
                 {
-                    m_ObjectStack[i] = obj;
-                    return;
+                    var keys = new List<string>(((StructObject)m_ObjectStack[i]).members.Keys);
+                    for (int j = 0; j < keys.Count; ++j)
+                    {
+                        var key = keys[j];
+                        if (((StructObject)m_ObjectStack[i]).members[key].GetAddress() == address)
+                        {
+                            ((StructObject)m_ObjectStack[i]).members[key] = obj;
+                            return;
+                        }
+                    }
                 }
-
             }
 
             for (int i = 0; i < m_CallFrameTop; ++i)
@@ -732,15 +780,32 @@ namespace ComputeDuck
                             }
                             else
                             {
-                                var arrayObj = Utils.SearchObjectByAddress(callFrame.closure.upvalues[j].location);
-                                if (arrayObj != null && arrayObj.type == ObjectType.ARRAY)
+                                var rawObject = Utils.SearchObjectByAddress(callFrame.closure.upvalues[j].location);
+                                if (rawObject != null && rawObject.type == ObjectType.ARRAY)
                                 {
-                                    for (int k = 0; k < ((ArrayObject)arrayObj).elements.Count(); ++k)
+                                    for (int k = 0; k < ((ArrayObject)rawObject).elements.Count(); ++k)
                                     {
-                                        if (((ArrayObject)arrayObj).elements[k].GetAddress() == address)
+                                        if (((ArrayObject)rawObject).elements[k].GetAddress() == address)
                                         {
-                                            ((ArrayObject)arrayObj).elements[k] = obj;
+                                            ((ArrayObject)rawObject).elements[k] = obj;
                                             return;
+                                        }
+                                    }
+                                }
+                                else if (rawObject != null && rawObject.type == ObjectType.STRUCT)
+                                {
+                                    var keys = new List<string>(((StructObject)rawObject).members.Keys);
+                                    for (int k = 0; k < keys.Count; ++j)
+                                    {
+                                        var key = keys[k];
+                                        if (((StructObject)rawObject).members[key].GetAddress() == address)
+                                        {
+                                            ((StructObject)rawObject).members[key] = obj;
+                                            return;
+                                        }
+                                        else if (((StructObject)rawObject).members[key].type == ObjectType.STRUCT)
+                                        {
+
                                         }
                                     }
                                 }
@@ -752,13 +817,32 @@ namespace ComputeDuck
             Utils.Assert("Invalid reference address:" + address.ToString() + " for assigning object:" + obj.ToString());
         }
 
+        private void SetValue(RefObject slot, Object value)
+        {
+            nint address = 0;
+            if (value.type != ObjectType.REF)
+                (_, address) = GetEndOfRefObject(slot);
+            else
+                address = slot.GetAddress();
+
+            AssignObjectByAddress(address, value);
+
+            var refObjs = SearchRefObjectListByAddress(address);
+            for (int i = 0; i < refObjs.Count; ++i)
+                ((RefObject)refObjs[i]).pointer = value.GetAddress();
+        }
         private List<Object> SearchRefObjectListByAddress(IntPtr address)
         {
             List<Object> result = new List<Object>();
 
             for (int i = 0; i < m_GlobalVariables.Count(); ++i)
             {
-                if (m_GlobalVariables[i].type == ObjectType.ARRAY)
+                if (m_GlobalVariables[i].type == ObjectType.REF)
+                {
+                    if (((RefObject)m_GlobalVariables[i]).pointer == address)
+                        result.Add(m_GlobalVariables[i]);
+                }
+                else if (m_GlobalVariables[i].type == ObjectType.ARRAY)
                 {
                     for (int j = 0; j < ((ArrayObject)m_GlobalVariables[i]).elements.Count(); ++j)
                     {
@@ -767,14 +851,27 @@ namespace ComputeDuck
                                 result.Add(((ArrayObject)m_GlobalVariables[i]).elements[j]);
                     }
                 }
-                else if (m_GlobalVariables[i].type == ObjectType.REF)
-                    if (((RefObject)m_GlobalVariables[i]).pointer == address)
-                        result.Add(m_GlobalVariables[i]);
+                else if (m_GlobalVariables[i].type == ObjectType.STRUCT)
+                {
+                    var keys = new List<string>(((StructObject)m_GlobalVariables[i]).members.Keys);
+                    for (int j = 0; j < keys.Count; ++j)
+                    {
+                        var key = keys[j];
+                        if (((StructObject)m_GlobalVariables[i]).members[key].type == ObjectType.REF)
+                            if (((RefObject)((StructObject)m_GlobalVariables[i]).members[key]).pointer == address)
+                                result.Add(((StructObject)m_GlobalVariables[i]).members[key]);
+                    }
+                }
             }
 
             for (int i = 0; i < m_StackTop; ++i)
             {
-                if (m_ObjectStack[i].type == ObjectType.ARRAY)
+                if (m_ObjectStack[i].type == ObjectType.REF)
+                {
+                    if (((RefObject)m_ObjectStack[i]).pointer == address)
+                        result.Add(m_ObjectStack[i]);
+                }
+                else if (m_ObjectStack[i].type == ObjectType.ARRAY)
                 {
                     for (int j = 0; j < ((ArrayObject)m_ObjectStack[i]).elements.Count(); ++j)
                     {
@@ -783,9 +880,17 @@ namespace ComputeDuck
                                 result.Add(((ArrayObject)m_ObjectStack[i]).elements[j]);
                     }
                 }
-                else if (m_ObjectStack[i].type == ObjectType.REF)
-                    if (((RefObject)m_ObjectStack[i]).pointer == address)
-                        result.Add(m_ObjectStack[i]);
+                else if (m_ObjectStack[i].type == ObjectType.STRUCT)
+                {
+                    var keys = new List<string>(((StructObject)m_ObjectStack[i]).members.Keys);
+                    for (int j = 0; j < keys.Count; ++j)
+                    {
+                        var key = keys[j];
+                        if (((StructObject)m_ObjectStack[i]).members[key].type == ObjectType.REF)
+                            if (((RefObject)((StructObject)m_ObjectStack[i]).members[key]).pointer == address)
+                                result.Add(((StructObject)m_ObjectStack[i]).members[key]);
+                    }
+                }
             }
 
             for (int i = 0; i < m_CallFrameTop; ++i)
@@ -801,14 +906,28 @@ namespace ComputeDuck
                                 result.Add(callFrame.closure.upvalues[j]);
                             else
                             {
-                                var arrayObj = Utils.SearchObjectByAddress(callFrame.closure.upvalues[j].location);
-                                if (arrayObj != null && arrayObj.type == ObjectType.ARRAY)
+                                var rawObj = Utils.SearchObjectByAddress(callFrame.closure.upvalues[j].location);
+                                if (rawObj != null && rawObj.type == ObjectType.ARRAY)
                                 {
-                                    for (int k = 0; k < ((ArrayObject)arrayObj).elements.Count(); ++k)
+                                    for (int k = 0; k < ((ArrayObject)rawObj).elements.Count(); ++k)
                                     {
-                                        if (((ArrayObject)arrayObj).elements[k].type == ObjectType.REF)
-                                            if (((RefObject)((ArrayObject)m_ObjectStack[i]).elements[j]).pointer == address)
-                                                result.Add(((ArrayObject)arrayObj).elements[k]);
+                                        if (((ArrayObject)rawObj).elements[k].type == ObjectType.REF)
+                                            if (((RefObject)((ArrayObject)rawObj).elements[k]).pointer == address)
+                                                result.Add(((ArrayObject)rawObj).elements[k]);
+                                    }
+                                }
+                                else
+                                {
+                                    if (rawObj != null && rawObj.type == ObjectType.STRUCT)
+                                    {
+                                        var keys = new List<string>(((StructObject)rawObj).members.Keys);
+                                        for (int k = 0; k < keys.Count; ++k)
+                                        {
+                                            var key = keys[j];
+                                            if (((StructObject)rawObj).members[key].type == ObjectType.REF)
+                                                if (((RefObject)((StructObject)rawObj).members[key]).pointer == address)
+                                                    result.Add(((StructObject)rawObj).members[key]);
+                                        }
                                     }
                                 }
                             }
@@ -824,7 +943,12 @@ namespace ComputeDuck
         {
             for (int i = 0; i < m_GlobalVariables.Count(); ++i)
             {
-                if (m_GlobalVariables[i].type == ObjectType.ARRAY)
+                if (m_GlobalVariables[i].type == ObjectType.REF)
+                {
+                    if (((RefObject)m_GlobalVariables[i]).pointer == originAddress)
+                        ((RefObject)m_GlobalVariables[i]).pointer = newAddress;
+                }
+                else if (m_GlobalVariables[i].type == ObjectType.ARRAY)
                 {
                     for (int j = 0; j < ((ArrayObject)m_GlobalVariables[i]).elements.Count(); ++j)
                     {
@@ -833,15 +957,28 @@ namespace ComputeDuck
                                 ((RefObject)((ArrayObject)m_GlobalVariables[i]).elements[j]).pointer = newAddress;
                     }
                 }
-                else if (m_GlobalVariables[i].type == ObjectType.REF)
-                    if (((RefObject)m_GlobalVariables[i]).pointer == originAddress)
-                        ((RefObject)m_GlobalVariables[i]).pointer = newAddress;
+                else if(m_GlobalVariables[i].type == ObjectType.STRUCT)
+                {
+                    var keys = new List<string>(((StructObject)m_GlobalVariables[i]).members.Keys);
+                    for (int j = 0; j < keys.Count; ++j)
+                    {
+                        var key = keys[j];
+                        if (((StructObject)m_GlobalVariables[i]).members[key].type == ObjectType.REF)
+                            if (((RefObject)((StructObject)m_GlobalVariables[i]).members[key]).pointer == originAddress)
+                                ((RefObject)((StructObject)m_GlobalVariables[i]).members[key]).pointer = newAddress;
+                    }
+                }
             }
 
 
             for (int i = 0; i < m_StackTop; ++i)
             {
-                if (m_ObjectStack[i].type == ObjectType.ARRAY)
+                if (m_ObjectStack[i].type == ObjectType.REF)
+                {
+                    if (((RefObject)m_ObjectStack[i]).pointer == originAddress)
+                        ((RefObject)m_ObjectStack[i]).pointer = newAddress;
+                }
+                else if (m_ObjectStack[i].type == ObjectType.ARRAY)
                 {
                     for (int j = 0; j < ((ArrayObject)m_ObjectStack[i]).elements.Count(); ++j)
                     {
@@ -850,9 +987,17 @@ namespace ComputeDuck
                                 ((RefObject)((ArrayObject)m_ObjectStack[i]).elements[j]).pointer = newAddress;
                     }
                 }
-                else if (m_ObjectStack[i].type == ObjectType.REF)
-                    if (((RefObject)m_ObjectStack[i]).pointer == originAddress)
-                        ((RefObject)m_ObjectStack[i]).pointer = newAddress;
+                else if (m_ObjectStack[i].type == ObjectType.STRUCT)
+                {
+                    var keys = new List<string>(((StructObject)m_ObjectStack[i]).members.Keys);
+                    for (int j = 0; j < keys.Count; ++j)
+                    {
+                        var key = keys[j];
+                        if (((StructObject)m_ObjectStack[i]).members[key].type == ObjectType.REF)
+                            if (((RefObject)((StructObject)m_ObjectStack[i]).members[key]).pointer == originAddress)
+                                ((RefObject)((StructObject)m_ObjectStack[i]).members[key]).pointer = newAddress;
+                    }
+                }
             }
 
             for (int i = 0; i < m_CallFrameTop; ++i)
@@ -868,14 +1013,25 @@ namespace ComputeDuck
                                 callFrame.closure.upvalues[j].location = newAddress;
                             else
                             {
-                                var arrayObj = Utils.SearchObjectByAddress(callFrame.closure.upvalues[j].location);
-                                if (arrayObj != null && arrayObj.type == ObjectType.ARRAY)
+                                var rawObj = Utils.SearchObjectByAddress(callFrame.closure.upvalues[j].location);
+                                if (rawObj != null && rawObj.type == ObjectType.ARRAY)
                                 {
-                                    for (int k = 0; k < ((ArrayObject)arrayObj).elements.Count(); ++k)
+                                    for (int k = 0; k < ((ArrayObject)rawObj).elements.Count(); ++k)
                                     {
-                                        if (((ArrayObject)arrayObj).elements[k].type == ObjectType.REF)
-                                            if (((RefObject)((ArrayObject)m_ObjectStack[i]).elements[j]).pointer == originAddress)
-                                                ((RefObject)((ArrayObject)arrayObj).elements[k]).pointer = newAddress;
+                                        if (((ArrayObject)rawObj).elements[k].type == ObjectType.REF)
+                                            if (((RefObject)((ArrayObject)rawObj).elements[k]).pointer == originAddress)
+                                                ((RefObject)((ArrayObject)rawObj).elements[k]).pointer = newAddress;
+                                    }
+                                }
+                                else if (rawObj != null && rawObj.type == ObjectType.STRUCT)
+                                {
+                                    var keys = new List<string>(((StructObject)rawObj).members.Keys);
+                                    for (int k = 0; k < keys.Count; ++k)
+                                    {
+                                        var key = keys[j];
+                                        if (((StructObject)rawObj).members[key].type == ObjectType.REF)
+                                            if (((RefObject)((StructObject)rawObj).members[key]).pointer == originAddress)
+                                                ((RefObject)((StructObject)rawObj).members[key]).pointer = newAddress;
                                     }
                                 }
                             }

@@ -64,6 +64,7 @@ bool operator!=(const Value &left, const Value &right);
 extern "C" COMPUTEDUCK_API void FindActualValue(const Value &v,Value& result);
 extern "C" COMPUTEDUCK_API Value *GetEndOfRefValuePtr(Value *v);
 extern "C" COMPUTEDUCK_API void GetEndOfRefValue(const Value &v, Value &result);
+extern "C" COMPUTEDUCK_API void SetValue(Value* slot,const Value& value);
 // -- 新增内容
 
 extern "C" COMPUTEDUCK_API void ValueAdd(const Value &l, const Value &r, Value &result);

@@ -61,16 +61,16 @@ class BuiltinManager(object):
         if args[0].type == ObjectType.ARRAY:
             if args[1].type != ObjectType.NUM:
                 error("[Native function 'insert']:Arg1 must be integer type while insert to a array")
-            iIndex = args[1].value
+            iIndex = (int)(args[1].value)
             if iIndex < 0 or iIndex >= len(args[0].elements):
                 error("[Native function 'insert']:Index out of array's range")
             args[0].elements.insert(iIndex, args[2])
         elif args[0].type == ObjectType.STR:
             if args[1].type != ObjectType.NUM:
                 error("[Native function 'insert']:Arg1 must be integer type while insert to a string")
-            iIndex = args[1].value
+            iIndex = (int)(args[1].value)
             if iIndex < 0 or iIndex >= len(args[0].values):
-                error("[Native function 'insert']:Index out of array's range")
+                error("[Native function 'insert']:Index out of string's range")
             args[0].values.insert(iIndex, args[2].__str__())
         return False, None
 

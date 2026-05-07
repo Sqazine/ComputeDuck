@@ -59,6 +59,13 @@ void FindActualValue(const Value &v, Value &result)
         result = TO_BUILTIN_VALUE(result)->Get<Value>();
 }
 
+void GetEndOfRefValue(const Value &v, Value &result)
+{
+    result = v;
+    while (IS_REF_VALUE(result))
+        result = *TO_REF_VALUE(result)->pointer;
+}
+
 Value *GetEndOfRefValuePtr(Value *v)
 {
     auto result = v;
@@ -67,11 +74,11 @@ Value *GetEndOfRefValuePtr(Value *v)
     return result;
 }
 
-void GetEndOfRefValue(const Value &v, Value &result)
+void SetValue(Value* slot,const Value& value)
 {
-    result = v;
-    while (IS_REF_VALUE(result))
-        result = *TO_REF_VALUE(result)->pointer;
+    if(!IS_REF_VALUE(value) && IS_REF_VALUE(*slot))
+        slot = GetEndOfRefValuePtr(slot);
+    *slot = value;
 }
 
 //  - * /

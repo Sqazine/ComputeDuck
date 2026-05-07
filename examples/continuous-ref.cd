@@ -15,3 +15,30 @@ d=100;
 
 println(a);#[1,100,3,4,5];
 println(c);#100
+
+# repeat ref
+a = {
+    x:0,
+    y:0
+};
+
+b = ref a;
+b.x = 100;
+
+println(a); # {x:100,y:0}
+
+a = 10;
+b = ref a;
+b = 20;
+println(a); # 20
+
+# array ref
+a = 10;
+array = [1,ref a,10];
+array[1] = 1000;
+println(a);# 1000
+
+a = 20;
+array = [1,ref a,10];
+array[1] = 10000;
+println(a);# 10000
