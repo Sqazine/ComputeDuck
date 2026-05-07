@@ -183,6 +183,10 @@ void Compiler::CompileExpr(Expr *expr, const RWState &state)
         return CompileStructCallExpr((StructCallExpr *)expr, state);
     case AstType::STRUCT:
         return CompileStructExpr((StructExpr *)expr);
+    // ++ 新增内容
+    case AstType::REF:
+        return CompileRefExpr((RefExpr *)expr);
+    // -- 新增内容
     default:
         ASSERT("Unknown expr.");
     }
@@ -396,6 +400,50 @@ void Compiler::CompileStructCallExpr(StructCallExpr *expr, const RWState &state)
     else
         Emit(OP_SET_STRUCT);
 }
+
+// ++ 新增内容
+void Compiler::CompileRefExpr(RefExpr *expr)
+{
+    Symbol symbol;
+    if (expr->refExpr->type == AstType::INDEX)
+    {
+        CompileExpr(((IndexExpr *)expr->refExpr)->index);
+        bool isFound = m_SymbolTable->Resolve(((IndexExpr *)expr->refExpr)->ds->Stringify(), symbol);
+        if (!isFound)
+            ASSERT("Undefined variable:%s", expr->Stringify().c_str());
+        RefSymbol(symbol, true);
+    }
+    else
+    {
+        bool isFound = m_SymbolTable->Resolve(expr->refExpr->Stringify(), symbol);
+        if (!isFound)
+            ASSERT("Undefined variable:%s", expr->Stringify().c_str());
+
+        RefSymbol(symbol, false);
+    }
+}
+
+void Compiler::RefSymbol(const Symbol &symbol, bool isIndexSymbol)
+{
+    switch (symbol.scope)
+    {
+    case SymbolScope::GLOBAL:
+        Emit(isIndexSymbol ? OP_REF_INDEX_GLOBAL : OP_REF_GLOBAL);
+        Emit(symbol.index);
+        break;
+    case SymbolScope::LOCAL:
+        Emit(isIndexSymbol ? OP_REF_INDEX_LOCAL : OP_REF_LOCAL);
+        Emit(symbol.index);
+        break;
+    case SymbolScope::UPVALUE:
+        Emit(isIndexSymbol ? OP_REF_INDEX_UPVALUE : OP_REF_UPVALUE);
+        Emit(symbol.upvalueIndex);
+        break;
+    default:
+        break;
+    }
+}
+// -- 新增内容
 
 Chunk &Compiler::CurChunk()
 {

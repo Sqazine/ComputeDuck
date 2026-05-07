@@ -45,6 +45,9 @@ private:
     void CompileFunctionCallExpr(FunctionCallExpr *expr);
     void CompileStructCallExpr(StructCallExpr *expr, const RWState &state);
     void CompileStructExpr(StructExpr *expr);
+    // ++ 新增内容
+    void CompileRefExpr(RefExpr *expr);
+    // -- 新增内容
 
     Chunk &CurChunk();
 
@@ -56,6 +59,9 @@ private:
     void DefineSymbol(const Symbol &symbol);
     void LoadSymbol(const Symbol &symbol);
     void StoreSymbol(const Symbol &symbol);
+    // ++ 新增内容
+    void RefSymbol(const Symbol &symbol, bool isIndexSymbol);
+    // -- 新增内容
 
     void ModifyOpCode(uint32_t pos, int16_t opcode);
 

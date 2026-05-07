@@ -191,6 +191,9 @@ void VM::Execute()
             auto index = *frame->ip++;
             auto value = POP();
             auto ptr = GET_GLOBAL_VARIABLE_SLOT(index);
+            // ++ 新增内容
+            ptr = GetEndOfRefValuePtr(ptr);
+            // -- 新增内容
             *ptr = value;
             break;
         }
@@ -213,6 +216,9 @@ void VM::Execute()
             auto index = *frame->ip++;
             auto value = POP();
             Value *slot = GET_LOCAL_VARIABLE_SLOT(index);
+            // ++ 新增内容
+            slot = GetEndOfRefValuePtr(slot);
+            // -- 新增内容
             *slot = value;
             break;
         }
@@ -335,6 +341,9 @@ void VM::Execute()
             auto value = POP();
             auto index = *frame->ip++;
             auto slot = frame->closure->upvalues[index]->location;
+            // ++ 新增内容
+            slot = GetEndOfRefValuePtr(slot);
+            // -- 新增内容
             *slot = value;
             break;
         }
@@ -358,8 +367,11 @@ void VM::Execute()
         case OP_GET_STRUCT:
         {
             auto memberName = POP();
-            Value instance = POP();
-
+            // ++ 修改内容
+            // Value instance = POP();
+            Value instance;
+            GetEndOfRefValue(POP(), instance);
+            // -- 修改内容
             auto structInstance = TO_STRUCT_VALUE(instance);
 
             Value *value = structInstance->members->Get(TO_STR_VALUE(memberName));
@@ -372,7 +384,11 @@ void VM::Execute()
         case OP_SET_STRUCT:
         {
             auto memberName = POP();
-            Value instance = POP();
+            // ++ 修改内容
+            // Value instance = POP();
+            Value instance;
+            GetEndOfRefValue(POP(), instance);
+            // -- 修改内容
             auto structInstance = TO_STRUCT_VALUE(instance);
             auto value = POP();
 
@@ -383,6 +399,50 @@ void VM::Execute()
 
             break;
         }
+        // ++ 新增内容
+         case OP_REF_GLOBAL:
+        {
+            auto index = *frame->ip++;
+            PUSH(ALLOCATE_OBJECT(RefObject, GET_GLOBAL_VARIABLE_SLOT(index)));
+            break;
+        }
+        case OP_REF_LOCAL:
+        {
+            auto index = *frame->ip++;
+            PUSH(ALLOCATE_OBJECT(RefObject, GET_LOCAL_VARIABLE_SLOT(index)));
+            break;
+        }
+        case OP_REF_UPVALUE:
+        {
+            auto index = *frame->ip++;
+            PUSH(ALLOCATE_OBJECT(RefObject, frame->closure->upvalues[index]->location));
+            break;
+        }
+        case OP_REF_INDEX_GLOBAL:
+        {
+            auto index = *frame->ip++;
+            auto idxValue = POP();
+            auto ptr = GetEndOfRefValuePtr(GET_GLOBAL_VARIABLE_SLOT(index));
+            PUSH(ALLOCATE_INDEX_REF_OBJECT(ptr, idxValue));
+            break;
+        }
+        case OP_REF_INDEX_LOCAL:
+        {
+            auto index = *frame->ip++;
+            auto idxValue = POP();
+            Value *slot = GetEndOfRefValuePtr(GET_LOCAL_VARIABLE_SLOT(index));
+            PUSH(ALLOCATE_INDEX_REF_OBJECT(slot, idxValue));
+            break;
+        }
+        case OP_REF_INDEX_UPVALUE:
+        {
+            auto index = *frame->ip++;
+            auto idxValue = POP();
+            Value *slot = GetEndOfRefValuePtr(frame->closure->upvalues[index]->location);
+            PUSH(ALLOCATE_INDEX_REF_OBJECT(slot, idxValue));
+            break;
+        }
+        // -- 新增内容
         default:
             break;
         }

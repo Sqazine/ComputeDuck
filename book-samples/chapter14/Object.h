@@ -15,6 +15,9 @@
 #define TO_UPVALUE_OBJ(obj) (static_cast<UpvalueObject *>(obj))
 #define TO_CLOSURE_OBJ(obj) (static_cast<ClosureObject *>(obj))
 #define TO_STRUCT_OBJ(obj) (static_cast<StructObject *>(obj))
+// ++ 新增内容
+#define TO_REF_OBJ(obj) (static_cast<RefObject *>(obj))
+// -- 新增内容
 
 #define IS_STR_OBJ(obj) (obj->type == ObjectType::STR)
 #define IS_ARRAY_OBJ(obj) (obj->type == ObjectType::ARRAY)
@@ -23,6 +26,9 @@
 #define IS_UPVALUE_OBJ(obj) (obj->type == ObjectType::UPVALUE)
 #define IS_CLOSURE_OBJ(obj) (obj->type == ObjectType::CLOSURE)
 #define IS_STRUCT_OBJ(obj) (obj->type == ObjectType::STRUCT)
+// ++ 新增内容
+#define IS_REF_OBJ(obj) (obj->type == ObjectType::REF)
+// -- 新增内容
 
 enum ObjectType : uint8_t
 {
@@ -33,6 +39,9 @@ enum ObjectType : uint8_t
     UPVALUE,
     CLOSURE,
     STRUCT,
+    // ++ 新增内容
+    REF,
+    // -- 新增内容
 };
 
 struct Object
@@ -133,6 +142,16 @@ struct StructObject : public Object
 
     HashTable *members;
 };
+
+// ++ 新增内容
+struct RefObject : public Object
+{
+    RefObject(Value *pointer) : Object(ObjectType::REF), pointer(pointer) {}
+    ~RefObject() = default;
+
+    Value *pointer;
+};
+// -- 新增内容
 
 COMPUTEDUCK_API std::string ObjectStringify(Object *object
 

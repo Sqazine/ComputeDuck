@@ -46,6 +46,9 @@ enum class TokenType
     FUNCTION,	   // function
     RETURN,		   // return
     STRUCT,		   // struct
+    // ++ 新增内容
+    REF,		   // ref
+    // -- 新增内容
     END
 };
 

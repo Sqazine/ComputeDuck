@@ -27,6 +27,9 @@ enum class AstType
 	RETURN,
 	STRUCT,
 	STRUCT_CALL,
+	// ++ 新增内容
+	REF,
+	// -- 新增内容
 };
 
 struct AstNode
@@ -392,3 +395,15 @@ struct StructCallExpr : public Expr
 	Expr *callee;
 	IdentifierExpr *callMember;
 };
+
+// ++ 新增内容
+struct RefExpr : public Expr
+{
+	RefExpr() : Expr(AstType::REF), refExpr(nullptr) {}
+	RefExpr(Expr *refExpr) : Expr(AstType::REF), refExpr(refExpr) {}
+	~RefExpr() override { SAFE_DELETE(refExpr); }
+	std::string Stringify() override { return "ref " + refExpr->Stringify(); }
+
+	Expr *refExpr;
+};
+// -- 新增内容
