@@ -421,23 +421,23 @@ class VM:
             elif instruction == OpCode.OP_REF_GLOBAL:
                 index = frame.closure.function.chunk.opCodeList[frame.ip]
                 frame.ip += 1
-                self.__push(RefObject(id(self.__globalVariables[index])))
+                obj, _ = self.__get_end_of_ref_object(self.__globalVariables[index])
+                self.__push(RefObject(id(obj)))
 
             elif instruction == OpCode.OP_REF_LOCAL:
                 index = frame.closure.function.chunk.opCodeList[frame.ip]
                 frame.ip += 1
 
                 slot = self.__get_local_variable_slot(index)
-
-                self.__push(RefObject(id(self.__objectStack[slot])))
+                obj, _ = self.__get_end_of_ref_object(self.__objectStack[slot])
+                self.__push(RefObject(id(obj)))
 
             elif instruction == OpCode.OP_REF_INDEX_GLOBAL:
                 index = frame.closure.function.chunk.opCodeList[frame.ip]
                 frame.ip += 1
                 idxValue = self.__pop()
 
-                obj, _ = self.__get_end_of_ref_object(
-                    self.__globalVariables[index])
+                obj, _ = self.__get_end_of_ref_object(self.__globalVariables[index])
 
                 self.__push(self.__allocate_index_ref_object(obj, idxValue))
 
@@ -493,7 +493,8 @@ class VM:
             elif instruction == OpCode.OP_REF_UPVALUE:
                 index = frame.closure.function.chunk.opCodeList[frame.ip]
                 frame.ip += 1
-                self.__push(RefObject(frame.closure.upvalues[index].pointer))
+                slot, _ = self.__get_end_of_ref_object(search_object_by_address(frame.closure.upvalues[index].pointer))
+                self.__push(RefObject(id(slot)))
 
             elif instruction == OpCode.OP_REF_INDEX_UPVALUE:
                 index = frame.closure.function.chunk.opCodeList[frame.ip]
