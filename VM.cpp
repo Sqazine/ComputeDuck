@@ -449,19 +449,22 @@ void VM::Execute()
         case OP_REF_GLOBAL:
         {
             auto index = *frame->ip++;
-            PUSH(ALLOCATE_OBJECT(RefObject, GET_GLOBAL_VARIABLE_SLOT(index)));
+            auto ptr = GetEndOfRefValuePtr(GET_GLOBAL_VARIABLE_SLOT(index));
+            PUSH(ALLOCATE_OBJECT(RefObject, ptr));
             break;
         }
-        case OP_REF_LOCAL:
+       case OP_REF_LOCAL:
         {
             auto index = *frame->ip++;
-            PUSH(ALLOCATE_OBJECT(RefObject, GET_LOCAL_VARIABLE_SLOT(index)));
+            Value *slot = GetEndOfRefValuePtr(GET_LOCAL_VARIABLE_SLOT(index));
+            PUSH(ALLOCATE_OBJECT(RefObject, slot));
             break;
         }
         case OP_REF_UPVALUE:
         {
             auto index = *frame->ip++;
-            PUSH(ALLOCATE_OBJECT(RefObject, frame->closure->upvalues[index]->location));
+            Value *slot = GetEndOfRefValuePtr(frame->closure->upvalues[index]->location);
+            PUSH(ALLOCATE_OBJECT(RefObject, slot));
             break;
         }
         case OP_REF_INDEX_GLOBAL:

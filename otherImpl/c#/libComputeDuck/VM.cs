@@ -528,7 +528,8 @@ namespace ComputeDuck
                     case (int)OpCode.OP_REF_GLOBAL:
                         {
                             var index = frame.closure.function.chunk.opCodeList[frame.ip++];
-                            Push(new RefObject(m_GlobalVariables[index].GetAddress()));
+                            var (obj, _) = GetEndOfRefObject(m_GlobalVariables[index]);
+                            Push(new RefObject(obj.GetAddress()));
                             break;
                         }
                     case (int)OpCode.OP_REF_LOCAL:
@@ -536,8 +537,8 @@ namespace ComputeDuck
                             var index = frame.closure.function.chunk.opCodeList[frame.ip++];
 
                             int slot = GetLocalVariableSlot(index);
-
-                            Push(new RefObject(m_ObjectStack[slot].GetAddress()));
+                            var (obj, _) = GetEndOfRefObject(m_ObjectStack[slot]);
+                            Push(new RefObject(obj.GetAddress()));
 
                             break;
                         }
@@ -585,7 +586,8 @@ namespace ComputeDuck
                     case (int)OpCode.OP_REF_UPVALUE:
                         {
                             var index = frame.closure.function.chunk.opCodeList[frame.ip++];
-                            Push(new RefObject(frame.closure.upvalues[index].location));
+                            var (obj, _) = GetEndOfRefObject(Utils.SearchObjectByAddress(frame.closure.upvalues[index].location));
+                            Push(new RefObject(obj.GetAddress()));
                             break;
                         }
                     case (int)OpCode.OP_REF_INDEX_UPVALUE:
