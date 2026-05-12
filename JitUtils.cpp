@@ -8,6 +8,11 @@
 #include "HashTable.h"
 #include <random>
 
+extern "C" COMPUTEDUCK_API Value* AllocateValueArray(uint32_t size)
+{
+    return new Value[size];
+}
+
 extern "C" COMPUTEDUCK_API StrObject *AllocateStrObject(const char *v)
 {
     return ALLOCATE_OBJECT(StrObject, v);
@@ -46,14 +51,6 @@ extern "C" COMPUTEDUCK_API bool HashTableSet(HashTable *table, StrObject *key, c
 extern "C" COMPUTEDUCK_API Value* HashTableGet(HashTable *table, StrObject *key)
 {
     return table->Get(key);
-}
-
-extern "C" COMPUTEDUCK_API bool HashTableSetIfFound(HashTable *table, StrObject *key, const Value &value)
-{
-    bool isSuccess = table->Find(key);
-    if (!isSuccess)
-        ASSERT("no member named:(%s)", ObjectStringify(key).c_str());
-    return table->Set(key, value);
 }
 
 extern "C" COMPUTEDUCK_API RefObject *AllocateIndexRefObject(Value *ptr, const Value &v)

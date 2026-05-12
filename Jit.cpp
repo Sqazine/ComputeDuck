@@ -397,9 +397,8 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
 
             llvm::Value *alloc = m_Builder->CreateAlloca(m_ValuePtrType);
 
-            auto mallocation = m_Builder->CreateCall(m_Module->getFunction(STR(malloc)), {llvm::ConstantInt::get(m_Int64Type, numElements * sizeof(Value))});
-            auto arrayObjectBitCast = m_Builder->CreateBitCast(mallocation, m_ValuePtrType);
-            m_Builder->CreateStore(arrayObjectBitCast, alloc);
+            auto mallocation = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateValueArray)), {llvm::ConstantInt::get(m_Int32Type, numElements)});
+            m_Builder->CreateStore(mallocation, alloc);
 
             auto load = m_Builder->CreateLoad(m_ValuePtrType, alloc);
 
@@ -411,7 +410,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             }
 
             auto arrayObject = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateArrayObject)), {load, llvm::ConstantInt::get(m_Int32Type, numElements)});
-            arrayObjectBitCast = m_Builder->CreateBitCast(arrayObject, m_ObjectPtrType);
+            auto arrayObjectBitCast = m_Builder->CreateBitCast(arrayObject, m_ObjectPtrType);
 
             Push(arrayObjectBitCast);
             break;
@@ -604,8 +603,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                         llvm::Value *memberAddr = m_Builder->CreateInBoundsGEP(m_ValueType, arrayElements, iIndex);
 
                         v = AllocateValue(v);
-
-                        AssignValue(memberAddr, v);
+                        m_Builder->CreateCall(m_Module->getFunction(STR(SetValue)), {arrayElements,v});
                     }
                 }
             }
@@ -788,9 +786,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(GLOBAL_VARIABLE_STR));
             auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
 
-            globalVar = m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)), {globalVar});
-
-            AssignValue(globalVar, v);
+             m_Builder->CreateCall(m_Module->getFunction(STR(SetValue)), {globalVar,v});
             break;
         }
         case OP_GET_GLOBAL:
@@ -837,8 +833,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
 
                 llvm::Value *refValue = m_Builder->CreateLoad(m_RefObjectPtrType, iter->second);
                 refValue = AllocateValue(refValue);
-                refValue = m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)), {refValue});
-                AssignValue(refValue, value);
+                m_Builder->CreateCall(m_Module->getFunction(STR(SetValue)), {refValue,  value });
             }
             else
                 m_Builder->CreateStore(value, iter->second);
@@ -1082,7 +1077,9 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto tablePtr = m_Builder->CreateInBoundsGEP(m_StructObjectType, instance, {m_Builder->getInt32(0), m_Builder->getInt32(1)});
             tablePtr = m_Builder->CreateLoad(m_HashTablePtrType, tablePtr);
 
-            m_Builder->CreateCall(m_Module->getFunction(STR(HashTableSetIfFound)), {tablePtr, memberName, value});
+            auto resultValuePtr = m_Builder->CreateCall(m_Module->getFunction(STR(HashTableGet)), {tablePtr, memberName});
+
+            m_Builder->CreateCall(m_Module->getFunction(STR(SetValue)), {resultValuePtr, value});
 
             break;
         }
@@ -1091,7 +1088,8 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto index = *ip++;
             auto globArray = m_Builder->CreateLoad(m_ValuePtrType, m_Module->getNamedGlobal(GLOBAL_VARIABLE_STR));
             auto globalVar = m_Builder->CreateInBoundsGEP(m_ValueType, globArray, llvm::ConstantInt::get(m_Int16Type, index));
-            auto ref = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateRefObject)), {globalVar});
+            auto slot =  m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)), {globalVar});
+            auto ref = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateRefObject)), {slot});
             Push(ref);
             break;
         }
@@ -1184,9 +1182,8 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             v = AllocateValue(v);
 
             llvm::Value* upValue = m_Builder->CreateCall(m_Module->getFunction(STR(GetUpvalue)), { m_Builder->getInt8(index) });
-            upValue = m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)), {upValue});
+            m_Builder->CreateCall(m_Module->getFunction(STR(SetValue)), {upValue,v});
 
-            AssignValue(upValue, v);
             break;
         }
         case OP_GET_UPVALUE:
@@ -1200,7 +1197,8 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
         {
             auto index = *ip++;
             auto upvalue = m_Builder->CreateCall(m_Module->getFunction(STR(GetUpvalue)), {m_Builder->getInt8(index)});
-            auto refObject = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateRefObject)), {upvalue});
+            auto slot =  m_Builder->CreateCall(m_Module->getFunction(STR(GetEndOfRefValuePtr)), {upvalue});
+            auto refObject = m_Builder->CreateCall(m_Module->getFunction(STR(AllocateRefObject)), {slot});
             Push(refObject);
             break;
         }
@@ -1335,6 +1333,9 @@ void Jit::InitInternalFunctions()
     fnType = llvm::FunctionType::get(m_StrObjectPtrType, {m_Int8PtrType}, false);
     m_Module->getOrInsertFunction(STR(AllocateStrObject), fnType);
 
+    fnType = llvm::FunctionType::get(m_ValuePtrType, {m_Int32Type}, false);
+    m_Module->getOrInsertFunction(STR(AllocateValueArray), fnType);
+
     fnType = llvm::FunctionType::get(m_ArrayObjectPtrType, {m_ValuePtrType, m_Int32Type}, false);
     m_Module->getOrInsertFunction(STR(AllocateArrayObject), fnType);
 
@@ -1356,14 +1357,14 @@ void Jit::InitInternalFunctions()
     fnType = llvm::FunctionType::get(m_BoolType, {m_HashTablePtrType, m_StrObjectPtrType, m_ValuePtrType}, false);
     m_Module->getOrInsertFunction(STR(HashTableSet), fnType);
 
-    fnType = llvm::FunctionType::get(m_BoolType, {m_HashTablePtrType, m_StrObjectPtrType, m_ValuePtrType}, false);
-    m_Module->getOrInsertFunction(STR(HashTableSetIfFound), fnType);
-
     fnType = llvm::FunctionType::get(m_ValuePtrType, {m_HashTablePtrType, m_StrObjectPtrType}, false);
     m_Module->getOrInsertFunction(STR(HashTableGet), fnType);
 
     fnType = llvm::FunctionType::get(m_ValuePtrType, {m_ValuePtrType}, false);
     m_Module->getOrInsertFunction(STR(GetEndOfRefValuePtr), fnType);
+
+    fnType = llvm::FunctionType::get(m_VoidType, {m_ValuePtrType, m_ValuePtrType}, false);
+    m_Module->getOrInsertFunction(STR(SetValue), fnType);
 
     fnType = llvm::FunctionType::get(m_VoidType, {m_ValuePtrType, m_ValuePtrType, m_ValuePtrType}, false);
     m_Module->getOrInsertFunction(STR(ValueAdd), fnType);
