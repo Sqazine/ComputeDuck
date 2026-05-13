@@ -136,6 +136,168 @@ bool IsObjectEqual(Object *left, Object *right)
     }
 }
 
+// ++ 新增内容
+void MarkObject(Object *object)
+{
+    if (object == nullptr)
+        return;
+
+    object->marked = true;
+    switch (object->type)
+    {
+    case ObjectType::ARRAY:
+    {
+        for (int32_t i = 0; i < TO_ARRAY_OBJ(object)->len; ++i)
+            TO_ARRAY_OBJ(object)->elements[i].Mark();
+        break;
+    }
+    case ObjectType::STRUCT:
+    {
+        TO_STRUCT_OBJ(object)->members->Mark();
+        break;
+    }
+    case ObjectType::REF:
+    {
+        TO_REF_OBJ(object)->pointer->Mark();
+        break;
+    }
+    case ObjectType::FUNCTION:
+    {
+        for (const auto &v : TO_FUNCTION_OBJ(object)->chunk.constants)
+            v.Mark();
+        break;
+    }
+    case ObjectType::UPVALUE:
+    {
+        TO_UPVALUE_OBJ(object)->closed.Mark();
+        break;
+    }
+    case ObjectType::CLOSURE:
+    {
+        ClosureObject* closure =TO_CLOSURE_OBJ(object);
+        MarkObject(closure->function);
+        for (size_t i = 0; i < UPVALUE_COUNT; ++i)
+        {
+            UpvalueObject* upvalue = closure->upvalues[i];
+            MarkObject(upvalue);
+        }
+        break;
+    }
+    case ObjectType::STR:
+    default:
+        break;
+    }
+}
+
+void UnMarkObject(Object *object)
+{
+    if (object == nullptr)
+        return;
+
+    object->marked = false;
+    switch (object->type)
+    {
+    case ObjectType::ARRAY:
+    {
+        for (int32_t i = 0; i < TO_ARRAY_OBJ(object)->len; ++i)
+            TO_ARRAY_OBJ(object)->elements[i].UnMark();
+        break;
+    }
+    case ObjectType::STRUCT:
+    {
+        TO_STRUCT_OBJ(object)->members->UnMark();
+        break;
+    }
+    case ObjectType::REF:
+    {
+        TO_REF_OBJ(object)->pointer->UnMark();
+        break;
+    }
+    case ObjectType::FUNCTION:
+    {
+        for (const auto &v : TO_FUNCTION_OBJ(object)->chunk.constants)
+            v.UnMark();
+        break;
+    }
+    case ObjectType::UPVALUE:
+    {
+        TO_UPVALUE_OBJ(object)->closed.UnMark();
+        break;
+    }
+    case ObjectType::CLOSURE:
+    {
+        UnMarkObject(TO_CLOSURE_OBJ(object)->function);
+        for (size_t i = 0; i < UPVALUE_COUNT; ++i)
+        {
+            auto upvalue = TO_CLOSURE_OBJ(object)->upvalues[i];
+            UnMarkObject(upvalue);
+        }
+        break;
+    }
+    case ObjectType::STR:
+    default:
+        break;
+    }
+}
+
+COMPUTEDUCK_API void DeleteObject(Object *object)
+{
+    switch (object->type)
+    {
+    case ObjectType::STR:
+    {
+        auto strObj = TO_STR_OBJ(object);
+        SAFE_DELETE(strObj);
+        return;
+    }
+    case ObjectType::ARRAY:
+    {
+        auto arrObj = TO_ARRAY_OBJ(object);
+        SAFE_DELETE(arrObj);
+        return;
+    }
+    case ObjectType::STRUCT:
+    {
+        auto structObj = TO_STRUCT_OBJ(object);
+        SAFE_DELETE(structObj);
+        return;
+    }
+    case ObjectType::REF:
+    {
+        auto refObj = TO_REF_OBJ(object);
+        SAFE_DELETE(refObj);
+        return;
+    }
+    case ObjectType::FUNCTION:
+    {
+        auto fnObj = TO_FUNCTION_OBJ(object);
+        SAFE_DELETE(fnObj);
+        return;
+    }
+    case ObjectType::UPVALUE:
+    {
+        auto upvalueObj = TO_UPVALUE_OBJ(object);
+        SAFE_DELETE(upvalueObj);
+        return;
+    }
+    case ObjectType::CLOSURE:
+    {
+        auto closureObj = TO_CLOSURE_OBJ(object);
+        SAFE_DELETE(closureObj);
+        return;
+    }
+    case ObjectType::BUILTIN:
+    {
+        auto builtinObj = TO_BUILTIN_OBJ(object);
+        SAFE_DELETE(builtinObj);
+        return;
+    }
+    default:
+        return;
+    }
+}
+// -- 新增内容
+
 StrObject *StrAdd(StrObject *left, StrObject *right)
 {
     size_t length = left->len + right->len;
