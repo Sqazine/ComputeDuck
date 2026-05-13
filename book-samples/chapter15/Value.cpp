@@ -1,0 +1,223 @@
+#include "Value.h"
+#include "Object.h"
+std::string Value::Stringify() const
+{
+    switch (type)
+    {
+    case ValueType::NUM:
+        return std::to_string(stored);
+    case ValueType::BOOL:
+        return stored == 1.0 ? "true" : "false";
+    case ValueType::OBJECT:
+        return ObjectStringify(object);
+    case ValueType::NIL:
+    default:
+        return "nil";
+    }
+}
+
+bool operator==(const Value &left, const Value &right)
+{
+    if (left.type != right.type)
+        return false;
+
+    switch (left.type)
+    {
+    case ValueType::NIL:
+        return IS_NIL_VALUE(right);
+    case ValueType::NUM:
+    case ValueType::BOOL:
+        return left.stored == TO_NUM_VALUE(right);
+    case ValueType::OBJECT:
+        return IsObjectEqual(TO_OBJECT_VALUE(left), TO_OBJECT_VALUE(right));
+    default:
+        return false;
+    }
+}
+
+bool operator!=(const Value &left, const Value &right)
+{
+    return !(left == right);
+}
+
+void FindActualValue(const Value &v, Value &result)
+{
+    GetEndOfRefValue(v, result);
+}
+
+Value *GetEndOfRefValuePtr(Value *v)
+{
+    auto result = v;
+    while (IS_REF_VALUE(*result))
+        result = TO_REF_VALUE(*result)->pointer;
+    return result;
+}
+
+void GetEndOfRefValue(const Value &v, Value &result)
+{
+    result = v;
+    while (IS_REF_VALUE(result))
+        result = *TO_REF_VALUE(result)->pointer;
+}
+
+void SetValue(Value* slot,const Value& value)
+{
+    if(!IS_REF_VALUE(value) && IS_REF_VALUE(*slot))
+        slot = GetEndOfRefValuePtr(slot);
+    *slot = value;
+}
+
+
+// - * /
+#define COMMON_BINARY(l, op, r)                                                                               \
+    do                                                                                                        \
+    {                                                                                                         \
+        Value left, right;                                                                                    \
+        FindActualValue(l, left);                                                                             \
+        FindActualValue(r, right);                                                                            \
+        if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                                        \
+            return (TO_NUM_VALUE(left) op TO_NUM_VALUE(right));                                               \
+        else                                                                                                  \
+            ASSERT("Invalid binary op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
+    } while (0);
+
+// > >= < <=
+#define COMPARE_BINARY(l, op, r)                                               \
+    do                                                                         \
+    {                                                                          \
+        Value left, right;                                                     \
+        FindActualValue(l, left);                                              \
+        FindActualValue(r, right);                                             \
+        if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                         \
+            return (TO_NUM_VALUE(left) op TO_NUM_VALUE(right) ? true : false); \
+        else                                                                   \
+            return (false);                                                    \
+    } while (0);
+
+// and or
+#define LOGIC_BINARY(l, op, r)                                                                         \
+    do                                                                                                 \
+    {                                                                                                  \
+        Value left, right;                                                                             \
+        FindActualValue(l, left);                                                                      \
+        FindActualValue(r, right);                                                                     \
+        if (IS_BOOL_VALUE(right) && IS_BOOL_VALUE(left))                                               \
+            return (TO_BOOL_VALUE(left) op TO_BOOL_VALUE(right) ? true : false);                       \
+        else                                                                                           \
+            ASSERT("Invalid op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
+    } while (0);
+
+#define BIT_BINARY(l, op, r)                                                                           \
+    do                                                                                                 \
+    {                                                                                                  \
+        Value left, right;                                                                             \
+        FindActualValue(l, left);                                                                      \
+        FindActualValue(r, right);                                                                     \
+        if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))                                                 \
+            return ((uint64_t)TO_NUM_VALUE(left) op(uint64_t) TO_NUM_VALUE(right));                    \
+        else                                                                                           \
+            ASSERT("Invalid op:%s %s %s", left.Stringify().c_str(), (#op), right.Stringify().c_str()); \
+    } while (0);
+
+void ValueAdd(const Value &l, const Value &r, Value &result)
+{
+    Value left, right;
+    FindActualValue(l, left);
+    FindActualValue(r, right);
+    if (IS_NUM_VALUE(right) && IS_NUM_VALUE(left))
+        result = (TO_NUM_VALUE(left) + TO_NUM_VALUE(right));
+    else if (IS_STR_VALUE(right) && IS_STR_VALUE(left))
+        result = (StrAdd(TO_STR_VALUE(left), TO_STR_VALUE(right)));
+    else
+        ASSERT("Invalid binary op:%s+%s", left.Stringify().c_str(), right.Stringify().c_str());
+}
+
+double ValueSub(const Value &l, const Value &r)
+{
+    COMMON_BINARY(l, -, r);
+}
+
+double ValueMul(const Value &l, const Value &r)
+{
+    COMMON_BINARY(l, *, r);
+}
+
+double ValueDiv(const Value &l, const Value &r)
+{
+    COMMON_BINARY(l, /, r);
+}
+
+bool ValueGreater(const Value &l, const Value &r)
+{
+    COMPARE_BINARY(l, >, r);
+}
+
+bool ValueLess(const Value &l, const Value &r)
+{
+    COMPARE_BINARY(l, <, r);
+}
+
+bool ValueEqual(const Value &l, const Value &r)
+{
+    // return l.type == r.type && l.stored == r.stored;
+    return l == r;
+}
+
+bool ValueLogicAnd(const Value &l, const Value &r)
+{
+    LOGIC_BINARY(l, &&, r);
+}
+
+bool ValueLogicOr(const Value &l, const Value &r)
+{
+    LOGIC_BINARY(l, ||, r);
+}
+
+double ValueBitAnd(const Value &l, const Value &r)
+{
+    BIT_BINARY(l, &, r);
+}
+
+double ValueBitOr(const Value &l, const Value &r)
+{
+    BIT_BINARY(l, |, r);
+}
+
+double ValueBitXor(const Value &l, const Value &r)
+{
+    BIT_BINARY(l, ^, r);
+}
+
+bool ValueLogicNot(const Value &l)
+{
+    if (!IS_BOOL_VALUE(l))
+        ASSERT("Invalid op:'!' %s", l.Stringify().c_str());
+    return (!TO_BOOL_VALUE(l));
+}
+
+double ValueBitNot(const Value &l)
+{
+    if (!IS_NUM_VALUE(l))
+        ASSERT("Invalid op:~ %s", l.Stringify().c_str());
+    return (double)(~(uint64_t)TO_NUM_VALUE(l));
+}
+
+double ValueMinus(const Value &l)
+{
+    if (!IS_NUM_VALUE(l))
+        ASSERT("Invalid op:'-' %s", l.Stringify().c_str());
+    return (-TO_NUM_VALUE(l));
+}
+
+void GetArrayObjectElement(const Value &ds, const Value &index, Value &result)
+{
+    if (IS_ARRAY_VALUE(ds) && IS_NUM_VALUE(index))
+    {
+        auto array = TO_ARRAY_VALUE(ds);
+        auto i = (size_t)TO_NUM_VALUE(index);
+        if (!(i < 0 || i >= array->len))
+            result = array->elements[i];
+    }
+    else
+        ASSERT("Invalid index op: %s[%s]", ds.Stringify().c_str(), index.Stringify().c_str());
+}
