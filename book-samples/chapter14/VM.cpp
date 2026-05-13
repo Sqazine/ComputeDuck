@@ -172,7 +172,10 @@ void VM::Execute()
                 if (i < 0 || i >= array->len)
                     ASSERT("Invalid index:%ld outside of array's size:%ld", i, array->len)
                 else
+                // ++ 修改内容
+                //  array->elements[i] = v;
                    SetValue(&array->elements[i], v);
+                // -- 修改内容
             }
             else
                 ASSERT("Invalid index op: %s[%s]", ds.Stringify().c_str(), index.Stringify().c_str());
