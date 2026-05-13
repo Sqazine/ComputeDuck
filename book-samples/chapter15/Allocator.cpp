@@ -1,5 +1,6 @@
 #include "Allocator.h"
 #include <format>
+#include "BuiltinManager.h"
 void Allocator::Init()
 {
     memset(m_ValueStack, 0, sizeof(Value) * STACK_COUNT);
@@ -9,6 +10,9 @@ void Allocator::Init()
 
 void Allocator::Destroy()
 {
+    // ++ 新增内容
+    Gc(true);
+    // -- 新增内容
 }
 
 Allocator *Allocator::GetInstance()
@@ -131,3 +135,72 @@ RefObject *Allocator::AllocateIndexRefObject(Value *ptr, const Value &idxValue)
     else
         ASSERT("Invalid indexed reference type: %s not a array value.", ptr->Stringify().c_str());
 }
+
+// ++ 新增内容
+void Allocator::DisableGC()
+{
+    m_IsGCEnabled = false;
+}
+
+void Allocator::EnableGC()
+{
+    m_IsGCEnabled = true;
+}
+
+void Allocator::Gc(bool deleteAll)
+{
+    auto objNum = m_CurObjCount;
+    if (!deleteAll)
+    {
+        // mark all object which in stack and in context
+        for (Value *slot = m_ValueStack; slot < m_StackTop; ++slot)
+            slot->Mark();
+        for (Value &g : m_GlobalVariables)
+            g.Mark();
+        for (CallFrame *slot = m_CallFrameStack; slot < m_CallFrameTop; ++slot)
+            MarkObject(slot->closure);
+        for (UpvalueObject *upvalue = m_OpenUpvalues; upvalue != nullptr; upvalue = upvalue->nextUpvalue)
+            MarkObject(upvalue);
+      
+        BuiltinManager::GetInstance()->GetBuiltinObjectTable().Mark();
+    }
+    else
+    {
+        // unMark all objects while exiting vm
+        for (Value &slot : m_ValueStack)
+            slot.UnMark();
+        for (Value &g : m_GlobalVariables)
+            g.UnMark();
+        for (CallFrame &slot : m_CallFrameStack)
+            UnMarkObject(slot.closure);
+        for (UpvalueObject *upvalue = m_OpenUpvalues; upvalue != nullptr; upvalue = upvalue->nextUpvalue)
+            UnMarkObject(upvalue);
+
+         BuiltinManager::GetInstance()->GetBuiltinObjectTable().UnMark();
+    }
+
+    // sweep objects which is not reachable
+    Object **object = &m_FirstObject;
+    while (*object)
+    {
+        if (!(*object)->marked)
+        {
+            Object *unreached = *object;
+            *object = unreached->next;
+
+            DeleteObject(unreached);
+
+            m_CurObjCount--;
+        }
+        else
+        {
+            (*object)->marked = false;
+            object = &(*object)->next;
+        }
+    }
+
+    m_MaxObjCount = m_CurObjCount == 0 ? STACK_COUNT : m_CurObjCount * 2;
+
+    std::cout << "Collected " << objNum - m_CurObjCount << " objects," << m_CurObjCount << " remaining." << std::endl;
+}
+// -- 新增内容

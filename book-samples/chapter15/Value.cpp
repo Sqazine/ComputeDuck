@@ -16,6 +16,19 @@ std::string Value::Stringify() const
     }
 }
 
+// ++ 新增内容
+void Value::Mark() const
+{
+    if (type == ValueType::OBJECT)
+        MarkObject(object);
+}
+void Value::UnMark() const
+{
+    if (type == ValueType::OBJECT)
+        UnMarkObject(object);
+}
+// -- 新增内容
+
 bool operator==(const Value &left, const Value &right)
 {
     if (left.type != right.type)

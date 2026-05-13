@@ -24,6 +24,11 @@ public:
     bool Find(StrObject *key);
     bool Delete(StrObject *key);
     
+    // ++ 新增内容
+    void Mark();
+    void UnMark();
+    // -- 新增内容
+    
     uint32_t GetCount() const;
     uint32_t GetCapacity() const;
     const Entry* GetEntries() const;

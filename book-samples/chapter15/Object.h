@@ -40,10 +40,18 @@ enum ObjectType : uint8_t
 
 struct Object
 {
-    Object(ObjectType type) : type(type) {}
+    Object(ObjectType type) : type(type)
+    // ++ 新增内容
+    , marked(false), next(nullptr)
+    // -- 新增内容
+    {}
     ~Object() = default;
 
     ObjectType type;
+    // ++ 新增内容
+    bool marked;
+    Object *next;
+    // -- 新增内容
 };
 
 struct StrObject : public Object
@@ -153,6 +161,12 @@ COMPUTEDUCK_API std::string ObjectStringify(Object *object
 #endif
 
 );
+
+// ++ 新增内容
+COMPUTEDUCK_API void MarkObject(Object *object);
+COMPUTEDUCK_API void UnMarkObject(Object *object);
+COMPUTEDUCK_API void DeleteObject(Object *object);
+// -- 新增内容
 
 extern "C" COMPUTEDUCK_API bool IsObjectEqual(Object *left, Object *right);
 

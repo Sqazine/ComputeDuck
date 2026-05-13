@@ -145,3 +145,29 @@ bool operator==(const HashTable &left, const HashTable &right)
 {
     return left.GetCount() == right.GetCount() && left.GetEntries() == right.GetEntries();
 }
+
+// ++ 新增内容
+void HashTable::Mark()
+{
+    for (size_t i = 0; i < m_Capacity; ++i)
+    {
+        Entry *entry = &m_Entries[i];
+        if (entry->key)
+        {
+            MarkObject(entry->key);
+            entry->value.Mark();
+        }
+    }
+}
+
+void HashTable::UnMark()
+{
+    for (size_t i = 0; i < m_Capacity; ++i)
+    {
+        Entry *entry = &m_Entries[i];
+        if (entry->key)
+            UnMarkObject(entry->key);
+        entry->value.UnMark();
+    }
+}
+// -- 新增内容

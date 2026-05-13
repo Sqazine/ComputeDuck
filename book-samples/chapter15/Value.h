@@ -45,6 +45,11 @@ struct COMPUTEDUCK_API Value
 
     std::string Stringify() const;
 
+    // ++ 新增内容
+    void Mark() const;
+    void UnMark() const;
+    // -- 新增内容
+
     ValueType type;
     union
     {

@@ -57,9 +57,26 @@ public:
     template <IsChildOfObject T, typename... Args>
     T *AllocateObject(Args &&...params)
     {
+        // ++ 修改内容
+        // T *object = new T(std::forward<Args>(params)...);
+        // return object;
+         if (m_CurObjCount >= m_MaxObjCount && m_IsGCEnabled)
+            Gc();
+
         T *object = new T(std::forward<Args>(params)...);
+
+        object->marked = false;
+        object->next = m_FirstObject;
+        m_FirstObject = object;
+        m_CurObjCount++;
         return object;
+        // -- 修改内容
     }
+
+    // ++ 新增内容
+    void DisableGC();
+    void EnableGC();
+    // -- 新增内容
 
     RefObject *AllocateIndexRefObject(Value *ptr, const Value &idxValue);
 
@@ -80,6 +97,15 @@ private:
     CallFrame m_CallFrameStack[STACK_COUNT]{};
 
     UpvalueObject *m_OpenUpvalues{nullptr};
+
+    // ++ 新增内容
+    void Gc(bool deleteAll = false);
+    
+    bool m_IsGCEnabled{true};
+    Object *m_FirstObject{nullptr};
+    size_t m_CurObjCount{0};
+    size_t m_MaxObjCount{0};
+    // -- 新增内容
 };
 
 #define ALLOCATE_OBJECT(type, ...) (Allocator::GetInstance()->AllocateObject<type>(__VA_ARGS__))
