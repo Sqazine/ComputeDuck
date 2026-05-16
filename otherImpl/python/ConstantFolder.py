@@ -178,6 +178,17 @@ class ConstantFolder:
                     newExpr = BoolExpr(expr.left.value >= expr.right.value)
                 elif expr.op == "<=":
                     newExpr = BoolExpr(expr.left.value <= expr.right.value)
+                else:
+                    return expr
+                return newExpr
+            elif expr.left.type == AstType.BOOL and expr.right.type == AstType.BOOL:
+                newExpr = None
+                if expr.op == "==":
+                    newExpr = BoolExpr(expr.left.value == expr.right.value)
+                elif expr.op == "!=":
+                    newExpr = BoolExpr(expr.left.value != expr.right.value)
+                else:
+                    return expr
                 return newExpr
             elif expr.left.type == AstType.STR and expr.right.type == AstType.STR:
                 return StrExpr(expr.left.value+expr.right.value)

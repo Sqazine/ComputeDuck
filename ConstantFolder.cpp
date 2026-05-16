@@ -222,7 +222,8 @@ Expr *ConstantFolder::ConstantFold(Expr *expr)
                 newExpr = new BoolExpr(((NumExpr *)infix->left)->value < ((NumExpr *)infix->right)->value);
             else if (infix->op == "<=")
                 newExpr = new BoolExpr(((NumExpr *)infix->left)->value <= ((NumExpr *)infix->right)->value);
-
+            else 
+                return infix;
             SAFE_DELETE(infix);
             return newExpr;
         }
@@ -233,7 +234,8 @@ Expr *ConstantFolder::ConstantFold(Expr *expr)
                 newExpr = new BoolExpr(((BoolExpr *)infix->left)->value == ((BoolExpr *)infix->right)->value);
             else if (infix->op == "!=")
                 newExpr = new BoolExpr(((BoolExpr *)infix->left)->value != ((BoolExpr *)infix->right)->value);
-
+            else 
+                return infix;
             SAFE_DELETE(infix);
             return newExpr;
         }
