@@ -226,6 +226,17 @@ Expr *ConstantFolder::ConstantFold(Expr *expr)
             SAFE_DELETE(infix);
             return newExpr;
         }
+        else if (infix->left->type == AstType::BOOL && infix->right->type == AstType::BOOL)
+        {
+            Expr *newExpr = nullptr;
+            if (infix->op == "==")
+                newExpr = new BoolExpr(((BoolExpr *)infix->left)->value == ((BoolExpr *)infix->right)->value);
+            else if (infix->op == "!=")
+                newExpr = new BoolExpr(((BoolExpr *)infix->left)->value != ((BoolExpr *)infix->right)->value);
+
+            SAFE_DELETE(infix);
+            return newExpr;
+        }
         else if (infix->left->type == AstType::STR && infix->right->type == AstType::STR)
         {
             auto strExpr = new StrExpr(((StrExpr *)infix->left)->value + ((StrExpr *)infix->right)->value);
