@@ -91,6 +91,10 @@ std::vector<Stmt *> Parser::Parse(const std::vector<Token> &tokens)
 	while (!IsMatchCurToken(TokenType::END))
 		stmts.emplace_back(ParseStmt());
 
+	// ++ 新增内容
+	m_ConstantFolder.Fold(stmts);
+	// -- 新增内容
+
 	return stmts;
 }
 
