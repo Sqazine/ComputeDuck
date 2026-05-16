@@ -6,6 +6,7 @@
 #include "Token.h"
 #include "Ast.h"
 #include "Utils.h"
+#include "ConstantFolder.h"
 
 enum class Precedence
 {
@@ -76,6 +77,10 @@ private:
 
 	int32_t m_FunctionScopeDepth;
 	
+	// ++ 新增内容
+	ConstantFolder m_ConstantFolder;
+	// -- 新增内容
+
 	int64_t m_CurPos;
 
 	std::vector<Token> m_Tokens;
