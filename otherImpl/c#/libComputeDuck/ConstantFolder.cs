@@ -224,6 +224,19 @@ namespace ComputeDuck
                         newExpr = new BoolExpr(((NumExpr)infix.left).value < ((NumExpr)infix.right).value);
                     else if (infix.op == "<=")
                         newExpr = new BoolExpr(((NumExpr)infix.left).value <= ((NumExpr)infix.right).value);
+                    else 
+                        return infix;
+                    return newExpr;
+                }
+                else if (infix.left.type == AstType.BOOL && infix.right.type == AstType.BOOL)
+                {
+                    Expr newExpr = null;
+                    if (infix.op == "==")
+                        newExpr = new BoolExpr(((BoolExpr)infix.left).value == ((BoolExpr)infix.right).value);
+                    else if (infix.op == "!=")
+                        newExpr = new BoolExpr(((BoolExpr)infix.left).value != ((BoolExpr)infix.right).value);
+                    else 
+                        return infix;
                     return newExpr;
                 }
                 else if (infix.left.type == AstType.STR && infix.right.type == AstType.STR)
