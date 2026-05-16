@@ -1,13 +1,13 @@
-println(1+2); // 3
-println(1-2); // -1
-println(1*2); // 2
-println(1/2); // 0.5
-println("Compute" + "Duck"); // "ComputeDuck"
-println(true == false); // false
-println(true != false); // true
-println(not true); // false
-println(1>=2); // false
-println(1&2); // 0
-println(1|2); // 3
-println(1^2); // 3
-println(~1); // -2
+println(1+2); # 3
+println(1-2); # -1
+println(1*2); # 2
+println(1/2); # 0.5
+println("Compute" + "Duck"); # "ComputeDuck"
+println(true == false); # false
+println(true != false); # true
+println(not true); # false
+println(1>=2); # false
+println(1&2); # 0
+println(1|2); # 3
+println(1^2); # 3
+println(~1); # -2
