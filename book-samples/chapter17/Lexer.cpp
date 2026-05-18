@@ -39,7 +39,9 @@ const std::vector<Token> &Lexer::GenerateTokens(std::string_view src, std::strin
         m_StartPos = m_CurPos;
         GenerateToken();
     }
-    m_Tokens.emplace_back(TokenType::END, "", m_Line, m_Column, m_FilePath);
+    // ++ 删除内容
+    // m_Tokens.emplace_back(TokenType::END, "END", m_Line, m_Column, m_FilePath);
+    // -- 删除内容
     return m_Tokens;
 }
 
