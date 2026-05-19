@@ -46,6 +46,9 @@ private:
     void CompileStructCallExpr(StructCallExpr *expr, const RWState &state);
     void CompileStructExpr(StructExpr *expr);
     void CompileRefExpr(RefExpr *expr);
+    // ++ 新增内容
+    void CompileDllImportExpr(DllImportExpr *expr);
+    // -- 新增内容
 
     Chunk &CurChunk();
 

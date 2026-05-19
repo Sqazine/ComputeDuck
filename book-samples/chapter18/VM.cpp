@@ -292,7 +292,10 @@ void VM::Execute()
                 Value *slot = GET_STACK_TOP() - argCount;
 
                 Value returnValue;
-                auto hasRet = builtin->Get()(slot, argCount, returnValue);
+                // ++ 修改内容
+                // auto hasRet = builtin->Get()(slot, argCount, returnValue);
+                auto hasRet = builtin->Get<BuiltinFn>()(slot, argCount, returnValue);
+                // -- 修改内容
 
                 STACK_TOP_JUMP(-(argCount + 1));
 
@@ -434,6 +437,16 @@ void VM::Execute()
             PUSH(ALLOCATE_INDEX_REF_OBJECT(slot, idxValue));
             break;
         }
+        // ++ 新增内容
+         case OP_DLL_IMPORT:
+        {
+            auto name = TO_STR_VALUE(POP())->value;
+            Allocator::GetInstance()->DisableGC();
+            RegisterDLLs(name);
+            Allocator::GetInstance()->EnableGC();
+            break;
+        }
+        // -- 新增内容
         default:
             break;
         }

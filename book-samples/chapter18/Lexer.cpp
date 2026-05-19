@@ -16,6 +16,9 @@ const std::unordered_map<std::string, TokenType> keywords =
         {"struct", TokenType::STRUCT},
         {"ref", TokenType::REF},
         {"import", TokenType::IMPORT},
+        // ++ 新增内容
+        {"dllimport", TokenType::DLLIMPORT},
+        // -- 新增内容
 };
 
 Lexer::Lexer()

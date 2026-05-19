@@ -93,23 +93,85 @@ struct FunctionObject : public Object
 
 using BuiltinFn = std::function<bool(Value *, uint8_t, Value &)>;
 
+// ++ 新增内容
+struct NativeData
+{
+    void *nativeData{nullptr};
+    std::function<void(void *nativeData)> destroyFunc;
+
+    template <typename T>
+    T *As()
+    {
+        return (T *)nativeData;
+    }
+
+    template <typename T>
+    bool IsSameTypeAs()
+    {
+        return std::is_same<T, typename std::remove_reference<decltype(nativeData)>::type>::value == 1;
+    }
+};
+// -- 新增内容
+
+// ++ 修改内容
+// struct BuiltinObject : public Object
+// {
+//     BuiltinObject(const BuiltinFn &v)
+//         : Object(ObjectType::BUILTIN)
+//     {
+//         data = v;
+//     }
+
+//     ~BuiltinObject() = default;
+
+//     BuiltinFn Get()
+//     {
+//         return data;
+//     }
+
+//     BuiltinFn data;
+// };
 struct BuiltinObject : public Object
 {
-    BuiltinObject(const BuiltinFn &v)
+    BuiltinObject(void *nativeData, std::function<void(void *nativeData)> destroyFunc)
+        : Object(ObjectType::BUILTIN)
+    {
+        NativeData nd;
+        nd.nativeData = nativeData;
+        nd.destroyFunc = destroyFunc;
+        data = nd;
+    }
+
+    template <typename T>
+    requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value>)
+        BuiltinObject(const T &v)
         : Object(ObjectType::BUILTIN)
     {
         data = v;
     }
 
-    ~BuiltinObject() = default;
-
-    BuiltinFn Get()
+    ~BuiltinObject()
     {
-        return data;
+        if (Is<NativeData>())
+            Get<NativeData>().destroyFunc(Get<NativeData>().nativeData);
     }
 
-    BuiltinFn data;
+    template <typename T>
+    requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value> || std::is_same_v<T, NativeData>)
+        T Get()
+    {
+        return std::get<T>(data);
+    }
+
+    template <typename T>
+    requires(std::is_same_v<T, BuiltinFn> || std::is_same_v<T, Value> || std::is_same_v<T, NativeData>) bool Is()
+    {
+        return std::holds_alternative<T>(data);
+    }
+
+    std::variant<NativeData, BuiltinFn, Value> data;
 };
+// -- 修改内容
 
 struct UpvalueObject : public Object
 {

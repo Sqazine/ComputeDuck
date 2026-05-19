@@ -190,6 +190,10 @@ void Compiler::CompileExpr(Expr *expr, const RWState &state)
         return CompileStructExpr((StructExpr *)expr);
     case AstType::REF:
         return CompileRefExpr((RefExpr *)expr);
+    // ++ 新增内容
+     case AstType::DLL_IMPORT:
+        return CompileDllImportExpr((DllImportExpr *)expr);
+    // -- 新增内容
     default:
         ASSERT("Unknown expr.");
     }
@@ -424,6 +428,20 @@ void Compiler::CompileRefExpr(RefExpr *expr)
         RefSymbol(symbol, false);
     }
 }
+
+// ++ 新增内容
+void Compiler::CompileDllImportExpr(DllImportExpr *expr)
+{
+    auto dllpath = expr->dllPath;
+
+    RegisterDLLs(dllpath);
+
+    DefineBuiltin();
+
+    EmitConstant(ALLOCATE_OBJECT(StrObject, dllpath.c_str()));
+    Emit(OP_DLL_IMPORT);
+}
+// -- 新增内容
 
 void Compiler::RefSymbol(const Symbol &symbol, bool isIndexSymbol)
 {

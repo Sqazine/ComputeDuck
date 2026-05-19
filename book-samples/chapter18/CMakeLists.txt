@@ -19,12 +19,27 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Bin/Release)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/Bin/Debug)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Bin/Release)
 
+# ++ 新增内容
+option(COMPUTEDUCK_BUILD_WITH_SDL2 "build SDL2 third party for cdsdl2" OFF) 
+option(COMPUTEDUCK_BUILD_WITH_OPENGL "build glad third party for cdopengl" OFF)  
+# -- 新增内容
+
 file(GLOB EXAMPLES "${CMAKE_SOURCE_DIR}/examples/*.cd")
 source_group("examples" FILES ${EXAMPLES})
 
 set(LIB_NAME dycomputeduck)
 set(EXE_NAME computeduck)
 add_executable(${EXE_NAME} main.cc ${EXAMPLES})
+
+# ++ 新增内容
+if(COMPUTEDUCK_BUILD_WITH_SDL2)
+    add_subdirectory(library/cdsdl2)
+endif()
+
+if(COMPUTEDUCK_BUILD_WITH_OPENGL)
+    add_subdirectory(library/cdopengl)
+endif()
+# -- 新增内容
 
 file(GLOB ROOT_SRC "*.h" "*.cpp")
 source_group("" FILES ${ROOT_SRC})

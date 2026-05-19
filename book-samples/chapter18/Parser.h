@@ -58,6 +58,9 @@ private:
 	Expr *ParseUnaryExpr();
 	Expr *ParseFunctionExpr();
 	Expr *ParseRefExpr();
+	// ++ 新增内容
+	Expr *ParseDllImportExpr();
+	// -- 新增内容
 	Expr *ParseFunctionCallExpr(Expr *prefixExpr);
 	Expr *ParseBinaryExpr(Expr *unaryExpr);
 	Expr *ParseIndexExpr(Expr *unaryExpr);
