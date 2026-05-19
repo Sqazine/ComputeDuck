@@ -160,6 +160,11 @@ std::string Chunk::OpCodeStringify(const OpCodeList &opCodeList)
         case OP_REF_INDEX_UPVALUE:
             cout << std::format("{:08}\tOP_REF_INDEX_UPVALUE\t{}\n", curAddress,opCodeList[++i]);
             break;
+        // ++ 新增内容
+        case OP_DLL_IMPORT:
+            cout << std::format("{:08}\tOP_DLL_IMPORT\n", curAddress);
+            break;
+        // -- 新增内容
         default:
             break;
         }

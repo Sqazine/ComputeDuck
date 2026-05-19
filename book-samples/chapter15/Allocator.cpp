@@ -3,6 +3,12 @@
 #include "BuiltinManager.h"
 void Allocator::Init()
 {
+    // ++ 新增内容
+    m_FirstObject = nullptr;
+    m_CurObjCount = 0;
+    m_MaxObjCount = STACK_COUNT;
+    // -- 新增内容
+
     memset(m_ValueStack, 0, sizeof(Value) * STACK_COUNT);
 
     ResetStatus();

@@ -48,6 +48,9 @@ enum OpCode
     OP_REF_INDEX_GLOBAL,
     OP_REF_INDEX_LOCAL,
     OP_REF_INDEX_UPVALUE,
+    // ++ 新增内容
+    OP_DLL_IMPORT,
+    // -- 新增内容
 };
 
 using OpCodeList = std::vector<int16_t>;

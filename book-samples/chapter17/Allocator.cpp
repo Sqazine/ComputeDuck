@@ -3,6 +3,10 @@
 #include "BuiltinManager.h"
 void Allocator::Init()
 {
+    m_FirstObject = nullptr;
+    m_CurObjCount = 0;
+    m_MaxObjCount = STACK_COUNT;
+
     memset(m_ValueStack, 0, sizeof(Value) * STACK_COUNT);
 
     ResetStatus();

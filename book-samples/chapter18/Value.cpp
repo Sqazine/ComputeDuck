@@ -54,6 +54,10 @@ bool operator!=(const Value &left, const Value &right)
 void FindActualValue(const Value &v, Value &result)
 {
     GetEndOfRefValue(v, result);
+    // ++ 新增内容
+    if (IS_BUILTIN_VALUE(result) && TO_BUILTIN_VALUE(result)->Is<Value>())
+        result = TO_BUILTIN_VALUE(result)->Get<Value>();
+    // -- 新增内容
 }
 
 Value *GetEndOfRefValuePtr(Value *v)

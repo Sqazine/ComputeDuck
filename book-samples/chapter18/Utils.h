@@ -19,6 +19,9 @@
 
 #define BUILTIN_FN(x) cd_builtin_fn_##x
 
+// ++ 新增内容
+#define REGISTER_BUILTIN_VALUE(x) BuiltinManager::GetInstance()->Register(ALLOCATE_OBJECT(StrObject, #x), Value((uint64_t)x))
+// -- 新增内容
 #define REGISTER_BUILTIN_FN(x) BuiltinManager::GetInstance()->Register<BuiltinFn>(ALLOCATE_OBJECT(StrObject, #x), cd_builtin_fn_##x)
 
 constexpr uint32_t UINT8_COUNT = UINT8_MAX + 1; // 256
@@ -57,8 +60,10 @@ constexpr uint32_t UPVALUE_COUNT = UINT8_COUNT / 8; // 16
 COMPUTEDUCK_API std::string ReadFile(std::string_view path);
 COMPUTEDUCK_API void WriteFile(std::string_view path, std::string_view content);
 
-uint32_t HashString(char *str);
-
+COMPUTEDUCK_API uint32_t HashString(char *str);
 
 COMPUTEDUCK_API std::string PointerAddressToString(void *pointer);
 
+// ++ 新增内容
+COMPUTEDUCK_API void RegisterDLLs(std::string rawDllPath);
+// -- 新增内容

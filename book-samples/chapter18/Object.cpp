@@ -26,7 +26,7 @@ std::string ObjectStringify(Object *object
         result += "]";
         return result;
     }
-    
+
     case ObjectType::FUNCTION:
     {
         std::string result = "function(0x" + PointerAddressToString(object) + ")";
@@ -87,7 +87,7 @@ bool IsObjectEqual(Object *left, Object *right)
     {
     case ObjectType::STR:
         return TO_STR_OBJ(left)->hash == TO_STR_OBJ(right)->hash;
-    
+
     case ObjectType::FUNCTION:
     {
         if (TO_FUNCTION_OBJ(left)->chunk.opCodeList.size() != TO_FUNCTION_OBJ(right)->chunk.opCodeList.size())
@@ -103,9 +103,19 @@ bool IsObjectEqual(Object *left, Object *right)
     }
     case ObjectType::BUILTIN:
     {
-        auto leftFn = TO_BUILTIN_OBJ(left)->Get();
-        auto rightFn = TO_BUILTIN_OBJ(right)->Get();
-       return leftFn.target<BuiltinFn>() == rightFn.target<BuiltinFn>();
+        // ++ 修改内容
+        //     auto leftFn = TO_BUILTIN_OBJ(left)->Get();
+        //     auto rightFn = TO_BUILTIN_OBJ(right)->Get();
+        //    return leftFn.target<BuiltinFn>() == rightFn.target<BuiltinFn>();
+        if (TO_BUILTIN_OBJ(left)->Is<NativeData>())
+        {
+            auto thisNd = TO_BUILTIN_OBJ(left)->Get<NativeData>();
+            auto otherNd = TO_BUILTIN_OBJ(right)->Get<NativeData>();
+            return PointerAddressToString(thisNd.nativeData) == PointerAddressToString(otherNd.nativeData);
+        }
+        else
+            return TO_BUILTIN_OBJ(left)->data.index() == TO_BUILTIN_OBJ(right)->data.index();
+        // -- 修改内容
     }
     case ObjectType::UPVALUE:
     {
@@ -173,11 +183,11 @@ void MarkObject(Object *object)
     }
     case ObjectType::CLOSURE:
     {
-        ClosureObject* closure =TO_CLOSURE_OBJ(object);
+        ClosureObject *closure = TO_CLOSURE_OBJ(object);
         MarkObject(closure->function);
         for (size_t i = 0; i < UPVALUE_COUNT; ++i)
         {
-            UpvalueObject* upvalue = closure->upvalues[i];
+            UpvalueObject *upvalue = closure->upvalues[i];
             MarkObject(upvalue);
         }
         break;
@@ -332,13 +342,13 @@ void StrErase(StrObject *left, uint32_t idx)
 
 void ArrayInsert(ArrayObject *left, uint32_t idx, const Value &element)
 {
-     Value *newElements = new Value[left->len + 1];
+    Value *newElements = new Value[left->len + 1];
     for (uint32_t i = 0; i < idx; ++i)
         newElements[i] = left->elements[i];
     newElements[idx] = element;
-    for (uint32_t i = idx+1; i < left->len; ++i)
+    for (uint32_t i = idx + 1; i < left->len; ++i)
         newElements[i] = left->elements[i];
-    
+
     SAFE_DELETE_ARRAY(left->elements);
 
     left->elements = newElements;

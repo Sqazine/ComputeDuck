@@ -16,6 +16,9 @@ std::unordered_map<TokenType, UnaryFn> Parser::m_UnaryFunctions =
 		{TokenType::TILDE, &Parser::ParseUnaryExpr},
 		{TokenType::LBRACE, &Parser::ParseStructExpr},
 		{TokenType::REF, &Parser::ParseRefExpr},
+		// ++ 新增内容
+		{TokenType::DLLIMPORT, &Parser::ParseDllImportExpr},
+		// -- 新增内容
 };
 
 std::unordered_map<TokenType, BinaryFn> Parser::m_BinaryFunctions =
@@ -394,6 +397,20 @@ Expr *Parser::ParseStructCallExpr(Expr *prefixExpr)
 	structCallExpr->callMember = (IdentifierExpr *)ParseIdentifierExpr();
 	return structCallExpr;
 }
+
+// ++ 新增内容
+Expr *Parser::ParseDllImportExpr()
+{
+	Consume(TokenType::DLLIMPORT, "Expect 'dllimport' keyword");
+	Consume(TokenType::LPAREN, "Expect '(' after 'dllimport' keyword");
+
+	auto path = Consume(TokenType::STRING, "Expect dll path.").literal;
+
+	Consume(TokenType::RPAREN, "Expect ')' after dllimport expr");
+
+	return new DllImportExpr(path);
+}
+// -- 新增内容
 
 Token Parser::GetCurToken()
 {

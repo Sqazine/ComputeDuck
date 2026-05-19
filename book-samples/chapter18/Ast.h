@@ -28,6 +28,9 @@ enum class AstType
 	STRUCT,
 	STRUCT_CALL,
 	REF,
+	// ++ 新增内容
+	DLL_IMPORT,
+	// -- 新增内容
 };
 
 struct AstNode
@@ -176,6 +179,20 @@ struct BinaryExpr : public Expr
 	Expr *left;
 	Expr *right;
 };
+
+// ++ 新增内容
+struct DllImportExpr : public Expr
+{
+	DllImportExpr() : Expr(AstType::DLL_IMPORT) {}
+	DllImportExpr(std::string_view path) : Expr(AstType::DLL_IMPORT), dllPath(path) {}
+	~DllImportExpr() override = default;
+
+	std::string Stringify() override { return "dllimport(\"" + dllPath + "\")"; }
+
+	std::string dllPath;
+};
+// -- 新增内容
+
 
 struct Stmt : public AstNode
 {
