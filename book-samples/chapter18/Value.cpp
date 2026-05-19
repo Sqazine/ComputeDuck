@@ -75,13 +75,12 @@ void GetEndOfRefValue(const Value &v, Value &result)
         result = *TO_REF_VALUE(result)->pointer;
 }
 
-void SetValue(Value* slot,const Value& value)
+void SetValue(Value *slot, const Value &value)
 {
-    if(!IS_REF_VALUE(value) && IS_REF_VALUE(*slot))
+    if (!IS_REF_VALUE(value) && IS_REF_VALUE(*slot))
         slot = GetEndOfRefValuePtr(slot);
     *slot = value;
 }
-
 
 // - * /
 #define COMMON_BINARY(l, op, r)                                                                               \
@@ -174,8 +173,10 @@ bool ValueLess(const Value &l, const Value &r)
 
 bool ValueEqual(const Value &l, const Value &r)
 {
-    // return l.type == r.type && l.stored == r.stored;
-    return l == r;
+    Value left, right;
+    FindActualValue(l, left);
+    FindActualValue(r, right);
+    return left == right;
 }
 
 bool ValueLogicAnd(const Value &l, const Value &r)
@@ -205,23 +206,29 @@ double ValueBitXor(const Value &l, const Value &r)
 
 bool ValueLogicNot(const Value &l)
 {
-    if (!IS_BOOL_VALUE(l))
-        ASSERT("Invalid op:'!' %s", l.Stringify().c_str());
-    return (!TO_BOOL_VALUE(l));
+    Value right;
+    FindActualValue(l, right);
+    if (!IS_BOOL_VALUE(right))
+        ASSERT("Invalid op:'!' %s", right.Stringify().c_str());
+    return (!TO_BOOL_VALUE(right));
 }
 
 double ValueBitNot(const Value &l)
 {
-    if (!IS_NUM_VALUE(l))
-        ASSERT("Invalid op:~ %s", l.Stringify().c_str());
-    return (double)(~(uint64_t)TO_NUM_VALUE(l));
+    Value right;
+    FindActualValue(l, right);
+    if (!IS_NUM_VALUE(right))
+        ASSERT("Invalid op:~ %s", right.Stringify().c_str());
+    return (double)(~(uint64_t)TO_NUM_VALUE(right));
 }
 
 double ValueMinus(const Value &l)
 {
-    if (!IS_NUM_VALUE(l))
-        ASSERT("Invalid op:'-' %s", l.Stringify().c_str());
-    return (-TO_NUM_VALUE(l));
+    Value right;
+    FindActualValue(l, right);
+    if (!IS_NUM_VALUE(right))
+        ASSERT("Invalid op:'-' %s", right.Stringify().c_str());
+    return (-TO_NUM_VALUE(right));
 }
 
 void GetArrayObjectElement(const Value &ds, const Value &index, Value &result)
