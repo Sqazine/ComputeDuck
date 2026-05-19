@@ -2,10 +2,6 @@
 #include <string>
 #include <type_traits>
 #include <cfloat>
-#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
-#include <set>
-#include <variant>
-#endif
 #include "Utils.h"
 
 #define IS_NIL_VALUE(v) ((v).type == ValueType::NIL)

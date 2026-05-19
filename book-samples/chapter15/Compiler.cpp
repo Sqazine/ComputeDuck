@@ -14,12 +14,21 @@ FunctionObject *Compiler::Compile(const std::vector<Stmt *> &stmts)
 {
     ResetStatus();
 
+    // ++ 新增内容
+    Allocator::GetInstance()->DisableGC();
+    // -- 新增内容
+
     for (const auto &stmt : stmts)
         CompileStmt(stmt);
 
     auto mainFn = ALLOCATE_OBJECT(FunctionObject, CurChunk(), m_SymbolTable->GetLocalVarCount());
 
     SAFE_DELETE(m_SymbolTable);
+
+    // ++ 新增内容
+    Allocator::GetInstance()->EnableGC();
+    // -- 新增内容
+
     return mainFn;
 }
 
@@ -392,7 +401,7 @@ void Compiler::CompileStructCallExpr(StructCallExpr *expr, const RWState &state)
     CompileExpr(expr->callee);
 
     EmitConstant(ALLOCATE_OBJECT(StrObject, ((IdentifierExpr *)expr->callMember)->literal.c_str()));
-   
+
     if (state == RWState::READ)
         Emit(OP_GET_STRUCT);
     else
