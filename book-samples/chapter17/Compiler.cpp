@@ -14,12 +14,17 @@ FunctionObject *Compiler::Compile(const std::vector<Stmt *> &stmts)
 {
     ResetStatus();
 
+    Allocator::GetInstance()->DisableGC();
+
     for (const auto &stmt : stmts)
         CompileStmt(stmt);
 
     auto mainFn = ALLOCATE_OBJECT(FunctionObject, CurChunk(), m_SymbolTable->GetLocalVarCount());
 
     SAFE_DELETE(m_SymbolTable);
+
+    Allocator::GetInstance()->EnableGC();
+
     return mainFn;
 }
 

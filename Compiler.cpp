@@ -25,8 +25,7 @@ FunctionObject *Compiler::Compile(const std::vector<Stmt *> &stmts)
     SAFE_DELETE(m_SymbolTable);
 
     Allocator::GetInstance()->EnableGC();
-    Allocator::GetInstance()->ResetStatus();
-
+    
     return mainFn;
 }
 

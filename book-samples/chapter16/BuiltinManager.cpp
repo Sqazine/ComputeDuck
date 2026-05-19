@@ -132,12 +132,16 @@ BuiltinManager *BuiltinManager::GetInstance()
 
 void BuiltinManager::Init()
 {
+    Allocator::GetInstance()->DisableGC();
+
     REGISTER_BUILTIN_FN(print);
     REGISTER_BUILTIN_FN(println);
     REGISTER_BUILTIN_FN(sizeof);
     REGISTER_BUILTIN_FN(insert);
     REGISTER_BUILTIN_FN(erase);
     REGISTER_BUILTIN_FN(clock);
+
+    Allocator::GetInstance()->EnableGC();
 }
 
 BuiltinObject *BuiltinManager::FindBuiltinObject(StrObject *name)
