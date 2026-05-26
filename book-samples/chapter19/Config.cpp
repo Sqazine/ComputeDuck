@@ -25,3 +25,16 @@ std::string Config::ToFullPath(std::string_view filePath)
         fullPath = m_CurExecuteFileDirectory + fullPath;
     return fullPath;
 }
+
+// ++ 新增内容
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+void Config::SetUseJit(bool b)
+{
+    m_UseJit = b;
+}
+bool Config::IsUseJit()
+{
+    return m_UseJit;
+}
+#endif
+// -- 新增内容

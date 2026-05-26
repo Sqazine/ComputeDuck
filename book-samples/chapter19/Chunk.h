@@ -49,6 +49,12 @@ enum OpCode
     OP_REF_INDEX_LOCAL,
     OP_REF_INDEX_UPVALUE,
     OP_DLL_IMPORT,
+    // ++ 新增内容
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+    OP_JUMP_START,
+    OP_JUMP_END,
+#endif
+    // -- 新增内容
 };
 
 using OpCodeList = std::vector<int16_t>;

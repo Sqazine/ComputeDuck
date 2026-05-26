@@ -8,6 +8,12 @@
 #include "Chunk.h"
 #include "HashTable.h"
 
+// ++ 新增内容
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+#include "JitUtils.h"
+#endif
+// -- 新增内容
+
 #define TO_STR_OBJ(obj) (static_cast<StrObject *>(obj))
 #define TO_ARRAY_OBJ(obj) (static_cast<ArrayObject *>(obj))
 #define TO_FUNCTION_OBJ(obj) (static_cast<FunctionObject *>(obj))
@@ -165,13 +171,38 @@ struct UpvalueObject : public Object
 struct ClosureObject : public Object
 {
     ClosureObject(FunctionObject *fn) : Object(ObjectType::CLOSURE), function(fn)
+    // ++ 新增内容
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+                                        ,
+                                        callCount(0), uuid(GenerateUUID())
+#endif
+    // -- 新增内容
     {
         memset(upvalues, 0, sizeof(UpvalueObject *) * UPVALUE_COUNT);
     }
-    ~ClosureObject() = default;
+
+    // ++ 新增内容
+    // ~ClosureObject() = default;
+    ~ClosureObject()
+    {
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+        SAFE_DELETE(returnTypeSet);
+        jitCache.clear();
+#endif
+    }
+    // -- 新增内容
 
     FunctionObject *function;
     UpvalueObject *upvalues[UPVALUE_COUNT]{};
+
+// ++ 新增内容
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+    uint32_t callCount;
+    std::unordered_map<size_t, JitFnDecl> jitCache;
+    TypeSet *returnTypeSet{nullptr}; //record function return types,some function with multiply return stmt may return different types of value
+    std::string uuid;
+#endif
+// -- 新增内容
 };
 
 struct StructObject : public Object

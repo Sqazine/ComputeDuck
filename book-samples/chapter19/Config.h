@@ -11,9 +11,21 @@ public:
     const std::string &GetExecuteFileDirectory() const;
 
     std::string ToFullPath(std::string_view filePath);
+
 private:
     Config() = default;
     ~Config() = default;
 
     std::string m_CurExecuteFileDirectory;
+
+// ++ 新增内容
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+public:
+    void SetUseJit(bool b);
+    bool IsUseJit();
+
+private:
+    bool m_UseJit{true};
+#endif
+// -- 新增内容
 };

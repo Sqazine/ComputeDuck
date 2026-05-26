@@ -69,6 +69,14 @@ void Repl(std::string_view exePath)
             return;
         else if (line == "clear")
             allLines.clear();
+        // ++ 新增内容
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+		else if (line == "-nj" || line == "--no-jit")
+			Config::GetInstance()->SetUseJit(false);
+		else if (line == "-j" || line == "--jit")
+			Config::GetInstance()->SetUseJit(true);
+#endif
+        // -- 新增内容
         else
         {
             allLines += line;
@@ -91,6 +99,12 @@ int32_t PrintUsage()
     std::cout << "Usage: ComputeDuck [option]:" << std::endl;
     std::cout << "-h or --help:show usage info." << std::endl;
     std::cout << "-f or --file:run source file with a valid file path,like : ComputeDuck -f examples/array.cd." << std::endl;
+    // ++ 新增内容
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+	std::cout << "-nj or --no-jit:not use jit compiler" << std::endl;
+	std::cout << "-j or --jit:use jit compiler(default)" << std::endl;
+#endif
+    // -- 新增内容
     return EXIT_FAILURE;
 }
 
@@ -106,6 +120,16 @@ int32_t main(int argc, const char **argv)
             else
                 return PrintUsage();
         }
+
+        // ++ 新增内容
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+		if (strcmp(argv[i], "-nj") == 0 || strcmp(argv[i], "--no-jit") == 0)
+			Config::GetInstance()->SetUseJit(false);
+
+		if (strcmp(argv[i], "-j") == 0 || strcmp(argv[i], "--jit") == 0)
+			Config::GetInstance()->SetUseJit(true);
+#endif
+        // -- 新增内容
 
         if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
             return PrintUsage();

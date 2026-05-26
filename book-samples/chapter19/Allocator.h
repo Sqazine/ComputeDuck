@@ -12,6 +12,11 @@ struct CallFrame
         : closure(closure), slot(slot)
     {
         ip = closure->function->chunk.opCodeList.data();
+// ++ 新增内容
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+        closure->callCount++;
+#endif
+// -- 新增内容
     }
 
     bool IsEnd()

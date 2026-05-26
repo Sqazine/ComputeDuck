@@ -2,8 +2,34 @@
 #include "Allocator.h"
 #include "Object.h"
 #include "BuiltinManager.h"
+#include "Config.h"
+
+// ++ 新增内容
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+#include "JitUtils.h"
+#include "Jit.h"
+#endif
+
+VM::~VM()
+{
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+    SAFE_DELETE(m_Jit);
+#endif
+}
+// -- 新增内容
+
 void VM::Run(FunctionObject *fn)
 {
+// ++ 新增内容
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+    if (Config::GetInstance()->IsUseJit())
+    {
+        SAFE_DELETE(m_Jit);
+        m_Jit = new Jit();
+    }
+#endif
+    // -- 新增内容
+
     Allocator::GetInstance()->ResetStatus();
 
     auto closure = ALLOCATE_OBJECT(ClosureObject, fn);
@@ -172,7 +198,7 @@ void VM::Execute()
                 if (i < 0 || i >= array->len)
                     ASSERT("Invalid index:%ld outside of array's size:%ld", i, array->len)
                 else
-                   SetValue(&array->elements[i], v);
+                    SetValue(&array->elements[i], v);
             }
             else
                 ASSERT("Invalid index op: %s[%s]", ds.Stringify().c_str(), index.Stringify().c_str());
@@ -226,6 +252,12 @@ void VM::Execute()
         case OP_JUMP_IF_FALSE:
         {
             auto address = *frame->ip++;
+// ++ 新增内容
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+            auto mode = *frame->ip++;
+#endif
+// -- 新增内容
+
             auto value = POP();
             if (!IS_BOOL_VALUE(value))
                 ASSERT("The if condition not a boolean value");
@@ -236,17 +268,55 @@ void VM::Execute()
         case OP_JUMP:
         {
             auto address = *frame->ip++;
+// ++ 新增内容
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+            auto mode = *frame->ip++;
+#endif
+// -- 新增内容
             frame->ip = frame->closure->function->chunk.opCodeList.data() + address;
             break;
         }
+// ++ 新增内容
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+        case OP_JUMP_START:
+        {
+            frame->ip++;
+            break;
+        }
+        case OP_JUMP_END:
+        {
+            break;
+        }
+#endif
+//  -- 新增内容
         case OP_RETURN:
         {
             auto returnCount = *frame->ip++;
+
+            // ++ 新增内容
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+            if (frame->closure->returnTypeSet == nullptr)
+                frame->closure->returnTypeSet = new TypeSet();
+#endif
+            // -- 新增内容
 
             Value value;
             if (returnCount == 1)
             {
                 value = POP();
+// ++ 新增内容
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+                if (IS_OBJECT_VALUE(value))
+                {
+                    if (IS_CLOSURE_VALUE(value))
+                        frame->closure->returnTypeSet->Insert(TO_CLOSURE_VALUE(value)->returnTypeSet);
+                    else
+                        frame->closure->returnTypeSet->Insert(TO_OBJECT_VALUE(value)->type);
+                }
+                else
+                    frame->closure->returnTypeSet->Insert(value.type);
+#endif
+// -- 新增内容
             }
 
             Allocator::GetInstance()->ClosedUpvalues(frame->slot);
@@ -284,6 +354,12 @@ void VM::Execute()
                 auto callFrame = CallFrame(closure, GET_STACK_TOP() - argCount);
                 PUSH_CALL_FRAME(callFrame);
                 SET_STACK_TOP(callFrame.slot + closure->function->localVarCount);
+
+                // ++ 新增内容
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+                RunJit(callFrame);
+#endif
+                // -- 新增内容
             }
             else if (IS_BUILTIN_VALUE(value))
             {
@@ -383,7 +459,7 @@ void VM::Execute()
             bool isSuccess = structInstance->members->Find(TO_STR_VALUE(memberName));
             if (!isSuccess)
                 ASSERT("no member named:(%s) in struct instance:(0x%s)", memberName.Stringify().c_str(), PointerAddressToString(structInstance).c_str());
-           
+
             Value *structMember = structInstance->members->Get(TO_STR_VALUE(memberName));
             SetValue(structMember, value);
 
@@ -434,7 +510,7 @@ void VM::Execute()
             PUSH(ALLOCATE_INDEX_REF_OBJECT(slot, idxValue));
             break;
         }
-         case OP_DLL_IMPORT:
+        case OP_DLL_IMPORT:
         {
             auto name = TO_STR_VALUE(POP())->value;
             Allocator::GetInstance()->DisableGC();
@@ -447,3 +523,65 @@ void VM::Execute()
         }
     }
 }
+
+// ++ 新增内容
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+void VM::RunJit(const CallFrame &frame)
+{
+    if (!Config::GetInstance()->IsUseJit() ||
+        frame.closure->callCount < JIT_TRIGGER_COUNT ||
+        !frame.closure->returnTypeSet ||
+        frame.closure->function->parameterCount > JIT_FUNCTION_MAX_PARAMETER_COUNT)
+        return;
+
+    // get function name by hashing arguments
+    size_t paramTypeHash = HashValueList(frame.slot, frame.slot + frame.closure->function->parameterCount);
+    auto fnName = GenerateFunctionName(frame.closure->uuid, frame.closure->returnTypeSet->Hash(), paramTypeHash);
+
+    // compile jit function
+    {
+        auto iter = frame.closure->jitCache.find(paramTypeHash);
+        if (frame.closure->jitCache.size() == 0 ||
+            (iter == frame.closure->jitCache.end() && frame.closure->returnTypeSet->IsNotMultiType()) ||
+            iter->second.state == JitCompileState::DEPEND)
+        {
+            m_Jit->ResetStatus();
+            frame.closure->jitCache[paramTypeHash] = m_Jit->Compile(frame, fnName);
+            iter = frame.closure->jitCache.find(paramTypeHash);
+        }
+
+        if (iter->second.state != JitCompileState::SUCCESS)
+            return;
+    }
+
+    //execute jit function
+    {
+        // Disable gc to avoid memory leak while jit function is running
+        Allocator::GetInstance()->DisableGC();
+
+        if (frame.closure->returnTypeSet->IsOnlyTypeOf(ValueType::NUM))
+            ExecuteJitFunction<double>(frame, fnName);
+        else if (frame.closure->returnTypeSet->IsOnlyTypeOf(ValueType::BOOL))
+            ExecuteJitFunction<bool>(frame, fnName);
+        else if (frame.closure->returnTypeSet->IsOnlyTypeOf(ObjectType::STR))
+            ExecuteJitFunction<StrObject *>(frame, fnName);
+        else if (frame.closure->returnTypeSet->IsOnlyTypeOf(ObjectType::ARRAY))
+            ExecuteJitFunction<ArrayObject *>(frame, fnName);
+        else if (frame.closure->returnTypeSet->IsOnlyTypeOf(ObjectType::REF))
+            ExecuteJitFunction<RefObject *>(frame, fnName);
+        else if (frame.closure->returnTypeSet->IsOnlyTypeOf(ObjectType::STRUCT))
+            ExecuteJitFunction<StructObject *>(frame, fnName);
+        else if (frame.closure->returnTypeSet->IsOnlyTypeOf(ValueType::NIL))
+        {
+            ExecuteJitFunction<void>(frame, fnName);
+            PUSH(Value());
+        }
+        else
+            ExecuteJitFunction<void>(frame, fnName);
+
+        Allocator::GetInstance()->EnableGC();
+    }
+}
+
+#endif
+// -- 新增内容

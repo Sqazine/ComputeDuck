@@ -17,6 +17,11 @@
 #define COMPUTEDUCK_API
 #endif
 
+// ++ 新增内容
+#define STR(x) #x
+#define BUILTIN_FN_UNARY_STR STR(cd_builtin_fn_)
+// -- 新增内容
+
 #define BUILTIN_FN(x) cd_builtin_fn_##x
 
 #define REGISTER_BUILTIN_VALUE(x) BuiltinManager::GetInstance()->Register(ALLOCATE_OBJECT(StrObject, #x), Value((uint64_t)x))

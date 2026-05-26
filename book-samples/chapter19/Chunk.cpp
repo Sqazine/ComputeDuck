@@ -104,12 +104,37 @@ std::string Chunk::OpCodeStringify(const OpCodeList &opCodeList)
         case OP_GET_LOCAL:
             cout << std::format("{:08}\tOP_GET_LOCAL\t{}\n", curAddress, opCodeList[++i]);
             break;
-        case OP_JUMP:
-            cout << std::format("{:08}\tOP_JUMP\t{}\n", curAddress, opCodeList[++i]);
+        // ++ 修改内容
+        // case OP_JUMP:
+        //     cout << std::format("{:08}\tOP_JUMP\t{}\n", curAddress, opCodeList[++i]);
+        //     break;
+        // case OP_JUMP_IF_FALSE:
+        //     cout << std::format("{:08}\tOP_JUMP_IF_FALSE\t{}\n", curAddress, opCodeList[++i]);
+        //     break;
+           case OP_JUMP:
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+            cout << std::format("{:08}\tOP_JUMP\t{}\t{}\n", curAddress,opCodeList[++i],opCodeList[++i]);
+#else
+            cout << std::format("{:08}\tOP_JUMP\t{}\n", curAddress,opCodeList[++i]);
+#endif
             break;
         case OP_JUMP_IF_FALSE:
-            cout << std::format("{:08}\tOP_JUMP_IF_FALSE\t{}\n", curAddress, opCodeList[++i]);
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+            cout << std::format("{:08}\tOP_JUMP_IF_FALSE\t{}\t{}\n", curAddress,opCodeList[++i],opCodeList[++i]);
             break;
+#else
+            cout << std::format("{:08}\tOP_JUMP_IF_FALSE\t{}\n", curAddress,opCodeList[++i]);
+#endif
+            break;
+#ifdef COMPUTEDUCK_BUILD_WITH_LLVM
+        case OP_JUMP_START:
+            cout << std::format("{:08}\tOP_JUMP_START\t{}\n", curAddress,opCodeList[++i]);
+            break;
+        case OP_JUMP_END:
+            cout << std::format("{:08}\tOP_JUMP_END\n", curAddress);
+            break;
+#endif
+            // -- 修改内容
         case OP_RETURN:
             cout << std::format("{:08}\tOP_RETURN\t{}\n", curAddress, opCodeList[++i]);
             break;
