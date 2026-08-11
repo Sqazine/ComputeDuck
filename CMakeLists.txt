@@ -29,6 +29,18 @@ set(EXE_NAME computeduck)
 add_executable(${EXE_NAME} main.cc ${EXAMPLES})
 
 if(COMPUTEDUCK_BUILD_WITH_SDL2)
+    set(SDL2_ROOT_DIR "${CMAKE_SOURCE_DIR}/3rd/SDL-release-2.28.2")
+    set(SDL2_GENERATE_DIR "${CMAKE_BINARY_DIR}/3rd/SDL2")
+    if(NOT EXISTS "${SDL2_ROOT_DIR}")
+        message(STATUS "Extracting 3rd/SDL-release-2.28.2.zip ...")
+        execute_process(
+            COMMAND ${CMAKE_COMMAND} -E tar xzf "${CMAKE_SOURCE_DIR}/3rd/SDL-release-2.28.2.zip"
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/3rd"
+            RESULT_VARIABLE SDL_EXTRACT_RESULT)
+        if(NOT SDL_EXTRACT_RESULT EQUAL 0)
+            message(FATAL_ERROR "Failed to extract 3rd/SDL-release-2.28.2.zip")
+        endif()
+    endif()
     add_subdirectory(library/cdsdl2)
 endif()
 
@@ -40,8 +52,17 @@ file(GLOB ROOT_SRC "*.h" "*.cpp" "*.inl" "*.cmake")
 source_group("" FILES ${ROOT_SRC})
 
 if(COMPUTEDUCK_BUILD_WITH_LLVM)
-    set(LLVM_ROOT_DIR "" CACHE PATH "set LLVM project root directory")
+    set(LLVM_ROOT_DIR "${CMAKE_SOURCE_DIR}/3rd/LLVM-release-14.x")
     set(LLVM_GENERATE_DIR "${CMAKE_BINARY_DIR}/3rd/llvm")
+    if(NOT EXISTS "${LLVM_ROOT_DIR}")
+        message(STATUS "Extracting 3rd/LLVM-release-14.x.zip ...")
+        execute_process(COMMAND ${CMAKE_COMMAND} -E tar xzf "${CMAKE_SOURCE_DIR}/3rd/LLVM-release-14.x.zip"
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/3rd"
+            RESULT_VARIABLE LLVM_EXTRACT_RESULT)
+        if(NOT LLVM_EXTRACT_RESULT EQUAL 0)
+            message(FATAL_ERROR "Failed to extract 3rd/LLVM-release-14.x.zip")
+        endif()
+    endif()
     set(LLVM_DIR ${LLVM_ROOT_DIR}/llvm)
     
     include(SetLLVM.cmake)

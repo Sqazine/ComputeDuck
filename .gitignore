@@ -12,7 +12,8 @@ _deps
 build/
 .vscode
 TmpDump.txt
-3rd/
+3rd/LLVM-release-14.x
+3rd/SDL-release-2.28.2
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

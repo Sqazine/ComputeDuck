@@ -33,6 +33,16 @@ add_executable(${EXE_NAME} main.cc ${EXAMPLES})
 
 # ++ 新增内容
 if(COMPUTEDUCK_BUILD_WITH_SDL2)
+    if(NOT EXISTS "${CMAKE_SOURCE_DIR}/../../3rd/SDL-release-2.28.2")
+        message(STATUS "Extracting ../../3rd/SDL-release-2.28.2.zip ...")
+        execute_process(
+            COMMAND ${CMAKE_COMMAND} -E tar xzf "${CMAKE_SOURCE_DIR}/../../3rd/SDL-release-2.28.2.zip"
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/../../3rd"
+            RESULT_VARIABLE SDL_EXTRACT_RESULT)
+        if(NOT SDL_EXTRACT_RESULT EQUAL 0)
+            message(FATAL_ERROR "Failed to extract ../../3rd/SDL-release-2.28.2.zip")
+        endif()
+    endif()
     add_subdirectory(library/cdsdl2)
 endif()
 

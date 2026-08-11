@@ -9,7 +9,7 @@ set(CD_SDL2_LIB_NAME cdsdl2)
 
 set(BUILD_SHARED_LIBS OFF)
 
-set(SDL2_ROOT_DIR "" CACHE PATH "set SDL2 root directory")
+set(SDL2_ROOT_DIR "${CMAKE_SOURCE_DIR}/../../3rd/SDL-release-2.28.2")
 set(SDL2_GENERATE_DIR "${CMAKE_BINARY_DIR}/3rd/SDL2")
 
 add_subdirectory(${SDL2_ROOT_DIR} ${SDL2_GENERATE_DIR} EXCLUDE_FROM_ALL)

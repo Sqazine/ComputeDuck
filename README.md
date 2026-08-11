@@ -35,6 +35,12 @@ apt install libx11-dev libxext-dev libxtst-dev libxrender-dev libxmu-dev libxmuu
 
 # C++ build:
 git clone https://github.com/Sqazine/ComputeDuck.git
+cd ComputeDuck
+# large third-party libraries (3rd/*.zip) are hosted with Git LFS,
+# download them before building:
+git lfs install
+git lfs pull
+cd ..
 mkdir build
 cd build 
 cmake ..
@@ -46,26 +52,19 @@ cmake -build .
 cmake -DCOMPUTEDUCK_BUILD_WITHOPENGL=ON ..
 ```
 
-##### If you want to build cdsdl2(SDL2 C++ binding library),you need to:
-1. Download SDL2.28.2 from [github](https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.28.2.zip)
-2. Extract SDL-release-2.28.2.zip
-3. cmake variable COMPUTEDUCK_BUILD_WITH_SDL2=ON,SDL2_ROOT_DIR=yourpath/to/SDL-release-2.28.2,like:
+##### If you want to build cdsdl2(SDL2 C++ binding library):
+Just turn on the cmake variable COMPUTEDUCK_BUILD_WITH_SDL2=ON. The corresponding source code in `3rd/` will be used automatically, and if it is missing, `3rd/SDL-release-2.28.2.zip` will be extracted automatically:
 
 ```sh
-cmake -DCOMPUTEDUCK_BUILD_WITH_SDL2=ON -DSDL2_ROOT_DIR=yourpath/to/SDL-release-2.28.2
+cmake -DCOMPUTEDUCK_BUILD_WITH_SDL2=ON ..
 ```
 
 ##### If you want to build JIT(LLVM implementation):
-
-1. download llvm 14.x from [github](https://github.com/llvm/llvm-project/archive/refs/heads/release/14.x.zip) or [gitee(zh-cn)](https://gitee.com/mirrors/LLVM/repository/archive/release/14.x.zip)
-2. Extract llvm-release-14.x.zip
-3. cmake variable COMPUTEDUCK_BUILD_WITH_LLVM=ON,LLVM_ROOT_DIR=yourpath/to/llvm-release-14.x,like:
+Just turn on the cmake variable COMPUTEDUCK_BUILD_WITH_LLVM=ON. The corresponding source code in `3rd/` will be used automatically, and if it is missing, `3rd/LLVM-release-14.x.zip` will be extracted automatically:
 
 ```sh
-cmake -DCOMPUTEDUCK_BUILD_WITH_LLVM=ON -DLLVM_ROOT_DIR=yourpath/to/llvm-release-14.x
+cmake -DCOMPUTEDUCK_BUILD_WITH_LLVM=ON ..
 ```
-
-(MY OPINION:Why did I choose such a cumbersome third-party library reference method, because I think LLVM and SDL are both options for ComputeDuck projects and should not be forced to be submodules)
 
 #### Python build:
 ```sh

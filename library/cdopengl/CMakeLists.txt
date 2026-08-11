@@ -8,9 +8,9 @@ endif()
 
 set(CD_OPENGL_LIB_NAME cdopengl)
 
-file(GLOB glad "${CMAKE_CURRENT_SOURCE_DIR}/glad/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/glad/*.c")
+file(GLOB glad "${CMAKE_SOURCE_DIR}/3rd/glad/*.h" "${CMAKE_SOURCE_DIR}/3rd/glad/*.c")
 add_library(${CD_OPENGL_LIB_NAME} SHARED  cdopengl.h  cdopengl.cpp ${glad})
-target_include_directories(${CD_OPENGL_LIB_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/glad" ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(${CD_OPENGL_LIB_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/3rd/glad" ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(${CD_OPENGL_LIB_NAME} PRIVATE ${LIB_NAME})
 target_compile_definitions(${CD_OPENGL_LIB_NAME} PUBLIC COMPUTEDUCK_BUILD_DLL)
 if(MSVC)

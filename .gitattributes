@@ -1,0 +1,2 @@
+# Git LFS: large third-party archives are too big for a regular git commit.
+3rd/*.zip filter=lfs diff=lfs merge=lfs -text
