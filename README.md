@@ -2,7 +2,7 @@
 
 # ComputeDuck
 
-A C-like syntax Scripting toy language  
+A toy scripting language with C-like syntax.
 
 <!-- PROJECT SHIELDS -->
 [![Contributors][contributors-shield]][contributors-url]
@@ -14,16 +14,16 @@ A C-like syntax Scripting toy language
 <br />
 
 ## Environment
-1. C++ compiler(>=17)
-2. CMake(>=3.10)
-3. Python(>=3.10)
-4. C#(>=.NetCore 9.0)
+1. C++ compiler (>= 17)
+2. CMake (>= 3.10)
+3. Python (>= 3.10)
+4. C# (>= .NET 9.0)
 
 ### How to Build
 
 #### C++ build:
 ```sh
-#on my ubuntu wsl2 environment,i need to install this(opengl and x11) to run sdl2 and opengl example
+# On my Ubuntu WSL2 environment, I need to install the following packages (OpenGL and X11) to run the SDL2 and OpenGL examples.
 sudo apt-get install build-essential
 sudo apt-get install libgl1-mesa-dev
 sudo apt-get install xorg
@@ -47,49 +47,54 @@ cmake ..
 cmake -build .
 ```
 
-##### If you want to build opengl example,you need to open COMPUTEDUCK_BUILD_WITHOPENGL:
+##### If you want to build the OpenGL example, enable `COMPUTEDUCK_BUILD_WITHOPENGL`:
 ```sh
 cmake -DCOMPUTEDUCK_BUILD_WITHOPENGL=ON ..
 ```
 
-##### If you want to build cdsdl2(SDL2 C++ binding library):
-Just turn on the cmake variable COMPUTEDUCK_BUILD_WITH_SDL2=ON. The corresponding source code in `3rd/` will be used automatically, and if it is missing, `3rd/SDL-release-2.28.2.zip` will be extracted automatically:
+##### If you want to build cdsdl2 (the SDL2 C++ binding library):
+Enable the CMake variable `COMPUTEDUCK_BUILD_WITH_SDL2=ON`. The corresponding source code in `3rd/` will be used automatically. If it is missing, `3rd/SDL-release-2.28.2.zip` will be extracted automatically:
 
 ```sh
 cmake -DCOMPUTEDUCK_BUILD_WITH_SDL2=ON ..
 ```
 
-##### If you want to build JIT(LLVM implementation):
-Just turn on the cmake variable COMPUTEDUCK_BUILD_WITH_LLVM=ON. The corresponding source code in `3rd/` will be used automatically, and if it is missing, `3rd/LLVM-release-14.x.zip` will be extracted automatically:
+**Note:** If you do not want to download `SDL-release-2.28.2.zip` from Git LFS, you can download it yourself from [GitHub](https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.28.2.zip) and put it in the `3rd/` directory.
+
+##### If you want to build the JIT (LLVM implementation):
+Enable the CMake variable `COMPUTEDUCK_BUILD_WITH_LLVM=ON`. The corresponding source code in `3rd/` will be used automatically. If it is missing, `3rd/LLVM-release-14.x.zip` will be extracted automatically:
 
 ```sh
 cmake -DCOMPUTEDUCK_BUILD_WITH_LLVM=ON ..
 ```
 
+**Note:** If you do not want to download `LLVM-release-14.x.zip` from Git LFS, you can download it yourself from [GitHub](https://github.com/llvm/llvm-project/archive/refs/heads/release/14.x.zip) or [Gitee (zh-CN)](https://gitee.com/mirrors/LLVM/repository/archive/release/14.x.zip) and put it in the `3rd/` directory.
+
+
 #### Python build:
 ```sh
-#dependencies
-# for SDL2 and opengl external libraries
+# Dependencies
+# External libraries for SDL2 and OpenGL
 pip install pysdl2-dll==2.30.2
 pip install PySDL2==0.9.16
 pip install PyOpenGL==3.1.6
 pip install PyOpenGL_accelerate==3.1.6
 
-# or using requirements.txt
+# Or use requirements.txt
 pip install -r otherImpl/python/requirements.txt
 
-#in terminal:
-#execute source file
-python3 main.py -f examples/array.cd.
-#repl mode
+# In the terminal:
+# Execute a source file
+python3 main.py -f examples/array.cd
+# REPL mode
 python3 main.py
 ```
 
 #### C#(.NetCore 9.0) build:
 ```sh
-#install .NetCore 9.0
-#just open otherImpl/c#/ComputeDuck.sln
-# all external dependencies will be downloaded automatically.
+# Install .NET 9.0.
+# Open otherImpl/c#/ComputeDuck.sln.
+# All external dependencies will be downloaded automatically.
 ```
 
 ## Features
@@ -112,13 +117,13 @@ Loop
 
 Struct
 
-Anonymous Struct(similar to javascript's Object)
+Anonymous struct (similar to JavaScript's `Object`)
 
 File import
 
 C++ dynamic library import
 
-Jit(LLVM implementation)
+JIT (LLVM implementation)
 
 ## Examples
 
@@ -167,7 +172,7 @@ SDL_Quit();
 
 ![](screenshots/Image.png)
 
-#### [SDL2 and opengl example](examples/sdl2-opengl.cd)
+#### [SDL2 and OpenGL example](examples/sdl2-opengl.cd)
 ```sh
 dllimport("cdsdl2");
 dllimport("cdopengl");
