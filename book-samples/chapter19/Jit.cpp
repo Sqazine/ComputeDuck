@@ -374,7 +374,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
                 left = AllocateValue(left);
                 right = AllocateValue(right);
 
-                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueGreater)), {left, right});
+                auto call = m_Builder->CreateCall(m_Module->getFunction(STR(ValueEqual)), {left, right});
                 Push(call);
             }
 
@@ -436,7 +436,7 @@ JitFnDecl Jit::Compile(const CallFrame &frame, const std::string &fnName)
             auto left = Pop().GetLlvmValue();
             auto right = Pop().GetLlvmValue();
             if (left->getType() == m_BoolType && right->getType() == m_BoolType)
-                Push(m_Builder->CreateLogicalAnd(left, right));
+                Push(m_Builder->CreateLogicalOr(left, right));
             else
             {
                 left = AllocateValue(left);
